@@ -652,6 +652,85 @@ def _student_attendance_summary(student: User, center, *, start_date=None, end_d
     }
 
 
+def _student_monthly_attendance_summary(
+    student: User,
+    center,
+    month_start: date,
+    *,
+    group_id: int | None = None,
+) -> dict:
+    """
+    Tanlangan oy uchun davomat statistikasi.
+
+    `total_lessons` — shu oy ichida o'quvchi guruhlari uchun belgilangan
+    rejalashtirilgan darslar soni (har bir guruhning ``oy_dars_soni``,
+    bo'sh bo'lsa 12 — bu admin paneldagi ``qarzdorlar_home`` mantig'i bilan
+    bir xil). `attended_lessons` — shu oy ichida ``present`` deb belgilangan
+    real yozuvlar soni. `attended` ``total`` dan oshmaydi (test bazadagi
+    takroriy yozuvlar uchun himoya).
+    """
+    month_end = _add_months(month_start, 1)
+
+    enrollments = Enrollment.objects.filter(
+        student=student,
+        group__center=center,
+        is_active=True,
+        student__is_archived=False,
+        group__is_archived=False,
+    ).select_related("group")
+    if group_id:
+        enrollments = enrollments.filter(group_id=group_id)
+
+    planned = 0
+    for enr in enrollments:
+        lessons = int(getattr(enr.group, "oy_dars_soni", 0) or 0) or 12
+        planned += lessons
+
+    att_qs = Attendance.objects.filter(
+        student=student,
+        group__center=center,
+        date__gte=month_start,
+        date__lt=month_end,
+    )
+    if group_id:
+        att_qs = att_qs.filter(group_id=group_id)
+
+    attended = att_qs.filter(
+        Q(status="present") | Q(present=True) | Q(forced=True)
+    ).count()
+    excused = att_qs.filter(status="absent_excused").count()
+    unexcused = att_qs.filter(status="absent_unexcused").count()
+    recorded = att_qs.count()
+
+    # `total_lessons` har doim "oy uchun rejalashtirilgan darslar soni" (ya'ni
+    # guruhning ``oy_dars_soni``). A'zolik ma'lumoti bo'lmasa, real yozilgan
+    # darslar sonidan foydalanamiz, lekin har holatda `attended` ni `total`
+    # dan oshmasligini ta'minlaymiz — bazadagi noto'g'ri/takroriy yozuvlar
+    # ko'rinishni buzmasligi uchun.
+    total = planned if planned > 0 else recorded
+    if total > 0 and attended > total:
+        attended = total
+    missed = max(0, total - attended)
+    percent = int(round((attended / total) * 100)) if total else 0
+
+    return {
+        "month": month_start.strftime("%Y-%m"),
+        "total_lessons": total,
+        "attended_lessons": attended,
+        "missed_lessons": missed,
+        "attendance_percent": percent,
+        # backward-compatible aliases
+        "present_lessons": attended,
+        "absent_excused": excused,
+        "absent_unexcused": unexcused,
+        "recorded_lessons": recorded,
+        "attendance_rate": percent,
+        "recent_total_lessons": total,
+        "recent_present_lessons": attended,
+        "recent_attendance_rate": percent,
+    }
+
+
 def _student_groups(student: User, center) -> list[dict]:
     enrollments = (
         Enrollment.objects.filter(student=student, group__center=center)
@@ -1153,42 +1232,177 @@ def _student_paid_this_month(student: User, center) -> int:
     return _money(paid)
 
 
-def _progress_level_from_timeline(timeline: dict, fallback_percent: int) -> dict:
+def _progress_breakdown(
+    timeline: dict,
+    *,
+    attendance_summary: dict | None = None,
+    fallback_percent: int = 0,
+) -> dict:
     """
-    Timeline'dan 0..5 oraliqdagi "Bilim darajasi"ni hisoblaydi.
+    Real ma'lumotlar asosida "Bilim darajasi" izohini qaytaradi.
 
-    Asosiy formula: oxirgi 30 kunning sof balli (total_score) -2..+2 oraliq
-    o'rtacha bo'lib, 0..5 ga normalize qilinadi. Agar timeline bo'sh bo'lsa,
-    fallback sifatida ``fallback_percent`` (0..100) -> 0..5 ko'rinishida
-    ishlatiladi.
+    Tarkibiy qismlar (jami 5 ball):
+      • Davomat (0..2 ball)  — attendance_rate ga proporsional
+      • Vazifalar (0..1 ball) — timeline'dagi "Vazifa bajardi" sodirlari
+      • Faollik (0..2 ball)   — kunlik o'rtacha ball asosida
+
+    Trend: oxirgi 30 kun ichida birinchi va ikkinchi yarmining o'rtacha
+    ballarini taqqoslab "yaxshilandi" / "barqaror" / "pasaydi" qiymatini
+    qaytaradi.
+
+    Agar real ma'lumot bo'lmasa (timeline bo'sh va attendance ham yo'q):
+    breakdown bo'sh, current_level=0, label="—", trend="kutilmoqda".
     """
     points = timeline.get("timeline") or []
-    monthly_change = 0.0
-    if points:
-        active_points = [p for p in points if int(p.get("score") or 0) != 0]
-        denom = len(active_points) or 1
-        avg_score = sum(int(p.get("score") or 0) for p in points) / denom
-        # avg_score ni -2..+2 oralig'ida deb 0..5 ga moslashtiramiz.
-        normalized = max(-2.0, min(2.0, avg_score))
-        current_level = round(2.5 + normalized * 1.25, 1)
+    has_timeline = bool(points)
 
+    attendance_pct = 0
+    if attendance_summary:
+        attendance_pct = int(
+            round(
+                attendance_summary.get("recent_attendance_rate")
+                or attendance_summary.get("attendance_rate")
+                or 0
+            )
+        )
+
+    if attendance_pct == 0 and not has_timeline and fallback_percent:
+        attendance_pct = max(0, min(100, int(fallback_percent or 0)))
+
+    attendance_rate = round(attendance_pct / 100, 2)
+
+    # ─── Vazifalar (0..1) ─────────────────────────────────────────────
+    homework_done = sum(
+        1
+        for p in points
+        if any("vazifa" in str(r).lower() for r in (p.get("reasons") or []))
+    )
+    active_days = sum(
+        1
+        for p in points
+        if int(p.get("score") or 0) != 0 or (p.get("reasons") or [])
+    )
+    homework_rate = (homework_done / active_days) if active_days else 0.0
+    homework_rate = round(homework_rate, 2)
+    homework_pct = int(round(homework_rate * 100))
+
+    # Tanlangan davrda biror ma'lumot bo'lsa — natijani ko'rsatamiz.
+    # "Kamida 3 kun" sharti olib tashlandi: ota-ona o'tgan oy / 3 oy
+    # tanlasa ham mos davrning natijasini darhol ko'radi.
+    has_data = has_timeline or attendance_pct > 0
+    has_min_data = has_data
+
+    # ─── Davomat (0..2) ───────────────────────────────────────────────
+    davomat_score = round(attendance_rate * 2, 2)
+
+    # ─── Vazifalar (0..1) ─────────────────────────────────────────────
+    vazifalar_score = round(homework_rate * 1, 2)
+
+    # ─── Faollik (0..2) ───────────────────────────────────────────────
+    if active_days > 0:
+        avg_daily = sum(int(p.get("score") or 0) for p in points) / active_days
+    else:
+        avg_daily = 0.0
+    # Avg daily score (typical 0..3 from attendance + homework + activity)
+    # is normalized to a 0..5 activity_score and gated per spec.
+    activity_score = round(min(5.0, max(0.0, avg_daily * 2.0)), 2)
+
+    if activity_score >= 4:
+        faollik_label = "Yuqori"
+        faollik_score = 2.0
+    elif activity_score >= 2:
+        faollik_label = "O‘rtacha"
+        faollik_score = 1.0
+    elif active_days > 0:
+        faollik_label = "Past"
+        faollik_score = 0.0
+    else:
+        faollik_label = "—"
+        faollik_score = 0.0
+
+    breakdown = [
+        {
+            "title": "Davomat",
+            "label": "Davomat",
+            "value": f"{attendance_pct}%" if has_data else "—",
+            "score": davomat_score,
+            "max_score": 2,
+        },
+        {
+            "title": "Vazifalar",
+            "label": "Vazifalar",
+            "value": f"{homework_pct}%" if has_timeline else "—",
+            "score": vazifalar_score,
+            "max_score": 1,
+        },
+        {
+            "title": "Faollik",
+            "label": "Faollik",
+            "value": faollik_label if active_days > 0 else "—",
+            "score": faollik_score,
+            "max_score": 2,
+        },
+    ]
+
+    raw_total = davomat_score + vazifalar_score + faollik_score
+    current_level = round(min(5.0, max(0.0, raw_total)), 2) if has_min_data else 0.0
+
+    if not has_min_data:
+        level_label = "Kutilmoqda"
+    elif current_level >= 4:
+        level_label = "Yaxshi"
+    elif current_level >= 2:
+        level_label = "O‘rtacha"
+    elif current_level > 0:
+        level_label = "E’tibor kerak"
+    else:
+        level_label = "—"
+
+    # ─── Trend (oxirgi 15 kun vs avvalgi 15 kun) ──────────────────────
+    monthly_change = 0.0
+    trend = "kutilmoqda"
+    if has_min_data and has_timeline:
         midpoint = len(points) // 2
         first_half = points[:midpoint]
         second_half = points[midpoint:]
         if first_half and second_half:
             first_avg = sum(int(p.get("score") or 0) for p in first_half) / len(first_half)
             second_avg = sum(int(p.get("score") or 0) for p in second_half) / len(second_half)
-            monthly_change = round((second_avg - first_avg) * 0.5, 1)
-    else:
-        current_level = round((max(0, min(100, int(fallback_percent or 0))) / 100) * 5, 1)
-
-    if current_level <= 0 and (fallback_percent or 0) > 0:
-        current_level = round(int(fallback_percent) / 20, 1)
+            delta = second_avg - first_avg
+            monthly_change = round(delta * 0.5, 1)
+            if delta > 0.2:
+                trend = "yaxshilandi"
+            elif delta < -0.2:
+                trend = "pasaydi"
+            else:
+                trend = "barqaror"
 
     return {
         "current_level": current_level,
         "max_level": 5,
+        "label": level_label,
+        "trend": trend,
         "monthly_change": monthly_change,
+        "breakdown": breakdown,
+        "has_data": has_data,
+        "has_min_data": has_min_data,
+        "attendance_rate": attendance_rate,
+        "homework_rate": homework_rate,
+        "activity_score": activity_score,
+        "active_days": active_days,
+    }
+
+
+def _progress_level_from_timeline(timeline: dict, fallback_percent: int) -> dict:
+    insight = _progress_breakdown(
+        timeline,
+        attendance_summary=None,
+        fallback_percent=fallback_percent,
+    )
+    return {
+        "current_level": insight["current_level"],
+        "max_level": insight["max_level"],
+        "monthly_change": insight["monthly_change"],
     }
 
 
@@ -1485,7 +1699,21 @@ def mobile_parent_child_attendance(request, child_id: int):
         .distinct()
     )
 
-    summary = _student_attendance_summary(child, center)
+    summary_month = month_start or timezone.localdate().replace(day=1)
+    summary = _student_monthly_attendance_summary(
+        child,
+        center,
+        summary_month,
+        group_id=selected_group_id,
+    )
+
+    def _status_label(item) -> str:
+        if item.status == "present" or item.present or item.forced:
+            return "Kelgan"
+        if item.status == "absent_excused":
+            return "Sababli"
+        return "Kelmagan"
+
     items = [
         {
             "id": item.id,
@@ -1494,15 +1722,23 @@ def mobile_parent_child_attendance(request, child_id: int):
             "group_name": item.group.nom,
             "teacher_name": item.teacher.get_full_name() if item.teacher else "",
             "status": item.status,
-            "status_label": "Kelgan" if bool(item.status == "present" or item.present or item.forced) else "Kelmagan",
+            "status_label": _status_label(item),
             "present": bool(item.status == "present" or item.present or item.forced),
             "created_at": item.created_at.isoformat() if item.created_at else None,
         }
         for item in qs[:200]
     ]
+    attendance_block = {
+        "month": summary.get("month"),
+        "total_lessons": summary.get("total_lessons", 0),
+        "attended_lessons": summary.get("attended_lessons", 0),
+        "missed_lessons": summary.get("missed_lessons", 0),
+        "attendance_percent": summary.get("attendance_percent", 0),
+    }
     return JsonResponse({
         "ok": True,
         "child": _serialize_child_profile(request, child, center),
+        "attendance": attendance_block,
         "summary": summary,
         "items": items,
         "groups": [
@@ -1828,6 +2064,13 @@ def mobile_parent_child_progress(request, child_id: int):
         start_date=start_date,
         end_date=end_date,
     )
+    # Davomat ballini har doim joriy oy uchun hisoblaymiz, parent panelida
+    # ko'rsatilayotgan oy bilan bir xil bo'lishi shart.
+    monthly_attendance = _student_monthly_attendance_summary(
+        child,
+        center,
+        timezone.localdate().replace(day=1),
+    )
     attendance_percent = int(
         round(
             attendance_summary["recent_attendance_rate"]
@@ -1844,6 +2087,50 @@ def mobile_parent_child_progress(request, child_id: int):
         start_date=start_date,
         end_date=end_date,
     )
+    # Timeline darhol UI period'ning aniq oraliqlarini ishlatadi:
+    # "current" → joriy oy, "last_month" → o'tgan oy, "last_3_months" →
+    # joriy oy + oldingi 2 oy, "all" → barcha mavjud davr (hozirgi sanagacha).
+    if period_key == "all":
+        timeline_start = None
+        timeline_end = None
+        timeline_period_key = "all"
+    else:
+        timeline_start = start_date
+        timeline_end = end_date
+        timeline_period_key = period_key
+    timeline_payload = build_progress_timeline(
+        child.id,
+        center_id=getattr(center, "id", None),
+        period_key=timeline_period_key,
+        start_date=timeline_start,
+        end_date=timeline_end,
+    )
+    # Davomat hisobini ham tanlangan davrga moslab beramiz (yuqorida `attendance_summary`
+    # period-bound qilib hisoblangan); shu tarzda 3 oy / o'tgan oy tanlanganda 5-ballik
+    # natija ham, breakdown ham haqiqiy davrni aks ettiradi.
+    insight = _progress_breakdown(
+        timeline_payload,
+        attendance_summary=attendance_summary,
+        fallback_percent=overall_percent,
+    )
+    progress_block = {
+        "current_level": insight["current_level"],
+        "max_level": insight["max_level"],
+        "label": insight["label"],
+        "trend": insight["trend"],
+        "breakdown": insight["breakdown"],
+    }
+    attendance_block = {
+        "month": monthly_attendance.get("month"),
+        "total_lessons": monthly_attendance.get("total_lessons", 0),
+        "attended_lessons": monthly_attendance.get("attended_lessons", 0),
+        "missed_lessons": monthly_attendance.get("missed_lessons", 0),
+        "attendance_percent": monthly_attendance.get("attendance_percent", 0),
+    }
+    attendance_summary_block = {
+        "attended": monthly_attendance.get("attended_lessons", 0),
+        "total": monthly_attendance.get("total_lessons", 0),
+    }
     return JsonResponse({
         "ok": True,
         "child": _serialize_child_profile(request, child, center),
@@ -1858,12 +2145,24 @@ def mobile_parent_child_progress(request, child_id: int):
         "overall_percent": overall_percent,
         "attendance_percent": attendance_percent,
         "subject_average_percent": average_subject_percent,
+        "attendance": attendance_block,
+        "progress": progress_block,
+        "current_level": insight["current_level"],
+        "max_level": insight["max_level"],
+        "label": insight["label"],
+        "trend": insight["trend"],
+        "monthly_change": insight["monthly_change"],
+        "breakdown": insight["breakdown"],
+        "has_breakdown_data": insight["has_data"],
+        "has_min_data": insight["has_min_data"],
+        "attendance_rate": insight["attendance_rate"],
+        "homework_rate": insight["homework_rate"],
+        "activity_score": insight["activity_score"],
+        "active_days": insight["active_days"],
+        "total_chaqmoq": int(timeline_payload.get("total_chaqmoq", 0) or 0),
+        "attendance_summary": attendance_summary_block,
         "progress_chart": _student_progress_chart(child, center, period_key=period_key),
-        "progress_timeline": build_progress_timeline(
-            child.id,
-            center_id=getattr(center, "id", None),
-            period_key=request.GET.get("timeline_period") or "month",
-        ),
+        "progress_timeline": timeline_payload,
         "subjects": subjects,
         "teacher_comments": teacher_comments,
         "latest_teacher_comment": teacher_comments[0] if teacher_comments else None,

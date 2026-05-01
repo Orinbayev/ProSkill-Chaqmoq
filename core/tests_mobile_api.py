@@ -423,6 +423,106 @@ class MobileAPITests(TestCase):
         self.assertEqual(payload["teacher_comments"][0]["comment"], "Amaliy mashqlarni ko‘paytirish kerak.")
         self.assertGreater(payload["subjects"][0]["percent"], 0)
 
+    def _seed_attendance_for_current_month(self, *, present: int, absent: int):
+        """Joriy oy ichidagi standart davomat ma'lumotlarini almashtirish."""
+        Attendance.objects.filter(student=self.student).delete()
+        month_start = self.today.replace(day=1)
+        day_offset = 0
+        for _ in range(present):
+            Attendance.objects.create(
+                center=self.center,
+                group=self.group,
+                student=self.student,
+                teacher=self.teacher,
+                date=month_start + timezone.timedelta(days=day_offset),
+                status="present",
+                present=True,
+            )
+            day_offset += 1
+        for _ in range(absent):
+            Attendance.objects.create(
+                center=self.center,
+                group=self.group,
+                student=self.student,
+                teacher=self.teacher,
+                date=month_start + timezone.timedelta(days=day_offset),
+                status="absent_unexcused",
+                present=False,
+            )
+            day_offset += 1
+
+    def test_parent_attendance_returns_month_block_with_lessons_and_percent(self):
+        # 13 ta dars, 8 ta qatnashgan → 62% (test-case 1 from spec)
+        self._seed_attendance_for_current_month(present=8, absent=5)
+        self.client.force_login(self.parent)
+        response = self.client.get(self._path("attendance/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        attendance = payload["attendance"]
+        self.assertIn("month", attendance)
+        self.assertEqual(attendance["total_lessons"], 13)
+        self.assertEqual(attendance["attended_lessons"], 8)
+        self.assertEqual(attendance["missed_lessons"], 5)
+        self.assertEqual(attendance["attendance_percent"], 62)
+
+    def test_parent_attendance_full_attendance_returns_100_percent(self):
+        self._seed_attendance_for_current_month(present=12, absent=0)
+        self.client.force_login(self.parent)
+        attendance = self.client.get(self._path("attendance/")).json()["attendance"]
+        self.assertEqual(attendance["total_lessons"], 12)
+        self.assertEqual(attendance["attended_lessons"], 12)
+        self.assertEqual(attendance["missed_lessons"], 0)
+        self.assertEqual(attendance["attendance_percent"], 100)
+
+    def test_parent_attendance_zero_attendance_returns_zero_percent(self):
+        self._seed_attendance_for_current_month(present=0, absent=10)
+        self.client.force_login(self.parent)
+        attendance = self.client.get(self._path("attendance/")).json()["attendance"]
+        self.assertEqual(attendance["total_lessons"], 10)
+        self.assertEqual(attendance["attended_lessons"], 0)
+        self.assertEqual(attendance["missed_lessons"], 10)
+        self.assertEqual(attendance["attendance_percent"], 0)
+
+    def test_parent_attendance_no_lessons_returns_zero_lessons(self):
+        Attendance.objects.filter(student=self.student).delete()
+        self.client.force_login(self.parent)
+        attendance = self.client.get(self._path("attendance/")).json()["attendance"]
+        self.assertEqual(attendance["total_lessons"], 0)
+        self.assertEqual(attendance["attended_lessons"], 0)
+        self.assertEqual(attendance["missed_lessons"], 0)
+        self.assertEqual(attendance["attendance_percent"], 0)
+
+    def test_parent_progress_attendance_block_matches_attendance_endpoint(self):
+        self._seed_attendance_for_current_month(present=8, absent=5)
+        self.client.force_login(self.parent)
+        progress_payload = self.client.get(self._path("progress/")).json()
+
+        attendance = progress_payload["attendance"]
+        self.assertEqual(attendance["total_lessons"], 13)
+        self.assertEqual(attendance["attended_lessons"], 8)
+        self.assertEqual(attendance["attendance_percent"], 62)
+
+        progress = progress_payload["progress"]
+        self.assertEqual(progress["max_level"], 5)
+        self.assertLessEqual(progress["current_level"], 5)
+
+        titles = [b["title"] for b in progress["breakdown"]]
+        self.assertEqual(titles, ["Davomat", "Vazifalar", "Faollik"])
+        max_scores = [b["max_score"] for b in progress["breakdown"]]
+        self.assertEqual(max_scores, [2, 1, 2])
+
+        davomat = progress["breakdown"][0]
+        self.assertEqual(davomat["value"], "62%")
+        # 62/100 * 2 = 1.24
+        self.assertAlmostEqual(davomat["score"], 1.24, places=1)
+
+    def test_parent_progress_current_level_never_exceeds_five(self):
+        self._seed_attendance_for_current_month(present=20, absent=0)
+        self.client.force_login(self.parent)
+        progress = self.client.get(self._path("progress/")).json()["progress"]
+        self.assertLessEqual(progress["current_level"], progress["max_level"])
+        self.assertLessEqual(progress["current_level"], 5)
+
     def test_student_home_contains_debt_balance_groups_and_payments(self):
         self.client.force_login(self.student)
         response = self.client.get(self._path("student/home/"))

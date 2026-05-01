@@ -179,9 +179,16 @@ class ParentAttendanceModel {
   final List<ParentAttendanceGroupOption> groups;
 
   factory ParentAttendanceModel.fromJson(Map<String, dynamic> json) {
+    // Backend top-level "attendance" block doesn't have all summary fields;
+    // we merge the per-month attendance fields into the summary if present.
+    final summaryMap = Map<String, dynamic>.from(jsonMap(json['summary']));
+    final attendanceMap = jsonMap(json['attendance']);
+    if (attendanceMap.isNotEmpty) {
+      summaryMap.addAll(attendanceMap);
+    }
     return ParentAttendanceModel(
       child: ParentChildModel.fromJson(jsonMap(json['child'])),
-      summary: ParentAttendanceSummaryModel.fromJson(jsonMap(json['summary'])),
+      summary: ParentAttendanceSummaryModel.fromJson(summaryMap),
       items: jsonMapList(
         json['items'],
       ).map(ParentAttendanceItemModel.fromJson).toList(),
@@ -212,19 +219,33 @@ class ParentAttendanceSummaryModel {
     required this.presentLessons,
     required this.attendanceRate,
     required this.recentAttendanceRate,
+    required this.attendedLessons,
+    required this.missedLessons,
+    required this.attendancePercent,
+    required this.month,
   });
 
   final int totalLessons;
   final int presentLessons;
   final double attendanceRate;
   final double recentAttendanceRate;
+  final int attendedLessons;
+  final int missedLessons;
+  final int attendancePercent;
+  final String month;
 
   factory ParentAttendanceSummaryModel.fromJson(Map<String, dynamic> json) {
+    final attendedRaw = json['attended_lessons'] ?? json['present_lessons'];
+    final percentRaw = json['attendance_percent'] ?? json['attendance_rate'];
     return ParentAttendanceSummaryModel(
       totalLessons: jsonInt(json['total_lessons']),
-      presentLessons: jsonInt(json['present_lessons']),
+      presentLessons: jsonInt(json['present_lessons'] ?? json['attended_lessons']),
       attendanceRate: jsonDouble(json['attendance_rate']),
       recentAttendanceRate: jsonDouble(json['recent_attendance_rate']),
+      attendedLessons: jsonInt(attendedRaw),
+      missedLessons: jsonInt(json['missed_lessons']),
+      attendancePercent: jsonInt(percentRaw),
+      month: jsonString(json['month']),
     );
   }
 }
@@ -474,6 +495,13 @@ class ParentProgressModel {
     required this.monthlyChange,
     required this.breakdown,
     required this.hasBreakdownData,
+    required this.hasMinimumData,
+    required this.attendanceRate,
+    required this.homeworkRate,
+    required this.activityScore,
+    required this.activeDays,
+    required this.totalChaqmoq,
+    required this.monthlyAttendance,
     this.latestTeacherComment,
   });
 
@@ -496,6 +524,13 @@ class ParentProgressModel {
   final double monthlyChange;
   final List<ProgressBreakdownItem> breakdown;
   final bool hasBreakdownData;
+  final bool hasMinimumData;
+  final double attendanceRate;
+  final double homeworkRate;
+  final double activityScore;
+  final int activeDays;
+  final int totalChaqmoq;
+  final ParentAttendanceSummaryModel monthlyAttendance;
 
   factory ParentProgressModel.fromJson(Map<String, dynamic> json) {
     final commentPayload = jsonMap(json['latest_teacher_comment']);
@@ -532,6 +567,15 @@ class ParentProgressModel {
         json['breakdown'],
       ).map(ProgressBreakdownItem.fromJson).toList(),
       hasBreakdownData: jsonBool(json['has_breakdown_data']),
+      hasMinimumData: jsonBool(json['has_min_data']),
+      attendanceRate: jsonDouble(json['attendance_rate']),
+      homeworkRate: jsonDouble(json['homework_rate']),
+      activityScore: jsonDouble(json['activity_score']),
+      activeDays: jsonInt(json['active_days']),
+      totalChaqmoq: jsonInt(json['total_chaqmoq']),
+      monthlyAttendance: ParentAttendanceSummaryModel.fromJson(
+        jsonMap(json['attendance']),
+      ),
     );
   }
 }
@@ -539,19 +583,34 @@ class ParentProgressModel {
 class ProgressBreakdownItem {
   const ProgressBreakdownItem({
     required this.label,
+    required this.title,
     required this.value,
     required this.score,
+    required this.maxScore,
   });
 
   final String label;
+  final String title;
   final String value;
   final double score;
+  final double maxScore;
+
+  bool get hasValue {
+    final v = value.trim();
+    if (v.isEmpty) return false;
+    if (v.startsWith('Ma’lumot')) return false; // "Ma'lumot yetarli emas"
+    return true;
+  }
 
   factory ProgressBreakdownItem.fromJson(Map<String, dynamic> json) {
+    final rawTitle = jsonString(json['title']);
+    final rawLabel = jsonString(json['label']);
     return ProgressBreakdownItem(
-      label: jsonString(json['label']),
+      label: rawLabel.isNotEmpty ? rawLabel : rawTitle,
+      title: rawTitle.isNotEmpty ? rawTitle : rawLabel,
       value: jsonString(json['value']),
       score: jsonDouble(json['score']),
+      maxScore: jsonDouble(json['max_score']),
     );
   }
 }
@@ -586,16 +645,59 @@ class ProgressTimelineModel {
   }
 }
 
+class ProgressReasonEntry {
+  const ProgressReasonEntry({
+    required this.text,
+    required this.score,
+    required this.type,
+    this.createdAt = '',
+    this.group = '',
+    this.teacher = '',
+    this.awardedBy = '',
+    this.reason = '',
+    this.source = '',
+  });
+
+  final String text;
+  final int score;
+  final String type;
+  final String createdAt;
+  final String group;
+  final String teacher;
+  final String awardedBy;
+  final String reason;
+  final String source;
+
+  DateTime? get parsedCreatedAt =>
+      createdAt.isEmpty ? null : DateTime.tryParse(createdAt);
+
+  factory ProgressReasonEntry.fromJson(Map<String, dynamic> json) {
+    return ProgressReasonEntry(
+      text: jsonString(json['text']),
+      score: jsonInt(json['score']),
+      type: jsonString(json['type']),
+      createdAt: jsonString(json['created_at']),
+      group: jsonString(json['group']),
+      teacher: jsonString(json['teacher']),
+      awardedBy: jsonString(json['awarded_by']),
+      reason: jsonString(json['reason']),
+      source: jsonString(json['source']),
+    );
+  }
+}
+
 class ProgressTimelinePoint {
   const ProgressTimelinePoint({
     required this.date,
     required this.score,
     required this.reasons,
+    required this.entries,
   });
 
   final String date;
   final int score;
   final List<String> reasons;
+  final List<ProgressReasonEntry> entries;
 
   DateTime? get parsedDate => DateTime.tryParse(date);
 
@@ -610,10 +712,28 @@ class ProgressTimelinePoint {
         }
       }
     }
+    final rawEntries = json['entries'];
+    final entries = <ProgressReasonEntry>[];
+    if (rawEntries is List) {
+      for (final item in rawEntries) {
+        if (item is Map) {
+          entries.add(ProgressReasonEntry.fromJson(
+            Map<String, dynamic>.from(item),
+          ));
+        }
+      }
+    }
+    // Eski API javobi (faqat string sabablar) bilan moslik uchun fallback.
+    if (entries.isEmpty && reasons.isNotEmpty) {
+      for (final r in reasons) {
+        entries.add(ProgressReasonEntry(text: r, score: 0, type: 'other'));
+      }
+    }
     return ProgressTimelinePoint(
       date: jsonString(json['date']),
       score: jsonInt(json['score']),
       reasons: reasons,
+      entries: entries,
     );
   }
 }

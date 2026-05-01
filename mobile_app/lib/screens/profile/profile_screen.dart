@@ -319,11 +319,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  ProfileHeader(
-                    onNotifications: _openNotifications,
-                    onSettings: _openSettingsScreen,
-                  ),
-                  const SizedBox(height: ParentUi.sectionGap),
                   if (_state == ViewState.loading && _data == null)
                     const _ProfileStateCard.loading()
                   else if (_state == ViewState.error && _data == null)
@@ -341,18 +336,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                     ],
-                    ParentInfoCard(parent: parent, onTap: _openEditProfile),
-                    const SizedBox(height: ParentUi.sectionGap),
-                    ChildrenSection(
-                      children: children,
-                      onAddChild: _openAddChild,
+                    _HeroCard(
+                      parent: parent,
+                      onEdit: _openEditProfile,
+                      onNotifications: _openNotifications,
+                      onSettings: _openSettingsScreen,
+                    ),
+                    const SizedBox(height: 12),
+                    _StatsRow(
+                      parent: parent,
+                      childrenCount: children.length,
                     ),
                     const SizedBox(height: ParentUi.sectionGap),
-                    SettingsListCard(
-                      languageLabel: preferences.languageLabel,
-                      themeLabel: preferences.themeLabel,
+                    _AddChildCta(onTap: _openAddChild),
+                    const SizedBox(height: ParentUi.sectionGap),
+                    _SettingsGroup(
+                      title: 'Hisob',
+                      rows: <SettingsRowData>[
+                        const SettingsRowData(
+                          action: ProfileAction.editProfile,
+                          icon: Icons.person_outline_rounded,
+                          iconColor: ProfileColors.primaryBlue,
+                          iconBackground: Color(0xFFE8F1FF),
+                          title: 'Shaxsiy ma’lumotlar',
+                          subtitle: 'Telefon, email va ismni tahrirlash',
+                        ),
+                        const SettingsRowData(
+                          action: ProfileAction.security,
+                          icon: Icons.lock_outline_rounded,
+                          iconColor: ProfileColors.purple,
+                          iconBackground: Color(0xFFEDE2FF),
+                          title: 'Hisob xavfsizligi',
+                          subtitle: 'Parolni yangilash',
+                        ),
+                      ],
                       onActionTap: _handleSettingAction,
                     ),
+                    const SizedBox(height: 12),
+                    _SettingsGroup(
+                      title: 'Sozlamalar',
+                      rows: <SettingsRowData>[
+                        const SettingsRowData(
+                          action: ProfileAction.notifications,
+                          icon: Icons.notifications_none_rounded,
+                          iconColor: ProfileColors.green,
+                          iconBackground: Color(0xFFE4F8EC),
+                          title: 'Bildirishnomalar',
+                          subtitle:
+                              'Davomat, to‘lov va progress xabarlarini boshqarish',
+                        ),
+                        SettingsRowData(
+                          action: ProfileAction.language,
+                          icon: Icons.language_rounded,
+                          iconColor: ProfileColors.orange,
+                          iconBackground: const Color(0xFFFFF1D8),
+                          title: 'Til',
+                          value: preferences.languageLabel,
+                        ),
+                        SettingsRowData(
+                          action: ProfileAction.theme,
+                          icon: Icons.dark_mode_outlined,
+                          iconColor: ProfileColors.primaryBlue,
+                          iconBackground: const Color(0xFFE8F1FF),
+                          title: 'Mavzu',
+                          value: preferences.themeLabel,
+                        ),
+                      ],
+                      onActionTap: _handleSettingAction,
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsGroup(
+                      title: 'Yordam',
+                      rows: const <SettingsRowData>[
+                        SettingsRowData(
+                          action: ProfileAction.help,
+                          icon: Icons.help_outline_rounded,
+                          iconColor: ProfileColors.pink,
+                          iconBackground: Color(0xFFFFE1F0),
+                          title: 'Yordam va qo‘llab-quvvatlash',
+                          subtitle: 'Savollar va bog‘lanish',
+                        ),
+                        SettingsRowData(
+                          action: ProfileAction.about,
+                          icon: Icons.info_outline_rounded,
+                          iconColor: Color(0xFF6B7280),
+                          iconBackground: Color(0xFFF0F2F6),
+                          title: 'Ilova haqida',
+                          value: 'Versiya 1.0.0',
+                        ),
+                      ],
+                      onActionTap: _handleSettingAction,
+                    ),
+                    const SizedBox(height: 14),
+                    _LogoutButton(onTap: _logoutFromProfile),
+                    const SizedBox(height: 8),
                   ],
                 ],
               ),
@@ -364,127 +441,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({
-    super.key,
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.parent,
+    required this.onEdit,
     required this.onNotifications,
     required this.onSettings,
   });
 
+  final UserModel? parent;
+  final VoidCallback onEdit;
   final VoidCallback onNotifications;
   final VoidCallback onSettings;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF4FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Ota-ona paneli',
-                  style: ProfileTextStyles.label.copyWith(
-                    color: ProfileColors.primaryBlue,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Profil',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: ProfileTextStyles.title.copyWith(fontSize: 22),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        _CircleActionButton(
-          icon: Icons.notifications_none_rounded,
-          showBadge: true,
-          onTap: onNotifications,
-        ),
-        const SizedBox(width: 8),
-        _CircleActionButton(icon: Icons.settings_outlined, onTap: onSettings),
-      ],
-    );
-  }
-}
-
-class ParentInfoCard extends StatelessWidget {
-  const ParentInfoCard({super.key, required this.parent, required this.onTap});
-
-  final UserModel? parent;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final String name = parent?.fullName.trim().isNotEmpty == true
         ? parent!.fullName
         : 'Ota-ona';
-    final String phone = parent?.phone.trim().isNotEmpty == true
-        ? parent!.phone
-        : 'Telefon kiritilmagan';
-    final String email = parent?.email.trim().isNotEmpty == true
-        ? parent!.email
-        : 'Email kiritilmagan';
+    final String centerName = parent?.center?.name.trim() ?? '';
+    final String phone = parent?.phone.trim() ?? '';
+    final String email = parent?.email.trim() ?? '';
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
-        child: ProfileCard(
-          padding: ParentUi.cardPadding,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[Color(0xFF1E73F8), Color(0xFF4F8FFA)],
+        ),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x331E73F8),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Ota-ona paneli',
+                  style: ProfileTextStyles.label.copyWith(
+                    color: Colors.white,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              _GlassIconButton(
+                icon: Icons.notifications_none_rounded,
+                showBadge: true,
+                onTap: onNotifications,
+              ),
+              const SizedBox(width: 8),
+              _GlassIconButton(
+                icon: Icons.settings_outlined,
+                onTap: onSettings,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[
                   Container(
-                    width: 72,
-                    height: 72,
-                    decoration: const BoxDecoration(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFE7F0FF),
+                      color: Colors.white.withValues(alpha: 0.16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        width: 2,
+                      ),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: AdaptiveAvatar(
                       name: name,
                       imageUrl: parent?.avatarUrl ?? '',
-                      size: 72,
+                      size: 76,
                       icon: Icons.person_outline_rounded,
                     ),
                   ),
                   Positioned(
                     right: -2,
                     bottom: -2,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: ProfileShadows.soft,
-                        border: Border.all(color: ProfileColors.border),
-                      ),
-                      child: const Icon(
-                        Icons.photo_camera_outlined,
-                        color: ProfileColors.primaryBlue,
-                        size: 16,
+                    child: GestureDetector(
+                      onTap: onEdit,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF1E73F8),
+                            width: 1.4,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.edit_outlined,
+                          color: Color(0xFF1E73F8),
+                          size: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -499,282 +577,275 @@ class ParentInfoCard extends StatelessWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: ProfileTextStyles.title.copyWith(fontSize: 17),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Ota-ona paneli',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ProfileTextStyles.body.copyWith(
-                        color: ProfileColors.secondaryText,
-                        fontSize: 12.6,
+                      style: ProfileTextStyles.title.copyWith(
+                        color: Colors.white,
+                        fontSize: 18,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    _ContactLine(icon: Icons.phone_outlined, text: phone),
-                    const SizedBox(height: 5),
-                    _ContactLine(icon: Icons.mail_outline_rounded, text: email),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: <Widget>[
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 14,
+                          color: Color(0xFFC2DDFF),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            centerName.isEmpty
+                                ? 'Ota-ona'
+                                : 'Ota-ona · $centerName',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: ProfileTextStyles.body.copyWith(
+                              color: const Color(0xFFE0EBFF),
+                              fontSize: 12.4,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: Color(0xFF8B95A1),
-                  size: 22,
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 14),
+          if (phone.isNotEmpty || email.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (phone.isNotEmpty)
+                  _HeroChip(icon: Icons.phone_outlined, text: phone),
+                if (email.isNotEmpty)
+                  _HeroChip(icon: Icons.mail_outline_rounded, text: email),
+              ],
+            ),
+          const SizedBox(height: 14),
+          Material(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              onTap: onEdit,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.edit_outlined,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Profilni tahrirlash',
+                      style: ProfileTextStyles.label.copyWith(
+                        color: Colors.white,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class ChildrenSection extends StatelessWidget {
-  const ChildrenSection({
-    super.key,
-    required this.children,
-    required this.onAddChild,
-  });
+class _HeroChip extends StatelessWidget {
+  const _HeroChip({required this.icon, required this.text});
 
-  final List<ParentChildModel> children;
-  final VoidCallback onAddChild;
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final ParentDashboardProvider dashboard = context
-        .watch<ParentDashboardProvider>();
-    final int? selectedId =
-        dashboard.selectedChildId ?? dashboard.data?.selectedChild.id;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                'Mening farzandlarim',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: ProfileTextStyles.title.copyWith(fontSize: 17),
-              ),
-            ),
-            TextButton(
-              onPressed: onAddChild,
-              style: TextButton.styleFrom(
-                foregroundColor: ProfileColors.primaryBlue,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 30),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    'Qo‘shish',
-                    style: ProfileTextStyles.link.copyWith(fontSize: 13.2),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.add_rounded, size: 18),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (children.isEmpty)
-          ProfileCard(
-            padding: const EdgeInsets.all(18),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      constraints: const BoxConstraints(maxWidth: 220),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, color: const Color(0xFFE0EBFF), size: 13),
+          const SizedBox(width: 6),
+          Flexible(
             child: Text(
-              'Farzandlar ro‘yxati topilmadi',
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: ProfileTextStyles.body.copyWith(
-                color: ProfileColors.secondaryText,
-                fontSize: 12.8,
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cardWidth = constraints.maxWidth < 360
-                  ? constraints.maxWidth * 0.76
-                  : constraints.maxWidth * 0.66;
-              final resolvedWidth = cardWidth.clamp(188.0, 236.0).toDouble();
-              return SizedBox(
-                height: 184,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: children.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (BuildContext context, int index) {
-                    final child = children[index];
-                    return ChildCard(
-                      child: child,
-                      selected:
-                          child.id == selectedId ||
-                          (selectedId == null && index == 0),
-                      width: resolvedWidth,
-                    );
-                  },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({
+    required this.icon,
+    required this.onTap,
+    this.showBadge = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool showBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = context.watch<NotificationsProvider>();
+    final fallbackUnreadCount =
+        context.watch<ParentDashboardProvider>().data?.unreadNotifications ?? 0;
+    final unreadCount = ParentUi.resolveUnreadCount(
+      notifications: notifications,
+      fallback: fallbackUnreadCount,
+    );
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Icon(icon, color: Colors.white, size: 19),
+          ),
+        ),
+        if (showBadge && unreadCount > 0)
+          Positioned(
+            right: 0,
+            top: -2,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 16),
+              height: 16,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: ProfileColors.red,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: Text(
+                unreadCount > 9 ? '9+' : '$unreadCount',
+                style: ProfileTextStyles.label.copyWith(
+                  color: Colors.white,
+                  fontSize: 8.5,
+                  height: 1,
                 ),
-              );
-            },
+              ),
+            ),
           ),
       ],
     );
   }
 }
 
-class ChildCard extends StatelessWidget {
-  const ChildCard({
-    super.key,
-    required this.child,
-    required this.selected,
-    required this.width,
-  });
+class _AddChildCta extends StatelessWidget {
+  const _AddChildCta({required this.onTap});
 
-  final ParentChildModel child;
-  final bool selected;
-  final double width;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final chips = <String>[
-      if (child.childCode.trim().isNotEmpty) 'Kod: ${child.childCode.trim()}',
-    ];
-    final summaryLine = <String>[
-      if (child.className.trim().isNotEmpty) child.className.trim(),
-      if (child.groupName.trim().isNotEmpty) child.groupName.trim(),
-    ].join(' • ');
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
-        onTap: () =>
-            context.read<ParentDashboardProvider>().selectChild(child.id),
-        child: Ink(
-          width: width,
-          padding: ParentUi.denseCardPadding,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ParentUi.cardRadius),
+            color: const Color(0xFFEAF4FF),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected
-                  ? ProfileColors.primaryBlue
-                  : ProfileColors.border,
-              width: selected ? 2 : 1,
+              color: ProfileColors.primaryBlue.withValues(alpha: 0.25),
             ),
-            boxShadow: ProfileShadows.card,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Row(
             children: <Widget>[
-              Align(
-                alignment: Alignment.topRight,
-                child: AnimatedOpacity(
-                  opacity: selected ? 1 : 0,
-                  duration: const Duration(milliseconds: 180),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: ProfileColors.primaryBlue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                  ),
-                ),
-              ),
               Container(
-                width: 58,
-                height: 58,
+                width: 38,
+                height: 38,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
+                  color: ProfileColors.primaryBlue,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: selected
-                        ? ProfileColors.primaryBlue.withValues(alpha: 0.18)
-                        : ProfileColors.border,
-                  ),
                 ),
-                child: AdaptiveAvatar(
-                  name: child.fullName,
-                  imageUrl: child.avatarUrl,
-                  size: 50,
-                  icon: Icons.school_rounded,
+                child: const Icon(
+                  Icons.person_add_alt_1_rounded,
+                  color: Colors.white,
+                  size: 19,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                child.fullName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: ProfileTextStyles.title.copyWith(
-                  fontSize: 13.8,
-                  height: 1.18,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                summaryLine.isNotEmpty
-                    ? summaryLine
-                    : 'Guruh biriktirilmagan',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: ProfileTextStyles.body.copyWith(
-                  color: ProfileColors.secondaryText,
-                  fontSize: 11.8,
-                  height: 1.25,
-                ),
-              ),
-              if (chips.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 8),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final chip in chips)
-                      ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: width - 42),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F7FB),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            chip,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: ProfileTextStyles.body.copyWith(
-                              color: ProfileColors.secondaryText,
-                              fontSize: 11.2,
-                            ),
-                          ),
-                        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Farzand qo‘shish',
+                      style: ProfileTextStyles.title.copyWith(
+                        color: ProfileColors.text,
+                        fontSize: 14,
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Yangi farzand kodini kiriting va profilga ulang',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ProfileTextStyles.body.copyWith(
+                        color: ProfileColors.secondaryText,
+                        fontSize: 11.8,
+                        height: 1.3,
+                      ),
+                    ),
                   ],
                 ),
-              ],
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: ProfileColors.primaryBlue,
+                size: 22,
+              ),
             ],
           ),
         ),
@@ -783,100 +854,206 @@ class ChildCard extends StatelessWidget {
   }
 }
 
-class SettingsListCard extends StatelessWidget {
-  const SettingsListCard({
-    super.key,
-    required this.languageLabel,
-    required this.themeLabel,
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({
+    required this.title,
+    required this.rows,
     required this.onActionTap,
   });
 
-  final String languageLabel;
-  final String themeLabel;
+  final String title;
+  final List<SettingsRowData> rows;
   final Future<void> Function(ProfileAction action) onActionTap;
-
-  List<SettingsRowData> get _rows => <SettingsRowData>[
-    const SettingsRowData(
-      action: ProfileAction.editProfile,
-      icon: Icons.person_outline_rounded,
-      iconColor: ProfileColors.primaryBlue,
-      iconBackground: Color(0xFFE8F1FF),
-      title: 'Shaxsiy ma’lumotlar',
-      subtitle: 'Telefon, email va ismni tahrirlash',
-    ),
-    const SettingsRowData(
-      action: ProfileAction.security,
-      icon: Icons.lock_outline_rounded,
-      iconColor: ProfileColors.purple,
-      iconBackground: Color(0xFFEDE2FF),
-      title: 'Hisob xavfsizligi',
-      subtitle: 'Parolni yangilash',
-    ),
-    const SettingsRowData(
-      action: ProfileAction.notifications,
-      icon: Icons.notifications_none_rounded,
-      iconColor: ProfileColors.green,
-      iconBackground: Color(0xFFE4F8EC),
-      title: 'Bildirishnoma sozlamalari',
-      subtitle: 'Push bildirishnomalarni boshqarish',
-    ),
-    SettingsRowData(
-      action: ProfileAction.language,
-      icon: Icons.language_rounded,
-      iconColor: ProfileColors.orange,
-      iconBackground: const Color(0xFFFFF1D8),
-      title: 'Til',
-      value: languageLabel,
-    ),
-    SettingsRowData(
-      action: ProfileAction.theme,
-      icon: Icons.dark_mode_outlined,
-      iconColor: ProfileColors.primaryBlue,
-      iconBackground: const Color(0xFFE8F1FF),
-      title: 'Mavzu',
-      value: themeLabel,
-    ),
-    const SettingsRowData(
-      action: ProfileAction.help,
-      icon: Icons.help_outline_rounded,
-      iconColor: ProfileColors.pink,
-      iconBackground: Color(0xFFFFE1F0),
-      title: 'Yordam va qo‘llab-quvvatlash',
-      subtitle: 'Savollar va bog‘lanish',
-    ),
-    const SettingsRowData(
-      action: ProfileAction.about,
-      icon: Icons.info_outline_rounded,
-      iconColor: Color(0xFF6B7280),
-      iconBackground: Color(0xFFF0F2F6),
-      title: 'Ilova haqida',
-      value: 'Versiya 1.0.0',
-    ),
-    const SettingsRowData(
-      action: ProfileAction.logout,
-      icon: Icons.logout_rounded,
-      iconColor: ProfileColors.red,
-      iconBackground: Color(0xFFFFE7E7),
-      title: 'Chiqish',
-      subtitle: 'Hisobdan chiqish',
-      destructive: true,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final List<SettingsRowData> rows = _rows;
-    return ProfileCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: <Widget>[
-          for (int index = 0; index < rows.length; index++)
-            SettingsRow(
-              data: rows[index],
-              showDivider: index != rows.length - 1,
-              onTap: () => onActionTap(rows[index].action),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title.toUpperCase(),
+            style: ProfileTextStyles.label.copyWith(
+              color: ProfileColors.secondaryText,
+              fontSize: 10.5,
+              letterSpacing: 0.6,
             ),
+          ),
+        ),
+        ProfileCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: <Widget>[
+              for (int index = 0; index < rows.length; index++)
+                SettingsRow(
+                  data: rows[index],
+                  showDivider: index != rows.length - 1,
+                  onTap: () => onActionTap(rows[index].action),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.parent, required this.childrenCount});
+
+  final UserModel? parent;
+  final int childrenCount;
+
+  String _formatJoined(DateTime? date) {
+    if (date == null) return '—';
+    const months = <String>[
+      'Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn',
+      'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final centerName = parent?.center?.name.trim() ?? '';
+    final joinedLabel = _formatJoined(parent?.joinedDate);
+
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _StatCard(
+            icon: Icons.family_restroom_rounded,
+            color: ProfileColors.primaryBlue,
+            value: '$childrenCount',
+            label: childrenCount == 1 ? 'Farzand' : 'Farzandlar',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.shield_outlined,
+            color: ProfileColors.green,
+            value: 'Faol',
+            label: 'Hisob',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.school_outlined,
+            color: ProfileColors.purple,
+            value: centerName.isEmpty ? joinedLabel : centerName,
+            label: centerName.isEmpty ? 'Qo‘shilgan' : 'Markaz',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.icon,
+    required this.color,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ProfileColors.border),
+        boxShadow: ProfileShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ProfileTextStyles.title.copyWith(
+              color: ProfileColors.text,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ProfileTextStyles.body.copyWith(
+              color: ProfileColors.secondaryText,
+              fontSize: 11,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: ProfileColors.red.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Icon(
+                Icons.logout_rounded,
+                color: ProfileColors.red,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Hisobdan chiqish',
+                style: ProfileTextStyles.title.copyWith(
+                  color: ProfileColors.red,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1061,102 +1238,6 @@ class ProfileCard extends StatelessWidget {
         boxShadow: ProfileShadows.card,
       ),
       child: child,
-    );
-  }
-}
-
-class _ContactLine extends StatelessWidget {
-  const _ContactLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Icon(icon, color: ProfileColors.secondaryText, size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: ProfileTextStyles.body.copyWith(
-              color: ProfileColors.secondaryText,
-              fontSize: 12.6,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({
-    required this.icon,
-    required this.onTap,
-    this.showBadge = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool showBadge;
-
-  @override
-  Widget build(BuildContext context) {
-    final notifications = context.watch<NotificationsProvider>();
-    final fallbackUnreadCount =
-        context.watch<ParentDashboardProvider>().data?.unreadNotifications ?? 0;
-    final unreadCount = ParentUi.resolveUnreadCount(
-      notifications: notifications,
-      fallback: fallbackUnreadCount,
-    );
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Container(
-            width: ParentUi.iconButtonSize,
-            height: ParentUi.iconButtonSize,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: ProfileColors.border),
-              boxShadow: ProfileShadows.soft,
-            ),
-            child: Icon(icon, color: ProfileColors.text, size: 22),
-          ),
-        ),
-        if (showBadge && unreadCount > 0)
-          Positioned(
-            right: 4,
-            top: 2,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 18),
-              height: ParentUi.miniBadgeHeight,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: ProfileColors.red,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Text(
-                unreadCount > 99 ? '99+' : '$unreadCount',
-                style: ProfileTextStyles.label.copyWith(
-                  color: Colors.white,
-                  fontSize: 9,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
