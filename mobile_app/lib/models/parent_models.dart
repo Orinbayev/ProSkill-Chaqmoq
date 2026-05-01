@@ -820,12 +820,75 @@ class ParentReminderSettingsModel {
   }
 }
 
+class ParentChaqmoqMonth {
+  const ParentChaqmoqMonth({
+    required this.year,
+    required this.month,
+    required this.earned,
+    required this.lost,
+    required this.net,
+  });
+
+  final int year;
+  final int month;
+  final int earned;
+  final int lost;
+  final int net;
+
+  factory ParentChaqmoqMonth.fromJson(Map<String, dynamic> json) {
+    return ParentChaqmoqMonth(
+      year: jsonInt(json['year']),
+      month: jsonInt(json['month']),
+      earned: jsonInt(json['earned']),
+      lost: jsonInt(json['lost']),
+      net: jsonInt(json['net']),
+    );
+  }
+}
+
+class ParentChaqmoqStatsModel {
+  const ParentChaqmoqStatsModel({
+    required this.balance,
+    required this.thisMonthEarned,
+    required this.thisMonthLost,
+    required this.thisMonthNet,
+    required this.monthly,
+  });
+
+  final int balance;
+  final int thisMonthEarned;
+  final int thisMonthLost;
+  final int thisMonthNet;
+  final List<ParentChaqmoqMonth> monthly;
+
+  static const ParentChaqmoqStatsModel empty = ParentChaqmoqStatsModel(
+    balance: 0,
+    thisMonthEarned: 0,
+    thisMonthLost: 0,
+    thisMonthNet: 0,
+    monthly: <ParentChaqmoqMonth>[],
+  );
+
+  factory ParentChaqmoqStatsModel.fromJson(Map<String, dynamic> json) {
+    return ParentChaqmoqStatsModel(
+      balance: jsonInt(json['balance']),
+      thisMonthEarned: jsonInt(json['this_month_earned']),
+      thisMonthLost: jsonInt(json['this_month_lost']),
+      thisMonthNet: jsonInt(json['this_month_net']),
+      monthly: jsonMapList(
+        json['monthly'],
+      ).map(ParentChaqmoqMonth.fromJson).toList(),
+    );
+  }
+}
+
 class ParentDashboardModel {
   const ParentDashboardModel({
     required this.parent,
     required this.children,
     required this.selectedChild,
     required this.stats,
+    required this.chaqmoq,
     required this.progressChart,
     required this.progressTimeline,
     required this.latestNotifications,
@@ -838,6 +901,7 @@ class ParentDashboardModel {
   final List<ParentChildModel> children;
   final ParentChildModel selectedChild;
   final ParentStatsModel stats;
+  final ParentChaqmoqStatsModel chaqmoq;
   final List<ParentProgressSeries> progressChart;
   final ProgressTimelineModel progressTimeline;
   final List<ParentNotificationModel> latestNotifications;
@@ -854,6 +918,9 @@ class ParentDashboardModel {
       ).map(ParentChildModel.fromJson).toList(),
       selectedChild: ParentChildModel.fromJson(jsonMap(json['selected_child'])),
       stats: ParentStatsModel.fromJson(jsonMap(json['stats'])),
+      chaqmoq: json['chaqmoq'] is Map
+          ? ParentChaqmoqStatsModel.fromJson(jsonMap(json['chaqmoq']))
+          : ParentChaqmoqStatsModel.empty,
       progressChart: jsonMapList(
         json['progress_chart'],
       ).map(ParentProgressSeries.fromJson).toList(),

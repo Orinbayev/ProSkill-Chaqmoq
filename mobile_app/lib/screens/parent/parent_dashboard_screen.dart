@@ -181,6 +181,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           onTap: () => _openSelector(data),
         ),
         const SizedBox(height: 14),
+        _ChaqmoqStatsCard(
+          chaqmoq: data.chaqmoq,
+          onTap: widget.onOpenProgress,
+        ),
+        const SizedBox(height: 14),
         _StatsGrid(
           stats: data.stats,
           onAttendance: widget.onOpenAttendance,
@@ -480,6 +485,260 @@ class _SelectedChildCard extends StatelessWidget {
   static String _nextLessonText(DateTime? next) {
     if (next == null) return 'Keyingi dars: jadval kelishi kutilmoqda';
     return 'Keyingi to‘lov: ${Formatters.shortDayMonth(next)}';
+  }
+}
+
+class _ChaqmoqStatsCard extends StatelessWidget {
+  const _ChaqmoqStatsCard({required this.chaqmoq, this.onTap});
+
+  final ParentChaqmoqStatsModel chaqmoq;
+  final VoidCallback? onTap;
+
+  static const List<String> _ozMonthsShort = <String>[
+    'Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn',
+    'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final months = chaqmoq.monthly;
+    final maxValue = months.fold<int>(
+      1,
+      (acc, m) => m.earned > acc ? m.earned : acc,
+    );
+    final lastIndex = months.length - 1;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[Color(0xFF1E73F8), Color(0xFF4F8FFA)],
+            ),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x331E73F8),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.bolt_rounded,
+                      color: Colors.white,
+                      size: 17,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          'Chaqmoq balansi',
+                          style: ParentTextStyles.label.copyWith(
+                            color: const Color(0xFFE0EBFF),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          '${chaqmoq.balance}',
+                          style: ParentTextStyles.title.copyWith(
+                            color: Colors.white,
+                            fontSize: 26,
+                            height: 1.05,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _ThisMonthDelta(
+                    earned: chaqmoq.thisMonthEarned,
+                    lost: chaqmoq.thisMonthLost,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 56,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    for (var i = 0; i < months.length; i++) ...<Widget>[
+                      if (i > 0) const SizedBox(width: 6),
+                      Expanded(
+                        child: _ChaqmoqMonthBar(
+                          month: months[i],
+                          maxValue: maxValue,
+                          isCurrent: i == lastIndex,
+                          monthShortLabel:
+                              _ozMonthsShort[(months[i].month - 1) % 12],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThisMonthDelta extends StatelessWidget {
+  const _ThisMonthDelta({required this.earned, required this.lost});
+
+  final int earned;
+  final int lost;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          'Bu oy',
+          style: ParentTextStyles.label.copyWith(
+            color: const Color(0xFFC2DDFF),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '+$earned',
+                style: ParentTextStyles.label.copyWith(
+                  color: const Color(0xFFB7F7DC),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '−$lost',
+                style: ParentTextStyles.label.copyWith(
+                  color: const Color(0xFFFFC7C7),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ChaqmoqMonthBar extends StatelessWidget {
+  const _ChaqmoqMonthBar({
+    required this.month,
+    required this.maxValue,
+    required this.isCurrent,
+    required this.monthShortLabel,
+  });
+
+  final ParentChaqmoqMonth month;
+  final int maxValue;
+  final bool isCurrent;
+  final String monthShortLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = maxValue <= 0
+        ? 0.0
+        : (month.earned / maxValue).clamp(0.0, 1.0).toDouble();
+    final barHeight = ratio == 0 ? 4.0 : (32 * ratio).clamp(4.0, 32.0);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          '${month.earned}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: ParentTextStyles.label.copyWith(
+            color: isCurrent
+                ? Colors.white
+                : const Color(0xFFC2DDFF),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Container(
+          height: barHeight,
+          decoration: BoxDecoration(
+            color: isCurrent
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          monthShortLabel,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: ParentTextStyles.label.copyWith(
+            color: isCurrent
+                ? Colors.white
+                : const Color(0xFFC2DDFF),
+            fontSize: 10.5,
+            fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 }
 

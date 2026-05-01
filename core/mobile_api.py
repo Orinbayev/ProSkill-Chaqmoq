@@ -1159,6 +1159,82 @@ def _latest_parent_notifications(user: User, *, limit: int = 3) -> list[dict]:
     return [_serialize_notification(item) for item in _notification_queryset_for_user(user).order_by("-created_at")[:limit]]
 
 
+def _student_chaqmoq_stats(child: User, center, *, months: int = 6) -> dict:
+    """Joriy balans + so'nggi N oy bo'yicha chaqmoq xulosasi.
+
+    Faqat chaqmoq.Ledger jadvalidan o'qiydi — bu o'qituvchi ataylab qo'ygan
+    ballar manbasi. Har bir oy uchun: olingan (musbat), yo'qotilgan (manfiy
+    absolyut qiymati), va net.
+    """
+    from collections import OrderedDict
+    from chaqmoq.models import Ledger
+
+    today = timezone.localdate()
+    balance = Ledger.student_balansi(child.id, center=center)
+
+    start = today.replace(day=1)
+    for _ in range(max(0, months - 1)):
+        start = (start - timedelta(days=1)).replace(day=1)
+
+    qs = Ledger.objects.filter(
+        student_id=child.id,
+        sana__date__gte=start,
+        sana__date__lte=today,
+    )
+    if center:
+        qs = qs.filter(
+            Q(group__center=center)
+            | Q(rule__center=center)
+            | Q(rule__center__isnull=True)
+        )
+
+    buckets: "OrderedDict[str, dict]" = OrderedDict()
+    cursor = start
+    for _ in range(months):
+        key = f"{cursor.year:04d}-{cursor.month:02d}"
+        buckets[key] = {
+            "year": cursor.year,
+            "month": cursor.month,
+            "key": key,
+            "earned": 0,
+            "lost": 0,
+            "net": 0,
+        }
+        if cursor.month == 12:
+            cursor = cursor.replace(year=cursor.year + 1, month=1)
+        else:
+            cursor = cursor.replace(month=cursor.month + 1)
+
+    this_month_key = f"{today.year:04d}-{today.month:02d}"
+
+    for entry in qs.only("ball", "sana"):
+        ball = int(entry.ball or 0)
+        if ball == 0 or not entry.sana:
+            continue
+        d = entry.sana.date()
+        key = f"{d.year:04d}-{d.month:02d}"
+        bucket = buckets.get(key)
+        if bucket is None:
+            continue
+        if ball >= 0:
+            bucket["earned"] += ball
+        else:
+            bucket["lost"] += abs(ball)
+        bucket["net"] += ball
+
+    this_month = buckets.get(
+        this_month_key,
+        {"earned": 0, "lost": 0, "net": 0},
+    )
+    return {
+        "balance": int(balance or 0),
+        "this_month_earned": int(this_month["earned"]),
+        "this_month_lost": int(this_month["lost"]),
+        "this_month_net": int(this_month["net"]),
+        "monthly": list(buckets.values()),
+    }
+
+
 def _parent_dashboard_payload(request, child: User) -> dict:
     center = _request_center(request) or child.center
     attendance = _student_attendance_summary(child, center)
@@ -1186,6 +1262,7 @@ def _parent_dashboard_payload(request, child: User) -> dict:
         debt,
         debt_status,
     )
+    chaqmoq_stats = _student_chaqmoq_stats(child, center, months=6)
     return {
         "ok": True,
         "parent": _serialize_user(request, request.user),
@@ -1202,6 +1279,7 @@ def _parent_dashboard_payload(request, child: User) -> dict:
             "monthly_change": progress_level["monthly_change"],
             "next_payment_date": next_payment.isoformat() if next_payment else None,
         },
+        "chaqmoq": chaqmoq_stats,
         "progress_chart": _student_progress_chart(child, center),
         "progress_timeline": timeline,
         "progress_level": progress_level,
