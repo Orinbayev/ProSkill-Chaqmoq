@@ -79,6 +79,39 @@ def create_teacher_income(sender, instance, created, **kwargs):
         }
     )
 
+
+@receiver(post_save, sender=Attendance)
+def derive_student_activity_from_attendance(sender, instance, **kwargs):
+    """Mirror billable Attendance rows into StudentActivity for the progress chart."""
+    try:
+        from education.services.progress_service import derive_activity_for_attendance
+        derive_activity_for_attendance(instance)
+    except Exception:
+        pass
+
+
+def _derive_student_activity_from_exam(sender, instance, **kwargs):
+    try:
+        from education.services.progress_service import derive_activity_for_exam
+        derive_activity_for_exam(instance)
+    except Exception:
+        pass
+
+
+def _register_exam_signal():
+    try:
+        from education.models import ExamResult
+        post_save.connect(
+            _derive_student_activity_from_exam,
+            sender=ExamResult,
+            dispatch_uid="derive_student_activity_from_exam",
+        )
+    except Exception:
+        pass
+
+
+_register_exam_signal()
+
 from django.contrib.auth import get_user_model
 User = get_user_model()
 

@@ -192,7 +192,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         const SizedBox(height: 14),
         _ProgressChartCard(
           series: data.progressChart,
-          score: data.stats.averageScore,
+          timeline: data.progressTimeline,
+          stats: data.stats,
         ),
         const SizedBox(height: 14),
         Text('Tezkor amallar', style: ParentTextStyles.sectionTitle),
@@ -537,7 +538,7 @@ class _StatsGrid extends StatelessWidget {
         value: stats.debtAmount <= 0
             ? '0 so‘m'
             : '${_compactSom(stats.debtAmount)} so‘m',
-        sub: stats.debtAmount <= 0 ? 'To‘liq to‘langan' : 'Muddati o‘tgan',
+        sub: stats.debtAmount <= 0 ? 'To‘liq to‘langan' : 'Qarzdor',
         onTap: onPayments,
       ),
       _StatTile(
@@ -660,16 +661,57 @@ class _StatTile extends StatelessWidget {
 }
 
 class _ProgressChartCard extends StatelessWidget {
-  const _ProgressChartCard({required this.series, required this.score});
+  const _ProgressChartCard({
+    required this.series,
+    required this.timeline,
+    required this.stats,
+  });
 
   final List<ParentProgressSeries> series;
-  final int score;
+  final ProgressTimelineModel timeline;
+  final ParentStatsModel stats;
+
+  List<double> _resolvePoints() {
+    final timelinePoints = timeline.points;
+    if (timelinePoints.isNotEmpty) {
+      final hasNonZero = timelinePoints.any((p) => p.score != 0);
+      if (hasNonZero) {
+        return timelinePoints.map((p) => p.score.toDouble()).toList();
+      }
+    }
+    if (series.isNotEmpty && series.first.points.isNotEmpty) {
+      return series.first.points;
+    }
+    return const <double>[];
+  }
+
+  String _formatLevel(double level) {
+    if (level <= 0) return '—';
+    return level.toStringAsFixed(1);
+  }
+
+  String _formatChange(double change) {
+    final sign = change >= 0 ? '+' : '';
+    return '$sign${change.toStringAsFixed(1)} oy ichida';
+  }
+
+  void _showReasonsForIndex(BuildContext context, int index) {
+    if (index < 0 || index >= timeline.points.length) return;
+    final point = timeline.points[index];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _DashboardReasonSheet(point: point),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final points = series.isNotEmpty && series.first.points.isNotEmpty
-        ? series.first.points
-        : <double>[];
+    final points = _resolvePoints();
+    final hasTimelineData =
+        timeline.points.isNotEmpty &&
+        timeline.points.any((p) => p.score != 0 || p.reasons.isNotEmpty);
+    final monthlyChange = stats.monthlyChange;
     return AppPCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -687,7 +729,7 @@ class _ProgressChartCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          score > 0 ? (score / 20).toStringAsFixed(1) : '—',
+                          _formatLevel(stats.currentLevel),
                           style: GoogleFonts.inter(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
@@ -699,7 +741,7 @@ class _ProgressChartCard extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 2),
                           child: Text(
-                            '/ 5',
+                            '/ ${stats.maxLevel.toStringAsFixed(0)}',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -712,26 +754,48 @@ class _ProgressChartCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const AppBadge(
-                label: '+0.3 oy ichida',
-                tone: AppBadgeTone.success,
-                icon: Icons.trending_up_rounded,
+              AppBadge(
+                label: _formatChange(monthlyChange),
+                tone: monthlyChange >= 0
+                    ? AppBadgeTone.success
+                    : AppBadgeTone.danger,
+                icon: monthlyChange >= 0
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (points.length >= 2)
-            AppMiniLineChart(
-              values: points,
-              color: ParentColors.primary,
-              height: 70,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: hasTimelineData
+                  ? (details) {
+                      final box = context.findRenderObject() as RenderBox?;
+                      if (box == null) return;
+                      final width = box.size.width;
+                      final ratio = (details.localPosition.dx / width).clamp(
+                        0.0,
+                        1.0,
+                      );
+                      final idx = (ratio * (points.length - 1))
+                          .round()
+                          .clamp(0, points.length - 1);
+                      _showReasonsForIndex(context, idx);
+                    }
+                  : null,
+              child: AppMiniLineChart(
+                values: points,
+                color: ParentColors.primary,
+                height: 70,
+              ),
             )
           else
             SizedBox(
               height: 70,
               child: Center(
                 child: Text(
-                  'Progress ma’lumoti yo‘q',
+                  'Progress ma’lumotlari hali mavjud emas',
                   style: ParentTextStyles.bodyMuted,
                 ),
               ),
@@ -752,6 +816,104 @@ class _ProgressChartCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DashboardReasonSheet extends StatelessWidget {
+  const _DashboardReasonSheet({required this.point});
+
+  final ProgressTimelinePoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPositive = point.score >= 0;
+    final scoreColor = isPositive
+        ? ParentColors.success
+        : ParentColors.danger;
+    final reasons = point.reasons;
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              point.date,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: scoreColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${isPositive ? '+' : ''}${point.score} ball ${isPositive ? 'qo‘shildi' : 'ayrildi'}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scoreColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (reasons.isEmpty)
+              Text(
+                'Bu kun uchun izoh qo‘shilmagan.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.hintColor,
+                ),
+              )
+            else
+              ...reasons.map(
+                (reason) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 7, right: 12),
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: scoreColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          reason,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

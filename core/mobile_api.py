@@ -52,6 +52,11 @@ from education.models import (
     TuitionMonth,
 )
 from education.services.expected_income_service import calculate_expected_income
+from education.services.tuition import (
+    calculate_enrollment_debt_snapshots,
+    ensure_tuition_month,
+)
+from education.services.progress_service import build_timeline as build_progress_timeline
 from store.models import Lead, Product, PurchaseRequest, TrialLesson
 
 
@@ -592,19 +597,34 @@ def _student_balance(student: User, center) -> int:
 
 
 def _student_open_debt(student: User, center) -> int:
+    """
+    Joriy oydagi qarzni admin paneldagi ``qarzdorlar_home`` bilan bir xil
+    formula orqali hisoblaydi: faqat ``calculate_enrollment_debt_snapshots``
+    o'qiladi, hech qanday TuitionMonth qaytadan yozilmaydi (admin ham yozmaydi).
+    """
     current_month = timezone.localdate().replace(day=1)
-    enrollments = (
-        Enrollment.objects.filter(student=student, group__center=center, is_active=True)
-        .select_related("group")
-        .prefetch_related("tuition_months__allocations")
+    enrollments = list(
+        Enrollment.objects.filter(
+            student=student,
+            group__center=center,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+        ).select_related("group")
     )
-    total_debt = 0
-    for enrollment in enrollments:
-        tuition = enrollment.tuition_months.filter(month=current_month).first()
-        if not tuition:
-            continue
-        paid = tuition.allocations.aggregate(total=Sum("amount"))["total"] or 0
-        total_debt += max(0, _money(tuition.fee_amount) - _money(paid))
+    snapshots = calculate_enrollment_debt_snapshots(enrollments, [current_month])
+    total_due = sum(int(snap.get("total_fee", 0) or 0) for snap in snapshots.values())
+    total_paid = sum(int(snap.get("total_paid", 0) or 0) for snap in snapshots.values())
+    total_debt = sum(int(snap.get("debt", 0) or 0) for snap in snapshots.values())
+    logger.info(
+        "mobile_student_open_debt student_id=%s full_name=%s month=%s total_due=%s total_paid=%s debt_amount=%s",
+        getattr(student, "id", None),
+        student.get_full_name() if hasattr(student, "get_full_name") else "",
+        current_month.isoformat(),
+        total_due,
+        total_paid,
+        total_debt,
+    )
     return int(total_debt)
 
 
@@ -757,6 +777,16 @@ def _parse_month_start(value: str | None):
     return None
 
 
+def _parse_iso_date(value: str | None):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
 def _parent_children_queryset(parent: User, center):
     qs = parent.children.filter(role="student", is_archived=False).select_related("center")
     if center:
@@ -765,6 +795,12 @@ def _parent_children_queryset(parent: User, center):
 
 
 def _resolve_parent_child(request, child_id=None):
+    # Students viewing their own progress/payments/etc.
+    if request.user.role == "student" and not request.user.is_superuser:
+        if child_id and int(child_id) != request.user.id:
+            return None, _mobile_json_error("Permission denied", status=403, code="permission_denied")
+        return request.user, None
+
     if not request.user.is_superuser and request.user.role != "parent":
         return None, _mobile_json_error("Permission denied", status=403, code="permission_denied")
 
@@ -1051,6 +1087,26 @@ def _parent_dashboard_payload(request, child: User) -> dict:
     average_score = _student_average_score(child, center)
     next_payment = _next_payment_date(child, center)
     children = [_serialize_child_profile(request, item, center) for item in _parent_children_queryset(request.user, center)]
+    timeline = build_progress_timeline(
+        child.id,
+        center_id=getattr(center, "id", None),
+        period_key="month",
+    )
+    progress_level = _progress_level_from_timeline(timeline, average_score)
+    debt_status = "qarzdor" if debt > 0 else "to_liq_to_langan"
+    logger.info(
+        "mobile_parent_dashboard student_id=%s student_name=%s current_month=%s "
+        "monthly_price=%s paid_this_month=%s calculated_debt=%s "
+        "dashboard_response_debt=%s status=%s",
+        getattr(child, "id", None),
+        child.get_full_name(),
+        timezone.localdate().replace(day=1).isoformat(),
+        _student_monthly_price(child, center),
+        _student_paid_this_month(child, center),
+        debt,
+        debt,
+        debt_status,
+    )
     return {
         "ok": True,
         "parent": _serialize_user(request, request.user),
@@ -1060,12 +1116,79 @@ def _parent_dashboard_payload(request, child: User) -> dict:
         "stats": {
             "attendance_percent": int(round(attendance.get("recent_attendance_rate") or attendance.get("attendance_rate") or 0)),
             "debt_amount": debt,
+            "debt_status": debt_status,
             "average_score": average_score,
+            "current_level": progress_level["current_level"],
+            "max_level": progress_level["max_level"],
+            "monthly_change": progress_level["monthly_change"],
             "next_payment_date": next_payment.isoformat() if next_payment else None,
         },
         "progress_chart": _student_progress_chart(child, center),
+        "progress_timeline": timeline,
+        "progress_level": progress_level,
         "latest_notifications": _latest_parent_notifications(request.user, limit=3),
         "unread_notifications": _notification_queryset_for_user(request.user).filter(is_read=False).count(),
+    }
+
+
+def _student_monthly_price(student: User, center) -> int:
+    enrollments = Enrollment.objects.filter(
+        student=student,
+        group__center=center,
+        is_active=True,
+        student__is_archived=False,
+        group__is_archived=False,
+    )
+    return int(sum(int(getattr(e, "resolved_monthly_price", 0) or 0) for e in enrollments))
+
+
+def _student_paid_this_month(student: User, center) -> int:
+    cm = timezone.localdate().replace(day=1)
+    paid = (
+        Payment.objects
+        .filter(student=student, center=center, is_deleted=False, paid_date__gte=cm)
+        .aggregate(total=Sum("summa"))["total"]
+        or 0
+    )
+    return _money(paid)
+
+
+def _progress_level_from_timeline(timeline: dict, fallback_percent: int) -> dict:
+    """
+    Timeline'dan 0..5 oraliqdagi "Bilim darajasi"ni hisoblaydi.
+
+    Asosiy formula: oxirgi 30 kunning sof balli (total_score) -2..+2 oraliq
+    o'rtacha bo'lib, 0..5 ga normalize qilinadi. Agar timeline bo'sh bo'lsa,
+    fallback sifatida ``fallback_percent`` (0..100) -> 0..5 ko'rinishida
+    ishlatiladi.
+    """
+    points = timeline.get("timeline") or []
+    monthly_change = 0.0
+    if points:
+        active_points = [p for p in points if int(p.get("score") or 0) != 0]
+        denom = len(active_points) or 1
+        avg_score = sum(int(p.get("score") or 0) for p in points) / denom
+        # avg_score ni -2..+2 oralig'ida deb 0..5 ga moslashtiramiz.
+        normalized = max(-2.0, min(2.0, avg_score))
+        current_level = round(2.5 + normalized * 1.25, 1)
+
+        midpoint = len(points) // 2
+        first_half = points[:midpoint]
+        second_half = points[midpoint:]
+        if first_half and second_half:
+            first_avg = sum(int(p.get("score") or 0) for p in first_half) / len(first_half)
+            second_avg = sum(int(p.get("score") or 0) for p in second_half) / len(second_half)
+            monthly_change = round((second_avg - first_avg) * 0.5, 1)
+    else:
+        current_level = round((max(0, min(100, int(fallback_percent or 0))) / 100) * 5, 1)
+
+    if current_level <= 0 and (fallback_percent or 0) > 0:
+        current_level = round(int(fallback_percent) / 20, 1)
+
+    return {
+        "current_level": current_level,
+        "max_level": 5,
+        "monthly_change": monthly_change,
     }
 
 
@@ -1085,6 +1208,12 @@ def _parent_notification_settings_payload(user: User) -> dict:
         "progress": bool(preference.receive_coin),
         "general": bool(preference.receive_broadcast),
     }
+
+
+@require_GET
+@csrf_exempt
+def mobile_health(request):
+    return JsonResponse({"ok": True, "status": "awake", "ts": timezone.now().isoformat()})
 
 
 @require_GET
@@ -1330,6 +1459,32 @@ def mobile_parent_child_attendance(request, child_id: int):
     )
     if month_start:
         qs = qs.filter(date__gte=month_start, date__lt=_add_months(month_start, 1))
+
+    date_from = _parse_iso_date(request.GET.get("from"))
+    date_to = _parse_iso_date(request.GET.get("to"))
+    if date_from:
+        qs = qs.filter(date__gte=date_from)
+    if date_to:
+        qs = qs.filter(date__lte=date_to)
+
+    raw_group_id = request.GET.get("group_id")
+    selected_group_id = None
+    if raw_group_id:
+        try:
+            selected_group_id = int(raw_group_id)
+        except (TypeError, ValueError):
+            selected_group_id = None
+        if selected_group_id is not None:
+            qs = qs.filter(group_id=selected_group_id)
+
+    group_options = list(
+        Enrollment.objects
+        .filter(student=child, group__center=center)
+        .values("group_id", "group__nom")
+        .order_by("group__nom")
+        .distinct()
+    )
+
     summary = _student_attendance_summary(child, center)
     items = [
         {
@@ -1345,12 +1500,30 @@ def mobile_parent_child_attendance(request, child_id: int):
         }
         for item in qs[:200]
     ]
-    return JsonResponse({"ok": True, "child": _serialize_child_profile(request, child, center), "summary": summary, "items": items})
+    return JsonResponse({
+        "ok": True,
+        "child": _serialize_child_profile(request, child, center),
+        "summary": summary,
+        "items": items,
+        "groups": [
+            {"id": opt["group_id"], "name": opt["group__nom"] or ""}
+            for opt in group_options
+            if opt["group_id"]
+        ],
+        "filters": {
+            "from": date_from.isoformat() if date_from else None,
+            "to": date_to.isoformat() if date_to else None,
+            "group_id": selected_group_id,
+            "month": month_start.isoformat() if month_start else None,
+        },
+    })
 
 
 @require_GET
 @mobile_login_required
 def mobile_attendance(request):
+    if request.user.role == "student" and not request.user.is_superuser:
+        return mobile_parent_child_attendance(request, request.user.id)
     child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
     if error:
         return error
@@ -1359,7 +1532,13 @@ def mobile_attendance(request):
 
 def _mobile_payments_payload(request, child: User, center) -> dict:
     enrollments = list(
-        Enrollment.objects.filter(student=child, group__center=center, is_active=True)
+        Enrollment.objects.filter(
+            student=child,
+            group__center=center,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+        )
         .select_related("group")
         .order_by("group__nom")
     )
@@ -1392,6 +1571,7 @@ def _mobile_payments_payload(request, child: User, center) -> dict:
     next_payment = None
     plan_items = []
     today = timezone.localdate()
+    current_month_start = timezone.localdate().replace(day=1)
     for tuition in tuition_months:
         group = tuition.enrollment.group
         planned_amount = _money(tuition.fee_amount)
@@ -1405,16 +1585,24 @@ def _mobile_payments_payload(request, child: User, center) -> dict:
         if remaining_amount <= 0:
             status = "paid"
             status_label = "To‘langan"
-        elif due_date < today:
-            status = "debt"
-            status_label = "Qarzdorlik"
-            debt_amount += remaining_amount
-        else:
+        elif tuition.month > current_month_start:
+            # Kelajakdagi oy — hali boshlanmagan, qarz emas, kutilayotgan to'lov.
             status = "pending"
             status_label = "Kutilmoqda"
             pending_amount += remaining_amount
             if next_payment is None or due_date < next_payment:
                 next_payment = due_date
+        else:
+            # Joriy yoki o'tgan oy va to'lanmagan — qarzdorlik (admin panel mantig'i).
+            debt_amount += remaining_amount
+            if due_date < today:
+                status = "debt"
+                status_label = "Qarzdorlik"
+            else:
+                status = "pending"
+                status_label = "Kutilmoqda"
+                if next_payment is None or due_date < next_payment:
+                    next_payment = due_date
 
         total_plan += planned_amount
         plan_items.append(
@@ -1433,10 +1621,69 @@ def _mobile_payments_payload(request, child: User, center) -> dict:
             }
         )
 
+    # Joriy oy uchun TuitionMonth yozuvi bo'lmasa, admin paneldagi qarzdorlar
+    # ko'rinishi virtual prorated_monthly_fee orqali qarz hisoblaydi. Mobil
+    # to'lovlar sahifasida ham xuddi shu summa ko'rsatilishi uchun shu
+    # ma'lumotni summary.debt_amountga qo'shamiz va plan_itemsga "virtual" oy
+    # qatori sifatida kiritamiz.
+    enrollments_with_real_current = {
+        tm.enrollment_id for tm in tuition_months if tm.month == current_month_start
+    }
+    virtual_enrollments = [
+        enrollment
+        for enrollment in enrollments
+        if enrollment.id not in enrollments_with_real_current
+    ]
+    if virtual_enrollments:
+        virtual_snapshots = calculate_enrollment_debt_snapshots(
+            virtual_enrollments,
+            [current_month_start],
+        )
+        for enrollment in virtual_enrollments:
+            virtual_snapshot = virtual_snapshots.get(enrollment.id, {})
+            virtual_fee = int(virtual_snapshot.get("total_fee", 0) or 0)
+            virtual_debt = int(virtual_snapshot.get("debt", 0) or 0)
+            if virtual_fee <= 0 and virtual_debt <= 0:
+                continue
+            due_date = current_month_start.replace(
+                day=min(getattr(center, "payment_day", 5) or 5, 28)
+            )
+            status = "debt" if due_date < today else "pending"
+            status_label = "Qarzdorlik" if status == "debt" else "Kutilmoqda"
+            debt_amount += virtual_debt
+            total_plan += virtual_fee
+            if status == "pending" and (next_payment is None or due_date < next_payment):
+                next_payment = due_date
+            plan_items.append(
+                {
+                    "id": None,
+                    "group_name": enrollment.group.nom,
+                    "title": f"{_month_label_uz_full(current_month_start)} oyi to‘lovi",
+                    "month_label": _month_label_uz_full(current_month_start),
+                    "month": current_month_start.isoformat(),
+                    "due_date": due_date.isoformat(),
+                    "planned_amount": virtual_fee,
+                    "paid_amount": 0,
+                    "remaining_amount": virtual_debt,
+                    "status": status,
+                    "status_label": status_label,
+                }
+            )
+
     if total_plan <= 0:
         total_plan = sum(enrollment.resolved_monthly_price for enrollment in enrollments)
     if next_payment is None:
         next_payment = _next_payment_date(child, center)
+    logger.info(
+        "mobile_payments_summary student_id=%s student_name=%s current_month=%s monthly_price=%s paid_this_month=%s calculated_debt=%s response_debt_amount=%s",
+        getattr(child, "id", None),
+        child.get_full_name(),
+        current_month_start.isoformat(),
+        total_plan,
+        _money(paid_this_month),
+        debt_amount,
+        debt_amount,
+    )
     history = [
         {
             "id": payment.id,
@@ -1612,6 +1859,11 @@ def mobile_parent_child_progress(request, child_id: int):
         "attendance_percent": attendance_percent,
         "subject_average_percent": average_subject_percent,
         "progress_chart": _student_progress_chart(child, center, period_key=period_key),
+        "progress_timeline": build_progress_timeline(
+            child.id,
+            center_id=getattr(center, "id", None),
+            period_key=request.GET.get("timeline_period") or "month",
+        ),
         "subjects": subjects,
         "teacher_comments": teacher_comments,
         "latest_teacher_comment": teacher_comments[0] if teacher_comments else None,
@@ -1621,6 +1873,8 @@ def mobile_parent_child_progress(request, child_id: int):
 @require_GET
 @mobile_login_required
 def mobile_progress(request):
+    if request.user.role == "student" and not request.user.is_superuser:
+        return mobile_parent_child_progress(request, request.user.id)
     child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
     if error:
         return error
@@ -2059,27 +2313,62 @@ def mobile_student_debt_breakdown(request):
             target_user = get_object_or_404(User, pk=student_id, role="student", center=center)
 
     current_month = timezone.localdate().replace(day=1)
-    enrollments = (
-        Enrollment.objects.filter(student=target_user, group__center=center)
-        .select_related("group")
-        .prefetch_related("tuition_months__allocations")
+    # Admin paneldagi `qarzdorlar_home` ham `is_active=True` + arxivlanmagan
+    # filterlarni qo'llaydi. `ensure_tuition_month`ni chaqirmaymiz: admin ham
+    # uni chaqirmaydi va saqlangan TuitionMonth.fee_amountni ustiga yozish
+    # qarz qiymatini buzib qo'yishi mumkin.
+    enrollments = list(
+        Enrollment.objects.filter(
+            student=target_user,
+            group__center=center,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+        ).select_related("group")
     )
+
+    snapshots = calculate_enrollment_debt_snapshots(enrollments, [current_month])
+
     items = []
-    total = 0
+    total_debt = 0
+    total_due = 0
+    total_paid = 0
     for enrollment in enrollments:
-        tuition = enrollment.tuition_months.filter(month=current_month).first()
-        fee = _money(tuition.fee_amount) if tuition else 0
-        paid = tuition.allocations.aggregate(total=Sum("amount"))["total"] or 0 if tuition else 0
-        debt = max(0, fee - _money(paid))
-        total += debt
+        snapshot = snapshots.get(enrollment.id, {})
+        fee = int(snapshot.get("total_fee", 0) or 0)
+        paid = int(snapshot.get("total_paid", 0) or 0)
+        debt = int(snapshot.get("debt", 0) or 0)
+        total_due += fee
+        total_paid += paid
+        total_debt += debt
         items.append(
             {
                 "group_id": enrollment.group_id,
                 "group_name": enrollment.group.nom,
                 "month": current_month.isoformat(),
                 "fee": fee,
-                "paid": _money(paid),
+                "paid": paid,
                 "debt": debt,
             }
         )
-    return JsonResponse({"ok": True, "total_debt": total, "items": items})
+
+    logger.info(
+        "mobile_student_debt student_id=%s full_name=%s month=%s total_due=%s total_paid=%s debt_amount=%s response_total_debt=%s",
+        target_user.id,
+        target_user.get_full_name(),
+        current_month.isoformat(),
+        total_due,
+        total_paid,
+        total_debt,
+        total_debt,
+    )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "total_debt": total_debt,
+            "total_due": total_due,
+            "total_paid": total_paid,
+            "items": items,
+        }
+    )

@@ -20,9 +20,19 @@ from .models import (
     Payment,
     StaffProfile,
     StudentAcademicSummary,
+    StudentActivity,
     StudentGroupTransfer,
     TeacherAvailability,
 )
+
+
+@admin.register(StudentActivity)
+class StudentActivityAdmin(admin.ModelAdmin):
+    list_display = ("student", "type", "score", "date", "group", "center", "note")
+    list_filter = ("type", "center", "date")
+    search_fields = ("student__ism", "student__familya", "note")
+    autocomplete_fields = ("student", "group", "center")
+    date_hierarchy = "date"
 
 
 @admin.register(Group)

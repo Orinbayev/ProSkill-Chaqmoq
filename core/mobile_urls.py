@@ -4,6 +4,7 @@ from . import mobile_api
 
 
 urlpatterns = [
+    path("health/", mobile_api.mobile_health, name="mobile_health"),
     path("auth/csrf/", mobile_api.mobile_auth_csrf, name="mobile_auth_csrf"),
     path("auth/login/", mobile_api.mobile_auth_login, name="mobile_auth_login"),
     path("auth/logout/", mobile_api.mobile_auth_logout, name="mobile_auth_logout"),

@@ -27,6 +27,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selectedDate = DateTime.now();
   int? _loadedChildId;
+  int? _selectedGroupId;
 
   @override
   void didChangeDependencies() {
@@ -57,6 +58,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final data = await context.read<ParentDashboardService>().fetchAttendance(
         childId: _loadedChildId,
         month: _month,
+        groupId: _selectedGroupId,
       );
       if (!mounted) {
         return;
@@ -97,6 +99,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _selectedDate = date);
   }
 
+  Future<void> _openFilterSheet(BuildContext context) async {
+    final groups = _data?.groups ?? const <ParentAttendanceGroupOption>[];
+    final result = await showModalBottomSheet<int?>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _AttendanceFilterSheet(
+          groups: groups,
+          selectedGroupId: _selectedGroupId,
+        );
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    // The sheet returns -1 for "Hammasi" (clear), an int for a group, or null
+    // when the user dismisses the sheet (no change).
+    if (result == null) {
+      return;
+    }
+    final next = result == -1 ? null : result;
+    if (next == _selectedGroupId) {
+      return;
+    }
+    setState(() => _selectedGroupId = next);
+    await _load(force: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final fallbackChild = context
@@ -134,7 +165,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AttendanceHeader(child: child),
+                  AttendanceHeader(
+                    child: child,
+                    activeFilterCount: _selectedGroupId == null ? 0 : 1,
+                    onFilterTap: () => _openFilterSheet(context),
+                  ),
                   const SizedBox(height: 16),
                   if (_state == ViewState.loading && _data == null)
                     const _AttendanceStateCard.loading()
@@ -181,9 +216,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 }
 
 class AttendanceHeader extends StatelessWidget {
-  const AttendanceHeader({super.key, this.child});
+  const AttendanceHeader({
+    super.key,
+    this.child,
+    this.onFilterTap,
+    this.activeFilterCount = 0,
+  });
 
   final ParentChildModel? child;
+  final VoidCallback? onFilterTap;
+  final int activeFilterCount;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +267,10 @@ class AttendanceHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const _FilterButton(),
+        _FilterButton(
+          onTap: onFilterTap,
+          activeCount: activeFilterCount,
+        ),
       ],
     );
   }
@@ -797,7 +842,10 @@ class _MonthArrowButton extends StatelessWidget {
 }
 
 class _FilterButton extends StatelessWidget {
-  const _FilterButton();
+  const _FilterButton({this.onTap, this.activeCount = 0});
+
+  final VoidCallback? onTap;
+  final int activeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -805,7 +853,7 @@ class _FilterButton extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -825,7 +873,7 @@ class _FilterButton extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Text(
-                'Filter',
+                activeCount > 0 ? 'Filter • $activeCount' : 'Filter',
                 style: AttendanceTextStyles.body.copyWith(
                   color: AttendanceColors.text,
                   fontSize: 14,
@@ -1122,6 +1170,134 @@ class _CalendarCellColors {
 
   final Color background;
   final Color foreground;
+}
+
+class _AttendanceFilterSheet extends StatelessWidget {
+  const _AttendanceFilterSheet({
+    required this.groups,
+    required this.selectedGroupId,
+  });
+
+  final List<ParentAttendanceGroupOption> groups;
+  final int? selectedGroupId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Fan bo‘yicha filter',
+              style: AttendanceTextStyles.title.copyWith(fontSize: 18),
+            ),
+            const SizedBox(height: 14),
+            _FilterTile(
+              label: 'Hammasi',
+              selected: selectedGroupId == null,
+              onTap: () => Navigator.of(context).pop(-1),
+            ),
+            for (final group in groups)
+              _FilterTile(
+                label: group.name,
+                selected: selectedGroupId == group.id,
+                onTap: () => Navigator.of(context).pop(group.id),
+              ),
+            if (groups.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  'Hozircha guruhlar yo‘q',
+                  textAlign: TextAlign.center,
+                  style: AttendanceTextStyles.body.copyWith(
+                    color: AttendanceColors.grayText,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterTile extends StatelessWidget {
+  const _FilterTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        margin: const EdgeInsets.only(bottom: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? AttendanceColors.primaryBlue.withValues(alpha: 0.08)
+              : Colors.white,
+          border: Border.all(
+            color: selected
+                ? AttendanceColors.primaryBlue
+                : AttendanceColors.border,
+            width: selected ? 1.4 : 1,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: selected
+                  ? AttendanceColors.primaryBlue
+                  : AttendanceColors.grayText,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: AttendanceTextStyles.body.copyWith(
+                  color: AttendanceColors.text,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class AttendanceColors {

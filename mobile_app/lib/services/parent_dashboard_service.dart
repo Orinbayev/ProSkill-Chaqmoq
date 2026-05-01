@@ -23,6 +23,9 @@ class ParentDashboardService {
   Future<ParentAttendanceModel> fetchAttendance({
     int? childId,
     DateTime? month,
+    DateTime? from,
+    DateTime? to,
+    int? groupId,
   }) async {
     final queryParameters = <String, dynamic>{};
     if (childId != null) {
@@ -32,11 +35,27 @@ class ParentDashboardService {
       queryParameters['month'] =
           '${month.year.toString().padLeft(4, '0')}-${month.month.toString().padLeft(2, '0')}';
     }
+    if (from != null) {
+      queryParameters['from'] = _formatIsoDate(from);
+    }
+    if (to != null) {
+      queryParameters['to'] = _formatIsoDate(to);
+    }
+    if (groupId != null) {
+      queryParameters['group_id'] = groupId;
+    }
     final payload = await _apiClient.get(
       AppConfig.attendancePath,
       queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
     return ParentAttendanceModel.fromJson(payload);
+  }
+
+  static String _formatIsoDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   Future<ParentPaymentsModel> fetchPayments({int? childId}) async {

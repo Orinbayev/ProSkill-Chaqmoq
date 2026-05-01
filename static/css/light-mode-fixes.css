@@ -533,6 +533,177 @@ html[data-role-theme="light"] body.lightning-rules-page .card {
   box-shadow: var(--lm-shadow) !important;
 }
 
+html[data-role-theme="light"] body.student-detail-page .sd-wrap,
+html[data-role-theme="light"] body.ranking-page .rb-wrap {
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .sd-hero {
+  border-color: rgba(37, 99, 235, 0.22) !important;
+  box-shadow: 0 18px 42px rgba(37, 99, 235, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .sd-hero .sd-name,
+html[data-role-theme="light"] body.student-detail-page .sd-hero .sd-sub,
+html[data-role-theme="light"] body.student-detail-page .sd-actions a {
+  color: #FFFFFF !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .sd-hero .sd-sub {
+  opacity: 0.88 !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .card,
+html[data-role-theme="light"] body.ranking-page .rb-card,
+html[data-role-theme="light"] body.ranking-page .rb-hero {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .card::before {
+  opacity: 0 !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .card-hd,
+html[data-role-theme="light"] body.student-detail-page .pg-wrap,
+html[data-role-theme="light"] body.ranking-page .rb-toolbar,
+html[data-role-theme="light"] body.ranking-page .rb-pagination {
+  background: rgba(248, 250, 252, 0.72) !important;
+  border-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .card-title,
+html[data-role-theme="light"] body.student-detail-page .it-title,
+html[data-role-theme="light"] body.student-detail-page .t-name,
+html[data-role-theme="light"] body.ranking-page .rb-title,
+html[data-role-theme="light"] body.ranking-page .rb-name-top,
+html[data-role-theme="light"] body.ranking-page .rb-table td {
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .muted,
+html[data-role-theme="light"] body.student-detail-page .it-sub,
+html[data-role-theme="light"] body.student-detail-page .t-role,
+html[data-role-theme="light"] body.student-detail-page .stat .k,
+html[data-role-theme="light"] body.ranking-page .rb-sub,
+html[data-role-theme="light"] body.ranking-page .rb-table th {
+  color: var(--lm-muted) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .item,
+html[data-role-theme="light"] body.student-detail-page .stat {
+  background: #F8FAFC !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .item:hover {
+  background: #FFFFFF !important;
+  border-color: var(--lm-border-strong) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .ico {
+  background: #DCFCE7 !important;
+  border-color: #BBF7D0 !important;
+  color: #16A34A !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .ico.minus {
+  background: #FEE2E2 !important;
+  border-color: #FECACA !important;
+  color: #DC2626 !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page thead th,
+html[data-role-theme="light"] body.ranking-page .rb-table th {
+  background: #F1F5F9 !important;
+  border-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page tbody td,
+html[data-role-theme="light"] body.ranking-page .rb-table td {
+  border-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .pp-select,
+html[data-role-theme="light"] body.student-detail-page .group-pill,
+html[data-role-theme="light"] body.student-detail-page .pg a,
+html[data-role-theme="light"] body.student-detail-page .pg span,
+html[data-role-theme="light"] body.ranking-page .rb-input,
+html[data-role-theme="light"] body.ranking-page .rb-dd-btn,
+html[data-role-theme="light"] body.ranking-page .pg a,
+html[data-role-theme="light"] body.ranking-page .pg span,
+html[data-role-theme="light"] body.ranking-page .btn-home {
+  background: #FFFFFF !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-input input {
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-input input::placeholder {
+  color: var(--lm-muted) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-dd-menu {
+  background: #FFFFFF !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-dd-item {
+  color: var(--lm-text-2) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-dd-item:hover {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-primary) !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-dd-item.active {
+  background: var(--lm-primary) !important;
+  color: #FFFFFF !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-tr-link:hover {
+  background: #F8FAFC !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-avatar {
+  background: #EFF6FF !important;
+  border-color: #BFDBFE !important;
+  color: #0284C7 !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .plus {
+  color: #16A34A !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .minus {
+  color: #DC2626 !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .bal,
+html[data-role-theme="light"] body.ranking-page .rb-score-cell {
+  color: #2563EB !important;
+}
+
+html[data-role-theme="light"] body.ranking-page .rb-rank-cell {
+  color: #0F172A !important;
+}
+
+html[data-role-theme="light"] body.student-detail-page .pg .active,
+html[data-role-theme="light"] body.ranking-page .pg .active {
+  background: var(--lm-primary) !important;
+  border-color: var(--lm-primary) !important;
+  color: #FFFFFF !important;
+}
+
 /* Options in chaqmoq select (hardcoded dark green) */
 html[data-role-theme="light"] body.lightning-action-page .form-select option.text-success {
   background: #ECFDF5 !important;

@@ -981,6 +981,119 @@ class PaymentAllocation(SoftDeleteMixin, models.Model):
         return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"
 
 
+class StudentActivity(SoftDeleteMixin, models.Model):
+    TYPE_ATTENDANCE = "attendance"
+    TYPE_HOMEWORK = "homework"
+    TYPE_PARTICIPATION = "participation"
+    TYPE_TEST = "test"
+    TYPE_PENALTY = "penalty"
+    TYPE_OTHER = "other"
+
+    TYPE_CHOICES = (
+        (TYPE_ATTENDANCE, "Davomat"),
+        (TYPE_HOMEWORK, "Vazifa"),
+        (TYPE_PARTICIPATION, "Ishtirok"),
+        (TYPE_TEST, "Test"),
+        (TYPE_PENALTY, "Jarima"),
+        (TYPE_OTHER, "Boshqa"),
+    )
+
+    DEFAULT_REASON_BY_TYPE = {
+        TYPE_ATTENDANCE: "Darsga keldi",
+        TYPE_HOMEWORK: "Vazifa bajardi",
+        TYPE_PARTICIPATION: "Faol qatnashdi",
+        TYPE_TEST: "Test topshirdi",
+        TYPE_PENALTY: "Darsdan qoldi",
+        TYPE_OTHER: "Boshqa faoliyat",
+    }
+
+    center = models.ForeignKey(
+        "accounts.Center",
+        on_delete=models.CASCADE,
+        related_name="student_activities",
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="student_activities",
+        limit_choices_to={"role": "student"},
+    )
+    group = models.ForeignKey(
+        "education.Group",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="student_activities",
+    )
+    type = models.CharField(max_length=16, choices=TYPE_CHOICES, default=TYPE_OTHER)
+    score = models.SmallIntegerField(
+        default=0,
+        help_text="Musbat — yaxshi (qo'shiladi), manfiy — yomon (ayriladi).",
+    )
+    date = models.DateField(default=timezone.localdate)
+    note = models.CharField(max_length=255, blank=True, default="")
+    source_attendance = models.ForeignKey(
+        "education.Attendance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="derived_activities",
+    )
+    source_exam = models.ForeignKey(
+        "education.ExamResult",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="derived_activities",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-date", "-id")
+        indexes = [
+            models.Index(
+                fields=["student", "date", "is_deleted"],
+                name="sact_student_date_idx",
+            ),
+            models.Index(
+                fields=["center", "date", "is_deleted"],
+                name="sact_center_date_idx",
+            ),
+            models.Index(
+                fields=["student", "type", "date"],
+                name="sact_student_type_date_idx",
+            ),
+        ]
+        verbose_name = "O'quvchi faoliyati"
+        verbose_name_plural = "O'quvchi faoliyatlari"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source_attendance",),
+                condition=models.Q(source_attendance__isnull=False),
+                name="sact_unique_per_attendance",
+            ),
+            models.UniqueConstraint(
+                fields=("source_exam",),
+                condition=models.Q(source_exam__isnull=False),
+                name="sact_unique_per_exam",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.student_id}/{self.type}@{self.date}={self.score}"
+
+    @property
+    def display_reason(self) -> str:
+        return self.note or self.DEFAULT_REASON_BY_TYPE.get(self.type, "")
+
+
 class CenterExpense(models.Model):
     CATEGORY_RENT = "rent"
     CATEGORY_SALARY = "salary"

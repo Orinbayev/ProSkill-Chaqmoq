@@ -592,3 +592,249 @@ class MobileAPITests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()["code"], "center_mismatch")
         self.assertFalse(self.parent.children.filter(pk=foreign_student.pk).exists())
+
+
+class MobileDebtMatchesAdminPanelTests(TestCase):
+    """
+    Anaxon Baxrambayeva ssenariysi:
+    admin paneldagi qarz mobile parent dashboard bilan 1:1 mos kelishi shart.
+    """
+
+    def setUp(self):
+        from django.urls import reverse
+        from datetime import timedelta
+
+        self.client = Client()
+        self.today = timezone.localdate()
+        self.center = Center.objects.create(
+            name="Anaxon Center",
+            slug="anaxon-center",
+            max_students=50,
+            capacity_limit=50,
+            phone="+998900000000",
+        )
+        self.director = User.objects.create_user(
+            email="director@anaxon.test",
+            password="testpass123",
+            role="director",
+            center=self.center,
+            ism="Director",
+            familya="Anaxon",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher@anaxon.test",
+            password="testpass123",
+            role="teacher",
+            center=self.center,
+            ism="Teacher",
+            familya="Anaxon",
+            oqituvchi_foizi=40,
+        )
+        self.parent = User.objects.create_user(
+            email="parent@anaxon.test",
+            password="testpass123",
+            role="parent",
+            center=self.center,
+            ism="Parent",
+            familya="Anaxon",
+        )
+        self.student = User.objects.create_user(
+            email="anaxon@anaxon.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Anaxon",
+            familya="Baxrambayeva",
+            telefon1="+998901112233",
+        )
+        self.parent.children.add(self.student)
+
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Anaxon Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=350_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        self.enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student,
+            kurs_narhi=350_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        from education.models import StudentGroupHistory
+
+        StudentGroupHistory.objects.create(
+            student=self.student,
+            group=self.group,
+            center=self.center,
+            start_date=self.today.replace(day=1) - timedelta(days=30),
+            kurs_narxi=350_000,
+            oqituvchi_foiz=40,
+        )
+        self.current_month = self.today.replace(day=1)
+        self.tuition_month = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=self.enrollment,
+            month=self.current_month,
+            fee_amount=350_000,
+        )
+        self.qarzdorlar_url = f"/{self.center.slug}{reverse('education:qarzdorlar_home')}"
+
+    def _api_path(self, suffix: str) -> str:
+        return f"/{self.center.slug}/api/mobile/{suffix}"
+
+    def _admin_debt_for_anaxon(self) -> int:
+        self.client.force_login(self.director)
+        response = self.client.get(self.qarzdorlar_url)
+        self.assertEqual(response.status_code, 200)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertIn(self.student.email, rows)
+        return int(rows[self.student.email]["debt"])
+
+    def test_anaxon_admin_shows_350k_for_unpaid_current_month(self):
+        self.assertEqual(self._admin_debt_for_anaxon(), 350_000)
+
+    def test_parent_dashboard_debt_amount_matches_admin_for_anaxon(self):
+        admin_debt = self._admin_debt_for_anaxon()
+        self.assertEqual(admin_debt, 350_000)
+
+        self.client.force_login(self.parent)
+        response = self.client.get(self._api_path("parent/dashboard/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["selected_child"]["id"], self.student.id)
+        self.assertEqual(payload["stats"]["debt_amount"], admin_debt)
+        self.assertEqual(payload["stats"]["debt_amount"], 350_000)
+        self.assertEqual(payload["stats"]["debt_status"], "qarzdor")
+        self.assertEqual(payload["stats"]["max_level"], 5)
+        self.assertIn("current_level", payload["stats"])
+        self.assertIn("monthly_change", payload["stats"])
+        self.assertIn("progress_timeline", payload)
+        self.assertIn("progress_level", payload)
+        timeline_points = payload["progress_timeline"]["timeline"]
+        self.assertGreater(len(timeline_points), 0)
+        for point in timeline_points:
+            self.assertIn("date", point)
+            self.assertIn("score", point)
+            self.assertIn("reasons", point)
+
+    def test_parent_dashboard_debt_status_is_paid_when_fully_paid(self):
+        from datetime import timedelta
+
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.enrollment,
+            student=self.student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=350_000,
+            paid_date=self.current_month + timedelta(days=2),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=self.tuition_month,
+            amount=350_000,
+        )
+
+        self.client.force_login(self.parent)
+        payload = self.client.get(self._api_path("parent/dashboard/")).json()
+        self.assertEqual(payload["stats"]["debt_amount"], 0)
+        self.assertEqual(payload["stats"]["debt_status"], "to_liq_to_langan")
+
+    def test_mobile_student_debt_endpoint_matches_admin_for_anaxon(self):
+        admin_debt = self._admin_debt_for_anaxon()
+
+        self.client.force_login(self.student)
+        response = self.client.get(self._api_path("student/debt/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["total_debt"], admin_debt)
+        self.assertEqual(payload["total_debt"], 350_000)
+        self.assertEqual(payload["total_due"], 350_000)
+        self.assertEqual(payload["total_paid"], 0)
+        self.assertEqual(len(payload["items"]), 1)
+        self.assertEqual(payload["items"][0]["fee"], 350_000)
+        self.assertEqual(payload["items"][0]["paid"], 0)
+        self.assertEqual(payload["items"][0]["debt"], 350_000)
+
+    def test_mobile_payments_summary_debt_matches_admin_for_anaxon(self):
+        admin_debt = self._admin_debt_for_anaxon()
+
+        self.client.force_login(self.parent)
+        response = self.client.get(self._api_path("payments/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["summary"]["debt_amount"], admin_debt)
+        self.assertEqual(payload["summary"]["debt_amount"], 350_000)
+
+    def test_partial_payment_keeps_admin_and_mobile_in_lockstep(self):
+        from datetime import timedelta
+
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.enrollment,
+            student=self.student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=100_000,
+            paid_date=self.current_month + timedelta(days=2),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=self.tuition_month,
+            amount=100_000,
+        )
+
+        admin_debt = self._admin_debt_for_anaxon()
+        self.assertEqual(admin_debt, 250_000)
+
+        self.client.force_login(self.parent)
+        dashboard = self.client.get(self._api_path("parent/dashboard/")).json()
+        debt_breakdown = self.client.get(self._api_path("student/debt/"), {"student_id": self.student.id}).json()
+
+        self.assertEqual(dashboard["stats"]["debt_amount"], admin_debt)
+        self.assertEqual(debt_breakdown["total_debt"], admin_debt)
+        self.assertEqual(debt_breakdown["total_due"], 350_000)
+        self.assertEqual(debt_breakdown["total_paid"], 100_000)
+
+    def test_full_payment_drops_debt_to_zero_in_both_views(self):
+        from datetime import timedelta
+
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.enrollment,
+            student=self.student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=350_000,
+            paid_date=self.current_month + timedelta(days=2),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=self.tuition_month,
+            amount=350_000,
+        )
+
+        self.client.force_login(self.director)
+        admin_response = self.client.get(self.qarzdorlar_url)
+        rows = {row["student"].email: row for row in admin_response.context["page_obj"].object_list}
+        self.assertNotIn(self.student.email, rows)
+
+        self.client.force_login(self.parent)
+        dashboard = self.client.get(self._api_path("parent/dashboard/")).json()
+        debt_breakdown = self.client.get(self._api_path("student/debt/"), {"student_id": self.student.id}).json()
+
+        self.assertEqual(dashboard["stats"]["debt_amount"], 0)
+        self.assertEqual(debt_breakdown["total_debt"], 0)
+        self.assertEqual(debt_breakdown["total_paid"], 350_000)

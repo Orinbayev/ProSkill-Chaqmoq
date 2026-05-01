@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/core/theme/app_theme.dart';
 import 'package:chaqmoq_mobile/providers/attendance_provider.dart';
@@ -35,6 +37,7 @@ Future<void> main() async {
 
   final storageService = StorageService();
   final apiClient = ApiClient(storageService: storageService);
+  unawaited(apiClient.warmup());
   final localNotificationService = LocalNotificationService();
   await localNotificationService.initialize();
 

@@ -82,6 +82,20 @@ class ApiClient {
     _slug = null;
   }
 
+  Future<void> warmup() async {
+    try {
+      await _dio.get<dynamic>(
+        AppConfig.healthPath,
+        options: Options(
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+    } catch (_) {
+      // Best-effort: ignore failures so cold-start doesn't block app launch.
+    }
+  }
+
   void setUnauthorizedHandler(Future<void> Function() handler) {
     _unauthorizedHandler = handler;
   }

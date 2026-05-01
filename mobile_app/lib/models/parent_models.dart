@@ -38,20 +38,32 @@ class ParentStatsModel {
   const ParentStatsModel({
     required this.attendancePercent,
     required this.debtAmount,
+    required this.debtStatus,
     required this.averageScore,
+    required this.currentLevel,
+    required this.maxLevel,
+    required this.monthlyChange,
     this.nextPaymentDate,
   });
 
   final int attendancePercent;
   final int debtAmount;
+  final String debtStatus;
   final int averageScore;
+  final double currentLevel;
+  final double maxLevel;
+  final double monthlyChange;
   final DateTime? nextPaymentDate;
 
   factory ParentStatsModel.fromJson(Map<String, dynamic> json) {
     return ParentStatsModel(
       attendancePercent: jsonInt(json['attendance_percent']),
       debtAmount: jsonInt(json['debt_amount']),
+      debtStatus: jsonString(json['debt_status']),
       averageScore: jsonInt(json['average_score']),
+      currentLevel: jsonDouble(json['current_level']),
+      maxLevel: jsonDouble(json['max_level'] ?? 5),
+      monthlyChange: jsonDouble(json['monthly_change']),
       nextPaymentDate: jsonDate(json['next_payment_date']),
     );
   }
@@ -158,11 +170,13 @@ class ParentAttendanceModel {
     required this.child,
     required this.summary,
     required this.items,
+    this.groups = const <ParentAttendanceGroupOption>[],
   });
 
   final ParentChildModel child;
   final ParentAttendanceSummaryModel summary;
   final List<ParentAttendanceItemModel> items;
+  final List<ParentAttendanceGroupOption> groups;
 
   factory ParentAttendanceModel.fromJson(Map<String, dynamic> json) {
     return ParentAttendanceModel(
@@ -171,6 +185,23 @@ class ParentAttendanceModel {
       items: jsonMapList(
         json['items'],
       ).map(ParentAttendanceItemModel.fromJson).toList(),
+      groups: jsonMapList(json['groups'])
+          .map(ParentAttendanceGroupOption.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class ParentAttendanceGroupOption {
+  const ParentAttendanceGroupOption({required this.id, required this.name});
+
+  final int id;
+  final String name;
+
+  factory ParentAttendanceGroupOption.fromJson(Map<String, dynamic> json) {
+    return ParentAttendanceGroupOption(
+      id: jsonInt(json['id']),
+      name: jsonString(json['name']),
     );
   }
 }
@@ -433,6 +464,7 @@ class ParentProgressModel {
     required this.attendancePercent,
     required this.subjectAveragePercent,
     required this.progressChart,
+    required this.progressTimeline,
     required this.subjects,
     required this.teacherComments,
     this.latestTeacherComment,
@@ -446,6 +478,7 @@ class ParentProgressModel {
   final int attendancePercent;
   final int subjectAveragePercent;
   final List<ParentProgressSeries> progressChart;
+  final ProgressTimelineModel progressTimeline;
   final List<ParentSubjectProgressModel> subjects;
   final List<ParentTeacherCommentModel> teacherComments;
   final ParentTeacherCommentModel? latestTeacherComment;
@@ -465,6 +498,8 @@ class ParentProgressModel {
       progressChart: jsonMapList(
         json['progress_chart'],
       ).map(ParentProgressSeries.fromJson).toList(),
+      progressTimeline:
+          ProgressTimelineModel.fromJson(jsonMap(json['progress_timeline'])),
       subjects: jsonMapList(
         json['subjects'],
       ).map(ParentSubjectProgressModel.fromJson).toList(),
@@ -474,6 +509,68 @@ class ParentProgressModel {
       latestTeacherComment: commentPayload.isEmpty
           ? null
           : ParentTeacherCommentModel.fromJson(commentPayload),
+    );
+  }
+}
+
+class ProgressTimelineModel {
+  const ProgressTimelineModel({
+    required this.period,
+    required this.startDate,
+    required this.endDate,
+    required this.totalScore,
+    required this.points,
+  });
+
+  final String period;
+  final String startDate;
+  final String endDate;
+  final int totalScore;
+  final List<ProgressTimelinePoint> points;
+
+  bool get isEmpty => points.every((point) => point.score == 0);
+
+  factory ProgressTimelineModel.fromJson(Map<String, dynamic> json) {
+    return ProgressTimelineModel(
+      period: jsonString(json['period']),
+      startDate: jsonString(json['start_date']),
+      endDate: jsonString(json['end_date']),
+      totalScore: jsonInt(json['total_score']),
+      points: jsonMapList(
+        json['timeline'],
+      ).map(ProgressTimelinePoint.fromJson).toList(),
+    );
+  }
+}
+
+class ProgressTimelinePoint {
+  const ProgressTimelinePoint({
+    required this.date,
+    required this.score,
+    required this.reasons,
+  });
+
+  final String date;
+  final int score;
+  final List<String> reasons;
+
+  DateTime? get parsedDate => DateTime.tryParse(date);
+
+  factory ProgressTimelinePoint.fromJson(Map<String, dynamic> json) {
+    final rawReasons = json['reasons'];
+    final reasons = <String>[];
+    if (rawReasons is List) {
+      for (final item in rawReasons) {
+        final value = item?.toString().trim() ?? '';
+        if (value.isNotEmpty) {
+          reasons.add(value);
+        }
+      }
+    }
+    return ProgressTimelinePoint(
+      date: jsonString(json['date']),
+      score: jsonInt(json['score']),
+      reasons: reasons,
     );
   }
 }
@@ -567,6 +664,7 @@ class ParentDashboardModel {
     required this.selectedChild,
     required this.stats,
     required this.progressChart,
+    required this.progressTimeline,
     required this.latestNotifications,
     required this.unreadNotifications,
     this.center,
@@ -578,6 +676,7 @@ class ParentDashboardModel {
   final ParentChildModel selectedChild;
   final ParentStatsModel stats;
   final List<ParentProgressSeries> progressChart;
+  final ProgressTimelineModel progressTimeline;
   final List<ParentNotificationModel> latestNotifications;
   final int unreadNotifications;
 
@@ -595,6 +694,9 @@ class ParentDashboardModel {
       progressChart: jsonMapList(
         json['progress_chart'],
       ).map(ParentProgressSeries.fromJson).toList(),
+      progressTimeline: ProgressTimelineModel.fromJson(
+        jsonMap(json['progress_timeline']),
+      ),
       latestNotifications: jsonMapList(
         json['latest_notifications'],
       ).map(ParentNotificationModel.fromJson).toList(),

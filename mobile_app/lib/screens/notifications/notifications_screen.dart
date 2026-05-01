@@ -78,8 +78,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               )
             else if (items.isEmpty)
               const _NotificationsStateCard(
-                title: 'Bildirishnoma yo‘q',
-                message: 'Hozircha yangi xabar yoki ogohlantirish mavjud emas.',
+                title: 'Hozircha bildirishnomalar yo‘q',
+                message: 'Yangi xabar yoki ogohlantirish kelganda shu yerda paydo bo‘ladi.',
                 icon: Icons.mark_email_read_rounded,
               )
             else

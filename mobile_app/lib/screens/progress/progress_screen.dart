@@ -8,6 +8,7 @@ import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
+import 'package:chaqmoq_mobile/widgets/progress_timeline_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -270,6 +271,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         setState(() => _selectedChartIndex = index);
                       },
                     ),
+                    if (_data != null) ...[
+                      const SizedBox(height: ParentUi.sectionGap),
+                      _ProgressTimelineCard(
+                        timeline: _data!.progressTimeline,
+                      ),
+                    ],
                     const SizedBox(height: ParentUi.sectionGap),
                     SubjectProgressSection(
                       subjects: _data?.subjects ?? const [],
@@ -2239,6 +2246,95 @@ class SubjectProgressData {
 }
 
 enum SubjectIconKind { math, book, atom, code, flask, history }
+
+class _ProgressTimelineCard extends StatelessWidget {
+  const _ProgressTimelineCard({required this.timeline});
+
+  final ProgressTimelineModel timeline;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasData = timeline.points.isNotEmpty && !timeline.isEmpty;
+    final totalPositive = hasData && timeline.totalScore >= 0;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: ProgressShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Faollik chizig‘i',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ProgressColors.text,
+                  ),
+                ),
+              ),
+              if (hasData)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (totalPositive
+                            ? ProgressColors.green
+                            : const Color(0xFFEF4444))
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${totalPositive ? '+' : ''}${timeline.totalScore} ball',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: totalPositive
+                          ? ProgressColors.green
+                          : const Color(0xFFEF4444),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Nuqtaga teging — sabablari ko‘rinadi',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: ProgressColors.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (hasData)
+            ProgressTimelineChart(
+              timeline: timeline,
+              lineColor: ProgressColors.primaryBlue,
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: Center(
+                child: Text(
+                  'Progress ma’lumotlari hali mavjud emas',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: ProgressColors.secondaryText,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 class ProgressColors {
   const ProgressColors._();
