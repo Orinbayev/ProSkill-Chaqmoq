@@ -187,15 +187,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           onPayments: widget.onOpenPayments,
           onProgress: widget.onOpenProgress,
         ),
-        const SizedBox(height: 14),
-        Text('Tezkor amallar', style: ParentTextStyles.sectionTitle),
-        const SizedBox(height: 10),
-        _QuickActions(
-          onAttendance: widget.onOpenAttendance,
-          onPayments: widget.onOpenPayments,
-          onProgress: widget.onOpenProgress,
-          onMessages: widget.onOpenNotifications,
-        ),
       ],
     );
   }
@@ -644,114 +635,6 @@ class _StatTile extends StatelessWidget {
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
               color: ParentColors.textMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    this.onAttendance,
-    this.onPayments,
-    this.onProgress,
-    this.onMessages,
-  });
-
-  final VoidCallback? onAttendance;
-  final VoidCallback? onPayments;
-  final VoidCallback? onProgress;
-  final VoidCallback? onMessages;
-
-  @override
-  Widget build(BuildContext context) {
-    final tiles = <_QuickActionTile>[
-      _QuickActionTile(
-        icon: Icons.fact_check_outlined,
-        label: 'Davomat',
-        bg: ParentColors.successBg,
-        fg: ParentColors.success,
-        onTap: onAttendance,
-      ),
-      _QuickActionTile(
-        icon: Icons.payments_outlined,
-        label: 'To‘lov',
-        bg: ParentColors.infoBg,
-        fg: ParentColors.primaryDeep,
-        onTap: onPayments,
-      ),
-      _QuickActionTile(
-        icon: Icons.insights_outlined,
-        label: 'Progress',
-        bg: ParentColors.amberBg,
-        fg: ParentColors.amberDeep,
-        onTap: onProgress,
-      ),
-      _QuickActionTile(
-        icon: Icons.forum_outlined,
-        label: 'Xabar',
-        bg: ParentColors.violetBg,
-        fg: ParentColors.violet,
-        onTap: onMessages,
-      ),
-    ];
-
-    return Row(
-      children: [
-        for (var i = 0; i < tiles.length; i++) ...[
-          Expanded(child: tiles[i]),
-          if (i < tiles.length - 1) const SizedBox(width: 8),
-        ],
-      ],
-    );
-  }
-}
-
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({
-    required this.icon,
-    required this.label,
-    required this.bg,
-    required this.fg,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color bg;
-  final Color fg;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppPCard(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: fg, size: 20),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: ParentColors.text,
             ),
           ),
         ],

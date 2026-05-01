@@ -467,6 +467,13 @@ class ParentProgressModel {
     required this.progressTimeline,
     required this.subjects,
     required this.teacherComments,
+    required this.currentLevel,
+    required this.maxLevel,
+    required this.levelLabel,
+    required this.trend,
+    required this.monthlyChange,
+    required this.breakdown,
+    required this.hasBreakdownData,
     this.latestTeacherComment,
   });
 
@@ -482,6 +489,13 @@ class ParentProgressModel {
   final List<ParentSubjectProgressModel> subjects;
   final List<ParentTeacherCommentModel> teacherComments;
   final ParentTeacherCommentModel? latestTeacherComment;
+  final double currentLevel;
+  final double maxLevel;
+  final String levelLabel;
+  final String trend;
+  final double monthlyChange;
+  final List<ProgressBreakdownItem> breakdown;
+  final bool hasBreakdownData;
 
   factory ParentProgressModel.fromJson(Map<String, dynamic> json) {
     final commentPayload = jsonMap(json['latest_teacher_comment']);
@@ -509,6 +523,35 @@ class ParentProgressModel {
       latestTeacherComment: commentPayload.isEmpty
           ? null
           : ParentTeacherCommentModel.fromJson(commentPayload),
+      currentLevel: jsonDouble(json['current_level']),
+      maxLevel: jsonDouble(json['max_level'] ?? 5),
+      levelLabel: jsonString(json['label']),
+      trend: jsonString(json['trend']),
+      monthlyChange: jsonDouble(json['monthly_change']),
+      breakdown: jsonMapList(
+        json['breakdown'],
+      ).map(ProgressBreakdownItem.fromJson).toList(),
+      hasBreakdownData: jsonBool(json['has_breakdown_data']),
+    );
+  }
+}
+
+class ProgressBreakdownItem {
+  const ProgressBreakdownItem({
+    required this.label,
+    required this.value,
+    required this.score,
+  });
+
+  final String label;
+  final String value;
+  final double score;
+
+  factory ProgressBreakdownItem.fromJson(Map<String, dynamic> json) {
+    return ProgressBreakdownItem(
+      label: jsonString(json['label']),
+      value: jsonString(json['value']),
+      score: jsonDouble(json['score']),
     );
   }
 }
