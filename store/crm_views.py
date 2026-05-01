@@ -492,6 +492,7 @@ def _convert_lead_group_to_real_group(*, lead_group, payload, actor, center):
             group=group,
             weekday=int(weekday),
             start_time=cleaned["lesson_time"],
+            end_time=cleaned.get("lesson_end_time"),
         )
 
     leads = list(

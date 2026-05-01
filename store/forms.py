@@ -543,6 +543,7 @@ class LeadGroupConvertForm(forms.Form):
     teacher = forms.ModelChoiceField(queryset=User.objects.none(), required=True)
     lesson_days = forms.MultipleChoiceField(choices=WEEKDAY_CHOICES, required=False)
     lesson_time = forms.TimeField(required=True)
+    lesson_end_time = forms.TimeField(required=False)
     start_date = forms.DateField(required=True)
     price = forms.IntegerField(required=True, min_value=0)
     teacher_share = forms.CharField(required=False)
@@ -574,3 +575,29 @@ class LeadGroupConvertForm(forms.Form):
 
     def clean_teacher_share(self):
         return (self.cleaned_data.get("teacher_share") or "").strip()
+
+    def clean(self):
+        cleaned = super().clean()
+
+        teacher = cleaned.get("teacher")
+        lesson_days = cleaned.get("lesson_days") or []
+        lesson_time = cleaned.get("lesson_time")
+        lesson_end_time = cleaned.get("lesson_end_time")
+
+        if lesson_end_time and lesson_time and lesson_end_time <= lesson_time:
+            self.add_error("lesson_end_time", "Tugash vaqti boshlanishdan keyin bo'lishi kerak.")
+
+        if teacher and lesson_time and lesson_days and self.center:
+            from education.services.hr import teacher_is_available
+
+            weekdays = [int(value) for value in lesson_days if str(value).isdigit()]
+            if not teacher_is_available(
+                teacher,
+                center=self.center,
+                weekdays=weekdays,
+                start_time=lesson_time,
+                end_time=lesson_end_time,
+            ):
+                self.add_error("teacher", "Tanlangan kun va vaqtlarda bu o'qituvchi band.")
+
+        return cleaned

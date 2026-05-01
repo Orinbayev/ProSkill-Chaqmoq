@@ -232,6 +232,7 @@
           <div>
             <label class="ui-label" for="{{ form.oqituvchi.id_for_label }}">O'qituvchi</label>
             {{ form.oqituvchi }}
+            <div class="field-help" id="teacher-availability-hint">Jadval va vaqt tanlang, bo'sh ustozlar avtomatik filtrlab ko'rsatiladi.</div>
             {% for error in form.oqituvchi.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
           </div>
 
@@ -313,9 +314,22 @@
     const startDateInput = document.getElementById("{{ form.course_start_date.id_for_label }}");
     const durationInput = document.getElementById("{{ form.duration_months.id_for_label }}");
     const endDateInput = document.getElementById("{{ form.estimated_end_date.id_for_label }}");
+    const teacherSelect = document.getElementById("{{ form.oqituvchi.id_for_label }}");
+    const teacherAvailabilityHint = document.getElementById("teacher-availability-hint");
+    const scheduleStartTimeInput = document.getElementById("{{ form.schedule_start_time.id_for_label }}");
+    const scheduleEndTimeInput = document.getElementById("{{ form.schedule_end_time.id_for_label }}");
     const summaryStart = document.getElementById("summary-start");
     const summaryDuration = document.getElementById("summary-duration");
     const summaryEnd = document.getElementById("summary-end");
+    const tenantSlug = "{{ request.center.slug|default:''|escapejs }}";
+    const availableTeachersUrl = tenantSlug ? `/${tenantSlug}/api/hr/teachers/available/` : "/api/hr/teachers/available/";
+    const excludeGroupId = "{{ form.instance.pk|default:''|escapejs }}";
+    const initialTeacherOptions = teacherSelect
+      ? Array.from(teacherSelect.options).map((option) => ({
+          value: option.value,
+          label: option.textContent,
+        }))
+      : [];
 
     function pad(value) {
       return String(value).padStart(2, "0");
@@ -359,6 +373,78 @@
       scheduleBlock.classList.toggle("show", show);
     }
 
+    function restoreTeacherOptions() {
+      if (!teacherSelect) return;
+      const currentValue = teacherSelect.value;
+      teacherSelect.innerHTML = initialTeacherOptions.map((item) => (
+        `<option value="${item.value}">${item.label}</option>`
+      )).join("");
+      if (currentValue) {
+        teacherSelect.value = currentValue;
+      }
+      if (teacherAvailabilityHint) {
+        teacherAvailabilityHint.textContent = "Jadval va vaqt tanlang, bo'sh ustozlar avtomatik filtrlab ko'rsatiladi.";
+      }
+    }
+
+    async function syncAvailableTeachers() {
+      if (!teacherSelect || !modeSelect || !scheduleStartTimeInput) return;
+
+      const mode = modeSelect.value;
+      const startTime = scheduleStartTimeInput.value;
+      const endTime = scheduleEndTimeInput ? scheduleEndTimeInput.value : "";
+      if (!(mode === "odd" || mode === "even") || !startTime) {
+        restoreTeacherOptions();
+        return;
+      }
+
+      const selectedDays = mode === "odd" ? ["1", "3", "5"] : ["2", "4", "6"];
+      const params = new URLSearchParams();
+      selectedDays.forEach((day) => params.append("day", day));
+      params.set("time", startTime);
+      if (endTime) {
+        params.set("end_time", endTime);
+      }
+      if (excludeGroupId) {
+        params.set("exclude_group_id", excludeGroupId);
+      }
+
+      const selectedValue = teacherSelect.value;
+      teacherSelect.disabled = true;
+      if (teacherAvailabilityHint) {
+        teacherAvailabilityHint.textContent = "Bo'sh ustozlar tekshirilmoqda...";
+      }
+
+      try {
+        const response = await fetch(`${availableTeachersUrl}?${params.toString()}`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const data = await response.json();
+        const results = Array.isArray(data.results) ? data.results : [];
+        const optionHtml = ['<option value="">O\'qituvchini tanlang</option>'].concat(
+          results.map((item) => `<option value="${item.id}">${item.name}</option>`)
+        ).join("");
+        teacherSelect.innerHTML = optionHtml;
+        if (selectedValue && results.some((item) => String(item.id) === String(selectedValue))) {
+          teacherSelect.value = selectedValue;
+        } else {
+          teacherSelect.value = "";
+        }
+        if (teacherAvailabilityHint) {
+          teacherAvailabilityHint.textContent = results.length
+            ? `${results.length} ta bo'sh ustoz topildi.`
+            : "Bu vaqtda bo'sh ustoz topilmadi.";
+        }
+      } catch (error) {
+        restoreTeacherOptions();
+        if (teacherAvailabilityHint) {
+          teacherAvailabilityHint.textContent = "Bo'sh ustozlarni tekshirishda xatolik yuz berdi.";
+        }
+      } finally {
+        teacherSelect.disabled = false;
+      }
+    }
+
     function syncEndDate() {
       if (!startDateInput || !durationInput || !endDateInput) return;
 
@@ -383,7 +469,18 @@
 
     if (modeSelect) {
       modeSelect.addEventListener("change", syncScheduleBlock);
+      modeSelect.addEventListener("change", syncAvailableTeachers);
       syncScheduleBlock();
+    }
+
+    if (scheduleStartTimeInput) {
+      scheduleStartTimeInput.addEventListener("change", syncAvailableTeachers);
+      scheduleStartTimeInput.addEventListener("input", syncAvailableTeachers);
+    }
+
+    if (scheduleEndTimeInput) {
+      scheduleEndTimeInput.addEventListener("change", syncAvailableTeachers);
+      scheduleEndTimeInput.addEventListener("input", syncAvailableTeachers);
     }
 
     if (startDateInput) {
@@ -395,6 +492,7 @@
     }
 
     syncEndDate();
+    syncAvailableTeachers();
   })();
 </script>
 {% endblock %}

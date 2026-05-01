@@ -69,6 +69,7 @@ class GroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         center = kwargs.pop("center", None)
+        self.center = center
         super().__init__(*args, **kwargs)
 
         # Filter teachers by center
@@ -135,6 +136,7 @@ class GroupForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
 
+        teacher = cleaned.get("oqituvchi")
         schedule_mode = cleaned.get("schedule_mode")
         schedule_start_time = cleaned.get("schedule_start_time")
         schedule_end_time = cleaned.get("schedule_end_time")
@@ -153,6 +155,21 @@ class GroupForm(forms.ModelForm):
             duration_months=duration_months,
             lessons_per_week=3,
         )
+
+        if teacher and schedule_mode in {"odd", "even"} and schedule_start_time and self.center:
+            from education.services.group_schedule_service import EVEN_WEEKDAYS, ODD_WEEKDAYS
+            from education.services.hr import teacher_is_available
+
+            weekdays = ODD_WEEKDAYS if schedule_mode == "odd" else EVEN_WEEKDAYS
+            if not teacher_is_available(
+                teacher,
+                center=self.center,
+                weekdays=weekdays,
+                start_time=schedule_start_time,
+                end_time=schedule_end_time,
+                exclude_group_id=getattr(self.instance, "pk", None),
+            ):
+                self.add_error("oqituvchi", "Tanlangan kun va vaqtda bu o'qituvchi band.")
 
         return cleaned
 

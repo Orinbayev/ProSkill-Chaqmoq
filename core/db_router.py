@@ -10,6 +10,8 @@ Database router for multi-tenant architecture (foundation).
 from core.tenant_context import get_current_tenant
 from core.db_config import build_tenant_db_config
 from django.conf import settings
+from django.db import connections
+from django.db.utils import DEFAULT_DB_ALIAS
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,13 +24,40 @@ TENANT_APPS = [
     'education', 'billing'
 ]
 
-from django.db import connections
+
+def _database_identity(config):
+    return (
+        str(config.get("NAME", "") or "").strip(),
+        str(config.get("USER", "") or "").strip(),
+        str(config.get("HOST", "") or "localhost").strip() or "localhost",
+        str(config.get("PORT", "") or "5432").strip() or "5432",
+    )
+
+
+def uses_default_database(config):
+    default_config = settings.DATABASES.get(DEFAULT_DB_ALIAS, {})
+    if "postgresql" not in str(default_config.get("ENGINE", "")).lower():
+        return False
+    return _database_identity(config) == _database_identity(default_config)
+
+
+def _normalize_connection_config(alias, config):
+    databases = {
+        DEFAULT_DB_ALIAS: dict(settings.DATABASES.get(DEFAULT_DB_ALIAS, {})),
+        alias: dict(config),
+    }
+    return connections.configure_settings(databases)[alias]
+
 
 def ensure_connection(alias, config):
+    config = _normalize_connection_config(alias, config)
     if alias not in settings.DATABASES:
         settings.DATABASES[alias] = config
         connections.databases[alias] = config
         logger.info(f"[MultiTenant] DB ulandi: {alias}")
+    else:
+        settings.DATABASES[alias].update(config)
+        connections.databases[alias] = settings.DATABASES[alias]
 
 
 class TenantDatabaseRouter:
@@ -41,6 +70,8 @@ class TenantDatabaseRouter:
             if tenant and getattr(tenant, 'db_name', None):
                 alias = f"tenant_{tenant.id}"
                 config = build_tenant_db_config(tenant)
+                if uses_default_database(config):
+                    return 'default'
                 ensure_connection(alias, config)
                 return alias
             return 'default'

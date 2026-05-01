@@ -1,12 +1,13 @@
+import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/attendance/attendance_screen.dart'
     as attendance;
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
-import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_dashboard_screen.dart'
     as dashboard;
+import 'package:chaqmoq_mobile/screens/parent/parent_notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart'
     as payments;
@@ -14,6 +15,8 @@ import 'package:chaqmoq_mobile/screens/profile/profile_screen.dart' as profile;
 import 'package:chaqmoq_mobile/screens/progress/progress_screen.dart'
     as progress;
 import 'package:chaqmoq_mobile/screens/settings/settings_screen.dart';
+import 'package:chaqmoq_mobile/widgets/app_parent_bottom_nav.dart';
+import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +30,7 @@ class ParentAppShell extends StatefulWidget {
 
 class _ParentAppShellState extends State<ParentAppShell> {
   int _currentIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -54,8 +58,6 @@ class _ParentAppShellState extends State<ParentAppShell> {
     const profile.ProfileScreen(showBottomNav: false),
   ];
 
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   void _setTab(int index) {
     Navigator.of(context).maybePop();
     setState(() => _currentIndex = index);
@@ -65,16 +67,13 @@ class _ParentAppShellState extends State<ParentAppShell> {
     Navigator.of(context).maybePop();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => const Scaffold(
-          backgroundColor: Color(0xFFF7FBFF),
-          body: SafeArea(child: NotificationsScreen()),
-        ),
+        builder: (_) => const ParentNotificationsScreen(),
       ),
     );
   }
 
   void _openSettings() {
-    Navigator.of(context).pop();
+    Navigator.of(context).maybePop();
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
@@ -84,9 +83,7 @@ class _ParentAppShellState extends State<ParentAppShell> {
     Navigator.of(context).maybePop();
     context.read<ParentDashboardProvider>().clear();
     await context.read<AuthProvider>().logout();
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (_) => false,
@@ -95,9 +92,10 @@ class _ParentAppShellState extends State<ParentAppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isOffline = context.watch<AuthProvider>().isOfflineMode;
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF7FBFF),
+      backgroundColor: ParentColors.bg,
       drawer: ParentDrawer(
         onDashboard: () => _setTab(0),
         onAttendance: () => _setTab(1),
@@ -107,76 +105,27 @@ class _ParentAppShellState extends State<ParentAppShell> {
         onSettings: _openSettings,
         onLogout: _logout,
       ),
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x140B1220),
-              blurRadius: 24,
-              offset: Offset(0, -8),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: _setTab,
-              type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            selectedItemColor: const Color(0xFF1E73F8),
-            unselectedItemColor: const Color(0xFF6B7280),
-            iconSize: 24,
-            selectedFontSize: 11,
-            unselectedFontSize: 11,
-            selectedLabelStyle: _labelStyle.copyWith(
-              color: const Color(0xFF1E73F8),
-            ),
-              unselectedLabelStyle: _labelStyle.copyWith(
-                color: const Color(0xFF6B7280),
-                fontWeight: FontWeight.w600,
+      body: Column(
+        children: [
+          if (isOffline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+              child: SafeArea(
+                bottom: false,
+                child: AppOfflineBanner(
+                  lastSync: 'Saqlangan ma’lumot ko‘rsatilmoqda',
+                ),
               ),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home_rounded),
-                  label: 'Bosh sahifa',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.event_available_outlined),
-                  label: 'Davomat',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.account_balance_wallet_outlined),
-                  label: 'To‘lovlar',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart_rounded),
-                  label: 'Progress',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_rounded),
-                  label: 'Profil',
-                ),
-              ],
             ),
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: _screens),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  static TextStyle get _labelStyle {
-    return GoogleFonts.inter(
-      fontSize: 11,
-      height: 1.16,
-      fontWeight: FontWeight.w800,
-      letterSpacing: 0,
+      bottomNavigationBar: AppParentBottomNav(
+        activeIndex: _currentIndex,
+        onChanged: _setTab,
+      ),
     );
   }
 }
@@ -209,7 +158,7 @@ class ParentDrawer extends StatelessWidget {
         ? (user?.center?.name ?? '').trim()
         : 'Ota-ona';
     return Drawer(
-      backgroundColor: const Color(0xFFF7FBFF),
+      backgroundColor: ParentColors.bg,
       child: SafeArea(
         child: ListView(
           padding: ParentUi.screenPadding,
@@ -219,18 +168,19 @@ class ParentDrawer extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(ParentUi.cardRadius),
-                border: Border.all(color: const Color(0xFFE5EAF2)),
+                border: Border.all(color: ParentColors.line),
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFFEAF4FF),
+                    backgroundColor: ParentColors.primaryTint,
                     child: Text(
                       _initials(name),
-                      style: _ParentAppShellState._labelStyle.copyWith(
-                        color: const Color(0xFF1E73F8),
+                      style: GoogleFonts.inter(
                         fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: ParentColors.primary,
                       ),
                     ),
                   ),
@@ -243,9 +193,10 @@ class ParentDrawer extends StatelessWidget {
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: _ParentAppShellState._labelStyle.copyWith(
+                          style: GoogleFonts.inter(
                             fontSize: 15,
-                            color: const Color(0xFF111827),
+                            fontWeight: FontWeight.w800,
+                            color: ParentColors.text,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -253,10 +204,10 @@ class ParentDrawer extends StatelessWidget {
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: _ParentAppShellState._labelStyle.copyWith(
-                            color: const Color(0xFF6B7280),
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
+                            color: ParentColors.textMuted,
                           ),
                         ),
                       ],
@@ -267,33 +218,19 @@ class ParentDrawer extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             _DrawerItem(Icons.home_rounded, 'Bosh sahifa', onDashboard),
+            _DrawerItem(Icons.fact_check_outlined, 'Davomat', onAttendance),
             _DrawerItem(
-              Icons.event_available_outlined,
-              'Davomat',
-              onAttendance,
-            ),
-            _DrawerItem(
-              Icons.account_balance_wallet_outlined,
-              'To‘lovlar',
-              onPayments,
-            ),
-            _DrawerItem(
-              Icons.bar_chart_rounded,
-              'Progress',
-              onProgress,
-            ),
-            _DrawerItem(
-              Icons.notifications_none_rounded,
-              'Bildirishnomalar',
-              onNotifications,
-            ),
+                Icons.payments_outlined, 'To‘lovlar', onPayments),
+            _DrawerItem(Icons.insights_outlined, 'Progress', onProgress),
+            _DrawerItem(Icons.notifications_none_rounded,
+                'Bildirishnomalar', onNotifications),
             _DrawerItem(Icons.settings_rounded, 'Sozlamalar', onSettings),
             const Divider(height: 28),
             _DrawerItem(
               Icons.logout_rounded,
               'Chiqish',
               onLogout,
-              color: const Color(0xFFEF4444),
+              color: ParentColors.danger,
             ),
           ],
         ),
@@ -307,9 +244,7 @@ class ParentDrawer extends StatelessWidget {
         .split(RegExp(r'\s+'))
         .where((e) => e.isNotEmpty)
         .toList();
-    if (parts.isEmpty) {
-      return 'O';
-    }
+    if (parts.isEmpty) return 'O';
     return parts.take(2).map((e) => e[0].toUpperCase()).join();
   }
 }
@@ -324,15 +259,16 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final itemColor = color ?? const Color(0xFF111827);
+    final itemColor = color ?? ParentColors.text;
     return ListTile(
       onTap: onTap,
       leading: Icon(icon, color: itemColor),
       title: Text(
         title,
-        style: _ParentAppShellState._labelStyle.copyWith(
+        style: GoogleFonts.inter(
           color: itemColor,
           fontSize: 14,
+          fontWeight: FontWeight.w800,
         ),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

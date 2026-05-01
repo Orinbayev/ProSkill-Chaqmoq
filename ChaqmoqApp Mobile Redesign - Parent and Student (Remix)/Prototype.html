@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ChaqmoqApp — Interactive Prototype</title>
+<link rel="stylesheet" href="tokens.css" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,-25..0" rel="stylesheet" />
+<style>
+  body {
+    margin: 0; min-height: 100vh; font-family: var(--font);
+    background:
+      radial-gradient(ellipse at 30% 0%, rgba(59,130,246,0.10), transparent 60%),
+      radial-gradient(ellipse at 70% 100%, rgba(0,212,170,0.08), transparent 60%),
+      #0F1117;
+    color: #E4ECF5;
+    display: flex; flex-direction: column; align-items: center; padding: 40px 20px 60px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes drawLine { to { stroke-dashoffset: 0; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes screenIn { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+  .header { text-align: center; margin-bottom: 30px; max-width: 720px; }
+  .header h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .header p { margin: 8px 0 0; color: #8090A8; font-size: 14px; line-height: 1.5; }
+  .stage { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .role-switch {
+    display: inline-flex; padding: 4px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px; margin: 18px auto 0;
+  }
+  .role-switch button {
+    padding: 9px 20px; border-radius: 100px; border: 0; background: transparent;
+    color: #8090A8; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .role-switch button.active.parent { background: var(--p-primary); color: #fff; }
+  .role-switch button.active.student { background: var(--s-primary); color: #0A1F1A; }
+  .side-panel {
+    width: 260px; padding: 18px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px; color: #E4ECF5;
+  }
+  .side-panel h3 { margin: 0 0 6px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #8090A8; }
+  .side-panel button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02);
+    color: #E4ECF5; font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; margin-top: 6px; text-align: left;
+  }
+  .side-panel button:hover { background: rgba(255,255,255,0.06); }
+  .side-panel button.active { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.5); color: #fff; }
+  .side-panel button.active.student { background: rgba(0,212,170,0.18); border-color: rgba(0,212,170,0.5); }
+  .side-panel .num { width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #8090A8; }
+  .side-panel button.active .num { background: rgba(255,255,255,0.18); color: #fff; }
+  .screen-anim { animation: screenIn 0.32s ease; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>ChaqmoqApp ⚡ — Interactive Prototype</h1>
+  <p>Klikning navigatsiya · ota-ona va o'quvchi rejimlari · 390 × 844 · Uzbek Latin</p>
+</div>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="parent-screens.jsx"></script>
+<script type="text/babel" src="parent-screens-2.jsx"></script>
+<script type="text/babel" src="student-and-states.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+function App() {
+  const [role, setRole] = useState('parent'); // 'parent' | 'student'
+  const [screen, setScreen] = useState('login'); // login → home → ...
+  const [activeKid, setActiveKid] = useState('ali');
+  const [showChildSheet, setShowChildSheet] = useState(false);
+  const [showReminderSheet, setShowReminderSheet] = useState(false);
+  const [subjectSheet, setSubjectSheet] = useState(null);
+  const [notifDetail, setNotifDetail] = useState(null);
+
+  // Top-level screen routing
+  const goParent = (id) => {
+    setRole('parent');
+    if (id === 'home') setScreen('home');
+    else if (id === 'attend') setScreen('attend');
+    else if (id === 'pay') setScreen('pay');
+    else if (id === 'progress') setScreen('progress');
+    else if (id === 'profile') setScreen('profile');
+    else if (id === 'add-child') setScreen('add-child');
+    else if (id === 'msg') setScreen('notif'); // map "msg" → notifications
+    else if (id === 'notif') setScreen('notif');
+  };
+  const goStudent = (id) => {
+    setRole('student');
+    if (id === 'panel') setScreen('s-home');
+    else if (id === 'pay') setScreen('s-pay');
+    else if (id === 'msg') setScreen('s-notif');
+    else if (id === 'profile') setScreen('s-profile');
+    else if (id === 'notif') setScreen('s-notif');
+  };
+
+  function switchRole(r) {
+    setRole(r);
+    setScreen(r === 'parent' ? 'home' : 's-home');
+    setShowChildSheet(false); setShowReminderSheet(false);
+    setSubjectSheet(null); setNotifDetail(null);
+  }
+
+  // ---- Render screen ----
+  let screenEl = null;
+  if (role === 'parent') {
+    if (screen === 'login') screenEl = <LoginScreen onSubmit={() => setScreen('home')} />;
+    else if (screen === 'home') screenEl = <ParentDashboard activeKidId={activeKid} onOpenSelector={() => setShowChildSheet(true)} onOpenScreen={goParent} />;
+    else if (screen === 'attend') screenEl = <AttendanceScreen onBack={() => setScreen('home')} />;
+    else if (screen === 'pay') screenEl = <PaymentsScreen onBack={() => setScreen('home')} onOpenReminder={() => setShowReminderSheet(true)} />;
+    else if (screen === 'progress') screenEl = <ProgressScreen onBack={() => setScreen('home')} onOpenSubject={(s) => setSubjectSheet(s)} />;
+    else if (screen === 'profile') screenEl = <ProfileScreen onAddChild={() => setScreen('add-child')} />;
+    else if (screen === 'add-child') screenEl = <AddChildScreen onBack={() => setScreen('profile')} />;
+    else if (screen === 'notif') screenEl = <NotificationsScreen onBack={() => setScreen('home')} dark={false} onOpenDetail={(n) => setNotifDetail(n)} />;
+  } else {
+    if (screen === 's-home') screenEl = <StudentDashboard onOpenScreen={goStudent} />;
+    else if (screen === 's-pay') screenEl = <StudentPayments onOpenScreen={goStudent} />;
+    else if (screen === 's-notif') screenEl = <NotificationsScreen onBack={() => setScreen('s-home')} dark={true} onOpenDetail={(n) => setNotifDetail(n)} />;
+    else if (screen === 's-profile') screenEl = <StudentAccount onOpenScreen={goStudent} />;
+  }
+
+  const dark = role === 'student';
+  const lightBezel = !dark;
+
+  const parentNav = [
+    { id: 'login', label: 'Login', icon: 'login', n: '01' },
+    { id: 'home', label: 'Bosh sahifa', icon: 'home', n: '02' },
+    { id: 'attend', label: 'Davomat', icon: 'fact_check', n: '04' },
+    { id: 'pay', label: "To'lovlar", icon: 'payments', n: '05' },
+    { id: 'progress', label: 'Progress', icon: 'insights', n: '07' },
+    { id: 'profile', label: 'Profil', icon: 'person', n: '08' },
+    { id: 'add-child', label: "Farzand qo'shish", icon: 'person_add', n: '09' },
+    { id: 'notif', label: 'Bildirishnomalar', icon: 'notifications', n: '12' },
+  ];
+  const studentNav = [
+    { id: 's-home', label: 'Panel', icon: 'dashboard', n: '10' },
+    { id: 's-pay', label: "To'lovlar", icon: 'payments', n: '11' },
+    { id: 's-notif', label: 'Xabarlar', icon: 'notifications', n: '12' },
+    { id: 's-profile', label: 'Profil', icon: 'person', n: '14' },
+  ];
+  const navItems = role === 'parent' ? parentNav : studentNav;
+
+  return (
+    <div>
+      <div style={{ textAlign: 'center', marginBottom: 18 }}>
+        <div className="role-switch">
+          <button className={role === 'parent' ? 'active parent' : ''} onClick={() => switchRole('parent')}>
+            <span className="material-symbols-rounded" style={{ fontSize: 16 }}>family_restroom</span>
+            Ota-ona
+          </button>
+          <button className={role === 'student' ? 'active student' : ''} onClick={() => switchRole('student')}>
+            <span className="material-symbols-rounded" style={{ fontSize: 16 }}>school</span>
+            O'quvchi
+          </button>
+        </div>
+      </div>
+
+      <div className="stage">
+        <div className="side-panel">
+          <h3>{role === 'parent' ? 'Ota-ona ekranlari' : "O'quvchi ekranlari"}</h3>
+          {navItems.map(n => (
+            <button
+              key={n.id}
+              className={`${screen === n.id ? 'active' : ''} ${role === 'student' ? 'student' : ''}`}
+              onClick={() => setScreen(n.id)}
+            >
+              <span className="num">{n.n}</span>
+              <span className="material-symbols-rounded" style={{ fontSize: 18 }}>{n.icon}</span>
+              <span style={{ flex: 1 }}>{n.label}</span>
+            </button>
+          ))}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 11, color: '#8090A8', lineHeight: 1.5 }}>
+            <strong style={{ color: '#E4ECF5' }}>Tip:</strong> ekranning ichida tugmalarga bosing — bottom nav, kartalar, hammasi ishlaydi.
+          </div>
+        </div>
+
+        <div key={`${role}-${screen}`} className="screen-anim">
+          <div className={`phone-shell ${lightBezel ? 'light-bezel' : ''}`}>
+            <div className="phone-screen" style={{
+              background: dark ? 'var(--s-bg-gradient)' : 'var(--p-bg)',
+              color: dark ? 'var(--s-text)' : 'var(--p-text)',
+            }}>
+              {screenEl}
+
+              {/* sheets */}
+              {showChildSheet && role === 'parent' && (
+                <>
+                  <Scrim onClick={() => setShowChildSheet(false)} />
+                  <ChildSelectorSheet
+                    activeKidId={activeKid}
+                    onPick={(id) => { setActiveKid(id); setShowChildSheet(false); }}
+                    onClose={() => setShowChildSheet(false)}
+                    onAddChild={() => { setShowChildSheet(false); setScreen('add-child'); }}
+                  />
+                </>
+              )}
+              {showReminderSheet && role === 'parent' && (
+                <>
+                  <Scrim onClick={() => setShowReminderSheet(false)} />
+                  <PaymentReminderSheet onClose={() => setShowReminderSheet(false)} />
+                </>
+              )}
+              {subjectSheet && role === 'parent' && (
+                <>
+                  <Scrim onClick={() => setSubjectSheet(null)} />
+                  <SubjectDetailSheet subject={subjectSheet} onClose={() => setSubjectSheet(null)} />
+                </>
+              )}
+              {notifDetail && (
+                <>
+                  <Scrim onClick={() => setNotifDetail(null)} />
+                  <NotificationDetailSheet notif={notifDetail} onClose={() => setNotifDetail(null)} dark={dark} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="side-panel" style={{ width: 240 }}>
+          <h3>Boshqa ekranlar</h3>
+          <button onClick={() => { switchRole('parent'); setScreen('login'); }}>
+            <span className="num">01</span>
+            <span className="material-symbols-rounded" style={{ fontSize: 18 }}>login</span>
+            <span style={{ flex: 1 }}>Login</span>
+          </button>
+          <h3 style={{ marginTop: 14 }}>Holatlar</h3>
+          <div style={{ fontSize: 11.5, color: '#8090A8', lineHeight: 1.5 }}>
+            Loading · Empty · Error · Offline holatlar Canvas faylida ko'rinadi.
+          </div>
+          <h3 style={{ marginTop: 14 }}>Sample data</h3>
+          <div style={{ fontSize: 11.5, color: '#8090A8', lineHeight: 1.6 }}>
+            <div>Ota-ona: <strong style={{ color: '#E4ECF5' }}>Dilshod Karimov</strong></div>
+            <div>Farzandlar: Ali, Madina, Sardor</div>
+            <div>Markaz: ProSkill Academy</div>
+            <div>Qarz: 1 250 000 so'm</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -341,6 +341,12 @@
       <span class="si-text">O'quvchilar</span>
     </a>
 
+    <a href="{% url 'education:hr_dashboard' %}" class="sidebar-item {% if vn == 'education:hr_dashboard' %}active{% endif %}"
+      data-title="Xodimlar">
+      <span class="si-ico"><i class="fa-solid fa-id-badge"></i></span>
+      <span class="si-text">Xodimlar</span>
+    </a>
+
     {% if feature_leads or request.user.is_superuser %}
     <a href="{% url 'store:lead_list' %}"
       class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_detail' %}active{% endif %}"
@@ -523,6 +529,11 @@
   <a href="{% url 'core:stat_teachers' %}" class="floating-item {% if vn == 'core:stat_teachers' %}active{% endif %}">
     <div class="fi-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
     <span>O'qituvchilar</span>
+  </a>
+
+  <a href="{% url 'education:hr_dashboard' %}" class="floating-item {% if vn == 'education:hr_dashboard' %}active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-id-card-clip"></i></div>
+    <span>Xodimlar</span>
   </a>
 
   <a href="{% url 'education:attendance_groups' %}" class="floating-item {% if vn == 'education:attendance_groups' %}active{% endif %}">

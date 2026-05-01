@@ -1,0 +1,198 @@
+/* ============================================================
+   ChaqmoqApp Mobile — Tokens
+   Two scopes:
+     .parent-scope — Light, parent-facing, soft blue + amber secondary
+     .student-scope — Dark glassmorphism, teal-forward + violet secondary
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* ===== Parent (light, soft blue) ===== */
+  --p-bg:           #F4F7FB;
+  --p-bg-soft:      #EAF1F9;
+  --p-card:         #FFFFFF;
+  --p-text:         #0F1E33;
+  --p-text-soft:    #4B5B72;
+  --p-text-muted:   #8090A8;
+  --p-line:         #E4ECF5;
+  --p-line-strong:  #CBD7E7;
+
+  /* Soft blue primary */
+  --p-primary:      #3B82F6;
+  --p-primary-deep: #2563EB;
+  --p-primary-soft: #DBEAFE;
+  --p-primary-tint: #EFF6FF;
+
+  /* Amber secondary (from DS) */
+  --p-amber:        #F59E0B;
+  --p-amber-bg:     #FEF3C7;
+  --p-amber-deep:   #B45309;
+
+  /* Semantic */
+  --p-success:      #10B981;
+  --p-success-bg:   #DCFCE7;
+  --p-success-line: #BBF7D0;
+  --p-warning:      #F59E0B;
+  --p-warning-bg:   #FEF3C7;
+  --p-danger:       #EF4444;
+  --p-danger-bg:    #FEE2E2;
+  --p-info:         #3B82F6;
+  --p-info-bg:      #DBEAFE;
+  --p-violet:       #7C3AED;
+  --p-violet-bg:    #EDE9FE;
+
+  /* Shadows */
+  --p-shadow-sm:    0 1px 2px rgba(15,30,51,0.04), 0 1px 3px rgba(15,30,51,0.06);
+  --p-shadow-md:    0 4px 12px rgba(15,30,51,0.06), 0 1px 3px rgba(15,30,51,0.04);
+  --p-shadow-lg:    0 12px 32px rgba(15,30,51,0.08), 0 2px 6px rgba(15,30,51,0.04);
+  --p-shadow-blue:  0 10px 22px rgba(59,130,246,0.28);
+
+  /* ===== Student (dark, teal-forward) ===== */
+  --s-bg:           #0A0A0F;
+  --s-bg-2:         #13131A;
+  --s-bg-3:         #1A1A24;
+  --s-text:         #F1F2F6;
+  --s-text-muted:   #8892A4;
+  --s-text-dim:     #5A6478;
+
+  /* Teal primary, violet secondary */
+  --s-primary:      #00D4AA;
+  --s-primary-soft: #2BE5BF;
+  --s-primary-deep: #00A88A;
+  --s-secondary:    #6C63FF;
+  --s-secondary-soft:#8C85FF;
+
+  /* Semantic */
+  --s-danger:       #FF4757;
+  --s-warning:      #FFA502;
+  --s-success:      #2ED573;
+  --s-info:         #4FC3F7;
+
+  /* Glass */
+  --s-border:       rgba(255,255,255,0.08);
+  --s-border-strong:rgba(255,255,255,0.14);
+  --s-glass:        rgba(255,255,255,0.04);
+  --s-glass-strong: rgba(255,255,255,0.07);
+
+  /* Glows */
+  --s-glow-teal:    0 10px 28px rgba(0,212,170,0.32);
+  --s-glow-violet:  0 10px 24px rgba(108,99,255,0.32);
+
+  /* Gradients */
+  --s-bg-gradient:        linear-gradient(160deg, #0A0A0F 0%, #131322 50%, #0A0A0F 100%);
+  --s-primary-gradient:   linear-gradient(135deg, #00D4AA 0%, #2BE5BF 100%);
+  --s-hero-gradient:      linear-gradient(135deg, rgba(0,212,170,0.22) 0%, rgba(108,99,255,0.18) 60%, rgba(255,255,255,0.02) 100%);
+  --s-violet-gradient:    linear-gradient(135deg, #6C63FF 0%, #8C85FF 100%);
+
+  /* ===== Shared ===== */
+  --font:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --r-sm:    8px;
+  --r-md:    12px;
+  --r-lg:    16px;
+  --r-xl:    20px;
+  --r-xxl:   24px;
+  --r-pill:  100px;
+}
+
+/* ===== Parent scope ===== */
+.parent-scope {
+  font-family: var(--font);
+  color: var(--p-text);
+  background: var(--p-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Student scope ===== */
+.student-scope {
+  font-family: var(--font);
+  color: var(--s-text);
+  background: var(--s-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Phone frame ===== */
+.phone-shell {
+  width: 390px;
+  height: 844px;
+  border-radius: 48px;
+  padding: 12px;
+  background: #0a0a0f;
+  box-shadow:
+    0 0 0 2px #1a1a22 inset,
+    0 30px 80px rgba(0,0,0,0.35),
+    0 8px 24px rgba(0,0,0,0.18);
+  position: relative;
+  flex-shrink: 0;
+}
+.phone-shell.light-bezel {
+  background: #1c2230;
+  box-shadow:
+    0 0 0 2px #2a3142 inset,
+    0 30px 80px rgba(15,30,51,0.20),
+    0 8px 24px rgba(15,30,51,0.10);
+}
+.phone-shell::before {
+  content: ""; position: absolute; top: 22px; left: 50%;
+  transform: translateX(-50%);
+  width: 124px; height: 30px;
+  background: #000; border-radius: 18px; z-index: 50;
+}
+.phone-screen {
+  width: 100%; height: 100%;
+  border-radius: 36px; overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+
+/* Status bar (iOS style) */
+.statusbar {
+  height: 50px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 28px 6px;
+  font-size: 15px; font-weight: 700;
+  flex-shrink: 0;
+  position: relative; z-index: 5;
+}
+.statusbar .right {
+  display: flex; align-items: center; gap: 5px;
+}
+.statusbar .icon {
+  width: 16px; height: 11px;
+  display: inline-flex; align-items: end; gap: 1.5px;
+}
+.statusbar .icon i {
+  width: 2.5px; background: currentColor; border-radius: 1px;
+}
+.statusbar .icon i:nth-child(1) { height: 4px; }
+.statusbar .icon i:nth-child(2) { height: 6px; }
+.statusbar .icon i:nth-child(3) { height: 8px; }
+.statusbar .icon i:nth-child(4) { height: 10px; }
+.statusbar .wifi {
+  width: 16px; height: 11px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 11'><path d='M8 2 C5 2 2.5 3 0.5 4.5 L2 6 C3.5 5 5.6 4.2 8 4.2 C10.4 4.2 12.5 5 14 6 L15.5 4.5 C13.5 3 11 2 8 2 Z M8 5.2 C6 5.2 4.3 5.8 3 6.7 L4.4 8.1 C5.4 7.5 6.6 7.1 8 7.1 C9.4 7.1 10.6 7.5 11.6 8.1 L13 6.7 C11.7 5.8 10 5.2 8 5.2 Z M8 8.1 C7.2 8.1 6.5 8.3 5.9 8.7 L8 10.8 L10.1 8.7 C9.5 8.3 8.8 8.1 8 8.1 Z'/></svg>") no-repeat center;
+}
+.statusbar .battery {
+  width: 26px; height: 12px;
+  border: 1.2px solid currentColor; border-radius: 3px;
+  position: relative; opacity: 0.92;
+}
+.statusbar .battery::after {
+  content: ""; position: absolute; right: -3px; top: 3px;
+  width: 1.5px; height: 6px; background: currentColor; border-radius: 0 1px 1px 0;
+}
+.statusbar .battery i {
+  display: block; width: 88%; height: 100%; background: currentColor; border-radius: 1px;
+}
+
+/* Material symbols sizing */
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+.msr-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+
+/* Scrollbar hide for in-frame scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }

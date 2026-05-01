@@ -13,6 +13,7 @@ from billing import click_views as billing_click_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from marketing import views as marketing_views
 from education import views as education_views
+from education import hr_views as education_hr_views
 
 
 urlpatterns = [
@@ -36,6 +37,9 @@ urlpatterns = [
     path('login/', SecureLoginView.as_view(), name='login_alias'),
     path('api/v1/auth/link-telegram/', api_auth.link_telegram_api, name='api_link_telegram'),
     path('api/calculate-lessons/', education_views.calculate_lessons_api, name='api_calculate_lessons'),
+    path('api/hr/employees/', education_hr_views.employees_api, name='hr_employees_api'),
+    path('api/hr/employees/<int:employee_id>/', education_hr_views.employee_detail_api, name='hr_employee_detail_api'),
+    path('api/hr/teachers/available/', education_hr_views.available_teachers_api, name='hr_available_teachers_api'),
 
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 

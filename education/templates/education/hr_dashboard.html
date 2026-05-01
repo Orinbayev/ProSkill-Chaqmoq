@@ -1,0 +1,3189 @@
+{% extends "base.html" %}
+{% block title %}Xodimlar | ChaqmoqApp{% endblock %}
+{% block body_class %}hr-dashboard-page hrx-page{% endblock %}
+{% block content %}
+<style>
+  /* ============================================================
+     XODIMLAR — TOP-TIER COMPACT REBUILD
+     Dark-mode primary (deep navy gradient) + full light support.
+     Yellow/gold CTA, status accents (green/red/orange/blue).
+     ============================================================ */
+
+  .hrx {
+    --hrx-bg: radial-gradient(circle at 12% -10%, rgba(59,130,246,.10), transparent 38%),
+              radial-gradient(circle at 92% -8%, rgba(245,158,11,.10), transparent 36%),
+              linear-gradient(180deg, #060d1d, #0a1428 60%, #07111f);
+    --hrx-surface: rgba(13, 22, 41, 0.78);
+    --hrx-surface-2: rgba(17, 27, 49, 0.82);
+    --hrx-surface-soft: rgba(255, 255, 255, 0.02);
+    --hrx-elev: rgba(8, 14, 28, 0.55);
+    --hrx-border: rgba(148, 163, 184, 0.14);
+    --hrx-border-strong: rgba(148, 163, 184, 0.24);
+    --hrx-text: #e6ecf5;
+    --hrx-text-soft: #b6c1d4;
+    --hrx-text-muted: #7c8ba6;
+    --hrx-accent: #f5c84c;
+    --hrx-accent-strong: #f59e0b;
+    --hrx-accent-ink: #1a1304;
+    --hrx-success: #22c55e;
+    --hrx-danger: #ef4444;
+    --hrx-warning: #fb923c;
+    --hrx-info: #60a5fa;
+    --hrx-row-hover: rgba(245, 200, 76, 0.06);
+    --hrx-row-selected: rgba(245, 200, 76, 0.12);
+    --hrx-shadow-sm: 0 2px 6px rgba(0,0,0,.18);
+    --hrx-shadow-md: 0 8px 24px rgba(0,0,0,.22);
+    --hrx-shadow-lg: 0 22px 60px rgba(0,0,0,.32);
+    --hrx-radius: 14px;
+    --hrx-radius-sm: 10px;
+    --hrx-radius-lg: 18px;
+    --hrx-ease: cubic-bezier(.2,.7,.2,1);
+
+    background: var(--hrx-bg);
+    color: var(--hrx-text);
+    min-height: calc(100vh - 60px);
+    padding: 14px clamp(12px, 2vw, 22px) 28px;
+    display: grid;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html[data-role-theme="light"] body.hr-dashboard-page .hrx {
+    --hrx-bg: radial-gradient(circle at 12% -10%, rgba(59,130,246,.08), transparent 38%),
+              radial-gradient(circle at 92% -8%, rgba(245,158,11,.10), transparent 36%),
+              linear-gradient(180deg, #f6f8fc, #eef2f8 60%, #f6f8fc);
+    --hrx-surface: rgba(255, 255, 255, 0.92);
+    --hrx-surface-2: #ffffff;
+    --hrx-surface-soft: rgba(15, 23, 42, 0.02);
+    --hrx-elev: rgba(15, 23, 42, 0.06);
+    --hrx-border: rgba(15, 23, 42, 0.08);
+    --hrx-border-strong: rgba(15, 23, 42, 0.14);
+    --hrx-text: #0f172a;
+    --hrx-text-soft: #475569;
+    --hrx-text-muted: #6b7a90;
+    --hrx-row-hover: rgba(245, 158, 11, 0.06);
+    --hrx-row-selected: rgba(245, 158, 11, 0.12);
+    --hrx-shadow-sm: 0 1px 2px rgba(15,23,42,.06);
+    --hrx-shadow-md: 0 6px 18px rgba(15,23,42,.06);
+    --hrx-shadow-lg: 0 18px 40px rgba(15,23,42,.10);
+  }
+
+  .hrx *, .hrx *::before, .hrx *::after { box-sizing: border-box; }
+  .hrx button { font-family: inherit; }
+
+  /* ───────── TOP BAR ───────── */
+  .hrx-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--hrx-surface);
+    border: 1px solid var(--hrx-border);
+    border-radius: var(--hrx-radius);
+    backdrop-filter: blur(20px);
+    box-shadow: var(--hrx-shadow-sm);
+  }
+  .hrx-topbar__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .hrx-topbar__title h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--hrx-text);
+  }
+  .hrx-topbar__title p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--hrx-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hrx-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .hrx-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: clamp(220px, 28vw, 360px);
+  }
+  .hrx-search i {
+    position: absolute;
+    left: 12px;
+    color: var(--hrx-text-muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .hrx-search input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px 0 34px;
+    border-radius: 10px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text);
+    font-size: 13px;
+    transition: border-color .2s var(--hrx-ease), box-shadow .2s var(--hrx-ease);
+    outline: none;
+  }
+  .hrx-search input::placeholder { color: var(--hrx-text-muted); }
+  .hrx-search input:focus {
+    border-color: var(--hrx-accent);
+    box-shadow: 0 0 0 3px rgba(245, 200, 76, .15);
+  }
+
+  /* ───────── BUTTONS ───────── */
+  .hrx-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text-soft);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s var(--hrx-ease);
+    white-space: nowrap;
+  }
+  .hrx-btn:hover {
+    border-color: var(--hrx-border-strong);
+    color: var(--hrx-text);
+    transform: translateY(-1px);
+  }
+  .hrx-btn:active { transform: translateY(0); }
+  .hrx-btn i { font-size: 12.5px; }
+  .hrx-btn--ghost { background: transparent; }
+  .hrx-btn--icon { width: 38px; padding: 0; justify-content: center; }
+  .hrx-btn--primary {
+    background: linear-gradient(180deg, #f5d05a, #f5b324);
+    color: var(--hrx-accent-ink);
+    border-color: rgba(245, 158, 11, .55);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, .22);
+  }
+  .hrx-btn--primary:hover {
+    color: var(--hrx-accent-ink);
+    box-shadow: 0 8px 22px rgba(245, 158, 11, .32);
+    border-color: rgba(245, 158, 11, .8);
+  }
+  .hrx-btn--danger {
+    background: linear-gradient(180deg, #ef5454, #d83a3a);
+    color: #fff;
+    border-color: rgba(239, 68, 68, .55);
+  }
+
+  /* ───────── METRIC STRIP ───────── */
+  .hrx-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: var(--hrx-surface);
+    border: 1px solid var(--hrx-border);
+    border-radius: var(--hrx-radius);
+    flex-wrap: wrap;
+  }
+  .hrx-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    height: 34px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--hrx-text-soft);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s var(--hrx-ease);
+  }
+  .hrx-stat:hover { background: var(--hrx-surface-soft); color: var(--hrx-text); }
+  .hrx-stat.is-active {
+    background: var(--hrx-surface-2);
+    border-color: var(--hrx-border-strong);
+    color: var(--hrx-text);
+  }
+  .hrx-stat__dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--hrx-text-muted);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+  }
+  .hrx-stat__dot--neutral { background: #94a3b8; }
+  .hrx-stat__dot--success { background: var(--hrx-success); box-shadow: 0 0 0 3px rgba(34,197,94,.12); }
+  .hrx-stat__dot--info    { background: var(--hrx-info);    box-shadow: 0 0 0 3px rgba(96,165,250,.14); }
+  .hrx-stat__dot--accent  { background: var(--hrx-accent);  box-shadow: 0 0 0 3px rgba(245,200,76,.16); }
+  .hrx-stat__label { font-size: 12px; color: var(--hrx-text-muted); letter-spacing: .01em; }
+  .hrx-stat.is-active .hrx-stat__label { color: var(--hrx-text-soft); }
+  .hrx-stat__value { font-size: 14px; font-weight: 700; color: var(--hrx-text); font-variant-numeric: tabular-nums; }
+
+  .hrx-stats__hint {
+    margin-left: auto;
+    padding: 0 8px;
+    font-size: 12px;
+    color: var(--hrx-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
+  }
+  .hrx-stats__filters-mobile { display: none; }
+
+  /* ───────── 70/30 SPLIT ───────── */
+  .hrx-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+    gap: 12px;
+    align-items: stretch;
+  }
+  .hrx-list,
+  .hrx-panel {
+    background: var(--hrx-surface);
+    border: 1px solid var(--hrx-border);
+    border-radius: var(--hrx-radius);
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--hrx-shadow-sm);
+  }
+  .hrx-list { display: flex; flex-direction: column; min-height: 480px; }
+  .hrx-panel { display: flex; flex-direction: column; }
+
+  /* ───────── APPLIED CHIPS ───────── */
+  .hrx-list__chips {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hrx-border);
+    flex-wrap: wrap;
+    min-height: 0;
+  }
+  .hrx-list__chips:empty { display: none; }
+  .hrx-applied {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 26px; padding: 0 10px; border-radius: 999px;
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    font-size: 12px; color: var(--hrx-text-soft);
+  }
+  .hrx-applied button {
+    border: 0; background: transparent; color: var(--hrx-text-muted);
+    font-size: 11px; cursor: pointer; padding: 0; line-height: 1;
+  }
+  .hrx-applied button:hover { color: var(--hrx-danger); }
+
+  /* ───────── TABLE ───────── */
+  .hrx-table-wrap { display: none; }
+  .hrx-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13.5px;
+  }
+  .hrx-th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hrx-border);
+  }
+  .hrx-th--actions { width: 44px; text-align: right; }
+  .hrx-table tbody tr {
+    cursor: pointer;
+    transition: background .15s var(--hrx-ease);
+  }
+  .hrx-table tbody tr:hover { background: var(--hrx-row-hover); }
+  .hrx-table tbody tr.is-selected { background: var(--hrx-row-selected); }
+  .hrx-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hrx-border);
+    vertical-align: middle;
+    color: var(--hrx-text-soft);
+  }
+  .hrx-table tbody tr:last-child td { border-bottom: 0; }
+
+  .hrx-person {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  .hrx-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(245,200,76,.22), rgba(96,165,250,.22));
+    color: var(--hrx-text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    border: 1px solid var(--hrx-border-strong);
+  }
+  .hrx-avatar--lg { width: 56px; height: 56px; font-size: 18px; }
+  .hrx-person__meta { display: flex; flex-direction: column; min-width: 0; }
+  .hrx-person__name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--hrx-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hrx-person__sub {
+    font-size: 11.5px;
+    color: var(--hrx-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hrx-phone {
+    color: var(--hrx-text-soft);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .hrx-phone:hover { color: var(--hrx-text); }
+
+  /* ───────── BADGES ───────── */
+  .hrx-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .hrx-badge--neutral { background: rgba(148,163,184,.14); color: var(--hrx-text-soft); border-color: rgba(148,163,184,.18); }
+  .hrx-badge--role    { background: rgba(245,200,76,.10); color: var(--hrx-accent); border-color: rgba(245,200,76,.22); }
+  .hrx-badge--active  { background: rgba(34,197,94,.10);  color: var(--hrx-success); border-color: rgba(34,197,94,.20); }
+  .hrx-badge--inactive{ background: rgba(148,163,184,.10); color: var(--hrx-text-muted); border-color: rgba(148,163,184,.16); }
+  .hrx-badge--free    { background: rgba(34,197,94,.10);  color: var(--hrx-success); border-color: rgba(34,197,94,.20); }
+  .hrx-badge--partial { background: rgba(251,146,60,.10); color: var(--hrx-warning); border-color: rgba(251,146,60,.20); }
+  .hrx-badge--busy    { background: rgba(239,68,68,.10);  color: var(--hrx-danger);  border-color: rgba(239,68,68,.18); }
+  .hrx-badge--info    { background: rgba(96,165,250,.10); color: var(--hrx-info);    border-color: rgba(96,165,250,.18); }
+
+  .hrx-chip {
+    display: inline-flex; align-items: center;
+    height: 22px; padding: 0 8px;
+    border-radius: 6px;
+    background: var(--hrx-surface-soft);
+    border: 1px solid var(--hrx-border);
+    color: var(--hrx-text-soft);
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  .hrx-chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .hrx-day-row { display: flex; gap: 3px; flex-wrap: wrap; }
+  .hrx-day {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(245,200,76,.10);
+    color: var(--hrx-accent);
+    border: 1px solid rgba(245,200,76,.22);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+  .hrx-day--empty {
+    background: transparent;
+    color: var(--hrx-text-muted);
+    border-color: var(--hrx-border);
+  }
+
+  /* ───────── 3-DOT MENU ───────── */
+  .hrx-menu { position: relative; display: inline-flex; }
+  .hrx-menu__trigger {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--hrx-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s var(--hrx-ease);
+  }
+  .hrx-menu__trigger:hover {
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text);
+    border-color: var(--hrx-border);
+  }
+  .hrx-menu__dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 200px;
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border-strong);
+    border-radius: 10px;
+    box-shadow: var(--hrx-shadow-lg);
+    padding: 4px;
+    display: none;
+    z-index: 30;
+    animation: hrxMenu .15s var(--hrx-ease);
+  }
+  .hrx-menu.is-open .hrx-menu__dropdown { display: block; }
+  @keyframes hrxMenu {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hrx-menu__item {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-text-soft);
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .hrx-menu__item:hover { background: var(--hrx-row-hover); color: var(--hrx-text); }
+  .hrx-menu__item i { color: var(--hrx-text-muted); font-size: 12px; }
+  .hrx-menu__item--danger { color: #fca5a5; }
+  .hrx-menu__item--danger i { color: var(--hrx-danger); }
+  .hrx-menu__item--danger:hover { background: rgba(239,68,68,.10); color: var(--hrx-danger); }
+  .hrx-menu__item[disabled] { opacity: .45; cursor: not-allowed; }
+  .hrx-menu__sep { height: 1px; background: var(--hrx-border); margin: 4px 2px; }
+
+  /* ───────── EMPLOYEE CARDS (default list view) ───────── */
+  .hrx-cards {
+    display: grid;
+    padding: 10px;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    align-content: start;
+    overflow: auto;
+    flex: 1 1 auto;
+  }
+  .hrx-card {
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    border-radius: 12px;
+    padding: 11px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color .15s var(--hrx-ease), background .15s var(--hrx-ease), transform .15s var(--hrx-ease);
+    cursor: pointer;
+    position: relative;
+    min-width: 0;
+  }
+  .hrx-card:hover { border-color: var(--hrx-border-strong); transform: translateY(-1px); }
+  .hrx-card.is-selected {
+    border-color: var(--hrx-accent);
+    background: var(--hrx-row-selected);
+    box-shadow: 0 0 0 1px var(--hrx-accent) inset;
+  }
+  .hrx-card__head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .hrx-card__head .hrx-menu { margin-left: auto; }
+  .hrx-card__row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+  .hrx-card__phone {
+    font-size: 12.5px;
+    color: var(--hrx-text-muted);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .hrx-card__phone:hover { color: var(--hrx-text); }
+  .hrx-card__free {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    color: var(--hrx-text-muted);
+    margin-top: 2px;
+  }
+  .hrx-card__free i { font-size: 11px; color: var(--hrx-success); }
+  .hrx-card__free.is-busy i { color: var(--hrx-danger); }
+  .hrx-card__free.is-empty i { color: var(--hrx-text-muted); }
+  .hrx-card__free b { color: var(--hrx-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ───────── EMPTY / LOADING ───────── */
+  .hrx-loading {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 60px 20px;
+    color: var(--hrx-text-muted);
+    font-size: 13px;
+  }
+  .hrx-spinner {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--hrx-border-strong);
+    border-top-color: var(--hrx-accent);
+    animation: hrxSpin .8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes hrxSpin { to { transform: rotate(360deg); } }
+
+  .hrx-empty {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .hrx-empty__card {
+    max-width: 380px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .hrx-empty__art {
+    width: 96px; height: 96px;
+    border-radius: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(245,200,76,.16), rgba(96,165,250,.14));
+    border: 1px solid var(--hrx-border-strong);
+    color: var(--hrx-accent);
+    font-size: 36px;
+  }
+  .hrx-empty__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--hrx-text); }
+  .hrx-empty__text  { margin: 0; font-size: 13px; color: var(--hrx-text-muted); line-height: 1.55; }
+  .hrx-empty__actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+  /* ───────── PANEL (right) ───────── */
+  .hrx-panel__head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hrx-border);
+  }
+  .hrx-panel__head h2 {
+    margin: 0; font-size: 15px; font-weight: 700; color: var(--hrx-text);
+  }
+  .hrx-panel__head p {
+    margin: 2px 0 0; font-size: 12px; color: var(--hrx-text-muted);
+  }
+  .hrx-icon-btn {
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--hrx-text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s var(--hrx-ease);
+    margin-left: auto;
+  }
+  .hrx-icon-btn:hover {
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text);
+    border-color: var(--hrx-border);
+  }
+
+  .hrx-fields {
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    overflow: auto;
+    flex: 1 1 auto;
+  }
+  .hrx-field { display: flex; flex-direction: column; gap: 4px; }
+  .hrx-field--full { grid-column: 1 / -1; }
+  .hrx-field > span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--hrx-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .hrx-field select,
+  .hrx-field input,
+  .hrx-field textarea {
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 9px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s var(--hrx-ease), box-shadow .15s var(--hrx-ease);
+    font-family: inherit;
+  }
+  .hrx-field textarea { height: auto; min-height: 64px; padding: 8px 10px; resize: vertical; }
+  .hrx-field select { appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--hrx-text-muted) 50%),
+                      linear-gradient(135deg, var(--hrx-text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 28px;
+  }
+  .hrx-field select:focus,
+  .hrx-field input:focus,
+  .hrx-field textarea:focus,
+  .hrx-input:focus,
+  .hrx-select:focus,
+  .hrx-textarea:focus {
+    border-color: var(--hrx-accent);
+    box-shadow: 0 0 0 3px rgba(245, 200, 76, .15);
+  }
+
+  .hrx-panel__actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding: 10px 14px;
+    border-top: 1px solid var(--hrx-border);
+  }
+
+  /* ───────── DETAIL VIEW ───────── */
+  .hrx-panel__detail {
+    display: flex; flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    animation: hrxSlideIn .22s var(--hrx-ease);
+  }
+  @keyframes hrxSlideIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .hrx-panel__head--detail { gap: 6px; }
+  .hrx-back { margin-left: 0; }
+  .hrx-panel__body {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth;
+  }
+
+  /* Sticky hero pinned to top of scrolling body */
+  .hrx-detail-hero {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 12px 14px 10px;
+    background: linear-gradient(180deg, var(--hrx-surface-2) 70%, transparent);
+    border-bottom: 1px solid var(--hrx-border);
+  }
+  .hrx-detail-hero__top { display: flex; align-items: center; gap: 10px; }
+  .hrx-detail-hero__meta { min-width: 0; flex: 1 1 auto; }
+  .hrx-detail-hero__name {
+    font-size: 14.5px; font-weight: 700; color: var(--hrx-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hrx-detail-hero__role { font-size: 11.5px; color: var(--hrx-text-muted); }
+  .hrx-detail-hero__badges { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  .hrx-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+  }
+  .hrx-detail-actions .hrx-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+    justify-content: center;
+  }
+  .hrx-detail-actions .hrx-btn--icon {
+    width: 32px;
+    padding: 0;
+  }
+  .hrx-detail-actions .hrx-btn--danger-ghost {
+    background: transparent;
+    border-color: var(--hrx-border);
+    color: #fca5a5;
+  }
+  .hrx-detail-actions .hrx-btn--danger-ghost:hover { color: var(--hrx-danger); border-color: var(--hrx-danger); }
+
+  .hrx-detail-content {
+    padding: 12px 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hrx-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .hrx-info {
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 0;
+  }
+  .hrx-info i {
+    font-size: 11px;
+    color: var(--hrx-text-muted);
+    margin-right: 4px;
+  }
+  .hrx-info__label {
+    font-size: 10.5px;
+    color: var(--hrx-text-muted);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .hrx-info__value {
+    font-size: 13px;
+    color: var(--hrx-text);
+    font-weight: 600;
+    word-break: break-word;
+    font-variant-numeric: tabular-nums;
+  }
+  .hrx-info--full { grid-column: 1 / -1; }
+
+  .hrx-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--hrx-text-muted);
+    font-weight: 700;
+    margin: 0;
+  }
+
+  /* Accordion schedule */
+  .hrx-week {
+    display: flex; flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--hrx-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--hrx-surface-2);
+  }
+  .hrx-acc {
+    border-bottom: 1px solid var(--hrx-border);
+  }
+  .hrx-acc:last-child { border-bottom: 0; }
+  .hrx-acc__head {
+    width: 100%;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s var(--hrx-ease);
+  }
+  .hrx-acc__head:hover { background: var(--hrx-row-hover); }
+  .hrx-acc__chev {
+    color: var(--hrx-text-muted);
+    font-size: 10px;
+    transition: transform .18s var(--hrx-ease);
+  }
+  .hrx-acc.is-open .hrx-acc__chev { transform: rotate(90deg); }
+  .hrx-acc__day { flex: 1 1 auto; }
+  .hrx-acc__count {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 20px; padding: 0 7px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: rgba(148,163,184,.14);
+    color: var(--hrx-text-muted);
+  }
+  .hrx-acc__count--has {
+    background: rgba(245,200,76,.12);
+    color: var(--hrx-accent);
+  }
+  .hrx-acc__body {
+    display: none;
+    padding: 0 12px 10px;
+    flex-direction: column;
+    gap: 4px;
+    animation: hrxAccBody .18s var(--hrx-ease);
+  }
+  .hrx-acc.is-open .hrx-acc__body { display: flex; }
+  @keyframes hrxAccBody {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: none; }
+  }
+  .hrx-slot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--hrx-surface-soft);
+    font-size: 12px;
+    color: var(--hrx-text-soft);
+  }
+  .hrx-slot strong { color: var(--hrx-text); font-variant-numeric: tabular-nums; min-width: 76px; }
+  .hrx-slot--free { background: rgba(34,197,94,.06); color: var(--hrx-text-soft); }
+  .hrx-slot--busy { background: rgba(239,68,68,.06); }
+  .hrx-slot__type {
+    margin-left: auto;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--hrx-text-muted);
+  }
+  .hrx-slot--free .hrx-slot__type { color: var(--hrx-success); }
+  .hrx-slot--busy .hrx-slot__type { color: var(--hrx-danger); }
+
+  /* ───────── MODALS (kept for forms / confirm) ───────── */
+  .hrx-modal {
+    --hrx-surface: #101827;
+    --hrx-surface-2: #0a1222;
+    --hrx-surface-soft: rgba(255, 255, 255, 0.035);
+    --hrx-border: rgba(148, 163, 184, 0.16);
+    --hrx-border-strong: rgba(148, 163, 184, 0.28);
+    --hrx-text: #eef3fb;
+    --hrx-text-soft: #c2ccdc;
+    --hrx-text-muted: #8997ad;
+    --hrx-accent: #f5c84c;
+    --hrx-accent-strong: #f59e0b;
+    --hrx-accent-ink: #1a1304;
+    --hrx-success: #22c55e;
+    --hrx-danger: #ef4444;
+    --hrx-warning: #fb923c;
+    --hrx-info: #60a5fa;
+    --hrx-row-hover: rgba(245, 200, 76, 0.08);
+    --hrx-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --hrx-ease: cubic-bezier(.2,.7,.2,1);
+
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: var(--hrx-text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: auto;
+  }
+  .hrx-modal.is-open { display: flex; animation: hrxFade .18s var(--hrx-ease); }
+  @keyframes hrxFade { from { opacity: 0; } to { opacity: 1; } }
+  .hrx-modal__card {
+    width: 100%;
+    max-width: 720px;
+    max-height: min(760px, calc(100dvh - 48px));
+    background: #0a1222;
+    border: 1px solid var(--hrx-border-strong);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: hrxPop .2s var(--hrx-ease);
+    pointer-events: auto;
+    color: var(--hrx-text);
+  }
+  @keyframes hrxPop { from { transform: translateY(8px) scale(.98); opacity: .8; } to { transform: none; opacity: 1; } }
+  .hrx-modal__card--sm { max-width: 460px; }
+  .hrx-modal__head {
+    display: flex; align-items: flex-start; gap: 12px;
+    flex: 0 0 auto;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 22px 24px 18px;
+    background: #0a1222;
+    border-bottom: 1px solid var(--hrx-border);
+  }
+  .hrx-modal__head h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--hrx-text); }
+  .hrx-modal__head p  { margin: 2px 0 0; font-size: 12.5px; color: var(--hrx-text-muted); }
+  .hrx-modal__body  {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 20px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-color: rgba(148,163,184,.55) transparent;
+  }
+  .hrx-modal__foot  {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    flex: 0 0 auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 16px 24px 20px;
+    background: #0a1222;
+    border-top: 1px solid var(--hrx-border);
+  }
+  .hrx-modal__close {
+    margin-left: auto;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--hrx-text-muted);
+    cursor: pointer;
+  }
+  .hrx-modal__close:hover { background: var(--hrx-surface); color: var(--hrx-text); border-color: var(--hrx-border); }
+
+  .hrx-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+  .hrx-form-grid .hrx-field--full { grid-column: 1 / -1; }
+  .hrx-form-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .hrx-form-grid .hrx-field input,
+  .hrx-form-grid .hrx-field select,
+  .hrx-form-grid .hrx-field textarea { height: 38px; }
+  .hrx-form-grid .hrx-field textarea { height: auto; min-height: 60px; padding: 8px 10px; }
+  .hrx-form-grid .hrx-field select[multiple] { height: auto; min-height: 84px; padding: 6px; background-image: none; }
+  .hrx-form-grid .hrx-field select[multiple] option { padding: 4px 8px; border-radius: 4px; }
+  .hrx-form-grid .hrx-field select[multiple] option:checked { background: rgba(245, 200, 76, .18); color: var(--hrx-text); }
+
+  /* Toggle */
+  .hrx-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--hrx-surface-soft);
+    border: 1px solid var(--hrx-border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .hrx-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .hrx-toggle__track {
+    position: relative; flex-shrink: 0;
+    width: 34px; height: 20px;
+    border-radius: 999px;
+    background: rgba(148,163,184,.28);
+    transition: background .2s var(--hrx-ease);
+  }
+  .hrx-toggle__thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.18);
+    transition: transform .2s var(--hrx-ease);
+  }
+  .hrx-toggle input:checked + .hrx-toggle__track { background: var(--hrx-success); }
+  .hrx-toggle input:checked + .hrx-toggle__track .hrx-toggle__thumb { transform: translateX(14px); }
+  .hrx-toggle__label { font-size: 13px; color: var(--hrx-text); }
+
+  /* Slots */
+  .hrx-slots {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--hrx-border);
+    border-radius: 12px;
+    background: var(--hrx-surface);
+  }
+  .hrx-slots.is-disabled { opacity: .45; pointer-events: none; }
+  .hrx-slots__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .hrx-slots__head h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--hrx-text); }
+  .hrx-slots__hint { font-size: 11.5px; color: var(--hrx-text-muted); margin-top: 2px; }
+  .hrx-slots__list { display: flex; flex-direction: column; gap: 8px; }
+  .hrx-slots__empty {
+    padding: 14px;
+    text-align: center;
+    border: 1px dashed var(--hrx-border-strong);
+    border-radius: 10px;
+    color: var(--hrx-text-muted);
+    font-size: 12.5px;
+  }
+  .hrx-slot-card {
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    border-radius: 10px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 0.9fr 0.9fr 32px;
+    gap: 6px;
+    align-items: center;
+    transition: border-color .15s var(--hrx-ease);
+  }
+  .hrx-slot-card:focus-within { border-color: var(--hrx-accent); }
+  .hrx-slot-card__type {
+    grid-column: 1 / 5;
+  }
+  .hrx-slot-card .hrx-availability__remove,
+  .hrx-availability__remove {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-soft);
+    color: var(--hrx-text-muted);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .hrx-slot-card .hrx-availability__remove:hover { color: var(--hrx-danger); border-color: var(--hrx-danger); }
+  .hrx-slot-card input,
+  .hrx-slot-card select {
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface);
+    color: var(--hrx-text);
+    font-size: 12.5px;
+    outline: none;
+    width: 100%;
+  }
+  .hrx-slot-card select { appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--hrx-text-muted) 50%),
+                      linear-gradient(135deg, var(--hrx-text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 12px) center, calc(100% - 7px) center;
+    background-size: 5px 5px; background-repeat: no-repeat;
+    padding-right: 24px;
+  }
+  .hrx-slot-card input[type="text"] { grid-column: 1 / -1; }
+
+  .hrx-inline-msg { font-size: 12.5px; color: var(--hrx-text-muted); }
+  .hrx-inline-msg.is-success { color: var(--hrx-success); }
+  .hrx-form-error { font-size: 12.5px; color: var(--hrx-danger); }
+  .hrx-credentials {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(34,197,94,.08);
+    border: 1px solid rgba(34,197,94,.22);
+    color: var(--hrx-success);
+    font-size: 12.5px;
+    line-height: 1.6;
+    word-break: break-all;
+  }
+  .hrx-warning-box {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(251,146,60,.08);
+    border: 1px solid rgba(251,146,60,.22);
+    color: var(--hrx-warning);
+    font-size: 12.5px;
+  }
+
+  /* ───────── OVERLAY (mobile filter / panel) ───────── */
+  .hrx-overlay {
+    position: fixed; inset: 0;
+    background: rgba(2, 6, 23, 0.5);
+    z-index: 80;
+    display: none;
+    backdrop-filter: blur(4px);
+  }
+  .hrx-overlay.is-open { display: block; animation: hrxFade .18s var(--hrx-ease); }
+
+  body.hrx-locked { overflow: hidden; }
+  body.hrx-modal-open .hrx,
+  body.hrx-modal-open .sidebar-wrapper,
+  body.hrx-modal-open .mobile-topbar {
+    pointer-events: none;
+  }
+
+  /* ───────── RESPONSIVE ───────── */
+  @media (max-width: 1180px) {
+    .hrx-split { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); }
+  }
+  @media (max-width: 980px) {
+    .hrx-split { grid-template-columns: minmax(0, 1fr); }
+    .hrx-panel {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      max-height: 86vh;
+      border-radius: 18px 18px 0 0;
+      transform: translateY(100%);
+      transition: transform .25s var(--hrx-ease);
+      z-index: 90;
+      box-shadow: 0 -10px 40px rgba(0,0,0,.45);
+    }
+    .hrx-panel.is-open { transform: translateY(0); }
+    .hrx-stats__filters-mobile { display: inline-flex; }
+  }
+  @media (max-width: 720px) {
+    .hrx { padding: 10px 10px 24px; gap: 10px; }
+    .hrx-topbar { flex-wrap: wrap; padding: 10px; }
+    .hrx-topbar__title h1 { font-size: 20px; }
+    .hrx-topbar__title p  { white-space: normal; }
+    .hrx-topbar__actions { width: 100%; gap: 6px; }
+    .hrx-search { width: 100%; flex: 1 1 100%; order: -1; }
+    .hrx-btn { flex: 1 1 auto; justify-content: center; }
+    .hrx-cards { grid-template-columns: 1fr; }
+    .hrx-fields { grid-template-columns: 1fr; }
+
+    /* Form modal: full-screen sheet on phones */
+    .hrx-form-grid { grid-template-columns: 1fr; }
+    .hrx-form-col { gap: 10px; }
+    .hrx-modal { padding: 0; align-items: stretch; }
+    .hrx-modal__card { max-width: 100%; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
+    .hrx-modal__head { padding: 16px 16px 14px; }
+    .hrx-modal__body { padding: 16px; }
+    .hrx-modal__foot { padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
+
+    /* Slot card stacks vertically */
+    .hrx-slot-card {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .hrx-slot-card > select[data-availability-weekday] { grid-column: 1 / -1; }
+    .hrx-slot-card > select[data-availability-type] { grid-column: 1 / 2; }
+    .hrx-slot-card > .hrx-availability__remove { grid-column: 2 / 3; justify-self: end; width: 100%; }
+    .hrx-slot-card > input[data-availability-note] { grid-column: 1 / -1; }
+
+    /* Right panel detail keeps 2x2 quick info; on tiny screens it stays 2 cols
+       for at-a-glance, but content can overflow gracefully */
+    .hrx-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hrx-detail-actions { grid-template-columns: 1fr auto auto; }
+  }
+  @media (max-width: 380px) {
+    .hrx-detail-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ───────── QUICK SCHEDULE BUILDER ───────── */
+  .hrx-qsb {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px dashed var(--hrx-border-strong);
+    border-radius: 10px;
+    background: var(--hrx-surface-soft);
+  }
+  .hrx-seg {
+    display: inline-flex;
+    border: 1px solid var(--hrx-border);
+    border-radius: 9px;
+    overflow: hidden;
+    background: var(--hrx-surface-2);
+    align-self: flex-start;
+  }
+  .hrx-seg__btn {
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s var(--hrx-ease);
+  }
+  .hrx-seg__btn + .hrx-seg__btn { border-left: 1px solid var(--hrx-border); }
+  .hrx-seg__btn:hover { color: var(--hrx-text); background: var(--hrx-row-hover); }
+  .hrx-seg__btn.is-active {
+    background: var(--hrx-accent);
+    color: var(--hrx-accent-ink);
+  }
+
+  .hrx-day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .hrx-day-grid label { position: relative; cursor: pointer; min-width: 0; }
+  .hrx-day-grid input { position: absolute; opacity: 0; pointer-events: none; }
+  .hrx-day-grid label > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    color: var(--hrx-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: all .15s var(--hrx-ease);
+  }
+  .hrx-day-grid label:hover > span { color: var(--hrx-text); }
+  .hrx-day-grid input:checked + span {
+    background: rgba(245, 200, 76, .14);
+    color: var(--hrx-accent);
+    border-color: var(--hrx-accent);
+  }
+  .hrx-day-grid input:focus-visible + span {
+    outline: 2px solid var(--hrx-accent);
+    outline-offset: 2px;
+  }
+
+  .hrx-qsb__time {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .hrx-qsb__time .hrx-field span { font-size: 10.5px; }
+  .hrx-qsb__time .hrx-field input,
+  .hrx-qsb__time .hrx-field select { height: 34px; font-size: 12.5px; }
+
+  .hrx-quick-times {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .hrx-quick-times button {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    color: var(--hrx-text-soft);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s var(--hrx-ease);
+  }
+  .hrx-quick-times button:hover {
+    border-color: var(--hrx-accent);
+    color: var(--hrx-accent);
+  }
+  .hrx-qsb__add { align-self: flex-start; }
+
+  /* ───────── SLOT PILLS (saved) ───────── */
+  .hrx-slot-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hrx-slot-pills:empty { display: none; }
+  .hrx-slot-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 10px;
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border);
+    border-radius: 999px;
+    font-size: 11.5px;
+    color: var(--hrx-text-soft);
+    font-variant-numeric: tabular-nums;
+    animation: hrxPillIn .18s var(--hrx-ease);
+  }
+  @keyframes hrxPillIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+  .hrx-slot-pill__day { color: var(--hrx-text); font-weight: 700; }
+  .hrx-slot-pill__sep { color: var(--hrx-text-muted); }
+  .hrx-slot-pill__type {
+    display: inline-flex; align-items: center;
+    height: 18px; padding: 0 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .hrx-slot-pill__type--free { background: rgba(34,197,94,.14); color: var(--hrx-success); }
+  .hrx-slot-pill__type--busy { background: rgba(239,68,68,.14); color: var(--hrx-danger); }
+  .hrx-slot-pill__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--hrx-text-muted);
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .hrx-slot-pill__remove:hover { color: var(--hrx-danger); background: rgba(239,68,68,.12); }
+  .hrx-slot-pills__hint {
+    font-size: 11.5px;
+    color: var(--hrx-text-muted);
+    padding: 2px 0;
+  }
+
+  /* ───────── SEARCHABLE COMBOBOX ───────── */
+  .hrx-combo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--hrx-border);
+    border-radius: 9px;
+    background: var(--hrx-surface-2);
+    padding: 6px;
+    min-height: 38px;
+    transition: border-color .15s var(--hrx-ease), box-shadow .15s var(--hrx-ease);
+  }
+  .hrx-combo.is-focus {
+    border-color: var(--hrx-accent);
+    box-shadow: 0 0 0 3px rgba(245, 200, 76, .15);
+  }
+  .hrx-combo__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .hrx-combo__chips:empty { display: none; }
+  .hrx-combo__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 4px 0 10px;
+    border-radius: 999px;
+    background: rgba(245, 200, 76, .12);
+    color: var(--hrx-accent);
+    border: 1px solid rgba(245, 200, 76, .28);
+    font-size: 12px;
+    font-weight: 600;
+    animation: hrxPillIn .15s var(--hrx-ease);
+  }
+  .hrx-combo__chip button {
+    width: 18px; height: 18px;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-accent);
+    cursor: pointer;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .hrx-combo__chip button:hover { background: rgba(245, 200, 76, .25); }
+  .hrx-combo__input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-text);
+    font-size: 13px;
+    outline: none;
+    padding: 4px 6px;
+    min-height: 24px;
+  }
+  .hrx-combo__input::placeholder { color: var(--hrx-text-muted); }
+  .hrx-combo__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--hrx-surface-2);
+    border: 1px solid var(--hrx-border-strong);
+    border-radius: 10px;
+    box-shadow: var(--hrx-shadow-lg);
+    z-index: 30;
+    max-height: 220px;
+    overflow: auto;
+    padding: 4px;
+  }
+  .hrx-combo__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--hrx-text-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .hrx-combo__option:hover, .hrx-combo__option.is-active {
+    background: var(--hrx-row-hover);
+    color: var(--hrx-text);
+  }
+  .hrx-combo__option.is-selected {
+    color: var(--hrx-accent);
+  }
+  .hrx-combo__option.is-selected::after {
+    content: "✓";
+    font-size: 13px;
+    color: var(--hrx-accent);
+    margin-left: 8px;
+  }
+  .hrx-combo__empty {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--hrx-text-muted);
+    text-align: center;
+  }
+
+  /* ───────── PHONE INPUT WITH PREFIX ───────── */
+  .hrx-phone-wrap {
+    display: flex;
+    align-items: stretch;
+    height: 38px;
+    border-radius: 9px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    overflow: hidden;
+    transition: border-color .15s var(--hrx-ease), box-shadow .15s var(--hrx-ease);
+  }
+  .hrx-phone-wrap:focus-within {
+    border-color: var(--hrx-accent);
+    box-shadow: 0 0 0 3px rgba(245, 200, 76, .15);
+  }
+  .hrx-phone-prefix {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 10px;
+    background: var(--hrx-surface-soft);
+    color: var(--hrx-text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-right: 1px solid var(--hrx-border);
+    user-select: none;
+  }
+  .hrx-phone-wrap input {
+    flex: 1 1 auto;
+    border: 0;
+    background: transparent;
+    color: var(--hrx-text);
+    font-size: 13px;
+    padding: 0 10px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .03em;
+    min-width: 0;
+  }
+
+  /* ───────── A11Y ───────── */
+  .hrx-btn:focus-visible,
+  .hrx-stat:focus-visible,
+  .hrx-icon-btn:focus-visible,
+  .hrx-menu__trigger:focus-visible,
+  .hrx-menu__item:focus-visible,
+  .hrx-seg__btn:focus-visible,
+  .hrx-quick-times button:focus-visible {
+    outline: 2px solid var(--hrx-accent);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="hrx" data-hrx-root>
+
+  <!-- ─── TOP BAR ─── -->
+  <header class="hrx-topbar">
+    <div class="hrx-topbar__title">
+      <h1>Xodimlar</h1>
+      <p>HR markazi — ustozlar, jadval va bandlik bir ekrandan boshqariladi.</p>
+    </div>
+    <div class="hrx-topbar__actions">
+      <div class="hrx-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="filterSearchInput" type="search" placeholder="Ism, telefon yoki lavozim…" autocomplete="off">
+      </div>
+      <button id="reloadEmployeesButton" type="button" class="hrx-btn hrx-btn--ghost hrx-btn--icon" aria-label="Yangilash" title="Yangilash">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      {% if request.user.is_superuser or request.user.role %}
+      <button
+        type="button"
+        class="hrx-btn hrx-btn--ghost hrx-btn--icon js-role-theme-toggle"
+        data-theme-role="{% if request.user.is_superuser %}superadmin{% else %}{{ request.user.role }}{% endif %}"
+        aria-pressed="false"
+        aria-label="Tema almashtirish"
+        title="Tema almashtirish">
+        <i class="fa-regular fa-lightbulb js-role-theme-icon" aria-hidden="true"></i>
+        <span class="js-role-theme-label" hidden>Tema</span>
+      </button>
+      {% endif %}
+      <button id="openCreateEmployeeButton" type="button" class="hrx-btn hrx-btn--primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>Yangi xodim</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── METRIC STRIP ─── -->
+  <div class="hrx-stats" role="tablist" aria-label="Tezkor filterlar">
+    <button class="hrx-stat is-active" data-stat="all" type="button" role="tab" aria-selected="true">
+      <span class="hrx-stat__dot hrx-stat__dot--neutral"></span>
+      <span class="hrx-stat__label">Jami</span>
+      <span class="hrx-stat__value" id="summaryTotal">0</span>
+    </button>
+    <button class="hrx-stat" data-stat="active" type="button" role="tab" aria-selected="false">
+      <span class="hrx-stat__dot hrx-stat__dot--success"></span>
+      <span class="hrx-stat__label">Aktiv</span>
+      <span class="hrx-stat__value" id="summaryActive">0</span>
+    </button>
+    <button class="hrx-stat" data-stat="teachers" type="button" role="tab" aria-selected="false">
+      <span class="hrx-stat__dot hrx-stat__dot--info"></span>
+      <span class="hrx-stat__label">Ustoz</span>
+      <span class="hrx-stat__value" id="summaryTeachers">0</span>
+    </button>
+    <button class="hrx-stat" data-stat="free" type="button" role="tab" aria-selected="false">
+      <span class="hrx-stat__dot hrx-stat__dot--accent"></span>
+      <span class="hrx-stat__label">Bo‘sh</span>
+      <span class="hrx-stat__value" id="summaryFree">0</span>
+    </button>
+    <span class="hrx-stats__hint" id="employeesResultSummary">Barcha xodimlar bir joyda jamlangan.</span>
+    <button id="openFiltersButton" type="button" class="hrx-btn hrx-btn--ghost hrx-stats__filters-mobile">
+      <i class="fa-solid fa-sliders"></i><span>Filterlar</span>
+    </button>
+  </div>
+
+  <!-- ─── 70/30 SPLIT ─── -->
+  <div class="hrx-split">
+
+    <!-- LEFT: list -->
+    <section class="hrx-list" aria-label="Xodimlar ro'yxati">
+      <div class="hrx-list__chips" id="hrxAppliedChips"></div>
+
+      <div id="employeesLoading" class="hrx-loading">
+        <span class="hrx-spinner" aria-hidden="true"></span>
+        <span>Xodimlar yuklanmoqda…</span>
+      </div>
+
+      <div id="employeesEmpty" class="hrx-empty" hidden></div>
+
+      <!-- legacy hooks kept hidden so existing JS references resolve -->
+      <div id="employeesTableWrap" class="hrx-table-wrap" hidden>
+        <table><tbody id="employeesTableBody"></tbody></table>
+      </div>
+
+      <div id="employeesMobileList" class="hrx-cards" hidden></div>
+    </section>
+
+    <!-- RIGHT: smart panel -->
+    <aside class="hrx-panel" id="hrxPanel" data-mode="filters" aria-label="Aqlli panel">
+
+      <!-- FILTERS MODE (default) -->
+      <section id="hrFilterPanel" class="hrx-panel__filters" data-panel-section="filters">
+        <div class="hrx-panel__head">
+          <div>
+            <h2>Filterlar</h2>
+            <p>Lavozim, fan, holat va aniq vaqt bo‘yicha tezkor saralash.</p>
+          </div>
+          <button id="closeFiltersButton" type="button" class="hrx-icon-btn" aria-label="Yopish">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="hrx-fields">
+          <label class="hrx-field hrx-field--full">
+            <span>Lavozim</span>
+            <select id="filterRoleSelect"><option value="">Barchasi</option></select>
+          </label>
+          <label class="hrx-field hrx-field--full">
+            <span>Fan</span>
+            <select id="filterSubjectSelect"><option value="">Barchasi</option></select>
+          </label>
+          <label class="hrx-field">
+            <span>Daraja</span>
+            <select id="filterLevelSelect"><option value="">Barchasi</option></select>
+          </label>
+          <label class="hrx-field">
+            <span>Yo‘nalish</span>
+            <select id="filterDirectionSelect"><option value="">Barchasi</option></select>
+          </label>
+          <label class="hrx-field">
+            <span>Holat</span>
+            <select id="filterActiveSelect">
+              <option value="">Barchasi</option>
+              <option value="active">Aktiv</option>
+              <option value="inactive">Nofaol</option>
+            </select>
+          </label>
+          <label class="hrx-field">
+            <span>Bandlik</span>
+            <select id="filterAvailabilitySelect">
+              <option value="">Barchasi</option>
+              <option value="free">Bo‘sh</option>
+              <option value="busy">Band</option>
+            </select>
+          </label>
+          <label class="hrx-field">
+            <span>Kun</span>
+            <select id="filterWeekdaySelect">
+              <option value="">Tanlanmagan</option>
+              <option value="1">Dushanba</option>
+              <option value="2">Seshanba</option>
+              <option value="3">Chorshanba</option>
+              <option value="4">Payshanba</option>
+              <option value="5">Juma</option>
+              <option value="6">Shanba</option>
+              <option value="7">Yakshanba</option>
+            </select>
+          </label>
+          <label class="hrx-field">
+            <span>Vaqt</span>
+            <input id="filterTimeInput" type="time">
+          </label>
+        </div>
+
+        <div class="hrx-panel__actions">
+          <button id="clearFiltersButton" type="button" class="hrx-btn hrx-btn--ghost">Tozalash</button>
+          <button id="applyFiltersButton" type="button" class="hrx-btn hrx-btn--primary">Qo‘llash</button>
+        </div>
+      </section>
+
+      <!-- DETAIL MODE -->
+      <section id="hrxDetail" class="hrx-panel__detail" data-panel-section="detail" hidden>
+        <div class="hrx-panel__head hrx-panel__head--detail">
+          <button id="hrxDetailBack" type="button" class="hrx-icon-btn hrx-back" aria-label="Filterlarga qaytish" title="Filterlarga qaytish">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="min-width:0; flex:1 1 auto;">
+            <h2 id="profileModalTitle" style="margin:0; font-size:14px; font-weight:700;">Xodim profili</h2>
+            <p id="profileModalSubtitle" style="margin:0; font-size:11.5px; color:var(--hrx-text-muted);">Ma'lumotlar yuklanmoqda…</p>
+          </div>
+          <button id="hrxDetailClose" type="button" class="hrx-icon-btn" aria-label="Yopish">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="profileModalBody" class="hrx-panel__body">
+          <div class="hrx-loading"><span class="hrx-spinner"></span><span>Yuklanmoqda…</span></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div id="hrxOverlay" class="hrx-overlay" hidden></div>
+
+<!-- ─── Hidden legacy hooks (kept so existing JS targets resolve) ─── -->
+<div id="employeeProfileModal" class="hrx-modal" aria-hidden="true" hidden></div>
+
+<!-- ─── FORM MODAL (create / edit) ─── -->
+<div id="employeeFormModal" class="hrx-modal" role="dialog" aria-modal="true" aria-labelledby="formModalTitle" aria-hidden="true" tabindex="-1" hidden>
+  <div class="hrx-modal__card">
+    <div class="hrx-modal__head">
+      <div>
+        <h2 id="formModalTitle">Yangi xodim</h2>
+        <p>Profil ma'lumoti, kontakt va — ustoz bo‘lsa — bandlik slotlari.</p>
+      </div>
+      <button type="button" class="hrx-modal__close" data-close-modal="employeeFormModal" aria-label="Yopish">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="hrx-modal__body">
+      <div id="employeeCredentialsBox" class="hrx-credentials" hidden></div>
+
+      <div class="hrx-form-grid">
+        <label class="hrx-field hrx-field--full"><span>Ism familiya</span>
+          <input id="employeeFullNameInput" type="text" maxlength="255" placeholder="Aliyev Akbar" data-modal-autofocus></label>
+
+        <div class="hrx-form-col">
+          <label class="hrx-field"><span>Telefon</span>
+            <div class="hrx-phone-wrap">
+              <span class="hrx-phone-prefix">+998</span>
+              <input id="employeePhoneInput" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="90 123 45 67">
+            </div>
+          </label>
+          <label class="hrx-field"><span>Pozitsiya</span>
+            <input id="employeePositionInput" type="text" maxlength="100" placeholder="IELTS ustoz"></label>
+          <label class="hrx-field"><span>HR roli</span>
+            <select id="employeeRoleSelect"></select></label>
+          <label class="hrx-field"><span>Darajalar</span>
+            <textarea id="employeeLevelsInput" rows="2" placeholder="A1, A2, IELTS"></textarea></label>
+        </div>
+
+        <div class="hrx-form-col">
+          <label class="hrx-field"><span>Ishga qabul</span>
+            <input id="employeeHireDateInput" type="date"></label>
+          <div class="hrx-field">
+            <span>Fanlar</span>
+            <div id="employeeSubjectCombo" class="hrx-combo" data-combo>
+              <div id="employeeSubjectChips" class="hrx-combo__chips"></div>
+              <input id="employeeSubjectSearch" class="hrx-combo__input" type="text" placeholder="Fan qidiring…" autocomplete="off" aria-label="Fanlarni qidirish">
+              <div id="employeeSubjectMenu" class="hrx-combo__menu" hidden role="listbox"></div>
+            </div>
+            <select id="employeeSubjectSelect" multiple hidden></select>
+          </div>
+          <label class="hrx-field"><span>Yo‘nalishlar</span>
+            <textarea id="employeeDirectionsInput" rows="2" placeholder="IELTS, SAT"></textarea></label>
+        </div>
+
+        <label class="hrx-field hrx-field--full"><span>Izoh</span>
+          <textarea id="employeeNoteInput" rows="2" placeholder="HR eslatmalar, kuchli tomonlar"></textarea></label>
+
+        <label class="hrx-toggle hrx-field--full" for="employeeIsActiveInput">
+          <input id="employeeIsActiveInput" type="checkbox" checked>
+          <span class="hrx-toggle__track"><span class="hrx-toggle__thumb"></span></span>
+          <span class="hrx-toggle__label">Xodim aktiv holatda</span>
+        </label>
+      </div>
+
+      <section id="employeeAvailabilitySection" class="hrx-slots">
+        <div class="hrx-slots__head">
+          <div>
+            <h3>Bandlik slotlari</h3>
+            <div id="employeeAvailabilityHint" class="hrx-slots__hint">Faqat ustozlar uchun.</div>
+          </div>
+        </div>
+
+        <!-- Quick Schedule Builder -->
+        <div class="hrx-qsb" id="hrxQsb">
+          <div class="hrx-seg" data-qsb-preset role="tablist" aria-label="Tezkor jadval">
+            <button type="button" class="hrx-seg__btn" data-preset="odd" role="tab">Toq kunlar</button>
+            <button type="button" class="hrx-seg__btn" data-preset="even" role="tab">Juft kunlar</button>
+            <button type="button" class="hrx-seg__btn" data-preset="custom" role="tab">Custom</button>
+          </div>
+
+          <div class="hrx-day-grid" id="qsbDayGrid">
+            <label><input type="checkbox" data-qsb-day="1"><span>Du</span></label>
+            <label><input type="checkbox" data-qsb-day="2"><span>Se</span></label>
+            <label><input type="checkbox" data-qsb-day="3"><span>Ch</span></label>
+            <label><input type="checkbox" data-qsb-day="4"><span>Pa</span></label>
+            <label><input type="checkbox" data-qsb-day="5"><span>Ju</span></label>
+            <label><input type="checkbox" data-qsb-day="6"><span>Sh</span></label>
+            <label><input type="checkbox" data-qsb-day="7"><span>Ya</span></label>
+          </div>
+
+          <div class="hrx-qsb__time">
+            <label class="hrx-field"><span>Boshlanish</span>
+              <input id="qsbStartInput" type="time" value="08:00"></label>
+            <label class="hrx-field"><span>Tugash</span>
+              <input id="qsbEndInput" type="time" value="10:00"></label>
+            <label class="hrx-field"><span>Tur</span>
+              <select id="qsbTypeSelect">
+                <option value="available">Bo‘sh</option>
+                <option value="busy">Band</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="hrx-quick-times" data-qsb-quick>
+            <button type="button" data-quick="08:00,10:00">Ertalab · 08:00–10:00</button>
+            <button type="button" data-quick="10:00,14:00">Tushlik · 10:00–14:00</button>
+            <button type="button" data-quick="14:00,18:00">Kechqurun · 14:00–18:00</button>
+          </div>
+
+          <button id="addAvailabilityRowButton" type="button" class="hrx-btn hrx-btn--primary hrx-qsb__add">
+            <i class="fa-solid fa-plus"></i><span>Slot yaratish</span>
+          </button>
+        </div>
+
+        <div id="availabilityRows" class="hrx-slot-pills"></div>
+      </section>
+
+      <div id="employeeFormMessage" class="hrx-inline-msg"></div>
+    </div>
+    <div class="hrx-modal__foot">
+      <div id="employeeFormErrors" class="hrx-form-error"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="hrx-btn hrx-btn--ghost" data-close-modal="employeeFormModal">Bekor</button>
+        <button id="saveEmployeeButton" type="button" class="hrx-btn hrx-btn--primary">
+          <i class="fa-solid fa-floppy-disk"></i><span>Saqlash</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONFIRM MODAL ─── -->
+<div id="employeeConfirmModal" class="hrx-modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-hidden="true" tabindex="-1" hidden>
+  <div class="hrx-modal__card hrx-modal__card--sm">
+    <div class="hrx-modal__head">
+      <div>
+        <h2 id="confirmModalTitle">Tasdiqlash</h2>
+        <p>Xavfsiz amal — tasodifiy bosishlar oldi olinadi.</p>
+      </div>
+      <button type="button" class="hrx-modal__close" data-close-modal="employeeConfirmModal" aria-label="Yopish">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="hrx-modal__body">
+      <div id="confirmModalText" style="font-size:13.5px; color:var(--hrx-text-soft);"></div>
+      <div id="confirmModalWarning" class="hrx-warning-box"></div>
+    </div>
+    <div class="hrx-modal__foot">
+      <div id="employeeConfirmErrors" class="hrx-form-error"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="hrx-btn hrx-btn--ghost" data-close-modal="employeeConfirmModal">Bekor</button>
+        <button id="confirmEmployeeActionButton" type="button" class="hrx-btn hrx-btn--danger">
+          <i class="fa-solid fa-triangle-exclamation"></i><span>Davom etish</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ subject_choices|json_script:"hrSubjectChoices" }}
+{{ role_choices|json_script:"hrRoleChoices" }}
+{{ level_choices|json_script:"hrLevelChoices" }}
+{{ direction_choices|json_script:"hrDirectionChoices" }}
+
+<script>
+(function () {
+  "use strict";
+
+  const apiEmployeesUrl = "{{ api_employees_url|escapejs }}";
+  const apiEmployeeDetailBase = "{{ api_employee_detail_base|escapejs }}";
+  const csrfToken = "{{ csrf_token }}";
+  const subjectChoices = JSON.parse(document.getElementById("hrSubjectChoices").textContent || "[]");
+  const roleChoices = JSON.parse(document.getElementById("hrRoleChoices").textContent || "[]");
+  const levelChoices = JSON.parse(document.getElementById("hrLevelChoices").textContent || "[]");
+  const directionChoices = JSON.parse(document.getElementById("hrDirectionChoices").textContent || "[]");
+
+  const state = {
+    rows: [],
+    summary: { total: 0, active: 0, teachers: 0, free_now: 0 },
+    selectedId: null,
+    editingId: null,
+    formMode: "create",
+    confirmAction: null,
+    statFilter: "all",
+    searchTimer: null,
+    lastFocusedElement: null,
+    // form state
+    slots: [],                 // [{weekday:int, start:'HH:MM', end:'HH:MM', type:'available'|'busy', note:''}]
+    subjectIds: new Set(),     // selected subject ids
+    qsbPreset: "odd",          // "odd" | "even" | "custom"
+    comboHighlight: 0,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const dom = {
+    summaryTotal: $("summaryTotal"),
+    summaryActive: $("summaryActive"),
+    summaryTeachers: $("summaryTeachers"),
+    summaryFree: $("summaryFree"),
+    employeesResultSummary: $("employeesResultSummary"),
+    appliedChips: $("hrxAppliedChips"),
+
+    filterSearchInput: $("filterSearchInput"),
+    filterRoleSelect: $("filterRoleSelect"),
+    filterSubjectSelect: $("filterSubjectSelect"),
+    filterLevelSelect: $("filterLevelSelect"),
+    filterDirectionSelect: $("filterDirectionSelect"),
+    filterActiveSelect: $("filterActiveSelect"),
+    filterAvailabilitySelect: $("filterAvailabilitySelect"),
+    filterWeekdaySelect: $("filterWeekdaySelect"),
+    filterTimeInput: $("filterTimeInput"),
+    applyFiltersButton: $("applyFiltersButton"),
+    clearFiltersButton: $("clearFiltersButton"),
+    openFiltersButton: $("openFiltersButton"),
+    closeFiltersButton: $("closeFiltersButton"),
+
+    panel: $("hrxPanel"),
+    overlay: $("hrxOverlay"),
+    panelFilters: $("hrFilterPanel"),
+    panelDetail: $("hrxDetail"),
+    detailBack: $("hrxDetailBack"),
+    detailClose: $("hrxDetailClose"),
+    profileModalTitle: $("profileModalTitle"),
+    profileModalSubtitle: $("profileModalSubtitle"),
+    profileModalBody: $("profileModalBody"),
+
+    openCreateEmployeeButton: $("openCreateEmployeeButton"),
+    reloadEmployeesButton: $("reloadEmployeesButton"),
+    employeesLoading: $("employeesLoading"),
+    employeesEmpty: $("employeesEmpty"),
+    employeesTableWrap: $("employeesTableWrap"),
+    employeesTableBody: $("employeesTableBody"),
+    employeesMobileList: $("employeesMobileList"),
+
+    employeeFormModal: $("employeeFormModal"),
+    formModalTitle: $("formModalTitle"),
+    employeeCredentialsBox: $("employeeCredentialsBox"),
+    employeeFullNameInput: $("employeeFullNameInput"),
+    employeePhoneInput: $("employeePhoneInput"),
+    employeeRoleSelect: $("employeeRoleSelect"),
+    employeePositionInput: $("employeePositionInput"),
+    employeeHireDateInput: $("employeeHireDateInput"),
+    employeeSubjectSelect: $("employeeSubjectSelect"),
+    employeeLevelsInput: $("employeeLevelsInput"),
+    employeeDirectionsInput: $("employeeDirectionsInput"),
+    employeeNoteInput: $("employeeNoteInput"),
+    employeeIsActiveInput: $("employeeIsActiveInput"),
+    employeeAvailabilitySection: $("employeeAvailabilitySection"),
+    employeeAvailabilityHint: $("employeeAvailabilityHint"),
+    availabilityRows: $("availabilityRows"),
+    addAvailabilityRowButton: $("addAvailabilityRowButton"),
+    qsb: $("hrxQsb"),
+    qsbDayGrid: $("qsbDayGrid"),
+    qsbStartInput: $("qsbStartInput"),
+    qsbEndInput: $("qsbEndInput"),
+    qsbTypeSelect: $("qsbTypeSelect"),
+    employeeSubjectCombo: $("employeeSubjectCombo"),
+    employeeSubjectChips: $("employeeSubjectChips"),
+    employeeSubjectSearch: $("employeeSubjectSearch"),
+    employeeSubjectMenu: $("employeeSubjectMenu"),
+    employeeFormErrors: $("employeeFormErrors"),
+    employeeFormMessage: $("employeeFormMessage"),
+    saveEmployeeButton: $("saveEmployeeButton"),
+
+    employeeConfirmModal: $("employeeConfirmModal"),
+    confirmModalTitle: $("confirmModalTitle"),
+    confirmModalText: $("confirmModalText"),
+    confirmModalWarning: $("confirmModalWarning"),
+    employeeConfirmErrors: $("employeeConfirmErrors"),
+    confirmEmployeeActionButton: $("confirmEmployeeActionButton"),
+  };
+
+  const stats = Array.from(document.querySelectorAll("[data-stat]"));
+  const WEEKDAYS = ["", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
+  const WEEKDAY_SHORT = ["", "Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
+  const ODD_DAYS = [1, 3, 5];   // Mon / Wed / Fri
+  const EVEN_DAYS = [2, 4, 6];  // Tue / Thu / Sat
+
+  // ───────── helpers
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  function getInitials(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    return parts.slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join("");
+  }
+  function employeeDetailUrl(id) {
+    return apiEmployeeDetailBase.replace(/0\/$/, `${id}/`);
+  }
+
+  async function fetchJson(url, options = {}, fallback = "Xatolik yuz berdi.") {
+    const response = await fetch(url, options);
+    const text = await response.text();
+    let data = {};
+    if (text) { try { data = JSON.parse(text); } catch (_) { data = {}; } }
+    if (!response.ok) throw new Error(data.error || data.detail || fallback);
+    return data;
+  }
+
+  // ───────── body lock
+  function syncBodyLock() {
+    const modalOpen = Array.from(document.querySelectorAll(".hrx-modal")).some((m) => m.classList.contains("is-open"));
+    const overlayOpen = dom.overlay && !dom.overlay.hidden;
+    document.body.classList.toggle("hrx-locked", modalOpen || overlayOpen);
+    document.body.classList.toggle("hrx-modal-open", modalOpen);
+  }
+
+  // ───────── modals
+  const focusableSelector = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]:not([tabindex='-1'])",
+  ].join(",");
+
+  function getFocusableElements(modal) {
+    return Array.from(modal.querySelectorAll(focusableSelector))
+      .filter((el) => !el.hidden && el.offsetParent !== null);
+  }
+
+  function focusModal(modal) {
+    const target = modal.querySelector("[data-modal-autofocus]") || getFocusableElements(modal)[0] || modal;
+    requestAnimationFrame(() => target.focus({ preventScroll: true }));
+  }
+
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    state.lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modal.hidden = false;
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    closeAllActionMenus();
+    syncBodyLock();
+    focusModal(modal);
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    modal.hidden = true;
+    syncBodyLock();
+    if (state.lastFocusedElement && state.lastFocusedElement.isConnected) {
+      state.lastFocusedElement.focus({ preventScroll: true });
+    }
+    state.lastFocusedElement = null;
+  }
+
+  function trapModalFocus(event, modal) {
+    const focusable = getFocusableElements(modal);
+    if (!focusable.length) {
+      event.preventDefault();
+      modal.focus({ preventScroll: true });
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  // ───────── panel modes
+  function setPanelMode(mode) {
+    if (!dom.panel) return;
+    dom.panel.dataset.mode = mode;
+    if (mode === "detail") {
+      dom.panelFilters.hidden = true;
+      dom.panelDetail.hidden = false;
+    } else {
+      dom.panelFilters.hidden = false;
+      dom.panelDetail.hidden = true;
+    }
+  }
+  function isMobile() { return window.innerWidth <= 980; }
+  function openPanelMobile() {
+    if (!isMobile()) return;
+    dom.panel.classList.add("is-open");
+    dom.overlay.hidden = false;
+    dom.overlay.classList.add("is-open");
+    syncBodyLock();
+  }
+  function closePanelMobile() {
+    dom.panel.classList.remove("is-open");
+    dom.overlay.classList.remove("is-open");
+    dom.overlay.hidden = true;
+    syncBodyLock();
+  }
+  function showFilters() {
+    setPanelMode("filters");
+    if (isMobile()) openPanelMobile();
+  }
+  function showDetail() {
+    setPanelMode("detail");
+    if (isMobile()) openPanelMobile();
+  }
+
+  // ───────── action menus
+  function closeAllActionMenus(except) {
+    document.querySelectorAll("[data-action-menu]").forEach((menu) => {
+      if (menu === except) return;
+      menu.classList.remove("is-open");
+      const trigger = menu.querySelector("[data-action-menu-button]");
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  // ───────── filters
+  function buildQueryString() {
+    const params = new URLSearchParams();
+    const q = (dom.filterSearchInput.value || "").trim();
+    if (q) params.set("q", q);
+    if (dom.filterRoleSelect.value) params.set("role", dom.filterRoleSelect.value);
+    if (dom.filterSubjectSelect.value) params.set("subject", dom.filterSubjectSelect.value);
+    if (dom.filterLevelSelect.value) params.set("level", dom.filterLevelSelect.value);
+    if (dom.filterDirectionSelect.value) params.set("direction", dom.filterDirectionSelect.value);
+    if (dom.filterActiveSelect.value) params.set("active", dom.filterActiveSelect.value);
+    if (dom.filterAvailabilitySelect.value) params.set("availability", dom.filterAvailabilitySelect.value);
+    if (dom.filterWeekdaySelect.value) params.set("day", dom.filterWeekdaySelect.value);
+    if (dom.filterTimeInput.value) params.set("time", dom.filterTimeInput.value);
+    return params.toString();
+  }
+  function hasActiveFilters() { return Boolean(buildQueryString()); }
+
+  function clearFilters() {
+    dom.filterSearchInput.value = "";
+    dom.filterRoleSelect.value = "";
+    dom.filterSubjectSelect.value = "";
+    dom.filterLevelSelect.value = "";
+    dom.filterDirectionSelect.value = "";
+    dom.filterActiveSelect.value = "";
+    dom.filterAvailabilitySelect.value = "";
+    dom.filterWeekdaySelect.value = "";
+    dom.filterTimeInput.value = "";
+    setStatActive("all", { silent: true });
+    loadEmployees();
+  }
+
+  function setStatActive(key, { silent = false } = {}) {
+    state.statFilter = key;
+    stats.forEach((btn) => {
+      const isActive = btn.dataset.stat === key;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", String(isActive));
+    });
+
+    if (!silent) {
+      // map stats → underlying filter inputs
+      if (key === "all") {
+        // do not auto-clear other filters; only relax stat scope
+      } else if (key === "active") {
+        dom.filterActiveSelect.value = "active";
+        dom.filterAvailabilitySelect.value = "";
+        dom.filterRoleSelect.value = "";
+      } else if (key === "teachers") {
+        dom.filterRoleSelect.value = "teacher";
+        dom.filterAvailabilitySelect.value = "";
+      } else if (key === "free") {
+        dom.filterRoleSelect.value = "teacher";
+        dom.filterAvailabilitySelect.value = "free";
+      }
+      loadEmployees();
+    }
+  }
+
+  function renderAppliedChips() {
+    const chips = [];
+    const pushChip = (label, clearFn) => chips.push(
+      `<span class="hrx-applied">${escapeHtml(label)}<button type="button" data-clear-key="${escapeHtml(label)}" aria-label="Olib tashlash"><i class="fa-solid fa-xmark"></i></button></span>`
+    );
+    const clears = {};
+    if (dom.filterSearchInput.value.trim()) {
+      const v = dom.filterSearchInput.value.trim();
+      pushChip(`Qidiruv: ${v}`); clears[`Qidiruv: ${v}`] = () => { dom.filterSearchInput.value = ""; loadEmployees(); };
+    }
+    if (dom.filterRoleSelect.value) {
+      const opt = dom.filterRoleSelect.options[dom.filterRoleSelect.selectedIndex];
+      const label = `Lavozim: ${opt.textContent.trim()}`;
+      pushChip(label); clears[label] = () => { dom.filterRoleSelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterSubjectSelect.value) {
+      const opt = dom.filterSubjectSelect.options[dom.filterSubjectSelect.selectedIndex];
+      const label = `Fan: ${opt.textContent.trim()}`;
+      pushChip(label); clears[label] = () => { dom.filterSubjectSelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterLevelSelect.value) {
+      const label = `Daraja: ${dom.filterLevelSelect.value}`;
+      pushChip(label); clears[label] = () => { dom.filterLevelSelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterDirectionSelect.value) {
+      const label = `Yo‘nalish: ${dom.filterDirectionSelect.value}`;
+      pushChip(label); clears[label] = () => { dom.filterDirectionSelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterActiveSelect.value) {
+      const opt = dom.filterActiveSelect.options[dom.filterActiveSelect.selectedIndex];
+      const label = `Holat: ${opt.textContent.trim()}`;
+      pushChip(label); clears[label] = () => { dom.filterActiveSelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterAvailabilitySelect.value) {
+      const opt = dom.filterAvailabilitySelect.options[dom.filterAvailabilitySelect.selectedIndex];
+      const label = `Bandlik: ${opt.textContent.trim()}`;
+      pushChip(label); clears[label] = () => { dom.filterAvailabilitySelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterWeekdaySelect.value) {
+      const opt = dom.filterWeekdaySelect.options[dom.filterWeekdaySelect.selectedIndex];
+      const label = `Kun: ${opt.textContent.trim()}`;
+      pushChip(label); clears[label] = () => { dom.filterWeekdaySelect.value = ""; loadEmployees(); };
+    }
+    if (dom.filterTimeInput.value) {
+      const label = `Vaqt: ${dom.filterTimeInput.value}`;
+      pushChip(label); clears[label] = () => { dom.filterTimeInput.value = ""; loadEmployees(); };
+    }
+    if (chips.length) {
+      chips.push(`<span class="hrx-applied" style="cursor:pointer;" data-clear-all><i class="fa-solid fa-rotate-left"></i> Hammasini tozalash</span>`);
+    }
+    dom.appliedChips.innerHTML = chips.join("");
+    dom.appliedChips.dataset.clearMap = JSON.stringify(Object.keys(clears));
+    dom.appliedChips._clears = clears;
+  }
+
+  // ───────── rendering
+  function renderRoleOptions() {
+    const html = roleChoices.map((r) => `<option value="${escapeHtml(r.value)}">${escapeHtml(r.label)}</option>`).join("");
+    dom.filterRoleSelect.insertAdjacentHTML("beforeend", html);
+    dom.employeeRoleSelect.innerHTML = html;
+  }
+  function renderSubjectOptions() {
+    const html = subjectChoices.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+    dom.filterSubjectSelect.insertAdjacentHTML("beforeend", html);
+    dom.employeeSubjectSelect.innerHTML = html;
+  }
+  function renderLevelOptions() {
+    dom.filterLevelSelect.insertAdjacentHTML("beforeend",
+      levelChoices.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(""));
+  }
+  function renderDirectionOptions() {
+    dom.filterDirectionSelect.insertAdjacentHTML("beforeend",
+      directionChoices.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(""));
+  }
+
+  function percent(value, total) {
+    if (!total) return 0;
+    return Math.round((Number(value || 0) / Number(total || 0)) * 100);
+  }
+  function renderSummary(s) {
+    dom.summaryTotal.textContent = Number(s.total || 0);
+    dom.summaryActive.textContent = Number(s.active || 0);
+    dom.summaryTeachers.textContent = Number(s.teachers || 0);
+    dom.summaryFree.textContent = Number(s.free_now || 0);
+  }
+
+  function resolveAvailability(row) {
+    if (row.role !== "teacher") {
+      return { key: "neutral", label: "—", className: "hrx-badge hrx-badge--neutral" };
+    }
+    if (row.busy_state === "busy") {
+      return { key: "busy", label: "Band", className: "hrx-badge hrx-badge--busy" };
+    }
+    if (Number(row.groups_count || 0) > 0) {
+      return { key: "partial", label: "Qisman", className: "hrx-badge hrx-badge--partial" };
+    }
+    return { key: "free", label: "Bo‘sh", className: "hrx-badge hrx-badge--free" };
+  }
+
+  function activeBadge(row) {
+    const cls = row.is_active ? "hrx-badge hrx-badge--active" : "hrx-badge hrx-badge--inactive";
+    return `<span class="${cls}">${escapeHtml(row.active_label || (row.is_active ? "Aktiv" : "Nofaol"))}</span>`;
+  }
+  function subjectChips(items, limit = 2) {
+    const names = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!names.length) return `<span class="hrx-chip">—</span>`;
+    const visible = names.slice(0, limit).map((n) => `<span class="hrx-chip">${escapeHtml(n)}</span>`);
+    if (names.length > limit) visible.push(`<span class="hrx-chip">+${names.length - limit}</span>`);
+    return visible.join("");
+  }
+  function dayPills(days) {
+    if (!Array.isArray(days) || !days.length) return `<span class="hrx-day hrx-day--empty">—</span>`;
+    return days.map((d) => `<span class="hrx-day" title="${escapeHtml(d.full_label || "")}">${escapeHtml(d.label || "—")}</span>`).join("");
+  }
+
+  function actionMenuHtml(row) {
+    const toggleLabel = row.is_active ? "Faolsizlantirish" : "Faollashtirish";
+    const toggleIcon = row.is_active ? "fa-user-slash" : "fa-user-check";
+    const deleteDisabled = row.is_active ? "" : "disabled";
+    return `
+      <div class="hrx-menu" data-action-menu>
+        <button type="button" class="hrx-menu__trigger" data-action-menu-button aria-expanded="false" aria-label="Amallar">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+        <div class="hrx-menu__dropdown" role="menu">
+          <button type="button" class="hrx-menu__item" data-action="view" data-id="${row.id}" role="menuitem">
+            <span>Profilni ko‘rish</span><i class="fa-solid fa-eye"></i>
+          </button>
+          <button type="button" class="hrx-menu__item" data-action="edit" data-id="${row.id}" role="menuitem">
+            <span>Tahrirlash</span><i class="fa-solid fa-pen"></i>
+          </button>
+          <button type="button" class="hrx-menu__item" data-action="toggle-active" data-id="${row.id}" data-next-active="${row.is_active ? "false" : "true"}" role="menuitem">
+            <span>${toggleLabel}</span><i class="fa-solid ${toggleIcon}"></i>
+          </button>
+          <div class="hrx-menu__sep"></div>
+          <button type="button" class="hrx-menu__item hrx-menu__item--danger" data-action="delete" data-id="${row.id}" role="menuitem" ${deleteDisabled}>
+            <span>O‘chirish</span><i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderResultSummary(rows) {
+    const total = rows.length;
+    const active = rows.filter((r) => r.is_active).length;
+    const teachers = rows.filter((r) => r.role === "teacher").length;
+    const free = rows.filter((r) => resolveAvailability(r).key === "free").length;
+    const mode = hasActiveFilters() ? "Filter natijasi" : "Barcha xodimlar";
+    dom.employeesResultSummary.textContent = `${mode}: ${total} · ${active} aktiv · ${teachers} ustoz · ${free} hozir bo‘sh`;
+  }
+
+  function setLoading(isLoading) {
+    dom.employeesLoading.hidden = !isLoading;
+    if (isLoading) {
+      dom.employeesEmpty.hidden = true;
+      dom.employeesTableWrap.hidden = true;
+      dom.employeesMobileList.hidden = true;
+    }
+  }
+
+  function renderEmpty(title, text, withCreate = true, withClear = false) {
+    const buttons = [];
+    if (withCreate) buttons.push(`<button type="button" class="hrx-btn hrx-btn--primary" data-empty-action="create"><i class="fa-solid fa-user-plus"></i><span>Yangi xodim qo‘shish</span></button>`);
+    if (withClear)  buttons.push(`<button type="button" class="hrx-btn hrx-btn--ghost" data-empty-action="clear"><i class="fa-solid fa-rotate-left"></i><span>Filterlarni tozalash</span></button>`);
+    dom.employeesEmpty.innerHTML = `
+      <div class="hrx-empty__card">
+        <div class="hrx-empty__art"><i class="fa-solid fa-user-group"></i></div>
+        <h3 class="hrx-empty__title">${escapeHtml(title)}</h3>
+        <p class="hrx-empty__text">${escapeHtml(text)}</p>
+        ${buttons.length ? `<div class="hrx-empty__actions">${buttons.join("")}</div>` : ""}
+      </div>`;
+    dom.employeesEmpty.hidden = false;
+    dom.employeesTableWrap.hidden = true;
+    dom.employeesMobileList.hidden = true;
+    dom.employeesTableBody.innerHTML = "";
+    dom.employeesMobileList.innerHTML = "";
+  }
+
+  function renderRows(rows) {
+    renderResultSummary(rows);
+    if (!rows.length) {
+      const filtered = hasActiveFilters();
+      renderEmpty(
+        filtered ? "Mos xodim topilmadi" : "Xodimlar hali qo‘shilmagan",
+        filtered ? "Filterlarni kengaytirib ko‘ring yoki qidiruvni tozalang." : "Birinchi xodimni qo‘shing va jadval boshqaruvini shu yerdan boshlang.",
+        !filtered,
+        filtered
+      );
+      return;
+    }
+    dom.employeesEmpty.hidden = true;
+    dom.employeesMobileList.hidden = false;
+
+    const sel = state.selectedId;
+
+    function freeLabelClass(row, av) {
+      if (row.role !== "teacher") return "is-empty";
+      if (av.key === "busy") return "is-busy";
+      const label = row.today_free_label || "";
+      if (label.startsWith("Bo‘sh") || label.startsWith("Bo'sh")) return "";
+      if (label === "Bugun band") return "is-busy";
+      return "is-empty";
+    }
+    function freeLabelIcon(cls) {
+      if (cls === "is-busy") return "fa-circle-xmark";
+      if (cls === "is-empty") return "fa-circle-minus";
+      return "fa-circle-check";
+    }
+    function freeLabelText(row) {
+      if (row.role !== "teacher") return "Ustoz emas";
+      const label = row.today_free_label || "";
+      if (!label) return "Hozir bo‘sh";
+      // Highlight time range visually
+      const m = label.match(/^(.*?:)\s*(.+)$/);
+      if (m) return `${escapeHtml(m[1].trim())} <b>${escapeHtml(m[2].trim())}</b>`;
+      return escapeHtml(label);
+    }
+
+    dom.employeesMobileList.innerHTML = rows.map((row) => {
+      const av = resolveAvailability(row);
+      const isSel = sel && Number(sel) === Number(row.id);
+      const freeCls = freeLabelClass(row, av);
+      const subjects = row.subject_names || [];
+      const levels = row.levels || [];
+      const hasAvailabilityBadge = row.role === "teacher";
+      return `
+        <article class="hrx-card ${isSel ? "is-selected" : ""}" data-row-id="${row.id}" tabindex="0">
+          <div class="hrx-card__head">
+            <span class="hrx-avatar">${escapeHtml(getInitials(row.full_name))}</span>
+            <div class="hrx-person__meta" style="flex:1 1 auto; min-width:0;">
+              <span class="hrx-person__name">${escapeHtml(row.full_name || "—")}</span>
+              <span class="hrx-person__sub">${escapeHtml(row.role_label || "—")}${row.position ? " · " + escapeHtml(row.position) : ""}</span>
+            </div>
+            <span data-no-row-click>${actionMenuHtml(row)}</span>
+          </div>
+
+          <div class="hrx-card__row">
+            ${activeBadge(row)}
+            ${hasAvailabilityBadge ? `<span class="${av.className}">${escapeHtml(av.label)}</span>` : ""}
+            <span class="hrx-badge hrx-badge--neutral"><i class="fa-solid fa-users" style="font-size:9px;margin-right:3px;"></i>${escapeHtml(String(row.groups_count || 0))}</span>
+          </div>
+
+          ${row.phone ? `<a class="hrx-card__phone" href="tel:${escapeHtml(row.phone)}" data-no-row-click><i class="fa-solid fa-phone" style="font-size:10px;margin-right:6px;color:var(--hrx-text-muted);"></i>${escapeHtml(row.phone)}</a>` : ""}
+
+          ${subjects.length ? `<div class="hrx-chip-row">${subjectChips(subjects, 3)}</div>` : ""}
+          ${levels.length ? `<div class="hrx-chip-row">${levels.slice(0, 2).map((l) => `<span class="hrx-chip">${escapeHtml(l)}</span>`).join("")}${levels.length > 2 ? `<span class="hrx-chip">+${levels.length - 2}</span>` : ""}</div>` : ""}
+
+          ${row.role === "teacher" ? `<div class="hrx-card__free ${freeCls}"><i class="fa-solid ${freeLabelIcon(freeCls)}"></i><span>${freeLabelText(row)}</span></div>` : ""}
+
+          <div class="hrx-day-row">${dayPills(row.schedule_days)}</div>
+        </article>
+      `;
+    }).join("");
+
+    // table is hidden; clear it so stale rows don't accumulate in DOM
+    if (dom.employeesTableBody) dom.employeesTableBody.innerHTML = "";
+  }
+
+  async function loadEmployees() {
+    setLoading(true);
+    closeAllActionMenus();
+    renderAppliedChips();
+    const q = buildQueryString();
+    const url = q ? `${apiEmployeesUrl}?${q}` : apiEmployeesUrl;
+    try {
+      const data = await fetchJson(url, {}, "Xodimlar ro‘yxatini yuklab bo‘lmadi.");
+      state.rows = Array.isArray(data.results) ? data.results : [];
+      state.summary = data.summary || { total: 0, active: 0, teachers: 0, free_now: 0 };
+      renderSummary(state.summary);
+      renderRows(state.rows);
+      // refresh detail pane if a selected row is still in view
+      if (state.selectedId && !state.rows.find((r) => Number(r.id) === Number(state.selectedId))) {
+        // selection no longer in list — return to filters
+        state.selectedId = null;
+        if (!isMobile()) showFilters();
+      }
+    } catch (error) {
+      renderEmpty("Ro‘yxatni yuklab bo‘lmadi", error.message || "Qayta urinib ko‘ring.", false, false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ───────── DETAIL RENDER (in right panel)
+  function infoBlock(icon, label, value, full = false) {
+    return `
+      <div class="hrx-info ${full ? "hrx-info--full" : ""}">
+        <span class="hrx-info__label"><i class="fa-solid ${icon}"></i>${escapeHtml(label)}</span>
+        <span class="hrx-info__value">${value}</span>
+      </div>`;
+  }
+
+  function renderDetail(employee) {
+    state.selectedId = Number(employee.id);
+
+    // highlight selected row in list
+    document.querySelectorAll("[data-row-id]").forEach((el) => {
+      el.classList.toggle("is-selected", Number(el.dataset.rowId) === Number(employee.id));
+    });
+
+    dom.profileModalTitle.textContent = employee.full_name || "Xodim profili";
+    dom.profileModalSubtitle.textContent = `${employee.role_label || "Xodim"} · ${employee.position || "Pozitsiya yo‘q"}`;
+
+    const av = resolveAvailability(employee);
+    const subjects = (employee.subjects || []).map((s) => s.name);
+    const levels = employee.levels || [];
+    const directions = employee.directions || [];
+
+    const groupsTotal = (employee.current_groups || []).length;
+    const lessonsTotal = (employee.weekly_schedule || []).reduce((sum, d) => sum + (Array.isArray(d.groups) ? d.groups.length : 0), 0);
+
+    const accHtml = (employee.weekly_schedule || []).map((day) => {
+      const groups = day.groups || [];
+      const free = day.free_slots || [];
+      const total = groups.length + free.length;
+      const countCls = total > 0 ? "hrx-acc__count hrx-acc__count--has" : "hrx-acc__count";
+      const groupsList = groups.map((g) =>
+        `<div class="hrx-slot hrx-slot--busy"><strong>${escapeHtml(g.time_range)}</strong><span>${escapeHtml(g.group_name)}${g.room ? " · " + escapeHtml(g.room) : ""}</span><span class="hrx-slot__type">Dars</span></div>`
+      ).join("");
+      const freeList = free.map((s) =>
+        `<div class="hrx-slot hrx-slot--free"><strong>${escapeHtml(s.time_range)}</strong><span>Bo‘sh vaqt</span><span class="hrx-slot__type">Free</span></div>`
+      ).join("");
+      const body = total > 0
+        ? groupsList + freeList
+        : `<div style="font-size:11.5px;color:var(--hrx-text-muted); padding: 4px 2px;">Bu kunda yozuv yo‘q.</div>`;
+      return `
+        <div class="hrx-acc" data-acc>
+          <button type="button" class="hrx-acc__head" data-acc-toggle aria-expanded="false">
+            <i class="fa-solid fa-chevron-right hrx-acc__chev"></i>
+            <span class="hrx-acc__day">${escapeHtml(day.weekday_label || "")}</span>
+            <span class="${countCls}">${total}</span>
+          </button>
+          <div class="hrx-acc__body">${body}</div>
+        </div>`;
+    }).join("");
+
+    const id = Number(employee.id);
+    const toggleNext = employee.is_active ? "false" : "true";
+    const toggleIcon = employee.is_active ? "fa-user-slash" : "fa-user-check";
+    const toggleTitle = employee.is_active ? "Faolsizlantirish" : "Faollashtirish";
+
+    dom.profileModalBody.innerHTML = `
+      <div class="hrx-detail-hero">
+        <div class="hrx-detail-hero__top">
+          <span class="hrx-avatar hrx-avatar--lg">${escapeHtml(getInitials(employee.full_name))}</span>
+          <div class="hrx-detail-hero__meta">
+            <div class="hrx-detail-hero__name">${escapeHtml(employee.full_name || "—")}</div>
+            <div class="hrx-detail-hero__role">${escapeHtml(employee.role_label || "—")} · ${escapeHtml(employee.position || "—")}</div>
+          </div>
+        </div>
+        <div class="hrx-detail-hero__badges">
+          ${activeBadge(employee)}
+          <span class="${av.className}">${escapeHtml(av.label)}</span>
+          ${employee.system_role_label ? `<span class="hrx-badge hrx-badge--neutral">${escapeHtml(employee.system_role_label)}</span>` : ""}
+        </div>
+        <div class="hrx-detail-actions">
+          <button type="button" class="hrx-btn hrx-btn--primary" data-detail-action="edit" data-id="${id}">
+            <i class="fa-solid fa-pen"></i><span>Tahrirlash</span>
+          </button>
+          <button type="button" class="hrx-btn hrx-btn--ghost hrx-btn--icon" data-detail-action="toggle-active" data-id="${id}" data-next-active="${toggleNext}" title="${toggleTitle}" aria-label="${toggleTitle}">
+            <i class="fa-solid ${toggleIcon}"></i>
+          </button>
+          <button type="button" class="hrx-btn hrx-btn--icon hrx-btn--danger-ghost" data-detail-action="delete" data-id="${id}" ${employee.is_active ? "" : "disabled"} title="O‘chirish" aria-label="O‘chirish">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="hrx-detail-content">
+        <div class="hrx-detail-grid">
+          ${infoBlock("fa-phone", "Telefon", employee.phone ? `<a class="hrx-phone" href="tel:${escapeHtml(employee.phone)}">${escapeHtml(employee.phone)}</a>` : "—")}
+          ${infoBlock("fa-calendar-day", "Ishga qabul", escapeHtml(employee.hire_date_label || "—"))}
+          ${infoBlock("fa-users", "Guruhlar", String(groupsTotal))}
+          ${infoBlock("fa-clock", "Haftalik darslar", String(lessonsTotal))}
+        </div>
+
+        ${subjects.length ? `<div class="hrx-section-title">Fanlar</div><div class="hrx-chip-row">${subjectChips(subjects, 12)}</div>` : ""}
+        ${levels.length ? `<div class="hrx-section-title">Darajalar</div><div class="hrx-chip-row">${subjectChips(levels, 12)}</div>` : ""}
+        ${directions.length ? `<div class="hrx-section-title">Yo‘nalishlar</div><div class="hrx-chip-row">${subjectChips(directions, 12)}</div>` : ""}
+        ${employee.note ? `<div class="hrx-section-title">Izoh</div><div class="hrx-info"><span class="hrx-info__value" style="font-weight:500;">${escapeHtml(employee.note)}</span></div>` : ""}
+
+        <div class="hrx-section-title">Haftalik jadval</div>
+        ${accHtml ? `<div class="hrx-week">${accHtml}</div>` : `<div style="font-size:12.5px;color:var(--hrx-text-muted);">Jadval mavjud emas.</div>`}
+      </div>
+    `;
+
+    // reset scroll to top on each load
+    dom.profileModalBody.scrollTop = 0;
+  }
+
+  async function openDetail(employeeId) {
+    state.selectedId = Number(employeeId);
+    showDetail();
+    dom.profileModalTitle.textContent = "Xodim profili";
+    dom.profileModalSubtitle.textContent = "Yuklanmoqda…";
+    dom.profileModalBody.innerHTML = `<div class="hrx-loading"><span class="hrx-spinner"></span><span>Yuklanmoqda…</span></div>`;
+    try {
+      const data = await fetchJson(employeeDetailUrl(employeeId), {}, "Xodim profilini yuklab bo‘lmadi.");
+      renderDetail(data.employee);
+    } catch (error) {
+      dom.profileModalBody.innerHTML = `
+        <div class="hrx-empty__card" style="text-align:left;">
+          <h3 class="hrx-empty__title">Profil ochilmadi</h3>
+          <p class="hrx-empty__text">${escapeHtml(error.message || "Qayta urinib ko‘ring.")}</p>
+        </div>`;
+    }
+  }
+
+  function closeDetail() {
+    state.selectedId = null;
+    document.querySelectorAll("[data-row-id]").forEach((el) => el.classList.remove("is-selected"));
+    showFilters();
+    if (isMobile()) closePanelMobile();
+  }
+
+  // ───────── FORM
+  function resetFormMessages() {
+    dom.employeeFormErrors.textContent = "";
+    dom.employeeFormMessage.textContent = "";
+    dom.employeeFormMessage.classList.remove("is-success");
+    dom.employeeCredentialsBox.hidden = true;
+    dom.employeeCredentialsBox.textContent = "";
+  }
+
+  // ───────── SLOT PILLS (state-driven)
+  function todayIsoWeekday() {
+    const d = new Date();
+    const dow = d.getDay();           // 0=Sun..6=Sat
+    return dow === 0 ? 7 : dow;       // 1=Mon..7=Sun
+  }
+  function detectPresetForToday() {
+    const w = todayIsoWeekday();
+    if (ODD_DAYS.includes(w)) return "odd";
+    if (EVEN_DAYS.includes(w)) return "even";
+    return "odd";                     // Sunday → next class day is Mon (odd)
+  }
+  function presetDays(preset) {
+    if (preset === "odd") return ODD_DAYS.slice();
+    if (preset === "even") return EVEN_DAYS.slice();
+    return [];
+  }
+
+  function setQsbCheckedDays(days) {
+    dom.qsbDayGrid.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.checked = days.includes(Number(cb.dataset.qsbDay));
+    });
+  }
+  function getQsbCheckedDays() {
+    return Array.from(dom.qsbDayGrid.querySelectorAll("input[type=checkbox]:checked"))
+      .map((cb) => Number(cb.dataset.qsbDay));
+  }
+  function setPresetButton(preset) {
+    state.qsbPreset = preset;
+    dom.qsb.querySelectorAll("[data-preset]").forEach((b) => {
+      b.classList.toggle("is-active", b.dataset.preset === preset);
+    });
+  }
+  function applyPreset(preset) {
+    setPresetButton(preset);
+    if (preset === "odd") setQsbCheckedDays(ODD_DAYS);
+    else if (preset === "even") setQsbCheckedDays(EVEN_DAYS);
+    // "custom" preserves whatever the user has checked
+  }
+  function refreshPresetFromCheckedDays() {
+    const days = getQsbCheckedDays().sort((a, b) => a - b);
+    const eqArr = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+    if (eqArr(days, ODD_DAYS)) setPresetButton("odd");
+    else if (eqArr(days, EVEN_DAYS)) setPresetButton("even");
+    else setPresetButton("custom");
+  }
+
+  function slotPillHtml(slot, idx) {
+    const cls = slot.type === "busy" ? "hrx-slot-pill__type--busy" : "hrx-slot-pill__type--free";
+    const label = slot.type === "busy" ? "Band" : "Bo‘sh";
+    return `
+      <span class="hrx-slot-pill" data-slot-idx="${idx}">
+        <span class="hrx-slot-pill__day">${escapeHtml(WEEKDAY_SHORT[slot.weekday] || "—")}</span>
+        <span class="hrx-slot-pill__sep">·</span>
+        <span>${escapeHtml(slot.start)}–${escapeHtml(slot.end)}</span>
+        <span class="hrx-slot-pill__type ${cls}">${label}</span>
+        <button type="button" class="hrx-slot-pill__remove" data-remove-slot="${idx}" aria-label="Slotni o‘chirish">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </span>`;
+  }
+  function renderSlotPills() {
+    if (!state.slots.length) {
+      dom.availabilityRows.innerHTML = `<div class="hrx-slot-pills__hint">Hali slot yo‘q. Tepadagi formaga 1 klikda yarating.</div>`;
+      return;
+    }
+    dom.availabilityRows.innerHTML = state.slots.map(slotPillHtml).join("");
+  }
+  function timeToMinutes(t) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(t || "");
+    if (!m) return -1;
+    return Number(m[1]) * 60 + Number(m[2]);
+  }
+  function normalizeTime(t) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(t || "");
+    if (!m) return t;
+    return `${String(m[1]).padStart(2, "0")}:${m[2]}`;
+  }
+  function addSlotsFromQsb() {
+    if (dom.employeeRoleSelect.value !== "teacher") return;
+    const days = getQsbCheckedDays();
+    const start = normalizeTime(dom.qsbStartInput.value);
+    const end = normalizeTime(dom.qsbEndInput.value);
+    const type = dom.qsbTypeSelect.value || "available";
+
+    if (!days.length) { flashFormError("Kamida bitta kun tanlang."); return; }
+    if (!start || !end) { flashFormError("Boshlanish va tugash vaqtini kiriting."); return; }
+    if (timeToMinutes(end) <= timeToMinutes(start)) { flashFormError("Tugash vaqti boshlanishdan keyin bo‘lishi kerak."); return; }
+
+    let added = 0;
+    days.forEach((d) => {
+      const dup = state.slots.find((s) => s.weekday === d && s.start === start && s.end === end && s.type === type);
+      if (dup) return;
+      state.slots.push({ weekday: d, start, end, type, note: "" });
+      added += 1;
+    });
+    state.slots.sort((a, b) => a.weekday - b.weekday || timeToMinutes(a.start) - timeToMinutes(b.start));
+    renderSlotPills();
+    if (added === 0) flashFormError("Bu slotlar allaqachon qo‘shilgan.");
+    else clearFormError();
+  }
+  function flashFormError(msg) {
+    dom.employeeFormErrors.textContent = msg;
+  }
+  function clearFormError() {
+    dom.employeeFormErrors.textContent = "";
+  }
+
+  function toggleAvailabilitySection() {
+    const isTeacher = dom.employeeRoleSelect.value === "teacher";
+    dom.employeeAvailabilitySection.classList.toggle("is-disabled", !isTeacher);
+    dom.addAvailabilityRowButton.disabled = !isTeacher;
+    dom.employeeAvailabilityHint.textContent = isTeacher
+      ? "Toq/Juft preset’ni tanlang yoki kunlarni belgilang — “Slot yaratish” 1 klikda qo‘shadi."
+      : "Bandlik faqat ustoz roli tanlanganda aktiv bo‘ladi.";
+  }
+  function normalizeListInput(v) {
+    return String(v || "").split(/\n|,/).map((x) => x.trim()).filter(Boolean);
+  }
+  function selectedSubjectIds() {
+    return Array.from(state.subjectIds);
+  }
+  function collectAvailabilityRows() {
+    if (dom.employeeRoleSelect.value !== "teacher") return [];
+    return state.slots.map((s) => ({
+      weekday: String(s.weekday),
+      start_time: s.start,
+      end_time: s.end,
+      type: s.type,
+      note: s.note || "",
+    }));
+  }
+
+  // ───────── PHONE INPUT (auto +998, formatted)
+  function formatPhoneDigits(digits) {
+    const d = String(digits || "").replace(/\D+/g, "").slice(0, 9);
+    const parts = [];
+    if (d.length > 0) parts.push(d.slice(0, 2));
+    if (d.length > 2) parts.push(d.slice(2, 5));
+    if (d.length > 5) parts.push(d.slice(5, 7));
+    if (d.length > 7) parts.push(d.slice(7, 9));
+    return parts.join(" ");
+  }
+  function setPhoneFromValue(raw) {
+    let digits = String(raw || "").replace(/\D+/g, "");
+    if (digits.startsWith("998")) digits = digits.slice(3);
+    dom.employeePhoneInput.value = formatPhoneDigits(digits);
+  }
+  function getPhoneE164() {
+    const digits = dom.employeePhoneInput.value.replace(/\D+/g, "").slice(0, 9);
+    return digits ? "+998" + digits : "";
+  }
+
+  // ───────── SUBJECT COMBOBOX
+  function syncHiddenSubjectSelect() {
+    Array.from(dom.employeeSubjectSelect.options).forEach((o) => {
+      o.selected = state.subjectIds.has(Number(o.value));
+    });
+  }
+  function renderSubjectChips() {
+    const chips = [];
+    subjectChoices.forEach((s) => {
+      if (state.subjectIds.has(Number(s.id))) {
+        chips.push(`<span class="hrx-combo__chip" data-subject-id="${s.id}">${escapeHtml(s.name)}<button type="button" data-remove-subject="${s.id}" aria-label="O‘chirish"><i class="fa-solid fa-xmark"></i></button></span>`);
+      }
+    });
+    dom.employeeSubjectChips.innerHTML = chips.join("");
+  }
+  function getSubjectMatches(query) {
+    const q = String(query || "").trim().toLocaleLowerCase();
+    if (!q) return subjectChoices.slice(0, 50);
+    return subjectChoices.filter((s) => String(s.name).toLocaleLowerCase().includes(q)).slice(0, 50);
+  }
+  function renderSubjectMenu() {
+    const matches = getSubjectMatches(dom.employeeSubjectSearch.value);
+    if (!matches.length) {
+      dom.employeeSubjectMenu.innerHTML = `<div class="hrx-combo__empty">Topilmadi</div>`;
+      state.comboHighlight = -1;
+      return;
+    }
+    if (state.comboHighlight < 0 || state.comboHighlight >= matches.length) state.comboHighlight = 0;
+    dom.employeeSubjectMenu.innerHTML = matches.map((s, i) => {
+      const sel = state.subjectIds.has(Number(s.id));
+      const active = i === state.comboHighlight;
+      return `<div class="hrx-combo__option ${active ? "is-active" : ""} ${sel ? "is-selected" : ""}" role="option" aria-selected="${sel}" data-subject-option="${s.id}" data-idx="${i}">${escapeHtml(s.name)}</div>`;
+    }).join("");
+  }
+  function openSubjectMenu() {
+    dom.employeeSubjectCombo.classList.add("is-focus");
+    dom.employeeSubjectMenu.hidden = false;
+    renderSubjectMenu();
+  }
+  function closeSubjectMenu() {
+    dom.employeeSubjectCombo.classList.remove("is-focus");
+    dom.employeeSubjectMenu.hidden = true;
+  }
+  function toggleSubject(id) {
+    const n = Number(id);
+    if (state.subjectIds.has(n)) state.subjectIds.delete(n);
+    else state.subjectIds.add(n);
+    renderSubjectChips();
+    renderSubjectMenu();
+    syncHiddenSubjectSelect();
+  }
+  function moveComboHighlight(delta) {
+    const matches = getSubjectMatches(dom.employeeSubjectSearch.value);
+    if (!matches.length) return;
+    state.comboHighlight = (state.comboHighlight + delta + matches.length) % matches.length;
+    renderSubjectMenu();
+    const active = dom.employeeSubjectMenu.querySelector(".is-active");
+    if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest" });
+  }
+  function fillForm(employee = null) {
+    resetFormMessages();
+    dom.employeeFullNameInput.value = employee?.full_name || "";
+    setPhoneFromValue(employee?.phone || "");
+    dom.employeeRoleSelect.value = employee?.role || "teacher";
+    dom.employeePositionInput.value = employee?.position || "";
+    dom.employeeHireDateInput.value = employee?.hire_date || "";
+    dom.employeeLevelsInput.value = Array.isArray(employee?.levels) ? employee.levels.join(", ") : "";
+    dom.employeeDirectionsInput.value = Array.isArray(employee?.directions) ? employee.directions.join(", ") : "";
+    dom.employeeNoteInput.value = employee?.note || "";
+    dom.employeeIsActiveInput.checked = employee?.is_active ?? true;
+
+    // Subjects → state.subjectIds + chips + hidden select sync
+    state.subjectIds = new Set((employee?.subjects || []).map((s) => Number(s.id)));
+    syncHiddenSubjectSelect();
+    renderSubjectChips();
+    dom.employeeSubjectSearch.value = "";
+    closeSubjectMenu();
+
+    // Slots → state.slots + pills
+    state.slots = (employee?.availability_slots || []).map((s) => ({
+      weekday: Number(s.weekday) || 1,
+      start: normalizeTime(s.start_time || "08:00"),
+      end: normalizeTime(s.end_time || "10:00"),
+      type: s.type === "busy" ? "busy" : "available",
+      note: String(s.note || ""),
+    }));
+    renderSlotPills();
+
+    // QSB defaults: only on create. In edit, infer preset from existing slot pattern.
+    if (employee) {
+      // Default QSB inputs but don't auto-check days (existing slots stand on their own)
+      dom.qsbStartInput.value = "08:00";
+      dom.qsbEndInput.value = "10:00";
+      dom.qsbTypeSelect.value = "available";
+      setQsbCheckedDays([]);
+      setPresetButton("custom");
+    } else {
+      const preset = detectPresetForToday();
+      dom.qsbStartInput.value = "08:00";
+      dom.qsbEndInput.value = "10:00";
+      dom.qsbTypeSelect.value = "available";
+      applyPreset(preset);
+    }
+
+    toggleAvailabilitySection();
+  }
+  function openCreateModal() {
+    state.editingId = null;
+    state.formMode = "create";
+    dom.formModalTitle.textContent = "Yangi xodim";
+    fillForm(null);
+    openModal("employeeFormModal");
+  }
+  async function openEditModal(employeeId) {
+    resetFormMessages();
+    dom.formModalTitle.textContent = "Xodimni tahrirlash";
+    dom.employeeFormMessage.textContent = "Ma'lumotlar yuklanmoqda…";
+    state.formMode = "edit";
+    state.editingId = employeeId;
+    openModal("employeeFormModal");
+    try {
+      const data = await fetchJson(employeeDetailUrl(employeeId), {}, "Xodim profilini yuklab bo‘lmadi.");
+      fillForm(data.employee);
+    } catch (error) {
+      dom.employeeFormErrors.textContent = error.message || "Profilni yuklab bo‘lmadi.";
+    } finally {
+      dom.employeeFormMessage.textContent = "";
+    }
+  }
+  function collectFormPayload() {
+    return {
+      full_name: dom.employeeFullNameInput.value.trim(),
+      phone: getPhoneE164(),
+      role: dom.employeeRoleSelect.value,
+      position: dom.employeePositionInput.value.trim(),
+      hire_date: dom.employeeHireDateInput.value || "",
+      subjects: selectedSubjectIds(),
+      levels: normalizeListInput(dom.employeeLevelsInput.value),
+      directions: normalizeListInput(dom.employeeDirectionsInput.value),
+      note: dom.employeeNoteInput.value.trim(),
+      is_active: dom.employeeIsActiveInput.checked,
+      availability_slots: collectAvailabilityRows(),
+    };
+  }
+  async function saveEmployee() {
+    resetFormMessages();
+    const payload = collectFormPayload();
+    if (!payload.full_name) { dom.employeeFormErrors.textContent = "Ism familiyani kiriting."; return; }
+    if (!payload.phone)     { dom.employeeFormErrors.textContent = "Telefon raqamini kiriting."; return; }
+
+    try {
+      const isEdit = state.formMode === "edit" && state.editingId;
+      const data = await fetchJson(
+        isEdit ? employeeDetailUrl(state.editingId) : apiEmployeesUrl,
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+          body: JSON.stringify(payload),
+        },
+        "Xodimni saqlashda xatolik."
+      );
+      if (data.credentials) {
+        dom.employeeCredentialsBox.hidden = false;
+        dom.employeeCredentialsBox.innerHTML =
+          `<strong>Login yaratildi</strong><br>Email: ${escapeHtml(data.credentials.email)}<br>Parol: ${escapeHtml(data.credentials.password)}`;
+      }
+      dom.employeeFormMessage.textContent = isEdit ? "Yangilandi." : "Yangi xodim yaratildi.";
+      dom.employeeFormMessage.classList.add("is-success");
+      await loadEmployees();
+      setTimeout(() => closeModal("employeeFormModal"), 320);
+    } catch (error) {
+      dom.employeeFormErrors.textContent = error.message || "Xodimni saqlashda xatolik.";
+    }
+  }
+
+  // ───────── CONFIRM
+  function openConfirmDialog(config) {
+    state.confirmAction = config;
+    dom.employeeConfirmErrors.textContent = "";
+    dom.confirmModalTitle.textContent = config.title;
+    dom.confirmModalText.textContent = config.text;
+    dom.confirmModalWarning.textContent = config.warning;
+    const label = dom.confirmEmployeeActionButton.querySelector("span");
+    if (label) label.textContent = config.buttonLabel;
+    openModal("employeeConfirmModal");
+  }
+  function requestToggleActive(id, nextActive) {
+    const employee = state.rows.find((r) => Number(r.id) === Number(id));
+    const name = employee?.full_name || "Xodim";
+    openConfirmDialog({
+      type: "toggle-active",
+      employeeId: id,
+      nextActive,
+      title: nextActive ? "Faollashtirilsinmi?" : "Faolsizlantirilsinmi?",
+      text: nextActive
+        ? `${name} qayta aktiv ro‘yxatga qaytadi.`
+        : `${name} faol tanlovlardan olinadi (ma'lumotlar saqlanadi).`,
+      warning: nextActive
+        ? "Bu xodim filterlarda yana ko‘rinadi."
+        : "Faolsiz xodim avtomatik tavsiya qilinmaydi.",
+      buttonLabel: nextActive ? "Faollashtirish" : "Faolsizlantirish",
+    });
+  }
+  function requestDelete(id) {
+    const employee = state.rows.find((r) => Number(r.id) === Number(id));
+    const name = employee?.full_name || "Xodim";
+    openConfirmDialog({
+      type: "delete",
+      employeeId: id,
+      title: "O‘chirilsinmi?",
+      text: `${name} operatsion ro‘yxatdan chiqariladi (xavfsiz nofaol holatga o‘tkaziladi).`,
+      warning: "Tarix saqlanadi. To‘liq o‘chirish uchun admin paneldan foydalaning.",
+      buttonLabel: "O‘chirish",
+    });
+  }
+  async function confirmEmployeeAction() {
+    if (!state.confirmAction) return;
+    dom.employeeConfirmErrors.textContent = "";
+    try {
+      if (state.confirmAction.type === "toggle-active") {
+        await fetchJson(
+          employeeDetailUrl(state.confirmAction.employeeId),
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ is_active: Boolean(state.confirmAction.nextActive) }),
+          },
+          "Holat yangilanmadi."
+        );
+      } else if (state.confirmAction.type === "delete") {
+        await fetchJson(
+          employeeDetailUrl(state.confirmAction.employeeId),
+          { method: "DELETE", headers: { "X-CSRFToken": csrfToken } },
+          "O‘chirib bo‘lmadi."
+        );
+      }
+      closeModal("employeeConfirmModal");
+      state.confirmAction = null;
+      await loadEmployees();
+      // refresh detail if open
+      if (state.selectedId && state.rows.find((r) => Number(r.id) === Number(state.selectedId))) {
+        openDetail(state.selectedId);
+      } else {
+        closeDetail();
+      }
+    } catch (error) {
+      dom.employeeConfirmErrors.textContent = error.message || "Amal bajarilmadi.";
+    }
+  }
+
+  // ───────── EVENT WIRING
+  function handleAction(button) {
+    const id = Number(button.dataset.id);
+    const action = button.dataset.action || button.dataset.detailAction;
+    closeAllActionMenus();
+    if (action === "view") openDetail(id);
+    else if (action === "edit") openEditModal(id);
+    else if (action === "toggle-active") requestToggleActive(id, button.dataset.nextActive === "true");
+    else if (action === "delete" && !button.disabled) requestDelete(id);
+  }
+
+  function attachListClickHandler(container) {
+    container.addEventListener("click", (event) => {
+      // ignore links / interactive children that mark themselves
+      const skip = event.target.closest("[data-no-row-click]");
+      if (skip && !event.target.closest("[data-action]")) {
+        // still allow inner action buttons
+        const inner = event.target.closest("[data-action]");
+        if (inner) handleAction(inner);
+        return;
+      }
+      const actionBtn = event.target.closest("[data-action]");
+      if (actionBtn) { handleAction(actionBtn); return; }
+
+      const row = event.target.closest("[data-row-id]");
+      if (row) openDetail(Number(row.dataset.rowId));
+    });
+  }
+
+  attachListClickHandler(dom.employeesTableBody);
+  attachListClickHandler(dom.employeesMobileList);
+
+  // empty state actions
+  dom.employeesEmpty.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-empty-action]")?.dataset.emptyAction;
+    if (action === "create") openCreateModal();
+    if (action === "clear") clearFilters();
+  });
+
+  // detail panel: action buttons + accordion toggle
+  dom.profileModalBody.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-detail-action]");
+    if (btn) { handleAction(btn); return; }
+    const accBtn = event.target.closest("[data-acc-toggle]");
+    if (accBtn) {
+      const acc = accBtn.closest("[data-acc]");
+      const isOpen = acc.classList.toggle("is-open");
+      accBtn.setAttribute("aria-expanded", String(isOpen));
+    }
+  });
+
+  // applied chip clicks
+  dom.appliedChips.addEventListener("click", (event) => {
+    const target = event.target.closest("button[data-clear-key], [data-clear-all]");
+    if (!target) return;
+    if (target.hasAttribute("data-clear-all")) { clearFilters(); return; }
+    const key = target.dataset.clearKey;
+    const fn = (dom.appliedChips._clears || {})[key];
+    if (fn) fn();
+  });
+
+  // 3-dot menu toggle
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-action-menu-button]");
+    if (trigger) {
+      const menu = trigger.closest("[data-action-menu]");
+      const isOpen = menu.classList.contains("is-open");
+      closeAllActionMenus(menu);
+      menu.classList.toggle("is-open", !isOpen);
+      trigger.setAttribute("aria-expanded", String(!isOpen));
+      return;
+    }
+    if (!event.target.closest("[data-action-menu]")) closeAllActionMenus();
+  });
+
+  // close modal
+  document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+    btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
+  });
+  document.querySelectorAll(".hrx-modal").forEach((modal) => {
+    modal.addEventListener("click", (event) => { if (event.target === modal) closeModal(modal.id); });
+  });
+
+  // Esc
+  document.addEventListener("keydown", (event) => {
+    const open = Array.from(document.querySelectorAll(".hrx-modal.is-open")).pop();
+    if (event.key === "Tab" && open) {
+      trapModalFocus(event, open);
+      return;
+    }
+    if (event.key !== "Escape") return;
+    closeAllActionMenus();
+    if (open) { closeModal(open.id); return; }
+    if (dom.panel.classList.contains("is-open")) { closePanelMobile(); return; }
+    if (dom.panel.dataset.mode === "detail") closeDetail();
+  });
+
+  // stat tabs
+  stats.forEach((btn) => btn.addEventListener("click", () => setStatActive(btn.dataset.stat)));
+
+  // search debounce
+  dom.filterSearchInput.addEventListener("input", () => {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(loadEmployees, 220);
+  });
+  dom.filterSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); clearTimeout(state.searchTimer); loadEmployees(); }
+  });
+
+  // filter actions
+  dom.applyFiltersButton.addEventListener("click", () => {
+    if (isMobile()) closePanelMobile();
+    loadEmployees();
+  });
+  dom.clearFiltersButton.addEventListener("click", clearFilters);
+
+  // open / close panel (mobile)
+  dom.openFiltersButton?.addEventListener("click", () => { setPanelMode("filters"); openPanelMobile(); });
+  dom.closeFiltersButton?.addEventListener("click", () => { closePanelMobile(); });
+  dom.overlay?.addEventListener("click", () => { closePanelMobile(); });
+
+  // detail close / back
+  dom.detailBack?.addEventListener("click", () => closeDetail());
+  dom.detailClose?.addEventListener("click", () => closeDetail());
+
+  // top bar actions
+  dom.openCreateEmployeeButton.addEventListener("click", openCreateModal);
+  dom.reloadEmployeesButton.addEventListener("click", loadEmployees);
+  dom.saveEmployeeButton.addEventListener("click", saveEmployee);
+  dom.confirmEmployeeActionButton.addEventListener("click", confirmEmployeeAction);
+  dom.employeeRoleSelect.addEventListener("change", toggleAvailabilitySection);
+
+  // ─── Quick Schedule Builder
+  dom.addAvailabilityRowButton.addEventListener("click", addSlotsFromQsb);
+  dom.qsb.querySelectorAll("[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+  });
+  dom.qsbDayGrid.addEventListener("change", refreshPresetFromCheckedDays);
+  dom.qsb.querySelectorAll("[data-quick]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [s, e] = (btn.dataset.quick || "").split(",");
+      if (s) dom.qsbStartInput.value = s;
+      if (e) dom.qsbEndInput.value = e;
+    });
+  });
+
+  // Slot pills: click ✕ removes
+  dom.availabilityRows.addEventListener("click", (event) => {
+    const remove = event.target.closest("[data-remove-slot]");
+    if (!remove) return;
+    const idx = Number(remove.dataset.removeSlot);
+    if (Number.isFinite(idx) && idx >= 0 && idx < state.slots.length) {
+      state.slots.splice(idx, 1);
+      renderSlotPills();
+    }
+  });
+
+  // ─── Phone formatter
+  dom.employeePhoneInput.addEventListener("input", (event) => {
+    const digits = event.target.value.replace(/\D+/g, "");
+    event.target.value = formatPhoneDigits(digits);
+  });
+  dom.employeePhoneInput.addEventListener("paste", (event) => {
+    // also handle pastes that include +998 or country code
+    const text = (event.clipboardData || window.clipboardData)?.getData("text") || "";
+    if (/\d/.test(text)) {
+      event.preventDefault();
+      let digits = text.replace(/\D+/g, "");
+      if (digits.startsWith("998")) digits = digits.slice(3);
+      dom.employeePhoneInput.value = formatPhoneDigits(digits);
+    }
+  });
+
+  // ─── Subject combobox
+  dom.employeeSubjectSearch.addEventListener("focus", openSubjectMenu);
+  dom.employeeSubjectSearch.addEventListener("click", openSubjectMenu);
+  dom.employeeSubjectSearch.addEventListener("input", () => {
+    state.comboHighlight = 0;
+    renderSubjectMenu();
+    if (dom.employeeSubjectMenu.hidden) dom.employeeSubjectMenu.hidden = false;
+  });
+  dom.employeeSubjectSearch.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") { event.preventDefault(); moveComboHighlight(1); openSubjectMenu(); return; }
+    if (event.key === "ArrowUp")   { event.preventDefault(); moveComboHighlight(-1); openSubjectMenu(); return; }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const matches = getSubjectMatches(dom.employeeSubjectSearch.value);
+      const target = matches[state.comboHighlight];
+      if (target) { toggleSubject(target.id); dom.employeeSubjectSearch.value = ""; renderSubjectMenu(); }
+      return;
+    }
+    if (event.key === "Escape") { closeSubjectMenu(); return; }
+    if (event.key === "Backspace" && !dom.employeeSubjectSearch.value && state.subjectIds.size) {
+      const last = Array.from(state.subjectIds).pop();
+      if (last !== undefined) { toggleSubject(last); }
+    }
+  });
+  dom.employeeSubjectMenu.addEventListener("mousedown", (event) => {
+    // mousedown so the input doesn't blur first
+    const opt = event.target.closest("[data-subject-option]");
+    if (!opt) return;
+    event.preventDefault();
+    toggleSubject(opt.dataset.subjectOption);
+    dom.employeeSubjectSearch.focus();
+  });
+  dom.employeeSubjectChips.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-remove-subject]");
+    if (!btn) return;
+    toggleSubject(btn.dataset.removeSubject);
+  });
+  document.addEventListener("click", (event) => {
+    if (!dom.employeeSubjectCombo) return;
+    if (!dom.employeeSubjectCombo.contains(event.target)) closeSubjectMenu();
+  });
+
+  // resize: leave mobile panel state when going desktop
+  window.addEventListener("resize", () => {
+    if (!isMobile()) {
+      dom.panel.classList.remove("is-open");
+      dom.overlay.classList.remove("is-open");
+      dom.overlay.hidden = true;
+      syncBodyLock();
+    }
+  });
+
+  // init
+  renderRoleOptions();
+  renderSubjectOptions();
+  renderLevelOptions();
+  renderDirectionOptions();
+  toggleAvailabilitySection();
+  loadEmployees();
+})();
+</script>
+{% endblock %}

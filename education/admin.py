@@ -18,8 +18,10 @@ from .models import (
     GroupInternalRankingSnapshot,
     Group,
     Payment,
+    StaffProfile,
     StudentAcademicSummary,
     StudentGroupTransfer,
+    TeacherAvailability,
 )
 
 
@@ -28,6 +30,20 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ("nom", "center", "oqituvchi", "is_archived", "course_start_date", "estimated_end_date")
     list_filter = ("center", "is_archived")
     search_fields = ("nom", "center__name", "oqituvchi__ism", "oqituvchi__familya")
+
+
+@admin.register(StaffProfile)
+class StaffProfileAdmin(admin.ModelAdmin):
+    list_display = ("full_name", "tenant", "role", "position", "is_active", "hire_date")
+    list_filter = ("tenant", "role", "is_active")
+    search_fields = ("full_name", "phone", "position", "user__email")
+
+
+@admin.register(TeacherAvailability)
+class TeacherAvailabilityAdmin(admin.ModelAdmin):
+    list_display = ("teacher", "tenant", "weekday", "start_time", "end_time", "type")
+    list_filter = ("tenant", "weekday", "type")
+    search_fields = ("teacher__ism", "teacher__familya", "teacher__email", "note")
 
 
 admin.site.register(Enrollment)

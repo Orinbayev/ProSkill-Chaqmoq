@@ -2339,6 +2339,22 @@
         <input id="convertGroupTimeInput" class="lead-input" type="time">
       </div>
       <div class="lead-field">
+        <label for="convertGroupEndTimeInput">Tugash vaqti</label>
+        <input id="convertGroupEndTimeInput" class="lead-input" type="time">
+      </div>
+      <div class="lead-field lead-field--full">
+        <label>Dars kunlari</label>
+        <div id="convertGroupDaysWrap" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="1" checked> Du</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="2"> Se</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="3" checked> Cho</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="4"> Pa</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="5" checked> Ju</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="6"> Sha</label>
+          <label style="display:inline-flex; align-items:center; gap:6px;"><input type="checkbox" data-convert-day value="7"> Yak</label>
+        </div>
+      </div>
+      <div class="lead-field">
         <label for="convertGroupPriceInput">Kurs narxi</label>
         <input id="convertGroupPriceInput" class="lead-input" type="number" min="0" step="1000" value="0">
       </div>
@@ -2430,6 +2446,7 @@
   const apiLeadGroupConvertBase = "{{ api_lead_group_convert_base|escapejs }}";
   const apiSubjectsUrl = "{{ api_subjects_url|escapejs }}";
   const apiStatusesUrl = "{{ api_statuses_url|escapejs }}";
+  const apiAvailableTeachersUrl = "{% if request.center.slug %}/{{ request.center.slug|escapejs }}/api/hr/teachers/available/{% else %}/api/hr/teachers/available/{% endif %}";
   const csrfToken = "{{ csrf_token }}";
   const canOverrideTeacherShare = {{ can_override_teacher_share|yesno:"true,false" }};
   const defaultManagerId = "{{ default_manager_id|escapejs }}";
@@ -2439,7 +2456,8 @@
   let statusChoices = JSON.parse(document.getElementById('leadStatusChoices').textContent);
   const managerOptions = JSON.parse(document.getElementById('leadManagerOptions').textContent);
   let leadGroupOptions = JSON.parse(document.getElementById('leadGroupOptions').textContent);
-  const teacherOptions = JSON.parse(document.getElementById('leadTeacherOptions').textContent);
+  let teacherOptions = JSON.parse(document.getElementById('leadTeacherOptions').textContent);
+  const initialTeacherOptions = Array.isArray(teacherOptions) ? teacherOptions.slice() : [];
   const departmentOptions = JSON.parse(document.getElementById('leadDepartmentOptions').textContent);
   const initialFilters = JSON.parse(document.getElementById('leadInitialFilters').textContent);
 
@@ -2672,8 +2690,10 @@
     convertGroupTeacherInput: document.getElementById('convertGroupTeacherInput'),
     convertGroupStartDateInput: document.getElementById('convertGroupStartDateInput'),
     convertGroupTimeInput: document.getElementById('convertGroupTimeInput'),
+    convertGroupEndTimeInput: document.getElementById('convertGroupEndTimeInput'),
     convertGroupPriceInput: document.getElementById('convertGroupPriceInput'),
     convertGroupTeacherShareInput: document.getElementById('convertGroupTeacherShareInput'),
+    convertGroupDaysWrap: document.getElementById('convertGroupDaysWrap'),
     leadGroupConvertErrors: document.getElementById('leadGroupConvertErrors'),
     leadGroupArchiveModal: document.getElementById('leadGroupArchiveModal'),
     leadGroupArchiveTitle: document.getElementById('leadGroupArchiveTitle'),
@@ -2895,6 +2915,53 @@
     return String(Math.max(0, Math.min(100, Math.trunc(numericValue))));
   }
 
+  function getSelectedConvertDays() {
+    return Array.from(document.querySelectorAll('[data-convert-day]:checked')).map((input) => input.value);
+  }
+
+  async function syncConvertAvailableTeachers() {
+    const days = getSelectedConvertDays();
+    const lessonTime = dom.convertGroupTimeInput?.value || '';
+    const lessonEndTime = dom.convertGroupEndTimeInput?.value || '';
+    const selectedTeacherId = dom.convertGroupTeacherInput?.value || '';
+
+    if (!dom.convertGroupTeacherInput) return;
+    if (!days.length || !lessonTime) {
+      teacherOptions = initialTeacherOptions.slice();
+      applyTeacherOptions();
+      if (selectedTeacherId) {
+        dom.convertGroupTeacherInput.value = selectedTeacherId;
+      }
+      updateConvertTeacherShare(dom.convertGroupTeacherInput.value);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    days.forEach((day) => params.append('day', day));
+    params.set('time', lessonTime);
+    if (lessonEndTime) {
+      params.set('end_time', lessonEndTime);
+    }
+
+    dom.convertGroupTeacherInput.disabled = true;
+    try {
+      const data = await fetchJson(`${apiAvailableTeachersUrl}?${params.toString()}`, {}, 'Bo\'sh ustozlarni yuklashda xatolik yuz berdi');
+      teacherOptions = Array.isArray(data?.results) ? data.results : [];
+      applyTeacherOptions();
+      if (selectedTeacherId && teacherOptions.some((item) => String(item.id) === String(selectedTeacherId))) {
+        dom.convertGroupTeacherInput.value = selectedTeacherId;
+      }
+      updateConvertTeacherShare(dom.convertGroupTeacherInput.value);
+    } catch (error) {
+      teacherOptions = initialTeacherOptions.slice();
+      applyTeacherOptions();
+      updateConvertTeacherShare(dom.convertGroupTeacherInput.value);
+      dom.leadGroupConvertErrors.textContent = error.message || 'Bo\'sh ustozlarni yuklashda xatolik yuz berdi.';
+    } finally {
+      dom.convertGroupTeacherInput.disabled = state.pending.leadGroupConvert;
+    }
+  }
+
   function updateConvertTeacherShare(teacherId) {
     dom.convertGroupTeacherShareInput.value = resolveTeacherShareValue(teacherId);
   }
@@ -3060,6 +3127,9 @@
     ].forEach((field) => {
       field.disabled = isBusy;
     });
+    document.querySelectorAll('[data-convert-day]').forEach((input) => {
+      input.disabled = isBusy;
+    });
     dom.closeLeadGroupModal.disabled = isBusy;
     dom.cancelLeadGroupModal.disabled = isBusy;
     dom.saveLeadGroupButton.disabled = isBusy;
@@ -3166,6 +3236,7 @@
       dom.convertGroupTeacherInput,
       dom.convertGroupStartDateInput,
       dom.convertGroupTimeInput,
+      dom.convertGroupEndTimeInput,
       dom.convertGroupPriceInput,
       dom.convertGroupTeacherShareInput,
     ].forEach((field) => {
@@ -4497,14 +4568,21 @@
     state.selectedLeadGroup = leadGroup;
     dom.convertGroupStartDateInput.value = new Date().toISOString().slice(0, 10);
     dom.convertGroupTimeInput.value = '09:00';
+    dom.convertGroupEndTimeInput.value = '10:30';
     dom.convertGroupPriceInput.value = '0';
     dom.convertGroupTeacherInput.value = '';
     dom.convertGroupDepartmentInput.value = leadGroup.department_id || '';
     dom.convertGroupNameInput.value = leadGroup.name || '';
+    Array.from(document.querySelectorAll('[data-convert-day]')).forEach((input) => {
+      input.checked = ['1', '3', '5'].includes(input.value);
+    });
+    teacherOptions = initialTeacherOptions.slice();
+    applyTeacherOptions();
     dom.leadGroupConvertSubtitle.textContent = 'Faqat tasdiqlangan leadlar studentga aylantiriladi. Fan/kurs lead groupdan avtomatik olinadi.';
     updateConvertTeacherShare('');
     dom.leadGroupConvertErrors.textContent = '';
     dom.leadGroupConvertModal.classList.add('is-open');
+    syncConvertAvailableTeachers();
     syncLeadGroupConvertState();
   }
 
@@ -4734,12 +4812,14 @@
       name: dom.convertGroupNameInput.value.trim(),
       department: dom.convertGroupDepartmentInput.value || '',
       teacher: dom.convertGroupTeacherInput.value || '',
+      lesson_days: getSelectedConvertDays(),
       lesson_time: dom.convertGroupTimeInput.value || '',
+      lesson_end_time: dom.convertGroupEndTimeInput.value || '',
       start_date: dom.convertGroupStartDateInput.value || '',
       price: dom.convertGroupPriceInput.value || 0,
       teacher_share: dom.convertGroupTeacherShareInput.value || 0,
     };
-    if (!payload.name || !payload.teacher || !payload.start_date || !payload.lesson_time) {
+    if (!payload.name || !payload.teacher || !payload.start_date || !payload.lesson_time || !payload.lesson_days.length) {
       dom.leadGroupConvertErrors.textContent = 'Barcha majburiy maydonlarni to‘ldiring.';
       return;
     }
@@ -4949,6 +5029,11 @@
   dom.submitLeadGroupConvertButton.addEventListener('click', convertLeadGroupToRealGroup);
   dom.convertGroupTeacherInput.addEventListener('change', () => {
     updateConvertTeacherShare(dom.convertGroupTeacherInput.value);
+  });
+  dom.convertGroupTimeInput.addEventListener('change', syncConvertAvailableTeachers);
+  dom.convertGroupEndTimeInput.addEventListener('change', syncConvertAvailableTeachers);
+  document.querySelectorAll('[data-convert-day]').forEach((input) => {
+    input.addEventListener('change', syncConvertAvailableTeachers);
   });
   dom.leadGroupConvertModal.addEventListener('click', (event) => {
     if (event.target === dom.leadGroupConvertModal) closeLeadGroupConvertModal();

@@ -14,6 +14,12 @@
 <div class="floating-nested" id="boshqaruvNested"
      style="{% if not boshqaruv_open %}display:none;{% endif %}">
 
+  <a href="{% url 'education:hr_dashboard' %}"
+     class="floating-item{% if vn == 'education:hr_dashboard' %} fi-active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-id-badge"></i></div>
+    <span>Xodimlar</span>
+  </a>
+
   <a href="{% url 'chaqmoq:rule_list' %}"
      class="floating-item{% if vn == 'chaqmoq:rule_list' %} fi-active{% endif %}">
     <div class="fi-icon"><i class="fa-solid fa-scale-balanced"></i></div>

@@ -1,11 +1,13 @@
 from django.urls import path
 from . import views
+from . import hr_views
 from .models import Group  # 🔹 kerak bo‘ladi category uchun
 
 app_name = "education"
 
 urlpatterns = [
     # === 📚 HUB / RO‘YXATLAR ===
+    path("hr/", hr_views.hr_dashboard, name="hr_dashboard"),
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
     path("tolovlar/", views.tolovlar_home, name="tolovlar_home"),
     path("tolovlar/export/", views.payment_export_xlsx, name="payment_export_xlsx"),

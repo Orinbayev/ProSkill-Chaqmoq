@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ChaqmoqApp — Mobile Redesign Canvas</title>
+<link rel="stylesheet" href="tokens.css" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,-25..0" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #0F1117; color: #fff; font-family: var(--font); }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes drawLine { to { stroke-dashoffset: 0; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* phone shells used inside artboards: shrink-fit to artboard */
+  .artboard-content { display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="parent-screens.jsx"></script>
+<script type="text/babel" src="parent-screens-2.jsx"></script>
+<script type="text/babel" src="student-and-states.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+// Phone wrapper that places sheet on top of phone screen for review
+function FrameWith({ Screen, screenProps = {}, sheet = null, dark = false, lightBezel = false }) {
+  return (
+    <div className={`phone-shell ${lightBezel ? 'light-bezel' : ''}`}>
+      <div className="phone-screen" style={{
+        background: dark ? 'var(--s-bg-gradient)' : 'var(--p-bg)',
+        color: dark ? 'var(--s-text)' : 'var(--p-text)',
+      }}>
+        <Screen {...screenProps} />
+        {sheet}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const sections = [
+    {
+      id: 'parent', title: 'Parent app', subtitle: 'Light surface · soft blue · ota-ona uchun',
+      artboards: [
+        {
+          id: '01-login', label: '01 Login', width: 390, height: 844,
+          render: () => <FrameWith Screen={LoginScreen} lightBezel />,
+        },
+        {
+          id: '02-dashboard', label: '02 Parent Dashboard', width: 390, height: 844,
+          render: () => <FrameWith Screen={ParentDashboard} lightBezel />,
+        },
+        {
+          id: '03-child-selector', label: '03 Child Selector Sheet', width: 390, height: 844,
+          render: () => <FrameWith Screen={ParentDashboard} lightBezel sheet={
+            <>
+              <Scrim />
+              <ChildSelectorSheet activeKidId="ali" onPick={()=>{}} onClose={()=>{}} onAddChild={()=>{}} />
+            </>
+          } />,
+        },
+        {
+          id: '04-attendance', label: '04 Parent Attendance', width: 390, height: 844,
+          render: () => <FrameWith Screen={AttendanceScreen} lightBezel />,
+        },
+        {
+          id: '05-payments', label: '05 Parent Payments', width: 390, height: 844,
+          render: () => <FrameWith Screen={PaymentsScreen} lightBezel />,
+        },
+        {
+          id: '06-payment-reminder', label: '06 Payment Reminder Sheet', width: 390, height: 844,
+          render: () => <FrameWith Screen={PaymentsScreen} lightBezel sheet={
+            <>
+              <Scrim />
+              <PaymentReminderSheet onClose={()=>{}} />
+            </>
+          } />,
+        },
+        {
+          id: '07-progress', label: '07 Parent Progress', width: 390, height: 844,
+          render: () => <FrameWith Screen={ProgressScreen} lightBezel />,
+        },
+        {
+          id: '07b-subject', label: '07b Subject Detail Sheet', width: 390, height: 844,
+          render: () => <FrameWith Screen={ProgressScreen} lightBezel sheet={
+            <>
+              <Scrim />
+              <SubjectDetailSheet subject={SUBJECTS[0]} onClose={()=>{}} />
+            </>
+          } />,
+        },
+        {
+          id: '08-profile', label: '08 Parent Profile', width: 390, height: 844,
+          render: () => <FrameWith Screen={ProfileScreen} lightBezel />,
+        },
+        {
+          id: '09-add-child', label: '09 Add Child', width: 390, height: 844,
+          render: () => <FrameWith Screen={AddChildScreen} lightBezel />,
+        },
+      ],
+    },
+    {
+      id: 'student', title: 'Student app', subtitle: 'Dark · teal-forward · o\'quvchi uchun',
+      artboards: [
+        {
+          id: '10-student-dashboard', label: '10 Student Dashboard', width: 390, height: 844,
+          render: () => <FrameWith Screen={StudentDashboard} dark />,
+        },
+        {
+          id: '10b-student-offline', label: '10b Student · Offline mode', width: 390, height: 844,
+          render: () => <FrameWith Screen={StudentDashboard} screenProps={{offline: true}} dark />,
+        },
+        {
+          id: '11-student-payments', label: '11 Student Payments', width: 390, height: 844,
+          render: () => <FrameWith Screen={StudentPayments} dark />,
+        },
+        {
+          id: '12-notifications', label: '12 Notifications · Parent', width: 390, height: 844,
+          render: () => <FrameWith Screen={NotificationsScreen} screenProps={{dark: false}} lightBezel />,
+        },
+        {
+          id: '12b-notifications-dark', label: '12b Notifications · Student', width: 390, height: 844,
+          render: () => <FrameWith Screen={NotificationsScreen} screenProps={{dark: true}} dark />,
+        },
+        {
+          id: '13-notification-detail', label: '13 Notification Detail Sheet', width: 390, height: 844,
+          render: () => <FrameWith Screen={NotificationsScreen} screenProps={{dark: true}} dark sheet={
+            <>
+              <Scrim />
+              <NotificationDetailSheet notif={NOTIFS[0]} onClose={()=>{}} dark />
+            </>
+          } />,
+        },
+        {
+          id: '14-student-account', label: '14 Student Account', width: 390, height: 844,
+          render: () => <FrameWith Screen={StudentAccount} dark />,
+        },
+      ],
+    },
+    {
+      id: 'states', title: 'States', subtitle: 'Loading · Empty · Error · Offline (parent + student variants)',
+      artboards: [
+        {
+          id: '15a-loading-light', label: '15a Loading (parent)', width: 390, height: 844,
+          render: () => <FrameWith Screen={LoadingState} screenProps={{light: true}} lightBezel />,
+        },
+        {
+          id: '15b-loading-dark', label: '15b Loading (student)', width: 390, height: 844,
+          render: () => <FrameWith Screen={LoadingState} screenProps={{light: false}} dark />,
+        },
+        {
+          id: '15c-empty', label: '15c Empty state', width: 390, height: 844,
+          render: () => <FrameWith Screen={EmptyState} screenProps={{light: true}} lightBezel />,
+        },
+        {
+          id: '15d-error', label: '15d Error state', width: 390, height: 844,
+          render: () => <FrameWith Screen={ErrorState} screenProps={{light: true}} lightBezel />,
+        },
+        {
+          id: '15e-offline', label: '15e Offline state', width: 390, height: 844,
+          render: () => <FrameWith Screen={OfflineState} screenProps={{light: true}} lightBezel />,
+        },
+      ],
+    },
+  ];
+
+  return (
+    <DesignCanvas title="ChaqmoqApp — Parent & Student Mobile Redesign" subtitle="Production-ready Flutter screens · 390 × 844 · Uzbek Latin">
+      {sections.map(sec => (
+        <DCSection key={sec.id} id={sec.id} title={sec.title} subtitle={sec.subtitle}>
+          {sec.artboards.map(a => (
+            <DCArtboard key={a.id} id={a.id} label={a.label} width={a.width} height={a.height}>
+              <div className="artboard-content" style={{ width: a.width, height: a.height }}>
+                {a.render()}
+              </div>
+            </DCArtboard>
+          ))}
+        </DCSection>
+      ))}
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

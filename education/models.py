@@ -736,6 +736,111 @@ class Category(SoftDeleteMixin, models.Model):
         return f"{self.name} ({self.center.name if self.center else 'Global'})"
 
 
+class StaffProfile(models.Model):
+    class Role(models.TextChoices):
+        TEACHER = "teacher", "Ustoz"
+        MANAGER = "manager", "Manager"
+        ADMIN = "admin", "Admin"
+        OTHER = "other", "Boshqa"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="staff_profile",
+    )
+    tenant = models.ForeignKey(
+        "accounts.Center",
+        on_delete=models.CASCADE,
+        related_name="staff_profiles",
+        null=True,
+        blank=True,
+    )
+    full_name = models.CharField(max_length=255, blank=True, default="")
+    phone = models.CharField(max_length=20, blank=True, default="")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.OTHER)
+    position = models.CharField(max_length=100, blank=True, default="")
+    hire_date = models.DateField(null=True, blank=True)
+    subjects = models.ManyToManyField(
+        "store.Yonalish",
+        related_name="staff_profiles",
+        blank=True,
+    )
+    levels = models.JSONField(default=list, blank=True)
+    directions = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("full_name", "id")
+        verbose_name = "Xodim profili"
+        verbose_name_plural = "Xodim profillari"
+        indexes = [
+            models.Index(fields=["tenant", "role", "is_active"], name="staffprof_t_role_idx"),
+        ]
+
+    def __str__(self):
+        return self.full_name or self.user.get_full_name() or self.user.email
+
+    def save(self, *args, **kwargs):
+        if not self.tenant_id and getattr(self.user, "center_id", None):
+            self.tenant_id = self.user.center_id
+        if not self.full_name:
+            self.full_name = self.user.get_full_name() or self.user.email or ""
+        if not self.phone:
+            self.phone = (
+                getattr(self.user, "telefon1", "")
+                or getattr(self.user, "phone_number", "")
+                or getattr(self.user, "telefon2", "")
+                or ""
+            )
+        super().save(*args, **kwargs)
+
+
+class TeacherAvailability(models.Model):
+    class Type(models.TextChoices):
+        AVAILABLE = "available", "Bo'sh"
+        BUSY = "busy", "Band"
+
+    tenant = models.ForeignKey(
+        "accounts.Center",
+        on_delete=models.CASCADE,
+        related_name="teacher_availabilities",
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="availability_slots",
+        limit_choices_to={"role": "teacher"},
+    )
+    weekday = models.PositiveSmallIntegerField(choices=GroupSchedule.WEEKDAY_CHOICES)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    type = models.CharField(max_length=12, choices=Type.choices, default=Type.AVAILABLE)
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("weekday", "start_time", "id")
+        verbose_name = "Ustoz bandligi"
+        verbose_name_plural = "Ustoz bandliklari"
+        indexes = [
+            models.Index(fields=["tenant", "teacher", "weekday"], name="teachavail_t_day_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher.get_full_name()} / {self.get_weekday_display()} / {self.start_time}-{self.end_time}"
+
+    def clean(self):
+        super().clean()
+        if self.end_time and self.start_time and self.end_time <= self.start_time:
+            raise ValidationError("Tugash vaqti boshlanishdan keyin bo'lishi kerak.")
+        if self.tenant_id and getattr(self.teacher, "center_id", None) and self.teacher.center_id != self.tenant_id:
+            raise ValidationError("Bandlik teacherning tenantiga mos bo'lishi kerak.")
+
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     center = models.ForeignKey(Center, on_delete=models.SET_NULL, null=True, blank=True)

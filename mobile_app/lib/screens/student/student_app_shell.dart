@@ -1,11 +1,12 @@
-import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
-import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
+import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
-import 'package:chaqmoq_mobile/screens/account/account_screen.dart';
-import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
+import 'package:chaqmoq_mobile/screens/student/student_account_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_dashboard_screen.dart';
+import 'package:chaqmoq_mobile/screens/student/student_notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_payments_screen.dart';
+import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
+import 'package:chaqmoq_mobile/widgets/app_student_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,25 +27,21 @@ class _StudentAppShellState extends State<StudentAppShell> {
       onOpenProfile: () => _setTab(3),
     ),
     const StudentPaymentsScreen(),
-    const NotificationsScreen(),
-    const AccountScreen(),
+    const StudentNotificationsScreen(),
+    const StudentAccountScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       context.read<NotificationsProvider>().load();
     });
   }
 
   void _setTab(int index) {
-    if (_currentIndex == index) {
-      return;
-    }
+    if (_currentIndex == index) return;
     setState(() => _currentIndex = index);
   }
 
@@ -54,21 +51,17 @@ class _StudentAppShellState extends State<StudentAppShell> {
     final isOffline = context.watch<AuthProvider>().isOfflineMode;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: StudentColors.bg,
       body: Column(
         children: [
           if (isOffline)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              color: const Color(0xFF102235),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
               child: SafeArea(
                 bottom: false,
-                child: Text(
-                  'Offline rejim: saqlangan ma’lumotlar ko‘rsatilmoqda.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
+                child: AppOfflineBanner(
+                  dark: true,
+                  lastSync: 'Saqlangan ma’lumot ko‘rsatilmoqda',
                 ),
               ),
             ),
@@ -77,64 +70,34 @@ class _StudentAppShellState extends State<StudentAppShell> {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            child: NavigationBar(
-              selectedIndex: _currentIndex,
-              onDestinationSelected: _setTab,
-              destinations: [
-                const NavigationDestination(
-                  icon: Icon(Icons.home_rounded),
-                  label: 'Panel',
-                ),
-                const NavigationDestination(
-                  icon: Icon(Icons.credit_card_rounded),
-                  label: 'To‘lovlar',
-                ),
-                NavigationDestination(
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.notifications_none_rounded),
-                      if (unreadCount > 0)
-                        Positioned(
-                          top: -2,
-                          right: -4,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: AppColors.danger,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              unreadCount > 9 ? '9+' : '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  label: 'Xabarlar',
-                ),
-                const NavigationDestination(
-                  icon: Icon(Icons.person_rounded),
-                  label: 'Profil',
-                ),
-              ],
-            ),
+      bottomNavigationBar: AppStudentBottomNav(
+        activeIndex: _currentIndex,
+        onChanged: _setTab,
+        items: [
+          AppStudentBottomNavItem(
+            label: 'Panel',
+            icon: Icons.dashboard_outlined,
+            activeIcon: Icons.dashboard_rounded,
           ),
-        ),
+          AppStudentBottomNavItem(
+            label: "To‘lovlar",
+            icon: Icons.payments_outlined,
+            activeIcon: Icons.payments_rounded,
+          ),
+          AppStudentBottomNavItem(
+            label: 'Xabarlar',
+            icon: Icons.forum_outlined,
+            activeIcon: Icons.forum_rounded,
+            badgeCount: unreadCount,
+          ),
+          AppStudentBottomNavItem(
+            label: 'Profil',
+            icon: Icons.person_outline_rounded,
+            activeIcon: Icons.person_rounded,
+          ),
+        ],
       ),
     );
   }
 }
+

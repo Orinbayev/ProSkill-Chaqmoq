@@ -1,15 +1,35 @@
-import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
-import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
+import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
-import 'package:chaqmoq_mobile/core/utils/role_panel_style.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
+import 'package:intl/intl.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/payments_provider.dart';
-import 'package:chaqmoq_mobile/widgets/empty_state.dart';
+import 'package:chaqmoq_mobile/widgets/app_card.dart';
+import 'package:chaqmoq_mobile/widgets/app_parent_app_bar.dart';
+import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+String _shortAmount(int value) {
+  if (value == 0) return '0';
+  if (value.abs() >= 1000000) {
+    final n = value / 1000000;
+    return '${n.toStringAsFixed(value % 1000000 == 0 ? 0 : 1)} mln';
+  }
+  if (value.abs() >= 1000) {
+    final n = value / 1000;
+    return '${n.toStringAsFixed(0)} ming';
+  }
+  return Formatters.number(value);
+}
+
+String _monthLabel(DateTime date) {
+  return DateFormat('MMM yyyy', 'uz').format(date);
+}
+
+/// Student Payments — dark teal hero, mini stats, filter chips, glass list.
 class StudentPaymentsScreen extends StatefulWidget {
   const StudentPaymentsScreen({super.key});
 
@@ -27,367 +47,431 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) return;
+    await context.read<PaymentsProvider>().refresh(user);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
     final provider = context.watch<PaymentsProvider>();
-    if (user == null) {
-      return const SizedBox.shrink();
+    final user = auth.user;
+    if (user == null) return const SizedBox.shrink();
+
+    return Scaffold(
+      backgroundColor: StudentColors.bg,
+      body: Stack(
+        children: [
+          const _AtmosphericBackdrop(),
+          SafeArea(
+            child: RefreshIndicator(
+              color: StudentColors.primary,
+              onRefresh: _refresh,
+              child: _body(user, provider),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body(UserModel user, PaymentsProvider provider) {
+    if (provider.state == ViewState.loading && provider.filteredItems.isEmpty) {
+      return const AppLoadingState(dark: true);
+    }
+    if (provider.state == ViewState.error && provider.filteredItems.isEmpty) {
+      return AppErrorState(
+        title: "To‘lovlar yuklanmadi",
+        message: provider.errorMessage ??
+            'Server bilan aloqa yo‘q. Qayta urinib ko‘ring.',
+        dark: true,
+        onRetry: () => provider.refresh(user),
+      );
     }
 
-    final panel = RolePanelStyles.of(user.role);
+    final items = provider.filteredItems;
 
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: AppColors.appBackground),
-      child: RefreshIndicator(
-        onRefresh: () => provider.refresh(user),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            AppSpacing.xl,
-            AppSpacing.xl,
-            32,
-          ),
-          children: [
-            _PaymentsHeroCard(
-              panel: panel,
-              summary: provider.summary,
-              isLoading: provider.state == ViewState.loading,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _FilterRow(
-              currentFilter: provider.filter,
-              onFilterChanged: provider.setFilter,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            if (provider.state == ViewState.loading &&
-                provider.filteredItems.isEmpty)
-              const _PaymentsLoadingCard()
-            else if (provider.state == ViewState.error &&
-                provider.filteredItems.isEmpty)
-              EmptyState(
-                title: 'To‘lovlar yuklanmadi',
-                message: provider.errorMessage ?? 'Qayta urinib ko‘ring',
-                icon: Icons.credit_card_off_rounded,
-                actionLabel: 'Qayta yuklash',
-                onAction: () => provider.refresh(user),
-              )
-            else if (provider.filteredItems.isEmpty)
-              const _PaymentsEmptyState()
-            else
-              ...provider.filteredItems.map(
-                (payment) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _PaymentTile(payment: payment),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PaymentsHeroCard extends StatelessWidget {
-  const _PaymentsHeroCard({
-    required this.panel,
-    required this.summary,
-    required this.isLoading,
-  });
-
-  final RolePanelStyle panel;
-  final PaymentSummaryModel summary;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('To‘lovlar', style: AppTextStyles.headline),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: panel.accentSoft.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text(
-                  panel.panelLabel,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: panel.accentSoft,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'To‘langan summa, qarzdorlik va shu oy holati shu yerda.',
-            style: AppTextStyles.subtitle,
-          ),
-          if (isLoading) ...[
-            const SizedBox(height: AppSpacing.md),
-            const LinearProgressIndicator(
-              minHeight: 3,
-              color: AppColors.primary,
-              backgroundColor: AppColors.surfaceAlt,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Jami to‘langan',
-                  value: Formatters.currency(
-                    summary.totalReceived,
-                    compact: true,
-                  ),
-                  accent: AppColors.success,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Qarzdorlik',
-                  value: Formatters.currency(summary.openDebt, compact: true),
-                  accent: AppColors.danger,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Bu oy',
-                  value: Formatters.currency(summary.thisMonth, compact: true),
-                  accent: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryMetric extends StatelessWidget {
-  const _SummaryMetric({
-    required this.label,
-    required this.value,
-    required this.accent,
-  });
-
-  final String label;
-  final String value;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTextStyles.bodySmall),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: AppTextStyles.title.copyWith(fontSize: 16, color: accent),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({
-    required this.currentFilter,
-    required this.onFilterChanged,
-  });
-
-  final String currentFilter;
-  final ValueChanged<String> onFilterChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 110),
       children: [
-        _FilterChip(
-          label: 'Barchasi',
-          selected: currentFilter == 'all',
-          onTap: () => onFilterChanged('all'),
+        Row(
+          children: [
+            Expanded(
+              child: Text("To‘lovlar",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: StudentColors.text,
+                    letterSpacing: -0.2,
+                  )),
+            ),
+            AppStudentIconButton(icon: Icons.history_rounded, onTap: () {}),
+          ],
         ),
-        _FilterChip(
-          label: 'To‘langan',
-          selected: currentFilter == 'received',
-          onTap: () => onFilterChanged('received'),
+        const SizedBox(height: 14),
+        _Hero(summary: provider.summary),
+        const SizedBox(height: 14),
+        _MiniStats(summary: provider.summary),
+        const SizedBox(height: 12),
+        _FilterChips(
+          active: provider.filter,
+          onChanged: provider.setFilter,
         ),
-        _FilterChip(
-          label: 'Qarzlar',
-          selected: currentFilter == 'debt',
-          onTap: () => onFilterChanged('debt'),
+        const SizedBox(height: 12),
+        if (items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: AppEmptyState(
+              dark: true,
+              title: "To‘lov mavjud emas",
+              subtitle: 'Yangi yozuvlar paydo bo‘lganda shu yerda ko‘rinadi.',
+              icon: Icons.receipt_long_outlined,
+            ),
+          )
+        else
+          ...items.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _PaymentRow(item: p),
+              )),
+      ],
+    );
+  }
+}
+
+class _AtmosphericBackdrop extends StatelessWidget {
+  const _AtmosphericBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(children: [
+        Positioned(
+          top: 60,
+          right: -40,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [Color(0x3300D4AA), Color(0x0000D4AA)]),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  const _Hero({required this.summary});
+
+  final PaymentSummaryModel summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x3300D4AA), Color(0x296C63FF)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        border: Border.all(color: const Color(0x4700D4AA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'JORIY HOLAT',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: StudentColors.primary,
+              letterSpacing: 1.6,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  _shortAmount(summary.openDebt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: StudentColors.text,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "so‘m qarzdorlik",
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: StudentColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Bu oy: ${_shortAmount(summary.thisMonth)} so‘m",
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: StudentColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStats extends StatelessWidget {
+  const _MiniStats({required this.summary});
+
+  final PaymentSummaryModel summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniCard(
+            label: "Jami to‘langan",
+            value: _shortAmount(summary.totalReceived),
+            color: StudentColors.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MiniCard(
+            label: 'Bu oy',
+            value: _shortAmount(summary.thisMonth),
+            color: StudentColors.text,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MiniCard(
+            label: 'Qarzdorlik',
+            value: _shortAmount(summary.openDebt),
+            color: summary.openDebt > 0 ? StudentColors.danger : StudentColors.success,
+          ),
         ),
       ],
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+class _MiniCard extends StatelessWidget {
+  const _MiniCard({required this.label, required this.value, required this.color});
 
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return FilterChip(
-      selected: selected,
-      onSelected: (_) => onTap(),
-      label: Text(label),
-      backgroundColor: AppColors.surface,
-      selectedColor: AppColors.primary.withValues(alpha: 0.16),
-      side: const BorderSide(color: AppColors.border),
-      labelStyle: AppTextStyles.bodySmall.copyWith(
-        color: selected ? AppColors.textPrimary : AppColors.textMuted,
-      ),
-    );
-  }
-}
-
-class _PaymentTile extends StatelessWidget {
-  const _PaymentTile({required this.payment});
-
-  final PaymentModel payment;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = payment.isDebt ? AppColors.danger : AppColors.success;
-    final title = payment.groupName.isEmpty ? 'To‘lov' : payment.groupName;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
+    return AppGCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              payment.isDebt
-                  ? Icons.warning_amber_rounded
-                  : Icons.check_circle_outline_rounded,
-              color: accent,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.body),
-                const SizedBox(height: 4),
-                Text(
-                  Formatters.date(payment.date),
-                  style: AppTextStyles.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                Formatters.currency(payment.amount, compact: true),
-                style: AppTextStyles.title.copyWith(
-                  color: accent,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                payment.isDebt ? 'Qarz' : 'To‘langan',
-                style: AppTextStyles.bodySmall.copyWith(color: accent),
-              ),
-            ],
-          ),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: StudentColors.textMuted,
+                letterSpacing: 0.3,
+              )),
+          const SizedBox(height: 4),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: -0.3,
+              )),
         ],
       ),
     );
   }
 }
 
-class _PaymentsEmptyState extends StatelessWidget {
-  const _PaymentsEmptyState();
+class _FilterChips extends StatelessWidget {
+  const _FilterChips({required this.active, required this.onChanged});
+
+  final String active;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const EmptyState(
-        title: 'To‘lov tarixi topilmadi',
-        message: 'Hozircha bu profil uchun to‘lov yozuvlari mavjud emas.',
-        icon: Icons.receipt_long_rounded,
+    final items = const [
+      ('all', 'Barchasi'),
+      ('received', "To‘langan"),
+      ('debt', 'Qarzlar'),
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          _Chip(
+            id: items[i].$1,
+            label: items[i].$2,
+            isActive: items[i].$1 == active,
+            onTap: () => onChanged(items[i].$1),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.id,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String id;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(100),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(100),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: isActive ? StudentColors.primary : StudentColors.glass,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: isActive ? Colors.transparent : StudentColors.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isActive ? StudentColors.onPrimary : StudentColors.textMuted,
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _PaymentsLoadingCard extends StatelessWidget {
-  const _PaymentsLoadingCard();
+class _PaymentRow extends StatelessWidget {
+  const _PaymentRow({required this.item});
+
+  final PaymentModel item;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 220,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.border),
+    final isPaid = !item.isDebt;
+    final iconBg = isPaid ? const Color(0x292ED573) : const Color(0x29FFA502);
+    final iconFg = isPaid ? StudentColors.success : StudentColors.warning;
+    final monthLabel = _monthLabel(item.date);
+    return AppGCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(isPaid ? Icons.check_circle_outline_rounded : Icons.schedule_rounded, color: iconFg, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(monthLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: StudentColors.text,
+                    )),
+                const SizedBox(height: 2),
+                Text(
+                  isPaid
+                      ? '${item.method.isEmpty ? 'Naqd' : item.method} · ${Formatters.shortDayMonth(item.date)}'
+                      : 'Muddati: ${Formatters.shortDayMonth(item.date)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: StudentColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _shortAmount(item.amount),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: StudentColors.text,
+                ),
+              ),
+              Text(
+                "so‘m",
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: StudentColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      alignment: Alignment.center,
-      child: const CircularProgressIndicator(),
     );
   }
 }
