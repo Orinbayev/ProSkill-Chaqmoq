@@ -1860,15 +1860,14 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         key=lambda x: -x["rate"],
     )[:5]
 
-    # ── Xavfli o'quvchilar (oxirgi 30 kun, 3+ dars qoldirgan) ────
+    # ── Xavfli o'quvchilar (tanlangan davr ichida 3+ dars qoldirgan) ────
     xavfli_students = []
     try:
         absent_filter = Q(status__in=["absent_excused", "absent_unexcused"]) | Q(present=False, forced=False)
-        thirty_ago = today - timedelta(days=30)
         xavfli_raw = list(
             Attendance.objects.filter(
                 group__center=center,
-                date__range=(thirty_ago, today),
+                date__range=(d_from, d_to),
                 **({"group__branch": branch} if branch else {}),
             )
             .filter(absent_filter)
@@ -1902,7 +1901,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             xavfli_att_raw = list(
                 Attendance.objects.filter(
                     group__center=center,
-                    date__range=(thirty_ago, today),
+                    date__range=(d_from, d_to),
                     student_id__in=list(_st_map.keys()),
                     **({"group__branch": branch} if branch else {}),
                 )

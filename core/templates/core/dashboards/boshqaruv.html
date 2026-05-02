@@ -2462,6 +2462,131 @@ html[data-role-theme="light"] .bq-last-sync { color: #64748b; }
 }
 
 .bq-xavfli-count--hidden { display: none !important; }
+
+/* ── Xavfli O'quvchilar — period toggle + Batafsil button ── */
+.bq-xavfli-meta {
+  color: var(--bq-soft);
+  font-weight: 500;
+  margin-left: 4px;
+}
+.bq-xavfli-meta strong {
+  color: var(--bq-rose, #fda4af);
+  font-weight: 700;
+}
+
+.bq-month-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+}
+.bq-month-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: var(--bq-muted, #94a3b8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.bq-month-btn:hover {
+  color: var(--bq-text, #e2e8f0);
+}
+.bq-month-btn.is-active {
+  background: rgba(244,63,94,.16);
+  color: #fda4af;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+.bq-month-btn i { font-size: 11px; }
+
+.bq-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.08));
+  border: 1px solid rgba(244,63,94,.28);
+  color: #fda4af;
+  text-decoration: none;
+  font-weight: 600;
+  transition: filter 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 4px 12px rgba(244,63,94,.10);
+}
+.bq-detail-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(244,63,94,.45);
+  color: #fecaca;
+}
+.bq-detail-btn__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(244,63,94,.20);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.bq-detail-btn__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.bq-detail-btn__text strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+.bq-detail-btn__text small {
+  font-size: 10.5px;
+  font-weight: 500;
+  opacity: 0.75;
+  letter-spacing: 0.01em;
+}
+.bq-detail-btn__arrow {
+  font-size: 11px;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+.bq-detail-btn:hover .bq-detail-btn__arrow { transform: translateX(2px); }
+
+/* Light theme */
+html[data-role-theme="light"] .bq-month-toggle {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+}
+html[data-role-theme="light"] .bq-month-btn { color: #475569; }
+html[data-role-theme="light"] .bq-month-btn:hover { color: #0F172A; }
+html[data-role-theme="light"] .bq-month-btn.is-active {
+  background: rgba(244,63,94,.10);
+  color: #BE123C;
+}
+html[data-role-theme="light"] .bq-detail-btn {
+  background: linear-gradient(135deg, #FEE2E2, #FFE4E6);
+  border-color: #FCA5A5;
+  color: #BE123C;
+  box-shadow: 0 2px 6px rgba(244,63,94,.10);
+}
+html[data-role-theme="light"] .bq-detail-btn__icon {
+  background: rgba(244,63,94,.18);
+  color: #BE123C;
+}
+html[data-role-theme="light"] .bq-xavfli-meta { color: #64748B; }
+html[data-role-theme="light"] .bq-xavfli-meta strong { color: #BE123C; }
+
+@media (max-width: 760px) {
+  .bq-detail-btn__text small { display: none; }
+  .bq-month-btn { padding: 6px 10px; font-size: 11.5px; }
+}
 .bq-tbl-loading {
   text-align: center;
   padding: 18px;
@@ -2912,14 +3037,29 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
           </div>
           <div>
             <h3 class="bq-sec__title">Xavfli O'quvchilar</h3>
-            <p class="bq-sec__sub">Top 5 — oxirgi 30 kunda 3 va undan ko'p dars qoldirganlar</p>
+            <p class="bq-sec__sub">
+              <span id="xavfliPeriodLabel">Tanlangan oy</span> — 3 va undan ko'p dars qoldirganlar
+              <span class="bq-xavfli-meta" id="xavfliMeta">
+                · Top 5 ko'rinadi, jami: <strong id="xavfliTotal">0</strong>
+              </span>
+            </p>
           </div>
           <div class="bq-sec__hd-right">
-            <span class="bq-xavfli-count bq-xavfli-count--hidden" id="xavfliCount">
-              <i class="fa-solid fa-circle-exclamation"></i> <span id="xavfliNum">0</span> ta
-            </span>
-            <a href="{% url 'core:low_activity_students' %}" class="bq-sec-link bq-sec-link--rose">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Batafsil
+            <div class="bq-month-toggle" role="group" aria-label="Davr tanlash">
+              <button type="button" class="bq-month-btn is-active" id="bqMonthCurrent" data-period="current">
+                <i class="fa-solid fa-calendar-day"></i> Joriy oy
+              </button>
+              <button type="button" class="bq-month-btn" id="bqMonthPrev" data-period="prev">
+                <i class="fa-solid fa-arrow-left-long"></i> O'tgan oy
+              </button>
+            </div>
+            <a href="{% url 'core:low_activity_students' %}?missed=3" class="bq-detail-btn">
+              <span class="bq-detail-btn__icon"><i class="fa-solid fa-list-ul"></i></span>
+              <span class="bq-detail-btn__text">
+                <strong>Batafsil</strong>
+                <small>Hammasini ko'rish</small>
+              </span>
+              <i class="fa-solid fa-chevron-right bq-detail-btn__arrow"></i>
             </a>
           </div>
         </div>
@@ -3609,11 +3749,22 @@ function renderXavfli(rows){
   const empty = document.getElementById('xavfliEmpty');
   const countBadge = document.getElementById('xavfliCount');
   const countNum = document.getElementById('xavfliNum');
+  const totalEl = document.getElementById('xavfliTotal');
+  const periodEl = document.getElementById('xavfliPeriodLabel');
+  const metaEl = document.getElementById('xavfliMeta');
   if(!tb) return;
 
   _xavfliData = rows || [];
-  // Boshqaruv'da faqat TOP 5 ko'rinadi — qolganlari "Batafsil" ssilkasi orqali.
   const topFive = _xavfliData.slice(0, 5);
+
+  // Period label — tanlangan davrning oy nomi
+  if(periodEl){
+    periodEl.textContent = _xavfliCurrentLabel();
+  }
+
+  // Total count
+  if(totalEl) totalEl.textContent = _xavfliData.length;
+  if(metaEl) metaEl.style.display = _xavfliData.length > 5 ? 'inline' : 'none';
 
   if(!topFive.length){
     tb.closest('table').style.display = 'none';
@@ -3630,6 +3781,49 @@ function renderXavfli(rows){
   }
   _renderXavfliRows(topFive);
 }
+
+/* Tanlangan davrdan oy nomini chiqarish */
+function _xavfliCurrentLabel(){
+  const months = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+  const fromV = (document.getElementById('bqFrom') || {}).value || '';
+  if(!fromV) return 'Tanlangan oy';
+  const d = new Date(fromV + 'T00:00:00');
+  if(isNaN(d.getTime())) return 'Tanlangan oy';
+  return months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+/* Joriy oy / O'tgan oy toggle */
+(function setupXavfliMonthToggle(){
+  const btnCurrent = document.getElementById('bqMonthCurrent');
+  const btnPrev = document.getElementById('bqMonthPrev');
+  if(!btnCurrent || !btnPrev) return;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function setRange(year, month0){
+    const first = `${year}-${pad(month0+1)}-01`;
+    const lastDay = new Date(year, month0+1, 0).getDate();
+    const last = `${year}-${pad(month0+1)}-${pad(lastDay)}`;
+    const fromI = document.getElementById('bqFrom');
+    const toI = document.getElementById('bqTo');
+    if(fromI) fromI.value = first;
+    if(toI) toI.value = last;
+    if(typeof load === 'function') load(first, last);
+  }
+
+  btnCurrent.addEventListener('click', ()=>{
+    const now = new Date();
+    btnCurrent.classList.add('is-active');
+    btnPrev.classList.remove('is-active');
+    setRange(now.getFullYear(), now.getMonth());
+  });
+  btnPrev.addEventListener('click', ()=>{
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    btnPrev.classList.add('is-active');
+    btnCurrent.classList.remove('is-active');
+    setRange(prev.getFullYear(), prev.getMonth());
+  });
+})();
 
 function _renderXavfliRows(rows){
   const tb = document.getElementById('tblXavfli');
