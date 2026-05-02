@@ -138,11 +138,11 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-toolbar__inner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 74px;
-  padding: 13px 18px;
+  gap: 8px;
+  min-height: 64px;
+  padding: 12px 16px;
   border: 1px solid var(--bq-toolbar-border);
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--bq-toolbar-bg);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
@@ -175,17 +175,17 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-quick__toggle {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 1px solid var(--bq-quick-btn-border);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--bq-quick-btn-bg);
   color: var(--bq-quick-btn-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 15px;
   cursor: pointer;
   box-shadow: var(--bq-quick-btn-shadow);
   transition: transform .18s, border-color .2s, background .2s, color .2s, box-shadow .2s;
@@ -291,7 +291,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-filter {
   display: flex;
   align-items: flex-end;
-  gap: 9px;
+  gap: 8px;
   flex-wrap: wrap;
   flex: 1;
 }
@@ -299,9 +299,9 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-field__lbl { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--bq-soft); }
 .bq-field select,
 .bq-field input[type="date"] {
-  height: 38px;
+  height: 40px;
   padding: 0 12px;
-  border-radius: 11px;
+  border-radius: 12px;
   border: 1px solid var(--bq-field-border);
   background: var(--bq-field-bg);
   color: var(--bq-txt);
@@ -318,11 +318,12 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   min-width: clamp(180px, 16vw, 250px);
 }
 .bq-btn {
-  height: 38px;
-  padding: 0 15px;
-  border-radius: 11px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
   border: 1px solid transparent;
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   font-size: 13px; font-weight: 700;
   cursor: pointer;
   transition: transform .18s, opacity .18s;
@@ -336,7 +337,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 @keyframes bqSpin { to { transform: rotate(360deg); } }
 
 /* right controls */
-.bq-toolbar__right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.bq-toolbar__right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 /* ══════════════════ STUDENT DRAWER ══════════════════ */
 .bq-sdrawer-overlay {
@@ -992,8 +993,9 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 
 /* ══ MARKAZ SWITCHER ══ */
 .bq-center-btn {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px;
+  padding: 0 14px;
   background: rgba(251,191,36,.1);
   border: 1px solid rgba(251,191,36,.22);
   border-radius: 12px; cursor: pointer;
@@ -1370,8 +1372,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 
 /* ── AI TUGMA ── */
 .bq-ai-btn {
-  height: 42px;
-  padding: 0 16px;
+  height: 40px;
+  padding: 0 14px;
   border-radius: 12px;
   border: 1px solid rgba(129,140,248,.3);
   background: linear-gradient(135deg,rgba(129,140,248,.16),rgba(244,63,94,.1));
@@ -1398,7 +1400,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 /* ── PROFIL DOCK ── */
 .bq-profile { position: relative; z-index: 320; }
 .bq-profile__btn {
-  width: 42px; height: 42px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,.1);
   background: rgba(255,255,255,.05);
@@ -1409,14 +1411,14 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   overflow: hidden;
 }
 .bq-profile__btn:hover { border-color: rgba(250,204,21,.4); transform: scale(1.05); }
-.bq-profile__btn img { width: 42px; height: 42px; object-fit: cover; border-radius: 50%; }
+.bq-profile__btn img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
 .bq-profile__initials {
-  width: 42px; height: 42px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #facc15, #f59e0b);
   color: #0b1220;
-  font-size: 15px; font-weight: 800;
+  font-size: 14px; font-weight: 800;
 }
 
 .bq-profile__panel {
@@ -2304,7 +2306,9 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 
 /* ── Last sync indicator + refresh/export buttons ── */
 .bq-last-sync {
-  margin-left: 8px;
+  height: 40px;
+  padding: 0 10px;
+  margin-left: 4px;
   font-size: 11.5px;
   color: var(--bq-muted, #94a3b8);
   font-weight: 500;
@@ -2474,37 +2478,51 @@ html[data-role-theme="light"] .bq-last-sync { color: #64748b; }
   font-weight: 700;
 }
 
-.bq-month-toggle {
+.bq-month-picker {
+  position: relative;
   display: inline-flex;
+  align-items: center;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 12px;
-  padding: 3px;
-  gap: 2px;
+  padding: 0 0 0 12px;
 }
-.bq-month-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 9px;
-  border: 0;
-  background: transparent;
+.bq-month-picker__icon {
   color: var(--bq-muted, #94a3b8);
   font-size: 12px;
+  pointer-events: none;
+}
+.bq-month-picker__select {
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--bq-text, #e2e8f0);
+  padding: 9px 32px 9px 8px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 130px;
 }
-.bq-month-btn:hover {
+.bq-month-picker__select option {
+  background: var(--bq-bg, #0b1220);
   color: var(--bq-text, #e2e8f0);
 }
-.bq-month-btn.is-active {
-  background: rgba(244,63,94,.16);
-  color: #fda4af;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+.bq-month-picker:focus-within {
+  border-color: rgba(244,63,94,.32);
+  box-shadow: 0 0 0 3px rgba(244,63,94,.10);
 }
-.bq-month-btn i { font-size: 11px; }
+
+html[data-role-theme="light"] .bq-month-picker {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+html[data-role-theme="light"] .bq-month-picker__icon { color: #64748B; }
+html[data-role-theme="light"] .bq-month-picker__select { color: #0F172A; }
 
 .bq-detail-btn {
   display: inline-flex;
@@ -3045,15 +3063,11 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
             </p>
           </div>
           <div class="bq-sec__hd-right">
-            <div class="bq-month-toggle" role="group" aria-label="Davr tanlash">
-              <button type="button" class="bq-month-btn is-active" id="bqMonthCurrent" data-period="current">
-                <i class="fa-solid fa-calendar-day"></i> Joriy oy
-              </button>
-              <button type="button" class="bq-month-btn" id="bqMonthPrev" data-period="prev">
-                <i class="fa-solid fa-arrow-left-long"></i> O'tgan oy
-              </button>
+            <div class="bq-month-picker">
+              <i class="fa-solid fa-calendar-days bq-month-picker__icon"></i>
+              <select id="bqMonthSelect" class="bq-month-picker__select" aria-label="Oy tanlash"></select>
             </div>
-            <a href="{% url 'core:low_activity_students' %}?missed=3" class="bq-detail-btn">
+            <a href="{% url 'core:dangerous_students' %}?min=3" id="bqDangerousLink" class="bq-detail-btn">
               <span class="bq-detail-btn__icon"><i class="fa-solid fa-list-ul"></i></span>
               <span class="bq-detail-btn__text">
                 <strong>Batafsil</strong>
@@ -3792,36 +3806,56 @@ function _xavfliCurrentLabel(){
   return months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
-/* Joriy oy / O'tgan oy toggle */
-(function setupXavfliMonthToggle(){
-  const btnCurrent = document.getElementById('bqMonthCurrent');
-  const btnPrev = document.getElementById('bqMonthPrev');
-  if(!btnCurrent || !btnPrev) return;
+/* Oy tanlash select — oxirgi 12 oy */
+(function setupMonthSelect(){
+  const sel = document.getElementById('bqMonthSelect');
+  const dangerLink = document.getElementById('bqDangerousLink');
+  if(!sel) return;
 
-  function pad(n){ return String(n).padStart(2,'0'); }
-  function setRange(year, month0){
-    const first = `${year}-${pad(month0+1)}-01`;
-    const lastDay = new Date(year, month0+1, 0).getDate();
-    const last = `${year}-${pad(month0+1)}-${pad(lastDay)}`;
-    const fromI = document.getElementById('bqFrom');
+  const months = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+  const pad = (n) => String(n).padStart(2,'0');
+
+  // Oxirgi 12 oyni to'ldirish (joriy oy birinchi)
+  const today = new Date();
+  for(let i = 0; i < 12; i++){
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = `${months[d.getMonth()]} ${d.getFullYear()}`;
+    sel.appendChild(opt);
+  }
+
+  // Joriy filter sanasidan oyni topib, default tanlangan qilish
+  const fromI = document.getElementById('bqFrom');
+  if(fromI && fromI.value){
+    const d = new Date(fromI.value + 'T00:00:00');
+    if(!isNaN(d.getTime())){
+      sel.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    }
+  }
+
+  function syncDangerLink(monthValue){
+    if(!dangerLink) return;
+    const url = new URL(dangerLink.href, window.location.origin);
+    if(monthValue) url.searchParams.set('month', monthValue);
+    url.searchParams.set('min', '3');
+    dangerLink.href = url.pathname + '?' + url.searchParams.toString();
+  }
+  syncDangerLink(sel.value);
+
+  sel.addEventListener('change', () => {
+    const v = sel.value;
+    if(!v) return;
+    const [y, m] = v.split('-').map(Number);
+    const first = `${y}-${pad(m)}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const last = `${y}-${pad(m)}-${pad(lastDay)}`;
     const toI = document.getElementById('bqTo');
     if(fromI) fromI.value = first;
     if(toI) toI.value = last;
+    syncDangerLink(v);
     if(typeof load === 'function') load(first, last);
-  }
-
-  btnCurrent.addEventListener('click', ()=>{
-    const now = new Date();
-    btnCurrent.classList.add('is-active');
-    btnPrev.classList.remove('is-active');
-    setRange(now.getFullYear(), now.getMonth());
-  });
-  btnPrev.addEventListener('click', ()=>{
-    const now = new Date();
-    const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    btnPrev.classList.add('is-active');
-    btnCurrent.classList.remove('is-active');
-    setRange(prev.getFullYear(), prev.getMonth());
   });
 })();
 

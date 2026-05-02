@@ -2511,6 +2511,158 @@ def low_activity_students(request):
 
 
 @login_required
+def dangerous_students(request):
+    """
+    Dars qoldirgan o'quvchilar (Attendance asosida) — to'liq ro'yxat.
+    URL: /boshqaruv/xavflilar/?month=YYYY-MM&min=3
+    Bu Churn'dan farqli — faqat tanlangan oyda 3+ darsni absent qilganlar.
+    """
+    if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
+
+    center = getattr(request, 'center', None) or getattr(request.user, 'center', None)
+    today = timezone.localdate()
+
+    # Oy parametri (default: joriy oy)
+    month_str = (request.GET.get('month') or '').strip()
+    selected_month = None
+    if month_str:
+        try:
+            year, mon = month_str.split('-')
+            selected_month = date(int(year), int(mon), 1)
+        except (ValueError, IndexError):
+            selected_month = None
+    if selected_month is None:
+        selected_month = today.replace(day=1)
+
+    import calendar as _cal
+    last_day = _cal.monthrange(selected_month.year, selected_month.month)[1]
+    d_from = selected_month
+    d_to = selected_month.replace(day=last_day)
+    if d_to > today:
+        d_to = today
+
+    # Min qoldirilgan darslar
+    try:
+        min_missed = max(1, int(request.GET.get('min') or 3))
+    except (ValueError, TypeError):
+        min_missed = 3
+
+    # Qidiruv
+    q = (request.GET.get('q') or '').strip()
+
+    # Oy ro'yxati (oxirgi 12 oy)
+    months = []
+    cursor = today.replace(day=1)
+    uz_months = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"]
+    for _ in range(12):
+        months.append({
+            "value": cursor.strftime('%Y-%m'),
+            "label": f"{uz_months[cursor.month-1]} {cursor.year}",
+        })
+        # bir oy orqaga
+        if cursor.month == 1:
+            cursor = cursor.replace(year=cursor.year-1, month=12)
+        else:
+            cursor = cursor.replace(month=cursor.month-1)
+
+    rows = []
+    if center:
+        from education.models import Attendance
+        absent_filter = (
+            Q(status__in=["absent_excused", "absent_unexcused"])
+            | Q(present=False, forced=False)
+        )
+        att_qs = (
+            Attendance.objects.filter(
+                group__center=center,
+                date__range=(d_from, d_to),
+            )
+            .filter(absent_filter)
+            .values(
+                "student_id",
+                "student__ism",
+                "student__familya",
+                "student__telefon1",
+                "student__telegram_id",
+                "group__nom",
+                "group__oqituvchi__ism",
+                "group__oqituvchi__familya",
+            )
+            .annotate(missed=Count("id"))
+            .filter(missed__gte=min_missed)
+            .order_by("-missed")
+        )
+        # Studentni guruhlash
+        st_map = {}
+        for r in att_qs:
+            sid = r["student_id"]
+            slot = st_map.setdefault(sid, {
+                "id": sid,
+                "name": f"{r['student__ism'] or ''} {r['student__familya'] or ''}".strip() or "Noma'lum",
+                "phone": r["student__telefon1"] or "",
+                "telegram_id": r["student__telegram_id"] or "",
+                "groups": [],
+                "teacher": "",
+                "missed": 0,
+            })
+            slot["groups"].append(r["group__nom"] or "Guruh")
+            slot["missed"] += r["missed"]
+            if not slot["teacher"]:
+                t_ism = r.get("group__oqituvchi__ism") or ""
+                t_fam = r.get("group__oqituvchi__familya") or ""
+                slot["teacher"] = f"{t_ism} {t_fam}".strip()
+
+        # Davomat foizini hisoblash
+        if st_map:
+            att_total = list(
+                Attendance.objects.filter(
+                    group__center=center,
+                    date__range=(d_from, d_to),
+                    student_id__in=list(st_map.keys()),
+                )
+                .values("student_id")
+                .annotate(
+                    tot=Count("id"),
+                    pres=Count("id", filter=Q(present=True) | Q(forced=True)),
+                )
+            )
+            att_map = {r["student_id"]: r for r in att_total}
+            for sid, info in st_map.items():
+                a = att_map.get(sid, {})
+                tot, pres = a.get("tot", 0), a.get("pres", 0)
+                info["rate"] = round(pres / tot * 100, 1) if tot else 0
+                info["groups_label"] = ", ".join(info["groups"][:3])
+                if len(info["groups"]) > 3:
+                    info["groups_label"] += f" +{len(info['groups']) - 3}"
+
+        rows = sorted(st_map.values(), key=lambda x: (-x["missed"], x.get("rate", 0)))
+
+        # Qidiruv
+        if q:
+            q_low = q.lower()
+            rows = [
+                r for r in rows
+                if q_low in r["name"].lower() or q_low in (r["phone"] or "")
+            ]
+
+    selected_label = f"{uz_months[selected_month.month-1]} {selected_month.year}"
+
+    return render(request, "core/dangerous_students.html", {
+        "rows": rows,
+        "months": months,
+        "selected_month": selected_month.strftime('%Y-%m'),
+        "selected_label": selected_label,
+        "min_missed": min_missed,
+        "q": q,
+        "total_count": len(rows),
+        "d_from": d_from,
+        "d_to": d_to,
+    })
+
+
+@login_required
 def churn_notify_student(request, pk):
     """Alohida o'quvchi uchun menejerga xabar yuborish."""
     if request.method != 'POST':

@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db.models import Avg, Count, F, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -172,6 +173,154 @@ def _monthly_snapshot_for_center(center, m_start):
     ).first()
 
 
+# ──────────────────────────────────────────────────────────────────
+#  Bulk monthly aggregators — bitta GROUP BY query bilan ko'p oyni
+#  qaytaradi. Avvalgi per-oy chaqiruv loop'lari (12-24 ta) o'rniga
+#  ishlatiladi. Empty oylar uchun per-month fallback saqlanadi.
+# ──────────────────────────────────────────────────────────────────
+
+def _bulk_monthly_turnover(center, months):
+    """
+    months: list of (m_start, m_end) tuples.
+    Returns dict {(year, month): int_total} for ALL months in span,
+    using a fixed number of queries (5 — independent of months count).
+
+    Priority: active_total > snapshot > deleted_total. Identical to the
+    single-month helper but vectorised.
+    """
+    if not months:
+        return {}
+    span_start = min(m[0] for m in months)
+    span_end = max(m[1] for m in months)
+    keys = [(m[0].year, m[0].month) for m in months]
+    result = {key: 0 for key in keys}
+
+    def _bucket(rows, value_field):
+        out = {key: 0 for key in keys}
+        for row in rows:
+            m = row["_m"]
+            if m is None:
+                continue
+            key = (m.year, m.month)
+            if key in out:
+                out[key] += int(row[value_field] or 0)
+        return out
+
+    # 1) Active allocations
+    active_alloc = _bucket(
+        _payment_allocations_for_center(center)
+        .filter(tuition_month__month__range=(span_start, span_end))
+        .annotate(_m=TruncMonth("tuition_month__month"))
+        .values("_m").annotate(total=Sum("amount")),
+        "total",
+    )
+
+    # 2) Active unallocated payments
+    active_unalloc = _bucket(
+        _payments_for_center(center)
+        .filter(paid_date__range=(span_start, span_end), allocations__isnull=True)
+        .annotate(_m=TruncMonth("paid_date"))
+        .values("_m").annotate(total=Sum("summa")),
+        "total",
+    )
+
+    # 3) Snapshots — single query, indexed lookup
+    snapshot_map = {}
+    snap_qs = MonthlyFinanceSnapshot.objects.filter(
+        financial_month__center=center,
+        financial_month__year__in={k[0] for k in keys},
+        financial_month__month__in={k[1] for k in keys},
+    ).values("financial_month__year", "financial_month__month", "total_income")
+    for row in snap_qs:
+        snapshot_map[(row["financial_month__year"], row["financial_month__month"])] = int(row["total_income"] or 0)
+
+    # 4) Deleted allocations
+    deleted_alloc = _bucket(
+        _deleted_payment_allocations_for_center(center)
+        .filter(tuition_month__month__range=(span_start, span_end))
+        .annotate(_m=TruncMonth("tuition_month__month"))
+        .values("_m").annotate(total=Sum("amount")),
+        "total",
+    )
+
+    # 5) Deleted unallocated payments
+    deleted_unalloc = _bucket(
+        _deleted_payments_for_center(center)
+        .filter(paid_date__range=(span_start, span_end), allocations__isnull=True)
+        .annotate(_m=TruncMonth("paid_date"))
+        .values("_m").annotate(total=Sum("summa")),
+        "total",
+    )
+
+    for key in keys:
+        active_total = active_alloc[key] + active_unalloc[key]
+        if active_total:
+            result[key] = active_total
+            continue
+        snap = snapshot_map.get(key, 0)
+        if snap:
+            result[key] = snap
+            continue
+        result[key] = deleted_alloc[key] + deleted_unalloc[key]
+
+    return result
+
+
+def _bulk_monthly_expenses(center, months):
+    """
+    months: list of (m_start, m_end) tuples.
+    Returns dict {(year, month): int_total} via 3 queries total.
+    Priority: active_total > snapshot.total_expense.
+    """
+    if not months:
+        return {}
+    span_start = min(m[0] for m in months)
+    span_end = max(m[1] for m in months)
+    keys = [(m[0].year, m[0].month) for m in months]
+    result = {key: 0 for key in keys}
+
+    def _bucket(rows, value_field):
+        out = {key: 0 for key in keys}
+        for row in rows:
+            m = row["_m"]
+            if m is None:
+                continue
+            key = (m.year, m.month)
+            if key in out:
+                out[key] += int(row[value_field] or 0)
+        return out
+
+    legacy = _bucket(
+        _expenses_for_center(center)
+        .filter(sana__date__range=(span_start, span_end))
+        .annotate(_m=TruncMonth("sana"))
+        .values("_m").annotate(total=Sum("summa")),
+        "total",
+    )
+    center_exp = _bucket(
+        _center_expenses_for_center(center)
+        .filter(date__range=(span_start, span_end))
+        .annotate(_m=TruncMonth("date"))
+        .values("_m").annotate(total=Sum("amount")),
+        "total",
+    )
+
+    snapshot_map = {}
+    snap_qs = MonthlyFinanceSnapshot.objects.filter(
+        financial_month__center=center,
+        financial_month__year__in={k[0] for k in keys},
+        financial_month__month__in={k[1] for k in keys},
+    ).values("financial_month__year", "financial_month__month", "total_expense")
+    for row in snap_qs:
+        snapshot_map[(row["financial_month__year"], row["financial_month__month"])] = int(row["total_expense"] or 0)
+
+    for key in keys:
+        active_total = legacy[key] + center_exp[key]
+        result[key] = active_total if active_total else snapshot_map.get(key, 0)
+
+    return result
+
+
 def _monthly_turnover_for_center(center, m_start, m_end):
     """
     Oy kesimidagi aylanma:
@@ -319,11 +468,17 @@ def _financial_payload(center, d_from, d_to):
     prev_total_cost = prev_expenses + prev_teacher_comp
     prev_net_profit = prev_revenue - prev_total_cost
 
+    six_months_meta = list(_six_month_range(d_to))
+    six_months_pairs = [(ms, me) for ms, me, _ in six_months_meta]
+    bulk_six_turnover = _bulk_monthly_turnover(center, six_months_pairs)
+    bulk_six_expenses = _bulk_monthly_expenses(center, six_months_pairs)
+
     m_labels, m_inc, m_exp, m_teacher, m_cost = [], [], [], [], []
-    for ms, me, lbl in _six_month_range(d_to):
+    for ms, me, lbl in six_months_meta:
         m_labels.append(lbl)
-        month_income = _monthly_turnover_for_center(center, ms, me)
-        month_expense = _monthly_expenses_for_center(center, ms, me)
+        key = (ms.year, ms.month)
+        month_income = int(bulk_six_turnover.get(key, 0) or 0)
+        month_expense = int(bulk_six_expenses.get(key, 0) or 0)
         month_teacher = _teacher_compensation(center, ms, me)
         m_inc.append(month_income)
         m_exp.append(month_expense)
@@ -357,15 +512,23 @@ def _financial_payload(center, d_from, d_to):
         )
 
     today = timezone.localdate()
-    this_year = []
-    last_year = []
+    year_months = []
     for month in range(1, 13):
-        this_start = date(today.year, month, 1)
-        this_end = this_start.replace(day=calendar.monthrange(this_start.year, this_start.month)[1])
-        last_start = date(today.year - 1, month, 1)
-        last_end = last_start.replace(day=calendar.monthrange(last_start.year, last_start.month)[1])
-        this_year.append(_monthly_turnover_for_center(center, this_start, this_end))
-        last_year.append(_monthly_turnover_for_center(center, last_start, last_end))
+        ts = date(today.year, month, 1)
+        te = ts.replace(day=calendar.monthrange(ts.year, ts.month)[1])
+        ls = date(today.year - 1, month, 1)
+        le = ls.replace(day=calendar.monthrange(ls.year, ls.month)[1])
+        year_months.append((ts, te))
+        year_months.append((ls, le))
+    bulk_year = _bulk_monthly_turnover(center, year_months)
+    this_year = [
+        int(bulk_year.get((today.year, m), 0) or 0)
+        for m in range(1, 13)
+    ]
+    last_year = [
+        int(bulk_year.get((today.year - 1, m), 0) or 0)
+        for m in range(1, 13)
+    ]
     this_year_ytd = sum(this_year[: today.month])
     last_year_ytd = sum(last_year[: today.month])
     growth_pct = round((this_year_ytd - last_year_ytd) / max(last_year_ytd, 1) * 100, 1)
@@ -420,7 +583,7 @@ def _financial_payload(center, d_from, d_to):
         "profit": net_profit,
         "profit_margin": profit_margin,
     }
-    cache.set(cache_key, result, timeout=300)
+    cache.set(cache_key, result, timeout=900)
     return result
 
 
@@ -686,7 +849,7 @@ def _teacher_payload(center, d_from, d_to):
         "student_teacher_ratio": ratio,
         "teachers": stats[:15],
     }
-    cache.set(cache_key, result, timeout=300)
+    cache.set(cache_key, result, timeout=900)
     return result
 
 
@@ -833,7 +996,7 @@ def _groups_payload(center, d_from, d_to):
             for row in cat_dist
         ],
     }
-    cache.set(cache_key, result, timeout=300)
+    cache.set(cache_key, result, timeout=900)
     return result
 
 
@@ -1212,7 +1375,7 @@ def financial_api(request):
         return JsonResponse(hit)
 
     data = _financial_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1244,7 +1407,7 @@ def student_performance_api(request):
         return JsonResponse(hit)
 
     data = _student_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1276,7 +1439,7 @@ def teacher_performance_api(request):
         return JsonResponse(hit)
 
     data = _teacher_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1308,7 +1471,7 @@ def groups_api(request):
         return JsonResponse(hit)
 
     data = _groups_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1340,7 +1503,7 @@ def billing_api(request):
         return JsonResponse(hit)
 
     data = _billing_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1372,7 +1535,7 @@ def marketing_api(request):
         return JsonResponse(hit)
 
     data = _marketing_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1404,7 +1567,7 @@ def inventory_api(request):
         return JsonResponse(hit)
 
     data = _inventory_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1436,7 +1599,7 @@ def analytics_api(request):
         return JsonResponse(hit)
 
     data = _analytics_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 
@@ -1488,7 +1651,7 @@ def overview_api(request):
         return JsonResponse(hit)
 
     data = _overview_payload(center, d_from, d_to)
-    cache.set(ck, data, 300)
+    cache.set(ck, data, 900)
     return JsonResponse(data)
 
 

@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block body_class %}dangerous-page{% endblock %}
+
+{% block title %}Xavfli o'quvchilar — {{ selected_label }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --dg-bg: #0B1220;
+    --dg-surface: #111B2E;
+    --dg-elevated: #18243C;
+    --dg-border: rgba(255, 255, 255, 0.07);
+    --dg-text: #F8FAFC;
+    --dg-muted: #94A3B8;
+    --dg-soft: #64748B;
+    --dg-rose: #FB7185;
+    --dg-amber: #FACC15;
+    --dg-blue: #3B82F6;
+    --dg-violet: #8B5CF6;
+}
+body.dangerous-page {
+    background: linear-gradient(180deg, #070B14 0%, #0B1220 100%);
+    color: var(--dg-text);
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+}
+.dg-shell { max-width: 1320px; margin: 0 auto; padding: 24px 18px 40px; }
+
+.dg-head {
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-border);
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.dg-head__left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.dg-back {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    background: var(--dg-elevated);
+    border: 1px solid var(--dg-border);
+    color: var(--dg-muted);
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.dg-back:hover { color: var(--dg-text); }
+.dg-title { margin: 0; font-size: 22px; font-weight: 700; color: var(--dg-text); line-height: 1.2; }
+.dg-sub { margin: 4px 0 0; font-size: 13px; color: var(--dg-muted); }
+.dg-sub strong { color: var(--dg-rose); font-weight: 700; }
+
+.dg-head__right { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dg-month-select {
+    background: var(--dg-elevated);
+    border: 1px solid var(--dg-border);
+    color: var(--dg-text);
+    border-radius: 12px;
+    padding: 10px 36px 10px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    min-width: 170px;
+}
+.dg-month-select:focus {
+    outline: none;
+    border-color: var(--dg-rose);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.18);
+}
+.dg-min-input {
+    background: var(--dg-elevated);
+    border: 1px solid var(--dg-border);
+    color: var(--dg-text);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    width: 90px;
+}
+
+.dg-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.dg-stat {
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.dg-stat__icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+}
+.dg-stat--total .dg-stat__icon { background: rgba(244,63,94,.12); color: #fda4af; }
+.dg-stat--avg   .dg-stat__icon { background: rgba(245,158,11,.12); color: #fde68a; }
+.dg-stat--month .dg-stat__icon { background: rgba(139,92,246,.12); color: #c4b5fd; }
+.dg-stat__val { font-size: 22px; font-weight: 800; color: var(--dg-text); line-height: 1; font-feature-settings: "tnum" 1; }
+.dg-stat__lbl { font-size: 11px; font-weight: 700; color: var(--dg-soft); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 4px; }
+
+.dg-search-row {
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.dg-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dg-elevated);
+    border: 1px solid var(--dg-border);
+    border-radius: 11px;
+    padding: 10px 14px;
+}
+.dg-search i { color: var(--dg-muted); font-size: 13px; }
+.dg-search input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--dg-text);
+    font-size: 13.5px;
+}
+.dg-search input::placeholder { color: var(--dg-soft); }
+
+/* List */
+.dg-list { display: flex; flex-direction: column; gap: 10px; }
+.dg-card {
+    display: grid;
+    grid-template-columns: 56px 1fr auto auto;
+    gap: 16px;
+    align-items: center;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    border-left: 3px solid var(--dg-rose);
+}
+.dg-card__avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(244,63,94,.22), rgba(244,63,94,.10));
+    border: 1px solid rgba(244,63,94,.28);
+    color: #fda4af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+.dg-card__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dg-card__name {
+    color: var(--dg-text);
+    font-weight: 600;
+    font-size: 14.5px;
+    text-decoration: none;
+}
+.dg-card__name:hover { color: var(--dg-rose); }
+.dg-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: var(--dg-muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+.dg-card__meta i { font-size: 11px; opacity: 0.75; margin-right: 4px; }
+.dg-card__meta a { color: inherit; text-decoration: none; }
+.dg-card__meta a:hover { color: var(--dg-rose); }
+
+.dg-missed {
+    text-align: center;
+    background: rgba(244,63,94,.12);
+    border: 1px solid rgba(244,63,94,.28);
+    color: #fda4af;
+    padding: 8px 14px;
+    border-radius: 11px;
+    min-width: 100px;
+}
+.dg-missed strong { display: block; font-size: 18px; font-weight: 800; line-height: 1; }
+.dg-missed small { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; opacity: 0.85; }
+
+.dg-rate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 100px;
+}
+.dg-rate__bar {
+    width: 90px; height: 6px;
+    background: rgba(255,255,255,.08);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+}
+.dg-rate__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--dg-rose);
+}
+.dg-rate__val { font-size: 12.5px; font-weight: 700; color: var(--dg-text); font-feature-settings: "tnum" 1; }
+
+.dg-actions { display: inline-flex; gap: 6px; }
+.dg-act-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--dg-elevated);
+    border: 1px solid var(--dg-border);
+    color: var(--dg-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.dg-act-btn:hover { color: var(--dg-rose); border-color: rgba(244,63,94,.4); background: rgba(244,63,94,.08); }
+.dg-act-btn--tg:hover { color: #38bdf8; border-color: rgba(56,189,248,.4); background: rgba(56,189,248,.08); }
+
+/* Empty state */
+.dg-empty {
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-border);
+    border-radius: 16px;
+    padding: 60px 24px;
+    text-align: center;
+}
+.dg-empty__icon {
+    width: 60px; height: 60px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: rgba(34,197,94,.12);
+    color: #5eead4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.dg-empty__title { font-size: 18px; font-weight: 700; color: var(--dg-text); margin: 0 0 6px; }
+.dg-empty__copy { color: var(--dg-muted); font-size: 13.5px; margin: 0; }
+
+@media (max-width: 900px) {
+    .dg-stats { grid-template-columns: 1fr; }
+    .dg-card { grid-template-columns: 48px 1fr; gap: 12px; }
+    .dg-missed, .dg-rate { grid-column: 1 / -1; align-self: stretch; align-items: flex-start; min-width: 0; }
+    .dg-actions { grid-column: 1 / -1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dg-shell">
+
+    <!-- HEADER -->
+    <header class="dg-head">
+        <div class="dg-head__left">
+            <a href="{% url 'core:director_boshqaruv' %}" class="dg-back" aria-label="Orqaga">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+            <div>
+                <h1 class="dg-title">Xavfli o'quvchilar</h1>
+                <p class="dg-sub">
+                    <strong>{{ selected_label }}</strong> oyida {{ min_missed }} va undan ko'p dars qoldirgan o'quvchilar
+                </p>
+            </div>
+        </div>
+        <form method="get" class="dg-head__right" id="dgFilterForm">
+            <select name="month" class="dg-month-select" aria-label="Oy tanlash" onchange="document.getElementById('dgFilterForm').submit()">
+                {% for m in months %}
+                <option value="{{ m.value }}" {% if m.value == selected_month %}selected{% endif %}>{{ m.label }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="min" value="{{ min_missed }}" min="1" max="50"
+                   class="dg-min-input" title="Eng kam qoldirilgan dars soni"
+                   onchange="document.getElementById('dgFilterForm').submit()">
+            {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+        </form>
+    </header>
+
+    <!-- STATS -->
+    <div class="dg-stats">
+        <div class="dg-stat dg-stat--total">
+            <span class="dg-stat__icon"><i class="fa-solid fa-users"></i></span>
+            <div>
+                <div class="dg-stat__val">{{ total_count|default:0 }}</div>
+                <div class="dg-stat__lbl">O'quvchilar</div>
+            </div>
+        </div>
+        <div class="dg-stat dg-stat--avg">
+            <span class="dg-stat__icon"><i class="fa-solid fa-calendar-xmark"></i></span>
+            <div>
+                <div class="dg-stat__val">≥ {{ min_missed }}</div>
+                <div class="dg-stat__lbl">Eng kam qoldirilgan</div>
+            </div>
+        </div>
+        <div class="dg-stat dg-stat--month">
+            <span class="dg-stat__icon"><i class="fa-solid fa-calendar-days"></i></span>
+            <div>
+                <div class="dg-stat__val">{{ selected_label }}</div>
+                <div class="dg-stat__lbl">Davr</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <form method="get" class="dg-search-row" id="dgSearchForm">
+        <div class="dg-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon bo'yicha qidirish..."
+                   onchange="document.getElementById('dgSearchForm').submit()">
+        </div>
+        <input type="hidden" name="month" value="{{ selected_month }}">
+        <input type="hidden" name="min" value="{{ min_missed }}">
+    </form>
+
+    <!-- LIST -->
+    {% if rows %}
+    <div class="dg-list">
+        {% for r in rows %}
+        <div class="dg-card">
+            <div class="dg-card__avatar">{{ r.name|slice:":2"|upper }}</div>
+            <div class="dg-card__info">
+                <a href="{% url 'core:user_view' r.id %}" class="dg-card__name">{{ r.name }}</a>
+                <div class="dg-card__meta">
+                    <span><i class="fa-solid fa-layer-group"></i>{{ r.groups_label }}</span>
+                    {% if r.teacher %}<span><i class="fa-solid fa-user-tie"></i>{{ r.teacher }}</span>{% endif %}
+                    {% if r.phone %}<a href="tel:{{ r.phone }}"><i class="fa-solid fa-phone"></i>{{ r.phone }}</a>{% endif %}
+                </div>
+            </div>
+            <div class="dg-missed">
+                <strong>{{ r.missed }}</strong>
+                <small>Qoldirgan</small>
+            </div>
+            <div class="dg-rate">
+                <div class="dg-rate__bar"><span class="dg-rate__fill" data-rate="{{ r.rate|default:0 }}"></span></div>
+                <span class="dg-rate__val">{{ r.rate|default:0 }}% davomat</span>
+            </div>
+            <div class="dg-actions">
+                {% if r.phone %}
+                <a href="tel:{{ r.phone }}" class="dg-act-btn" title="Qo'ng'iroq">
+                    <i class="fa-solid fa-phone"></i>
+                </a>
+                {% endif %}
+                {% if r.telegram_id %}
+                <a href="https://t.me/{{ r.telegram_id }}" target="_blank" rel="noopener" class="dg-act-btn dg-act-btn--tg" title="Telegram">
+                    <i class="fa-brands fa-telegram"></i>
+                </a>
+                {% endif %}
+                <a href="{% url 'core:user_view' r.id %}" class="dg-act-btn" title="Profil">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="dg-empty">
+        <div class="dg-empty__icon"><i class="fa-solid fa-check"></i></div>
+        <h3 class="dg-empty__title">Ajoyib! Topilmadi</h3>
+        <p class="dg-empty__copy">
+            {% if q %}
+                Qidiruv bo'yicha mos o'quvchi yo'q.
+            {% else %}
+                <strong>{{ selected_label }}</strong> oyida {{ min_missed }} va undan ko'p dars qoldirgan o'quvchi topilmadi.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+// Davomat barini foiz bilan to'ldirish
+document.querySelectorAll('.dg-rate__fill').forEach(function(el){
+    var r = parseFloat(el.getAttribute('data-rate')) || 0;
+    el.style.width = r + '%';
+    if (r >= 65) el.style.background = '#FACC15';
+    else if (r >= 40) el.style.background = '#FB923C';
+    else el.style.background = '#FB7185';
+});
+</script>
+{% endblock %}

@@ -58,6 +58,7 @@ urlpatterns = [
     path('api/dashboard/low-activity/', api_views.dashboard_low_activity_api, name='dashboard_low_activity_api'),
     path('api/dashboard/student-init/', api_views.dashboard_student_init_api, name='dashboard_student_init_api'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
+    path('dashboard/students/dangerous/', views.dangerous_students, name='dangerous_students'),
     path('dashboard/students/churn-notify/<int:pk>/', views.churn_notify_student, name='churn_notify'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 
