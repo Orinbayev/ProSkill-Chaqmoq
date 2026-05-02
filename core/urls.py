@@ -72,6 +72,7 @@ urlpatterns = [
     path('boshqaruv/',                    dashboard_views.director_boshqaruv,               name='director_boshqaruv'),
     path('api/boshqaruv/',                dashboard_views.director_boshqaruv_api,           name='director_boshqaruv_api'),
     path('api/boshqaruv/chat/',           dashboard_views.director_boshqaruv_chat,          name='director_boshqaruv_chat'),
+    path('boshqaruv/export/',             dashboard_views.director_boshqaruv_export,        name='director_boshqaruv_export'),
     # Branch CRUD
     path('api/branches/',                 views.branch_list_api,                            name='branch_list_api'),
     path('api/branches/create/',          views.branch_create,                              name='branch_create'),

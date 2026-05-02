@@ -2285,6 +2285,220 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-chat__send:hover { transform: scale(1.05); }
 .bq-chat__send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ── Yangi KPI ranglar (Qarzdorlar / Maosh) ── */
+.bq-kpi--orange { --bq-accent: #fb923c; }
+.bq-kpi--teal   { --bq-accent: #2dd4bf; }
+.bq-kpi__val--orange { color: #fb923c; }
+.bq-kpi__val--teal   { color: #2dd4bf; }
+
+/* ── Section icon (violet) ── */
+.bq-sec__ico--violet {
+  background: rgba(139,92,246,.12);
+  color: var(--bq-violet);
+  border-color: rgba(139,92,246,.18);
+}
+
+/* ── Card dot (violet) ── */
+.bq-dot--violet { background: #8B5CF6; }
+
+/* ── Last sync indicator + refresh/export buttons ── */
+.bq-last-sync {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: var(--bq-muted, #94a3b8);
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bq-last-sync::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34,197,94,.6);
+  flex-shrink: 0;
+}
+.bq-last-sync.is-error::before {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239,68,68,.6);
+}
+.bq-last-sync.is-loading::before {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245,158,11,.6);
+  animation: bqPulse 1s ease-in-out infinite;
+}
+@keyframes bqPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Lid voronkasi (Funnel) ── */
+.bq-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 4px 4px;
+}
+.bq-funnel__row {
+  display: grid;
+  grid-template-columns: 92px 1fr 56px;
+  align-items: center;
+  gap: 12px;
+}
+.bq-funnel__lbl {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--bq-text, #e2e8f0);
+}
+.bq-funnel__bar {
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(148,163,184,.10);
+  border: 1px solid rgba(148,163,184,.14);
+  overflow: hidden;
+  position: relative;
+}
+.bq-funnel__fill {
+  display: block;
+  height: 100%;
+  border-radius: 11px;
+  background: linear-gradient(90deg, #8B5CF6 0%, #FB7185 100%);
+  width: 0%;
+  transition: width .4s ease;
+}
+.bq-funnel__row[data-stage="0"] .bq-funnel__fill { background: linear-gradient(90deg,#60a5fa,#818cf8); }
+.bq-funnel__row[data-stage="1"] .bq-funnel__fill { background: linear-gradient(90deg,#818cf8,#a78bfa); }
+.bq-funnel__row[data-stage="2"] .bq-funnel__fill { background: linear-gradient(90deg,#a78bfa,#c084fc); }
+.bq-funnel__row[data-stage="3"] .bq-funnel__fill { background: linear-gradient(90deg,#c084fc,#f472b6); }
+.bq-funnel__val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bq-text, #e2e8f0);
+  text-align: right;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Light theme for funnel */
+html[data-role-theme="light"] .bq-funnel__bar {
+  background: rgba(148,163,184,.18);
+  border-color: rgba(148,163,184,.24);
+}
+html[data-role-theme="light"] .bq-funnel__lbl,
+html[data-role-theme="light"] .bq-funnel__val { color: #0f172a; }
+html[data-role-theme="light"] .bq-last-sync { color: #64748b; }
+
+/* ── Tezkor monitoring (Top guruhlar + Churn) ── */
+.bq-monitor-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 14px;
+}
+.bq-monitor-side {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.bq-monitor-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: rgba(13,21,38,.88);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  min-height: 78px;
+}
+.bq-monitor-stat__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: rgba(99,102,241,.12);
+  color: #818cf8;
+}
+.bq-monitor-stat__icon--red   { background: rgba(244,63,94,.12);  color: #fda4af; }
+.bq-monitor-stat__icon--amber { background: rgba(245,158,11,.12); color: #fde68a; }
+.bq-monitor-stat__icon--green { background: rgba(20,184,166,.12); color: #5eead4; }
+.bq-monitor-stat__val {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: #e2e8f0;
+  font-feature-settings: "tnum" 1;
+}
+.bq-monitor-stat__val--red   { color: #fda4af; }
+.bq-monitor-stat__val--amber { color: #fde68a; }
+.bq-monitor-stat__val--green { color: #5eead4; }
+.bq-monitor-stat__lbl {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 4px;
+}
+
+.bq-sec-link--auto { margin-left: auto; }
+
+.bq-sec__ico--rose {
+  background: rgba(244,63,94,.10);
+  color: var(--bq-rose);
+  border-color: rgba(244,63,94,.18);
+}
+
+.bq-sec__hd-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bq-xavfli-count--hidden { display: none !important; }
+.bq-tbl-loading {
+  text-align: center;
+  padding: 18px;
+  color: var(--bq-soft);
+}
+
+/* Light theme */
+html[data-role-theme="light"] .bq-monitor-stat {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+}
+html[data-role-theme="light"] .bq-monitor-stat__val { color: #0F172A; }
+html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
+
+@media (max-width: 1100px) {
+  .bq-monitor-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .bq-monitor-side { grid-template-columns: 1fr; }
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 1024px) {
+  .bq-kgrid { grid-template-columns: repeat(3, 1fr) !important; }
+  .bq-funnel__row { grid-template-columns: 80px 1fr 48px; }
+}
+@media (max-width: 768px) {
+  .bq-kgrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .bq-g--2, .bq-g--13 { grid-template-columns: 1fr !important; }
+  .bq-toolbar__inner { flex-wrap: wrap; gap: 8px; }
+  .bq-last-sync { font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .bq-kgrid { grid-template-columns: 1fr !important; }
+  .bq-funnel__row { grid-template-columns: 70px 1fr 44px; gap: 8px; }
+}
 </style>
 {% endblock %}
 
@@ -2329,6 +2543,13 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
           <button class="bq-btn bq-btn--ghost" id="bqReset" type="button" title="Reset">
             <i class="fa-solid fa-rotate-left"></i>
           </button>
+          <button class="bq-btn bq-btn--ghost" id="bqRefresh" type="button" title="Yangilash">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+          <button class="bq-btn bq-btn--ghost" id="bqExport" type="button" title="Eksport (Excel)">
+            <i class="fa-solid fa-file-excel"></i>
+          </button>
+          <span class="bq-last-sync" id="bqLastSync" title="So'nggi yangilash">—</span>
         </div>
 
         {% if request.user.role == 'director' %}
@@ -2475,6 +2696,26 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
           <div class="bq-kpi__sub" id="k6s">—</div>
         </a>
 
+        <!-- 7. Qarzdorlar -->
+        <a class="bq-kpi bq-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          </div>
+          <div class="bq-kpi__lbl">Qarzdorlar</div>
+          <div class="bq-kpi__val bq-kpi__val--orange" id="k7v">—</div>
+          <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
+        </a>
+
+        <!-- 8. O'qituvchi maoshi -->
+        <div class="bq-kpi bq-kpi--teal">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+          </div>
+          <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
+          <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
+          <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
+        </div>
+
       </div>
 
       <!-- ── MOLIYA bo'limi ── -->
@@ -2602,136 +2843,61 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
         </div>
       </div>
 
-      <!-- ── JADVALLAR ── -->
+      <!-- ── TO'LOV TURLARI + LID VORONKA ── -->
       <div class="bq-sec">
         <div class="bq-sec__hd">
-          <div class="bq-sec__ico" style="background:rgba(129,140,248,.12);color:var(--bq-violet);border-color:rgba(129,140,248,.18)"><i class="fa-solid fa-table-list"></i></div>
+          <div class="bq-sec__ico bq-sec__ico--violet"><i class="fa-solid fa-credit-card"></i></div>
           <div>
-            <h3 class="bq-sec__title">Tezkor Ko'rinish</h3>
-            <p class="bq-sec__sub">Top guruhlar va eng faol o'quvchilar</p>
+            <h3 class="bq-sec__title">To'lov turlari va Lid voronkasi</h3>
+            <p class="bq-sec__sub">Tanlangan davrda to'lov usullari taqsimoti va lid bosqichlari</p>
           </div>
         </div>
         <div class="bq-g bq-g--2">
           <div class="bq-card">
             <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--amber"></span>
-              <span class="bq-card__lbl">Top 5 Guruh</span>
+              <span class="bq-dot bq-dot--violet"></span>
+              <span class="bq-card__lbl">To'lov Turlari</span>
+              <span class="bq-tag">Donut</span>
             </div>
-            <table class="bq-tbl">
-              <thead><tr><th>#</th><th>Guruh</th><th>O'qituvchi</th><th>O'quvchi</th><th>Davomat</th></tr></thead>
-              <tbody id="tblGrp"><tr><td colspan="5" style="text-align:center;padding:18px;color:var(--bq-soft)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
-            </table>
+            <div class="bq-source" id="payMethodWrap">
+              <div class="bq-source__ring">
+                <canvas id="chPayMethods"></canvas>
+                <div class="bq-source__center">
+                  <span>Jami</span>
+                  <strong id="payMethodsTotal">0</strong>
+                </div>
+              </div>
+              <div class="bq-source__list" id="lgPayMethods">
+                <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+              </div>
+            </div>
           </div>
           <div class="bq-card">
             <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--blue"></span>
-              <span class="bq-card__lbl">Top 5 O'quvchi</span>
+              <span class="bq-dot bq-dot--rose"></span>
+              <span class="bq-card__lbl">Lid Voronkasi</span>
+              <span class="bq-tag">Funnel</span>
             </div>
-            <table class="bq-tbl">
-              <thead><tr><th>#</th><th>O'quvchi</th><th style="width:48%">Davomat</th></tr></thead>
-              <tbody id="tblSt"><tr><td colspan="3" style="text-align:center;padding:18px;color:var(--bq-soft)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── CHURN MONITORING ── -->
-      <div class="bq-sec">
-        <div class="bq-sec__hd">
-          <div class="bq-sec__ico" style="background:rgba(244,63,94,.1);color:var(--bq-rose);border-color:rgba(244,63,94,.18)">
-            <i class="fa-solid fa-radar" style="font-size:14px"></i>
-          </div>
-          <div>
-            <h3 class="bq-sec__title">Churn Monitoring</h3>
-            <p class="bq-sec__sub">O'quvchi ketish xavfi — davomat, to'lov, faollik tahlili</p>
-          </div>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-            <a href="{% url 'core:low_activity_students' %}" class="bq-sec-link bq-sec-link--rose">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> To'liq ko'rish
-            </a>
-          </div>
-        </div>
-        <!-- Churn summary cards -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;" id="churnSummaryGrid">
-          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;color:#818cf8;font-size:16px;flex-shrink:0;">
-              <i class="fa-solid fa-users"></i>
-            </div>
-            <div>
-              <div style="font-size:22px;font-weight:900;color:#e2e8f0;line-height:1;" id="churnTotal">—</div>
-              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Kuzatilmoqda</div>
-            </div>
-          </div>
-          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(244,63,94,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(244,63,94,.1);display:flex;align-items:center;justify-content:center;color:#fda4af;font-size:16px;flex-shrink:0;">
-              <i class="fa-solid fa-circle-exclamation"></i>
-            </div>
-            <div>
-              <div style="font-size:22px;font-weight:900;color:#fda4af;line-height:1;" id="churnHigh">—</div>
-              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Yuqori xavf</div>
-            </div>
-          </div>
-          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(245,158,11,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;color:#fde68a;font-size:16px;flex-shrink:0;">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <div>
-              <div style="font-size:22px;font-weight:900;color:#fde68a;line-height:1;" id="churnMedium">—</div>
-              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">O'rta xavf</div>
-            </div>
-          </div>
-          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(20,184,166,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;color:#5eead4;font-size:16px;flex-shrink:0;">
-              <i class="fa-solid fa-check-circle"></i>
-            </div>
-            <div>
-              <div style="font-size:22px;font-weight:900;color:#5eead4;line-height:1;" id="churnLow">—</div>
-              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Past xavf</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row g-3 mb-4">
-        <div class="col-12">
-          <h6 class="text-white-50 mb-3">📝 Imtihon holati</h6>
-        </div>
-        <div class="col-12">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" id="examSummaryGrid">
-            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-              <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center;color:#93c5fd;font-size:16px;flex-shrink:0;">
-                <i class="fa-solid fa-list-check"></i>
+            <div class="bq-funnel" id="leadFunnel">
+              <div class="bq-funnel__row" data-stage="0">
+                <span class="bq-funnel__lbl">Yangi</span>
+                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
+                <span class="bq-funnel__val">0</span>
               </div>
-              <div>
-                <div style="font-size:22px;font-weight:900;color:#e2e8f0;line-height:1;" id="examTotalSessions">—</div>
-                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Jami sessiyalar</div>
+              <div class="bq-funnel__row" data-stage="1">
+                <span class="bq-funnel__lbl">Bog'langan</span>
+                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
+                <span class="bq-funnel__val">0</span>
               </div>
-            </div>
-            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(20,184,166,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-              <div style="width:38px;height:38px;border-radius:10px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;color:#5eead4;font-size:16px;flex-shrink:0;">
-                <i class="fa-solid fa-calendar-check"></i>
+              <div class="bq-funnel__row" data-stage="2">
+                <span class="bq-funnel__lbl">Trial</span>
+                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
+                <span class="bq-funnel__val">0</span>
               </div>
-              <div>
-                <div style="font-size:22px;font-weight:900;color:#5eead4;line-height:1;" id="examMonthCompleted">—</div>
-                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Bu oy yakunlangan</div>
-              </div>
-            </div>
-            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(250,204,21,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-              <div style="width:38px;height:38px;border-radius:10px;background:rgba(250,204,21,.1);display:flex;align-items:center;justify-content:center;color:#fde68a;font-size:16px;flex-shrink:0;">
-                <i class="fa-solid fa-percent"></i>
-              </div>
-              <div>
-                <div style="font-size:22px;font-weight:900;color:#fde68a;line-height:1;" id="examAvgPercent">—</div>
-                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">O'rtacha ball</div>
-              </div>
-            </div>
-            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(129,140,248,.18);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
-              <div style="width:38px;height:38px;border-radius:10px;background:rgba(129,140,248,.12);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:16px;flex-shrink:0;">
-                <i class="fa-solid fa-award"></i>
-              </div>
-              <div>
-                <div style="font-size:22px;font-weight:900;color:#c4b5fd;line-height:1;" id="examPendingCertificates">—</div>
-                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Sertifikat kutmoqda</div>
+              <div class="bq-funnel__row" data-stage="3">
+                <span class="bq-funnel__lbl">Ro'yxatda</span>
+                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
+                <span class="bq-funnel__val">0</span>
               </div>
             </div>
           </div>
@@ -2741,21 +2907,20 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
       <!-- ── XAVFLI O'QUVCHILAR ── -->
       <div class="bq-sec">
         <div class="bq-sec__hd">
-          <div class="bq-sec__ico" style="background:rgba(244,63,94,.1);color:var(--bq-rose);border-color:rgba(244,63,94,.18)">
+          <div class="bq-sec__ico bq-sec__ico--rose">
             <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
           <div>
             <h3 class="bq-sec__title">Xavfli O'quvchilar</h3>
-            <p class="bq-sec__sub">Oxirgi 30 kunda 3 va undan ko'p dars qoldirganlar</p>
+            <p class="bq-sec__sub">Top 5 — oxirgi 30 kunda 3 va undan ko'p dars qoldirganlar</p>
           </div>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-            <span class="bq-xavfli-count" id="xavfliCount" style="display:none">
+          <div class="bq-sec__hd-right">
+            <span class="bq-xavfli-count bq-xavfli-count--hidden" id="xavfliCount">
               <i class="fa-solid fa-circle-exclamation"></i> <span id="xavfliNum">0</span> ta
             </span>
-            <div class="bq-search-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="xavfliSearch" placeholder="Qidirish..." oninput="filterXavfli(this.value)">
-            </div>
+            <a href="{% url 'core:low_activity_students' %}" class="bq-sec-link bq-sec-link--rose">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Batafsil
+            </a>
           </div>
         </div>
         <div class="bq-card bq-card--flat">
@@ -3447,18 +3612,23 @@ function renderXavfli(rows){
   if(!tb) return;
 
   _xavfliData = rows || [];
+  // Boshqaruv'da faqat TOP 5 ko'rinadi — qolganlari "Batafsil" ssilkasi orqali.
+  const topFive = _xavfliData.slice(0, 5);
 
-  if(!_xavfliData.length){
+  if(!topFive.length){
     tb.closest('table').style.display = 'none';
     if(empty) empty.style.display = 'flex';
-    if(countBadge) countBadge.style.display = 'none';
+    if(countBadge) countBadge.classList.add('bq-xavfli-count--hidden');
     return;
   }
 
   tb.closest('table').style.display = '';
   if(empty) empty.style.display = 'none';
-  if(countBadge){ countBadge.style.display = 'inline-flex'; countNum.textContent = _xavfliData.length; }
-  _renderXavfliRows(_xavfliData);
+  if(countBadge){
+    countBadge.classList.remove('bq-xavfli-count--hidden');
+    countNum.textContent = _xavfliData.length;
+  }
+  _renderXavfliRows(topFive);
 }
 
 function _renderXavfliRows(rows){
@@ -4145,6 +4315,18 @@ function render(d){
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
 
+  // 7. Qarzdorlar
+  const _k7v = document.getElementById('k7v');
+  const _k7s = document.getElementById('k7s');
+  if(_k7v) _k7v.textContent = fmtM(k.total_debt || 0)+' so\'m';
+  if(_k7s) _k7s.textContent = fmtN(k.total_debtors || 0)+' ta o\'quvchi';
+
+  // 8. O'qituvchi maoshi
+  const _k8v = document.getElementById('k8v');
+  const _k8s = document.getElementById('k8s');
+  if(_k8v) _k8v.textContent = fmtM(k.teacher_salary_total || 0)+' so\'m';
+  if(_k8s) _k8s.textContent = 'Tanlangan davr';
+
   // Chart 1: Multi-line — Moliyaviy ko'rsatkichlar (3 chiziq)
   const turn = ch.monthly_turnover || [];
   const exp  = ch.monthly_expenses || [];
@@ -4277,11 +4459,93 @@ function render(d){
   // Group details
   renderGroupDetails(d.group_fill_all || []);
 
-  // Jadvallar
-  renderGrpTbl(d.top_groups);
-  renderStTbl(d.top_students);
+  // Jadvallar (Top guruh va Top o'quvchi DOM'da yo'q — guard'lar ishlaydi)
   renderXavfli(d.xavfli_students || []);
 
+  // To'lov turlari (Donut)
+  renderPayMethods(ch.pay_method_labels || [], ch.pay_method_counts || [], ch.pay_method_amounts || []);
+
+  // Lid voronkasi (Funnel)
+  renderLeadFunnel(ch.funnel || [0,0,0,0]);
+
+  // Last-sync indikator (yangilangan vaqt)
+  setLastSync(d.generated_at);
+}
+
+/* ── To'lov turlari donut ── */
+function renderPayMethods(labels, counts, amounts){
+  const palette = ['#8B5CF6','#3B82F6','#10B981','#F59E0B','#EF4444','#EC4899','#14B8A6','#6366F1'];
+  const wrap = document.getElementById('lgPayMethods');
+  const totalEl = document.getElementById('payMethodsTotal');
+  kill('chPayMethods');
+  const totalCount = (counts||[]).reduce((a,b)=>a+b,0);
+  if(totalEl) totalEl.textContent = fmtN(totalCount);
+
+  if(!labels || !labels.length){
+    if(wrap) wrap.innerHTML = '<div class="bq-source__empty">Ma\'lumot yo\'q</div>';
+    const el = document.getElementById('chPayMethods');
+    if(el) donut('chPayMethods', ['Bo\'sh'], [1], ['rgba(148,163,184,.2)']);
+    return;
+  }
+  const colors = labels.map((_,i)=>palette[i % palette.length]);
+  donut('chPayMethods', labels, counts, colors);
+  if(wrap){
+    const total = totalCount || 1;
+    wrap.innerHTML = labels.map((lbl,i)=>{
+      const cnt = counts[i] || 0;
+      const amt = amounts && amounts[i] ? amounts[i] : 0;
+      const pct = total ? Math.round(cnt/total*100) : 0;
+      return `<div class="bq-source__item">
+        <span class="bq-source__sw" style="background:${colors[i]}"></span>
+        <span class="bq-source__name">${lbl}</span>
+        <span class="bq-source__cnt">${fmtN(cnt)} ta · ${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ── Lid voronkasi ── */
+function renderLeadFunnel(values){
+  const wrap = document.getElementById('leadFunnel');
+  if(!wrap) return;
+  const max = Math.max(...values, 1);
+  const rows = wrap.querySelectorAll('.bq-funnel__row');
+  rows.forEach((row, i)=>{
+    const v = Number(values[i] || 0);
+    const fill = row.querySelector('.bq-funnel__fill');
+    const valEl = row.querySelector('.bq-funnel__val');
+    const pct = max ? Math.max(2, Math.round(v/max*100)) : 0;
+    if(fill) fill.style.width = pct + '%';
+    if(valEl) valEl.textContent = fmtN(v);
+  });
+}
+
+/* ── So'nggi yangilash indikatori ── */
+function setLastSync(iso){
+  const el = document.getElementById('bqLastSync');
+  if(!el) return;
+  el.classList.remove('is-error', 'is-loading');
+  let when;
+  try { when = iso ? new Date(iso) : new Date(); }
+  catch { when = new Date(); }
+  const hh = String(when.getHours()).padStart(2,'0');
+  const mm = String(when.getMinutes()).padStart(2,'0');
+  el.textContent = `Yangilandi ${hh}:${mm}`;
+  el.title = when.toLocaleString();
+}
+function setSyncLoading(){
+  const el = document.getElementById('bqLastSync');
+  if(!el) return;
+  el.classList.remove('is-error');
+  el.classList.add('is-loading');
+  el.textContent = 'Yuklanmoqda…';
+}
+function setSyncError(){
+  const el = document.getElementById('bqLastSync');
+  if(!el) return;
+  el.classList.remove('is-loading');
+  el.classList.add('is-error');
+  el.textContent = 'Xato — qayta urinib ko\'ring';
 }
 
 /* ── API load ── */
@@ -4295,6 +4559,7 @@ function load(df,dt,opts={}){
     return;
   }
   _bqLoading = true;
+  if(typeof setSyncLoading === 'function' && !silent) setSyncLoading();
   const params = new URLSearchParams({
     date_from: df || '',
     date_to: dt || '',
@@ -4304,8 +4569,15 @@ function load(df,dt,opts={}){
     params.set('branch_id', String(_activeBranchId));
   }
   fetch(`${API}?${params.toString()}`, {cache:'no-store'})
-    .then(r=>r.json()).then(d=>render(d))
-    .catch(e=>console.error('API xato:',e))
+    .then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(d=>render(d))
+    .catch(e=>{
+      console.error('API xato:',e);
+      if(typeof setSyncError === 'function') setSyncError();
+    })
     .finally(()=>{
       _bqLoading = false;
       if(_bqQueuedLoad){
@@ -4315,6 +4587,32 @@ function load(df,dt,opts={}){
       }
     });
 }
+
+/* ── Manual refresh + Excel export + Auto-refresh ── */
+const _bqRefreshBtn = document.getElementById('bqRefresh');
+if(_bqRefreshBtn){
+  _bqRefreshBtn.addEventListener('click', ()=>{
+    load(fromI.value, toI.value);
+  });
+}
+const _bqExportBtn = document.getElementById('bqExport');
+if(_bqExportBtn){
+  _bqExportBtn.addEventListener('click', ()=>{
+    const params = new URLSearchParams({
+      date_from: fromI.value || '',
+      date_to: toI.value || '',
+    });
+    if(_activeBranchId !== null) params.set('branch_id', String(_activeBranchId));
+    window.location.href = `{% url 'core:director_boshqaruv_export' %}?${params.toString()}`;
+  });
+}
+
+// Auto-refresh har 5 daqiqada
+setInterval(()=>{
+  if(document.visibilityState === 'visible' && !_bqLoading){
+    load(fromI.value, toI.value, { silent: true });
+  }
+}, 5 * 60 * 1000);
 
 /* ── Sana helpers ── */
 const today=()=>new Date().toISOString().slice(0,10);
@@ -4934,32 +5232,9 @@ new MutationObserver(rerenderChartsForTheme).observe(document.documentElement, {
 /* ── Boshlang'ich yuklanish ── */
 load(fromI.value,toI.value);
 
-/* ══════════ CHURN SUMMARY ══════════ */
-(function loadChurnSummary(){
-  fetch('{% url "core:churn_api_summary" %}', {cache:'no-store'})
-    .then(r=>r.json())
-    .then(d=>{
-      const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
-      set('churnTotal',  d.total  ?? '—');
-      set('churnHigh',   d.high   ?? '—');
-      set('churnMedium', d.medium ?? '—');
-      set('churnLow',    d.low    ?? '—');
-    })
-    .catch(()=>{});
-})();
+/* Churn KPI cards olib tashlandi — endi "Xavfli O'quvchilar" Top 5 qatorida ko'rinadi.
+   Kerak bo'lsa to'liq ro'yxat: /dashboard/students/low-activity/ */
 
-(function loadExamSummary(){
-  fetch('{% url "core:exam_api_summary" %}', {cache:'no-store'})
-    .then(r=>r.json())
-    .then(d=>{
-      const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
-      set('examTotalSessions', d.total_sessions ?? '—');
-      set('examMonthCompleted', d.this_month_completed ?? '—');
-      set('examAvgPercent', (d.avg_percent ?? 0) + '%');
-      set('examPendingCertificates', d.pending_certificates ?? '—');
-    })
-    .catch(()=>{});
-})();
 
 })();
 </script>

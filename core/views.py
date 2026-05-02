@@ -2427,22 +2427,35 @@ def low_activity_students(request):
     high_count  = all_risks.filter(risk_level='high').count()
     medium_count= all_risks.filter(risk_level='medium').count()
     low_count   = all_risks.filter(risk_level='low').count()
+    active_risk = high_count + medium_count
+
+    last_assessed = all_risks.order_by('-assessed_at').values_list('assessed_at', flat=True).first()
 
     stats = {
         'total':  total,
         'high':   high_count,
         'medium': medium_count,
         'low':    low_count,
+        'active': active_risk,
+        'last_assessed': last_assessed,
     }
 
     # Filtrlar
     q            = request.GET.get('q', '').strip()
     filter_level = request.GET.get('level', '').strip()
 
+    # Default — faqat haqiqiy xavfli (high + medium) ko'rinadi.
+    # Past xavf (low) — ataylab tanlangandagina ko'rinadi.
+    if filter_level not in ('high', 'medium', 'low', 'all'):
+        filter_level = 'active'
+
     qs = all_risks.select_related('student', 'student__center')
 
-    if filter_level in ('high', 'medium', 'low'):
+    if filter_level == 'active':
+        qs = qs.filter(risk_level__in=('high', 'medium'))
+    elif filter_level in ('high', 'medium', 'low'):
         qs = qs.filter(risk_level=filter_level)
+    # 'all' — hammasi
 
     if q:
         qs = qs.filter(
@@ -2458,20 +2471,34 @@ def low_activity_students(request):
     rows = []
     for risk in page_obj:
         s   = risk.student
-        enr = s.enrollments.filter(center=center, is_active=True).select_related('group').first()
+        enrs = list(
+            s.enrollments.filter(center=center, is_active=True)
+            .select_related('group', 'group__oqituvchi')
+        )
+        primary = enrs[0] if enrs else None
+        groups_label = ", ".join(e.group.nom for e in enrs[:3] if e.group) if enrs else "Guruhsiz"
+        if len(enrs) > 3:
+            groups_label += f" +{len(enrs) - 3}"
+        teacher_label = ""
+        if primary and primary.group and primary.group.oqituvchi:
+            t = primary.group.oqituvchi
+            teacher_label = f"{t.ism} {t.familya}".strip()
         avatar = (
             s.avatar.url
             if getattr(s, 'avatar', None) and s.avatar
             else f"https://ui-avatars.com/api/?name={s.ism}+{s.familya}&background=1e293b&color=94a3b8&size=48"
         )
         rows.append({
-            'risk':       risk,
-            'student_id': s.id,
-            'name':       f"{s.ism} {s.familya}",
-            'avatar':     avatar,
-            'phone':      getattr(s, 'telefon1', '') or '',
-            'telegram_id':getattr(s, 'telegram_id', '') or '',
-            'course':     enr.group.nom if enr else "Guruhsiz",
+            'risk':         risk,
+            'student_id':   s.id,
+            'name':         f"{s.ism} {s.familya}",
+            'avatar':       avatar,
+            'phone':        getattr(s, 'telefon1', '') or '',
+            'phone2':       getattr(s, 'telefon2', '') or '',
+            'telegram_id':  getattr(s, 'telegram_id', '') or '',
+            'course':       groups_label,
+            'teacher':      teacher_label,
+            'enroll_count': len(enrs),
         })
 
     return render(request, 'core/low_activity_students.html', {

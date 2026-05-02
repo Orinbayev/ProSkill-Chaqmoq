@@ -1933,6 +1933,70 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         xavfli_students = []
 
+    # ── Qarzdorlar (joriy snapshot, oxirgi sana bo'yicha) ──────────
+    total_debt = 0
+    total_debtors = 0
+    try:
+        from django.db.models import OuterRef, Subquery
+        from django.db.models.functions import Coalesce
+        from education.models import TuitionMonth
+        debt_month = d_to.replace(day=1)
+        fee_field = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
+        fee_sub = TuitionMonth.objects.filter(
+            enrollment=OuterRef("pk"), month=debt_month
+        ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
+        paid_sub = PaymentAllocation.objects.filter(
+            tuition_month__enrollment=OuterRef("pk"),
+            tuition_month__month=debt_month,
+        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+        debt_qs = (
+            active_enroll
+            .annotate(_fee=Coalesce(Subquery(fee_sub), 0))
+            .annotate(_paid=Coalesce(Subquery(paid_sub), 0))
+            .annotate(d=F("_fee") - F("_paid"))
+            .filter(d__gt=0)
+        )
+        total_debt = int(debt_qs.aggregate(s=Sum("d"))["s"] or 0)
+        total_debtors = debt_qs.values("student").distinct().count()
+    except Exception:
+        total_debt = 0
+        total_debtors = 0
+
+    # ── O'qituvchi maoshi (oylik chiqim qismi) ─────────────────────
+    teacher_salary_total = 0
+    try:
+        from education.models import TeacherIncome
+        ti_qs = TeacherIncome.objects.filter(
+            center=center, attendance__date__range=(d_from, d_to)
+        )
+        if branch:
+            ti_qs = ti_qs.filter(group__branch=branch)
+        teacher_salary_total = int(ti_qs.aggregate(s=Sum("amount"))["s"] or 0)
+    except Exception:
+        teacher_salary_total = 0
+
+    # ── To'lov turlari (PaymentMethod taqsimoti) ───────────────────
+    pay_method_labels = []
+    pay_method_counts = []
+    pay_method_amounts = []
+    try:
+        method_rows = list(
+            pay_qs.values("payment_type")
+            .annotate(cnt=Count("id"), total=Sum("summa"))
+            .order_by("-total")
+        )
+        _label_map = {"cash": "Naqd", "card": "Karta", "mixed": "Aralash"}
+        for row in method_rows:
+            code = (row.get("payment_type") or "").strip()
+            label = _label_map.get(code.lower(), code.upper() or "Boshqa")
+            pay_method_labels.append(label)
+            pay_method_counts.append(int(row.get("cnt") or 0))
+            pay_method_amounts.append(int(row.get("total") or 0))
+    except Exception:
+        pay_method_labels = []
+        pay_method_counts = []
+        pay_method_amounts = []
+
     return {
         "kpis": {
             "total_students": total_students,
@@ -1949,6 +2013,9 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "managers_count": managers_count,
             "total_leads": total_leads,
             "conv_rate": conv_rate,
+            "total_debt": total_debt,
+            "total_debtors": total_debtors,
+            "teacher_salary_total": teacher_salary_total,
             "changes": {
                 "revenue": _pct_change(revenue, prev_rev),
                 "students": _pct_change(new_this_month, prev_students),
@@ -1965,6 +2032,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "group_enrolled": [g["enrolled"] for g in group_fill[:8]],
             "grp_att_ranking": grp_att_ranking,
             "funnel": [funnel_new, funnel_contacted, funnel_trial, funnel_registered],
+            "funnel_labels": ["Yangi", "Bog'langan", "Trial", "Ro'yxatda"],
             "source_labels": source_labels,
             "source_counts": source_counts,
             "cat_labels": cat_labels,
@@ -1972,6 +2040,9 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "pay_status_labels": ["To'lagan", "To'lamagan"],
             "pay_status_counts": [pay_toliq, pay_tolamagan],
             "pay_category_breakdown": pay_category_breakdown,
+            "pay_method_labels": pay_method_labels,
+            "pay_method_counts": pay_method_counts,
+            "pay_method_amounts": pay_method_amounts,
         },
         "group_fill_all": group_fill,
         "top_groups": top_groups,
@@ -1982,6 +2053,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "to": str(d_to),
             "days": period["days"],
         },
+        "generated_at": timezone.now().isoformat(),
     }
 
 
@@ -2023,6 +2095,117 @@ def director_boshqaruv_api(request):
 # ── AI CHAT ──────────────────────────────────────────────────────
 
 import json as _json
+
+@login_required
+def director_boshqaruv_export(request):
+    """Direktor dashboardining KPI snapshot'ini Excel (.xlsx) sifatida yuklab olish."""
+    from django.http import HttpResponse
+    center = _get_center(request)
+    if not center:
+        return _403()
+    user_role = getattr(request.user, "role", None)
+    if user_role == "manager" and not request.user.is_superuser:
+        return _403()
+
+    d_from, d_to = _parse_dates(request)
+    branch_id = request.GET.get("branch_id")
+    branch = None
+    if branch_id:
+        try:
+            branch = Branch.objects.get(pk=int(branch_id), center=center)
+        except (Branch.DoesNotExist, ValueError, TypeError):
+            branch = None
+
+    data = _boshqaruv_payload(center, d_from, d_to, branch=branch)
+    kpis = data.get("kpis", {})
+    charts = data.get("charts", {})
+
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        return HttpResponse("openpyxl o'rnatilmagan.", status=500)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "KPI"
+
+    title_font = Font(bold=True, size=14, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="0F172A")
+    label_font = Font(bold=True, color="475569")
+
+    ws["A1"] = f"Director Dashboard — {center.name}"
+    ws["A1"].font = title_font
+    ws["A1"].fill = header_fill
+    ws.merge_cells("A1:C1")
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws["A2"] = "Davr"
+    ws["B2"] = f"{d_from} → {d_to}"
+    ws["A2"].font = label_font
+
+    rows = [
+        ("Daromad (so'm)", kpis.get("revenue", 0)),
+        ("Sof foyda (so'm)", kpis.get("net_profit", 0)),
+        ("Xarajatlar (so'm)", kpis.get("expenses", 0)),
+        ("Qarzdorlik (so'm)", kpis.get("total_debt", 0)),
+        ("Qarzdor o'quvchilar", kpis.get("total_debtors", 0)),
+        ("O'qituvchi maoshi (so'm)", kpis.get("teacher_salary_total", 0)),
+        ("To'lovlar soni", kpis.get("pay_count", 0)),
+        ("Faol o'quvchilar", kpis.get("active_students", 0)),
+        ("Jami o'quvchilar", kpis.get("total_students", 0)),
+        ("Yangi o'quvchilar", kpis.get("new_this_month", 0)),
+        ("O'qituvchilar", kpis.get("teachers_count", 0)),
+        ("Managerlar", kpis.get("managers_count", 0)),
+        ("Lidlar", kpis.get("total_leads", 0)),
+        ("Konversiya (%)", kpis.get("conv_rate", 0)),
+        ("O'rtacha davomat (%)", kpis.get("avg_attendance", 0)),
+    ]
+    start_row = 4
+    ws[f"A{start_row}"] = "Ko'rsatkich"
+    ws[f"B{start_row}"] = "Qiymat"
+    ws[f"A{start_row}"].font = Font(bold=True, color="FFFFFF")
+    ws[f"B{start_row}"].font = Font(bold=True, color="FFFFFF")
+    ws[f"A{start_row}"].fill = header_fill
+    ws[f"B{start_row}"].fill = header_fill
+    for i, (label, value) in enumerate(rows, start=start_row + 1):
+        ws[f"A{i}"] = label
+        ws[f"B{i}"] = value
+    ws.column_dimensions["A"].width = 32
+    ws.column_dimensions["B"].width = 22
+    ws.column_dimensions["C"].width = 22
+
+    # 2-sheet: 12 oylik trend
+    ws2 = wb.create_sheet("Trend")
+    ws2["A1"] = "Oy"
+    ws2["B1"] = "Aylanma"
+    ws2["C1"] = "Foyda"
+    ws2["D1"] = "Xarajat"
+    for col in ("A", "B", "C", "D"):
+        ws2[f"{col}1"].font = Font(bold=True, color="FFFFFF")
+        ws2[f"{col}1"].fill = header_fill
+    labels = charts.get("monthly_labels", [])
+    turn = charts.get("monthly_turnover", [])
+    prof = charts.get("monthly_profit", [])
+    exp = charts.get("monthly_expenses", [])
+    for i in range(len(labels)):
+        ws2.cell(row=i + 2, column=1, value=labels[i])
+        ws2.cell(row=i + 2, column=2, value=turn[i] if i < len(turn) else 0)
+        ws2.cell(row=i + 2, column=3, value=prof[i] if i < len(prof) else 0)
+        ws2.cell(row=i + 2, column=4, value=exp[i] if i < len(exp) else 0)
+    for col in ("A", "B", "C", "D"):
+        ws2.column_dimensions[col].width = 16
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="boshqaruv_{d_from}_{d_to}.xlsx"'
+    )
+    wb.save(response)
+    return response
+
 
 @login_required
 def director_boshqaruv_chat(request):

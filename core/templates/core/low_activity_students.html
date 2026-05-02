@@ -68,6 +68,11 @@ body { background-color: var(--bg-deep) !important; color: #f1f5f9; font-family:
 .stat-card.low    .stat-val { color:var(--teal);   }
 
 .stat-lbl  { font-size:11px; color:var(--slate-400); font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+.stat-hint { font-size:10.5px; color:var(--slate-500); font-weight:600; margin-top:4px; }
+.page-sub__meta { color:var(--slate-500); font-weight:500; margin-left:4px; }
+.s-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+.s-meta__item { font-size:11px; color:var(--slate-500); display:inline-flex; align-items:center; gap:4px; font-weight:500; }
+.s-meta__item i { font-size:10px; opacity:.7; }
 
 /* ─── FILTER BAR ─── */
 .filter-bar {
@@ -323,8 +328,13 @@ html[data-role-theme="light"] body.churn-monitor-page .empty-state h4 {
         <div class="churn-header-left">
             <a href="{% url 'core:home' %}" class="back-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div>
-                <h1 class="page-title">Churn Monitoring</h1>
-                <p class="page-sub">O'quvchilar ketish xavfi tahlili</p>
+                <h1 class="page-title">Xavfli o'quvchilar</h1>
+                <p class="page-sub">
+                    Davomat, to'lov, ketma-ket yo'qlama va faollik bo'yicha avtomatik baholash.
+                    {% if stats.last_assessed %}
+                    <span class="page-sub__meta">· So'nggi yangilash: {{ stats.last_assessed|date:"d M Y H:i" }}</span>
+                    {% endif %}
+                </p>
             </div>
         </div>
         <form method="post">
@@ -339,24 +349,28 @@ html[data-role-theme="light"] body.churn-monitor-page .empty-state h4 {
     <!-- ─── STAT CARDS ─── -->
     <div class="stats-grid">
         <div class="stat-card all">
-            <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-            <div class="stat-val">{{ stats.total|default:0 }}</div>
-            <div class="stat-lbl">Jami kuzatilmoqda</div>
+            <div class="stat-icon"><i class="fa-solid fa-bullseye"></i></div>
+            <div class="stat-val">{{ stats.active|default:0 }}</div>
+            <div class="stat-lbl">Faol xavfda</div>
+            <div class="stat-hint">Yuqori + o'rta</div>
         </div>
         <div class="stat-card high">
             <div class="stat-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
             <div class="stat-val">{{ stats.high|default:0 }}</div>
             <div class="stat-lbl">Yuqori xavf</div>
+            <div class="stat-hint">Ball ≥ 70</div>
         </div>
         <div class="stat-card medium">
             <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="stat-val">{{ stats.medium|default:0 }}</div>
             <div class="stat-lbl">O'rta xavf</div>
+            <div class="stat-hint">Ball 40–69</div>
         </div>
         <div class="stat-card low">
-            <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+            <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
             <div class="stat-val">{{ stats.low|default:0 }}</div>
-            <div class="stat-lbl">Past xavf</div>
+            <div class="stat-lbl">Tinch holatda</div>
+            <div class="stat-hint">Ball &lt; 40</div>
         </div>
     </div>
 
@@ -370,20 +384,25 @@ html[data-role-theme="light"] body.churn-monitor-page .empty-state h4 {
         </form>
 
         <div class="level-tabs">
-            <a href="?{% if q %}q={{ q }}&{% endif %}" class="level-tab {% if not filter_level %}active{% endif %}">
-                Barchasi
+            <a href="?{% if q %}q={{ q }}&{% endif %}level=active"
+               class="level-tab {% if filter_level == 'active' or not filter_level %}active{% endif %}">
+                <i class="fa-solid fa-bullseye"></i> Faol xavf · {{ stats.active|default:0 }}
             </a>
             <a href="?{% if q %}q={{ q }}&{% endif %}level=high"
                class="level-tab t-high {% if filter_level == 'high' %}active{% endif %}">
-                <i class="fa-solid fa-circle-exclamation"></i> Yuqori
+                <i class="fa-solid fa-circle-exclamation"></i> Yuqori · {{ stats.high|default:0 }}
             </a>
             <a href="?{% if q %}q={{ q }}&{% endif %}level=medium"
                class="level-tab t-medium {% if filter_level == 'medium' %}active{% endif %}">
-                <i class="fa-solid fa-triangle-exclamation"></i> O'rta
+                <i class="fa-solid fa-triangle-exclamation"></i> O'rta · {{ stats.medium|default:0 }}
             </a>
             <a href="?{% if q %}q={{ q }}&{% endif %}level=low"
                class="level-tab t-low {% if filter_level == 'low' %}active{% endif %}">
-                <i class="fa-solid fa-check-circle"></i> Past
+                <i class="fa-solid fa-shield-halved"></i> Tinch · {{ stats.low|default:0 }}
+            </a>
+            <a href="?{% if q %}q={{ q }}&{% endif %}level=all"
+               class="level-tab {% if filter_level == 'all' %}active{% endif %}">
+                Barchasi · {{ stats.total|default:0 }}
             </a>
         </div>
     </div>
@@ -403,6 +422,12 @@ html[data-role-theme="light"] body.churn-monitor-page .empty-state h4 {
             <div class="student-info">
                 <a href="{% url 'core:user_view' row.student_id %}" class="s-name">{{ row.name }}</a>
                 <div class="s-course"><i class="fa-solid fa-layer-group"></i> {{ row.course }}</div>
+                {% if row.teacher or row.phone %}
+                <div class="s-meta">
+                    {% if row.teacher %}<span class="s-meta__item"><i class="fa-solid fa-user-tie"></i> {{ row.teacher }}</span>{% endif %}
+                    {% if row.phone %}<span class="s-meta__item"><i class="fa-solid fa-phone"></i> {{ row.phone }}</span>{% endif %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="reasons-wrap">
