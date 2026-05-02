@@ -308,6 +308,21 @@ class DashboardService extends _BaseService {
   }
 }
 
+/// Student-self chaqmoq history. Backend returns up to 100 ledger entries,
+/// each with `points`, `rule_name`, `group_name`, `giver_name`, `created_at`.
+class ChaqmoqService extends _BaseService {
+  const ChaqmoqService(super.apiClient);
+
+  Future<({int balance, List<ChaqmoqEntryModel> items})> fetchHistory() async {
+    final payload = await getFirst(const ['/api/mobile/chaqmoq/history/']);
+    final balance = jsonInt(payload['balance']);
+    final items = jsonMapList(payload['items'])
+        .map(ChaqmoqEntryModel.fromJson)
+        .toList();
+    return (balance: balance, items: items);
+  }
+}
+
 class StudentsService extends _BaseService {
   const StudentsService(super.apiClient);
 

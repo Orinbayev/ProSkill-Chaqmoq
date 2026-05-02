@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+{% block body_class %}payment-methods-page{% endblock %}
+
+{% block title %}
+💳 To'lov usullari — ChaqmoqApp
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-moliya-1">
+<style>
+    .pm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .pm-card {
+        position: relative;
+        padding: 22px;
+        border-radius: var(--m-r-card);
+        background: var(--m-bg-glass);
+        border: 1px solid var(--m-border);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 200px;
+    }
+
+    .pm-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        opacity: 0.5;
+    }
+
+    .pm-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--m-border-strong);
+        box-shadow: var(--m-shadow-md);
+    }
+
+    .pm-card--cash::before    { background: radial-gradient(360px 200px at 25% 0%, rgba(16, 185, 129, 0.16), transparent 60%); }
+    .pm-card--click::before   { background: radial-gradient(360px 200px at 25% 0%, rgba(59, 130, 246, 0.16), transparent 60%); }
+    .pm-card--payme::before   { background: radial-gradient(360px 200px at 25% 0%, rgba(139, 92, 246, 0.16), transparent 60%); }
+    .pm-card--bank::before    { background: radial-gradient(360px 200px at 25% 0%, rgba(245, 158, 11, 0.16), transparent 60%); }
+    .pm-card--card::before    { background: radial-gradient(360px 200px at 25% 0%, rgba(239, 68, 68, 0.16), transparent 60%); }
+    .pm-card--add::before     { background: radial-gradient(360px 200px at 25% 0%, rgba(255, 255, 255, 0.06), transparent 60%); }
+
+    .pm-card__head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; position: relative; z-index: 1;
+    }
+    .pm-card__icon {
+        width: 48px; height: 48px;
+        border-radius: 14px; display: grid; place-items: center;
+        font-size: 20px; flex-shrink: 0;
+    }
+    .pm-card__icon--cash { background: var(--m-green-soft); border: 1px solid var(--m-green-glow); color: var(--m-green); }
+    .pm-card__icon--click { background: var(--m-blue-soft); border: 1px solid var(--m-blue-glow); color: var(--m-blue); }
+    .pm-card__icon--payme { background: var(--m-violet-soft); border: 1px solid var(--m-violet-glow); color: var(--m-violet); }
+    .pm-card__icon--bank { background: var(--m-amber-soft); border: 1px solid var(--m-amber-glow); color: var(--m-amber); }
+    .pm-card__icon--card { background: var(--m-red-soft); border: 1px solid var(--m-red-glow); color: var(--m-red); }
+
+    .pm-card__name {
+        margin: 0;
+        color: var(--m-text); font-size: 17px; font-weight: 800;
+        letter-spacing: -0.2px;
+    }
+    .pm-card__sub {
+        margin: 2px 0 0;
+        color: var(--m-text-muted); font-size: 12px; font-weight: 600;
+    }
+
+    .pm-card__share {
+        font-size: 11px; font-weight: 800;
+        padding: 4px 10px; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--m-border);
+        color: var(--m-text-muted);
+    }
+
+    .pm-card__amount {
+        position: relative; z-index: 1;
+        font-size: 24px; font-weight: 800; color: var(--m-text);
+        font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+    }
+
+    .pm-card__amount-meta {
+        color: var(--m-text-muted); font-size: 11.5px; font-weight: 600;
+        margin-top: 4px;
+    }
+
+    .pm-card__spark {
+        position: relative; z-index: 1;
+        margin-top: auto;
+        height: 50px; min-height: 50px;
+    }
+
+    .pm-card__placeholder-bar {
+        height: 6px; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        overflow: hidden; position: relative; z-index: 1;
+    }
+    .pm-card__placeholder-bar > span {
+        display: block; height: 100%; border-radius: 999px;
+    }
+
+    /* Add new card */
+    .pm-card--add {
+        align-items: center; justify-content: center; text-align: center;
+        cursor: pointer; min-height: 200px;
+        border-style: dashed;
+    }
+    .pm-card--add:hover {
+        border-color: var(--m-blue-glow);
+        background: var(--m-blue-soft);
+    }
+    .pm-card--add .pm-card__icon {
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--m-border);
+        color: var(--m-text-muted);
+        width: 56px; height: 56px; font-size: 24px;
+    }
+    .pm-card--add:hover .pm-card__icon {
+        color: var(--m-blue); border-color: var(--m-blue-glow);
+    }
+    .pm-card--add p {
+        margin: 8px 0 0; color: var(--m-text-muted);
+        font-size: 13px; line-height: 1.5;
+    }
+
+    /* Notice banner */
+    .pm-notice {
+        padding: 14px 18px;
+        border-radius: var(--m-r-card);
+        background: var(--m-amber-soft);
+        border: 1px solid var(--m-amber-glow);
+        color: #FCD34D;
+        font-size: 13px; line-height: 1.55;
+        margin-bottom: 20px;
+        display: flex; align-items: flex-start; gap: 12px;
+    }
+    .pm-notice i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .pm-notice strong { color: #FEF3C7; }
+
+    html[data-role-theme="light"] .pm-notice {
+        background: #FEF3C7; border-color: #FDE68A; color: #92400E;
+    }
+    html[data-role-theme="light"] .pm-notice strong { color: #78350F; }
+    html[data-role-theme="light"] .pm-card,
+    html[data-role-theme="light"] .pm-card__share {
+        background: #FFFFFF; border-color: #E2E8F0;
+    }
+    html[data-role-theme="light"] .pm-card__name { color: #0F172A; }
+    html[data-role-theme="light"] .pm-card__sub,
+    html[data-role-theme="light"] .pm-card__amount-meta,
+    html[data-role-theme="light"] .pm-card__share { color: #64748B; }
+    html[data-role-theme="light"] .pm-card__amount { color: #0F172A; }
+    html[data-role-theme="light"] .pm-card__placeholder-bar { background: #F1F5F9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="moliya-shell">
+    {% include "partials/moliya_header.html" %}
+
+    <div class="pm-notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>
+            <strong>Demo ko'rinish.</strong> Bu sahifa hali backend bilan ulanmagan. Quyidagi summa va ulushlar
+            namunaviy ko'rsatkichlardir. Haqiqiy hisobotni olish uchun view va URL ulanishi kerak.
+        </div>
+    </div>
+
+    <!-- Methods grid -->
+    <div class="pm-grid">
+        <!-- Naqd -->
+        <div class="pm-card pm-card--cash">
+            <div class="pm-card__head">
+                <div class="pm-card__icon pm-card__icon--cash">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <span class="pm-card__share">— %</span>
+            </div>
+            <div>
+                <h3 class="pm-card__name">Naqd</h3>
+                <p class="pm-card__sub">Naqd pul bilan to'lovlar</p>
+            </div>
+            <div>
+                <div class="pm-card__amount">— so'm</div>
+                <div class="pm-card__amount-meta">Joriy oy summasi</div>
+            </div>
+            <div class="pm-card__placeholder-bar">
+                <span style="width:0%; background: linear-gradient(90deg, var(--m-green), #059669);"></span>
+            </div>
+        </div>
+
+        <!-- Click -->
+        <div class="pm-card pm-card--click">
+            <div class="pm-card__head">
+                <div class="pm-card__icon pm-card__icon--click">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span class="pm-card__share">— %</span>
+            </div>
+            <div>
+                <h3 class="pm-card__name">Click</h3>
+                <p class="pm-card__sub">Click ilovasi orqali</p>
+            </div>
+            <div>
+                <div class="pm-card__amount">— so'm</div>
+                <div class="pm-card__amount-meta">Joriy oy summasi</div>
+            </div>
+            <div class="pm-card__placeholder-bar">
+                <span style="width:0%; background: linear-gradient(90deg, var(--m-blue), #2563EB);"></span>
+            </div>
+        </div>
+
+        <!-- Payme -->
+        <div class="pm-card pm-card--payme">
+            <div class="pm-card__head">
+                <div class="pm-card__icon pm-card__icon--payme">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                </div>
+                <span class="pm-card__share">— %</span>
+            </div>
+            <div>
+                <h3 class="pm-card__name">Payme</h3>
+                <p class="pm-card__sub">Payme ilovasi orqali</p>
+            </div>
+            <div>
+                <div class="pm-card__amount">— so'm</div>
+                <div class="pm-card__amount-meta">Joriy oy summasi</div>
+            </div>
+            <div class="pm-card__placeholder-bar">
+                <span style="width:0%; background: linear-gradient(90deg, var(--m-violet), #6D28D9);"></span>
+            </div>
+        </div>
+
+        <!-- Bank o'tkazma -->
+        <div class="pm-card pm-card--bank">
+            <div class="pm-card__head">
+                <div class="pm-card__icon pm-card__icon--bank">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <span class="pm-card__share">— %</span>
+            </div>
+            <div>
+                <h3 class="pm-card__name">Bank o'tkazma</h3>
+                <p class="pm-card__sub">Bank hisob raqami orqali</p>
+            </div>
+            <div>
+                <div class="pm-card__amount">— so'm</div>
+                <div class="pm-card__amount-meta">Joriy oy summasi</div>
+            </div>
+            <div class="pm-card__placeholder-bar">
+                <span style="width:0%; background: linear-gradient(90deg, var(--m-amber), #D97706);"></span>
+            </div>
+        </div>
+
+        <!-- Karta -->
+        <div class="pm-card pm-card--card">
+            <div class="pm-card__head">
+                <div class="pm-card__icon pm-card__icon--card">
+                    <i class="fa-solid fa-credit-card"></i>
+                </div>
+                <span class="pm-card__share">— %</span>
+            </div>
+            <div>
+                <h3 class="pm-card__name">Karta</h3>
+                <p class="pm-card__sub">Plastik karta orqali</p>
+            </div>
+            <div>
+                <div class="pm-card__amount">— so'm</div>
+                <div class="pm-card__amount-meta">Joriy oy summasi</div>
+            </div>
+            <div class="pm-card__placeholder-bar">
+                <span style="width:0%; background: linear-gradient(90deg, var(--m-red), #DC2626);"></span>
+            </div>
+        </div>
+
+        <!-- Add new -->
+        <div class="pm-card pm-card--add" role="button" tabindex="0" aria-label="Yangi to'lov usuli qo'shish">
+            <div class="pm-card__icon">
+                <i class="fa-solid fa-plus"></i>
+            </div>
+            <h3 class="pm-card__name">Yangi usul qo'shish</h3>
+            <p>Tezda yangi to'lov usuli qo'shing — backend ulangach faollashadi</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

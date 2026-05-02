@@ -1,1331 +1,115 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% load custom_tags %}
+{% load static %}
 {% block body_class %}debtors-page{% endblock %}
 
 {% block title %}
 📉 Qarzdorlar — ChaqmoqApp
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
+{% endblock %}
+
 {% block content %}
-<style>
-    :root {
-        --primary: #3b82f6;
-        --primary-light: #60a5fa;
-        --primary-glow: rgba(59, 130, 246, 0.3);
-        --red: #ef4444;
-        --red-glow: rgba(239, 68, 68, 0.2);
-        --card-bg: rgba(15, 23, 42, 0.5);
-        --card-border: rgba(255, 255, 255, 0.08);
-    }
-
-    .tl-container {
-        padding: 0 0 60px;
-    }
-
-    /* ===== STAT CARDS ===== */
-    .premium-card {
-        background: var(--card-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        padding: 24px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-        z-index: 10;
-        height: 100%;
-    }
-
-    .premium-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-    }
-
-    .premium-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-icon-box {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        margin-bottom: 20px;
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--red);
-        border: 1px solid var(--red-glow);
-        box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
-    }
-
-    .tl-card-lbl {
-        font-size: 14px;
-        color: #94a3b8;
-        font-weight: 600;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .tl-card-val {
-        font-size: 28px;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1.2;
-    }
-
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-        height: 100%;
-    }
-
-    .summary-card {
-        padding: 20px;
-        min-height: 152px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .summary-card-wide {
-        grid-column: 1 / -1;
-    }
-
-    .summary-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-    }
-
-    .summary-copy {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .summary-label {
-        font-size: 12px;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-
-    .summary-value {
-        color: #fff;
-        font-size: clamp(24px, 2vw, 31px);
-        font-weight: 800;
-        line-height: 1.15;
-    }
-
-    .summary-note {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .summary-card .card-icon-box {
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-
-    .chart-card {
-        padding: 22px 24px 18px;
-    }
-
-    .chart-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-    }
-
-    .chart-kicker {
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        color: #f87171;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-    }
-
-    .chart-title {
-        margin: 0;
-        color: #fff;
-        font-size: 22px;
-        font-weight: 800;
-    }
-
-    .chart-meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-
-    .chart-meta strong {
-        color: #fff;
-        font-weight: 800;
-    }
-
-    .chart-container {
-        height: 220px;
-        min-height: 220px;
-    }
-
-    /* ===== FILTER SECTION ===== */
-    .filter-section {
-        background: rgba(15, 23, 42, 0.3);
-        border: 1px solid var(--card-border);
-        border-radius: 18px;
-        padding: 16px;
-        margin-bottom: 24px;
-        backdrop-filter: blur(10px);
-    }
-
-    .debt-filter-grid {
-        display: grid;
-        grid-template-columns:
-            minmax(230px, 1.6fr)
-            minmax(150px, 1fr)
-            minmax(140px, 0.85fr)
-            minmax(150px, 0.95fr)
-            minmax(135px, 0.8fr)
-            minmax(140px, 0.85fr);
-        gap: 10px;
-        align-items: end;
-    }
-
-    .debt-filter-grid.has-clear {
-        grid-template-columns:
-            minmax(210px, 1.6fr)
-            minmax(145px, 1fr)
-            minmax(136px, 0.85fr)
-            minmax(148px, 0.95fr)
-            minmax(130px, 0.8fr)
-            minmax(136px, 0.85fr)
-            auto;
-    }
-
-    .debt-filter-field {
-        min-width: 0;
-    }
-
-    .filter-label {
-        font-size: 12px;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 8px;
-        display: block;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filter-section .filter-label {
-        font-size: 10px;
-        margin-bottom: 5px;
-        letter-spacing: 0.08em;
-        white-space: nowrap;
-    }
-
-    .filter-input,
-    .filter-select {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 10px 16px;
-        color: #fff;
-        font-size: 14px;
-        width: 100%;
-        outline: none;
-        transition: all 0.2s;
-    }
-
-    .filter-section .filter-input,
-    .filter-section .filter-select {
-        min-height: 40px;
-        border-radius: 12px;
-        padding: 8px 12px;
-        font-size: 13px;
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-        border-color: var(--primary);
-        background: rgba(0, 0, 0, 0.3);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-
-    .search-input-wrap {
-        position: relative;
-    }
-
-    .search-input-icon {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #60a5fa;
-        font-size: 14px;
-        pointer-events: none;
-    }
-
-    .search-input-wrap .filter-input {
-        padding-left: 42px;
-    }
-
-    .filter-section .search-input-icon {
-        left: 12px;
-        font-size: 12px;
-    }
-
-    .filter-section .search-input-wrap .filter-input {
-        padding-left: 34px;
-    }
-
-    /* Clear Filter Button */
-    .clear-filter-wrap {
-        display: flex;
-        justify-content: flex-end;
-    }
-
-    .clear-filter-btn {
-        min-height: 40px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 0 12px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 600;
-        text-decoration: none !important;
-        transition: all 0.2s;
-        backdrop-filter: blur(10px);
-        white-space: nowrap;
-    }
-
-    .clear-filter-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    /* Date Input Visibility */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: invert(1) opacity(0.5);
-        cursor: pointer;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-        opacity: 0.8;
-    }
-
-    /* ===== PREMIUM TABLE ===== */
-    .stat-card {
-        min-height: 86px;
-        background: rgba(15, 23, 42, 0.42);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 18px;
-        padding: 14px 16px;
-        display: grid;
-        grid-template-columns: 38px minmax(0, 1fr);
-        grid-template-rows: auto auto;
-        column-gap: 12px;
-        row-gap: 3px;
-        align-items: center;
-        transition: all 0.25s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        background: rgba(15, 23, 42, 0.56);
-        border-color: rgba(255, 255, 255, 0.13);
-    }
-
-    .stat-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        grid-row: 1 / 3;
-    }
-
-    .bg-primary-soft { background: rgba(59, 130, 246, 0.1); }
-    .bg-danger-soft { background: rgba(239, 68, 68, 0.1); }
-    .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
-    .bg-warning-soft { background: rgba(245, 158, 11, 0.1); }
-
-    .stat-label {
-        color: #94a3b8;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        line-height: 1.25;
-        text-transform: uppercase;
-    }
-
-    .stat-value {
-        color: #fff;
-        font-size: 21px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-        .table-container {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-    }
-
-    .premium-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .premium-table th {
-        background: rgba(255, 255, 255, 0.03);
-        padding: 18px 20px;
-        font-size: 12px;
-        font-weight: 800;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        border-bottom: 1px solid var(--card-border);
-        text-align: left;
-    }
-
-    .premium-table td {
-        padding: 16px 20px;
-        font-size: 14px;
-        color: #cbd5e1;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        vertical-align: middle;
-    }
-
-    .premium-table tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
-        color: #fff;
-    }
-
-    .student-info {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .student-name {
-        font-weight: 700;
-        color: #fff;
-        margin-bottom: 2px;
-    }
-
-    .student-meta {
-        font-size: 12px;
-        color: #64748b;
-    }
-
-    .debt-badge {
-        font-weight: 800;
-        color: var(--red);
-        font-size: 15px;
-    }
-
-    .debt-meta-line {
-        margin-top: 4px;
-        font-size: 12px;
-        line-height: 1.45;
-    }
-
-    .debt-meta-line.teacher-share {
-        color: #fbbf24;
-        font-weight: 700;
-    }
-
-    .debt-meta-line.original-price {
-        color: #94a3b8;
-        text-decoration: line-through;
-        opacity: 0.82;
-    }
-
-    .table-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 118px;
-    }
-
-    .table-meta strong {
-        color: #f8fafc;
-        font-size: 14px;
-        font-weight: 800;
-    }
-
-    .table-meta span {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .lesson-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 7px 10px;
-        border-radius: 999px;
-        color: #bfdbfe;
-        background: rgba(37, 99, 235, 0.12);
-        border: 1px solid rgba(96, 165, 250, 0.18);
-        font-size: 12px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .group-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 220px;
-    }
-
-    .group-card-mini {
-        border-radius: 14px;
-        padding: 10px 12px;
-        background: rgba(15, 23, 42, 0.62);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .group-card-mini strong {
-        color: #f8fafc;
-        font-size: 13px;
-        font-weight: 800;
-        line-height: 1.3;
-    }
-
-    .group-card-mini span {
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-
-    .group-more-btn {
-        align-self: flex-start;
-        border: 1px solid rgba(96, 165, 250, 0.22);
-        background: rgba(37, 99, 235, 0.12);
-        color: #bfdbfe;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .group-more-btn:hover {
-        background: rgba(37, 99, 235, 0.18);
-    }
-
-    .empty-state {
-        padding: 42px 18px;
-        text-align: center;
-    }
-
-    .empty-state-icon {
-        width: 56px;
-        height: 56px;
-        margin: 0 auto 14px;
-        border-radius: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #22c55e;
-        background: rgba(34, 197, 94, 0.1);
-        border: 1px solid rgba(34, 197, 94, 0.18);
-        font-size: 24px;
-    }
-
-    .empty-state-title {
-        color: #f8fafc;
-        font-size: 16px;
-        font-weight: 900;
-        margin-bottom: 6px;
-    }
-
-    .empty-state-copy {
-        color: #94a3b8;
-        font-size: 13px;
-        margin: 0;
-    }
-
-    .action-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-
-    .action-btn:hover {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--primary-light);
-        border-color: var(--primary-glow);
-        transform: translateY(-2px);
-    }
-
-    .action-btn.delete:hover {
-        background: rgba(239, 68, 68, 0.1);
-        color: #f87171;
-        border-color: var(--red-glow);
-    }
-
-    /* Form Check Buttons */
-    .payment-type-btn {
-        transition: all 0.2s;
-        padding: 12px 5px !important;
-        font-size: 14px !important;
-        background: rgba(0, 0, 0, 0.2) !important;
-        color: #94a3b8 !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .btn-check:checked+.payment-type-btn {
-        background: var(--primary) !important;
-        color: #fff !important;
-        border-color: var(--primary) !important;
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-    }
-
-    /* Modal Styling */
-    .glass-modal .modal-content {
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(20px);
-        border: 1px solid var(--card-border);
-        border-radius: 28px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    }
-
-    .glass-modal .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 24px;
-    }
-
-    .glass-modal .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 20px 24px;
-    }
-
-    .delete-confirm-dialog {
-        max-width: 430px;
-    }
-
-    .delete-confirm-body {
-        padding: 34px 28px 26px;
-        text-align: center;
-    }
-
-    .delete-confirm-icon {
-        width: 74px;
-        height: 74px;
-        margin: 0 auto 18px;
-        border-radius: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 30px;
-        color: #fca5a5;
-        background:
-            radial-gradient(circle at top, rgba(239, 68, 68, 0.34), rgba(239, 68, 68, 0.08)),
-            rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(239, 68, 68, 0.25);
-        box-shadow: 0 20px 45px rgba(239, 68, 68, 0.18);
-    }
-
-    .delete-confirm-title {
-        margin: 0 0 10px;
-        color: #fff;
-        font-size: 27px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-    }
-
-    .delete-confirm-text {
-        margin: 0;
-        color: #94a3b8;
-        font-size: 14px;
-        line-height: 1.65;
-    }
-
-    .delete-confirm-name {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: 18px;
-        padding: 12px 16px;
-        border-radius: 16px;
-        background: rgba(239, 68, 68, 0.08);
-        border: 1px solid rgba(239, 68, 68, 0.16);
-        color: #fff;
-        font-size: 15px;
-        font-weight: 700;
-        line-height: 1.5;
-    }
-
-    .delete-confirm-hint {
-        margin-top: 16px;
-        color: #fca5a5;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .delete-cancel-btn,
-    .delete-submit-btn {
-        min-width: 140px;
-        border-radius: 14px;
-        font-weight: 700;
-        padding: 12px 18px;
-    }
-
-    .delete-cancel-btn {
-        color: #cbd5e1;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-    }
-
-    .delete-cancel-btn:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    .delete-submit-btn {
-        color: #fff;
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        border: 1px solid rgba(248, 113, 113, 0.35);
-        box-shadow: 0 16px 35px rgba(220, 38, 38, 0.28);
-    }
-
-    .delete-submit-btn:hover {
-        color: #fff;
-        background: linear-gradient(135deg, #f05252, #ef4444);
-        transform: translateY(-1px);
-        box-shadow: 0 18px 38px rgba(220, 38, 38, 0.34);
-    }
-
-    .table-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-
-    .page-meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        padding: 12px 16px;
-        border-radius: 16px;
-        background: rgba(15, 23, 42, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .page-meta strong {
-        color: #fff;
-        font-weight: 800;
-    }
-
-    .page-size-form {
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        padding: 10px 12px;
-        border-radius: 16px;
-        background: rgba(15, 23, 42, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
-    }
-
-    .page-size-label {
-        margin: 0;
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-    }
-
-    .page-select {
-        min-width: 112px;
-        padding: 10px 38px 10px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background:
-            linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.96));
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        outline: none;
-        appearance: none;
-        -webkit-appearance: none;
-        transition: all 0.2s ease;
-    }
-
-    .page-select-wrap {
-        position: relative;
-    }
-
-    .page-select-wrap::after {
-        content: '\f078';
-        font-family: "Font Awesome 6 Free";
-        font-weight: 900;
-        position: absolute;
-        right: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #93c5fd;
-        pointer-events: none;
-        font-size: 11px;
-    }
-
-    .page-select:focus {
-        border-color: rgba(96, 165, 250, 0.85);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
-    }
-
-    .debtors-pagination {
-        margin-top: 18px;
-    }
-
-    .debtors-pagination .pagination {
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .debtors-pagination .page-item {
-        margin: 0;
-    }
-
-    .debtors-pagination .page-link {
-        min-width: 44px;
-        height: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 14px;
-        border-radius: 14px !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        background: rgba(15, 23, 42, 0.48) !important;
-        color: #cbd5e1 !important;
-        backdrop-filter: blur(12px);
-        box-shadow: none !important;
-        transition: all 0.2s ease;
-    }
-
-    .debtors-pagination .page-link:hover {
-        color: #fff !important;
-        border-color: rgba(96, 165, 250, 0.28) !important;
-        background: rgba(30, 41, 59, 0.9) !important;
-        transform: translateY(-1px);
-    }
-
-    .debtors-pagination .page-item.active .page-link,
-    .debtors-pagination .page-link.bg-primary {
-        color: #fff !important;
-        border-color: transparent !important;
-        background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
-        box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28) !important;
-    }
-
-    html[data-role-theme="light"] .tl-container {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .premium-card,
-    html[data-role-theme="light"] .filter-section,
-    html[data-role-theme="light"] .table-container,
-    html[data-role-theme="light"] .page-meta,
-    html[data-role-theme="light"] .page-size-form {
-        background: rgba(255, 255, 255, 0.94);
-        border-color: rgba(203, 213, 225, 0.9);
-        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
-    }
-
-    html[data-role-theme="light"] .premium-card::before {
-        background: linear-gradient(to bottom right, rgba(37, 99, 235, 0.12), rgba(255, 255, 255, 0));
-    }
-
-    html[data-role-theme="light"] .premium-card:hover {
-        border-color: #bfdbfe;
-        box-shadow: 0 22px 54px rgba(37, 99, 235, 0.12);
-    }
-
-    html[data-role-theme="light"] .tl-card-lbl,
-    html[data-role-theme="light"] .summary-label,
-    html[data-role-theme="light"] .summary-note,
-    html[data-role-theme="light"] .chart-meta,
-    html[data-role-theme="light"] .filter-label,
-    html[data-role-theme="light"] .page-size-label {
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .tl-card-val,
-    html[data-role-theme="light"] .summary-value,
-    html[data-role-theme="light"] .chart-title,
-    html[data-role-theme="light"] .chart-meta strong,
-    html[data-role-theme="light"] .page-meta strong {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .chart-meta {
-        background: #f8fafc;
-        border-color: #e2e8f0;
-    }
-
-    html[data-role-theme="light"] .filter-input,
-    html[data-role-theme="light"] .filter-select,
-    html[data-role-theme="light"] .page-select {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .filter-input::placeholder {
-        color: #94a3b8;
-    }
-
-    html[data-role-theme="light"] .filter-input:focus,
-    html[data-role-theme="light"] .filter-select:focus,
-    html[data-role-theme="light"] .page-select:focus {
-        background: #ffffff;
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
-    }
-
-    html[data-role-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: none;
-        opacity: 0.72;
-    }
-
-    html[data-role-theme="light"] .clear-filter-btn {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        color: #475569;
-    }
-
-    html[data-role-theme="light"] .clear-filter-btn:hover {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-        color: #1d4ed8;
-    }
-
-    html[data-role-theme="light"] .stat-card {
-        background: #ffffff;
-        border-color: #e2e8f0;
-    }
-
-    html[data-role-theme="light"] .stat-card:hover {
-        background: #f8fafc;
-        border-color: #bfdbfe;
-    }
-
-    html[data-role-theme="light"] .stat-label {
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .stat-value {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .table-container > .border-bottom {
-        border-bottom-color: #e2e8f0 !important;
-        background: #ffffff;
-    }
-
-    html[data-role-theme="light"] .table-container h5,
-    html[data-role-theme="light"] .text-white {
-        color: #0f172a !important;
-    }
-
-    html[data-role-theme="light"] .premium-table th {
-        background: #f1f5f9;
-        color: #475569;
-        border-bottom-color: #e2e8f0;
-    }
-
-    html[data-role-theme="light"] .premium-table td {
-        color: #334155;
-        border-bottom-color: #e2e8f0;
-        background: #ffffff;
-    }
-
-    html[data-role-theme="light"] .premium-table tbody tr:nth-child(even) td {
-        background: #f8fafc;
-    }
-
-    html[data-role-theme="light"] .premium-table tr:hover td {
-        background: #eff6ff;
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .student-name {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .student-meta,
-    html[data-role-theme="light"] .table-meta span,
-    html[data-role-theme="light"] .group-card-mini span,
-    html[data-role-theme="light"] .empty-state-copy {
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .table-meta strong {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .group-card-mini {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
-    }
-
-    html[data-role-theme="light"] .group-card-mini strong {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .group-more-btn,
-    html[data-role-theme="light"] .lesson-pill {
-        background: #dbeafe;
-        border-color: #bfdbfe;
-        color: #1d4ed8;
-    }
-
-    html[data-role-theme="light"] .debt-badge {
-        color: #ef4444;
-    }
-
-    html[data-role-theme="light"] .debt-meta-line.teacher-share {
-        color: #d97706;
-    }
-
-    html[data-role-theme="light"] .debt-meta-line.original-price {
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .action-btn {
-        background: #ffffff;
-        border-color: #e2e8f0;
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .action-btn:hover {
-        background: #eff6ff;
-        color: #2563eb;
-        border-color: #bfdbfe;
-    }
-
-    html[data-role-theme="light"] .action-btn.delete:hover {
-        background: #fef2f2;
-        color: #dc2626;
-        border-color: #fecaca;
-    }
-
-    html[data-role-theme="light"] .empty-state-title {
-        color: #0f172a;
-    }
-
-    html[data-role-theme="light"] .page-select {
-        background: #ffffff;
-    }
-
-    html[data-role-theme="light"] .debtors-pagination .page-link {
-        background: #ffffff !important;
-        border-color: #cbd5e1 !important;
-        color: #334155 !important;
-    }
-
-    html[data-role-theme="light"] .debtors-pagination .page-link:hover {
-        background: #eff6ff !important;
-        border-color: #bfdbfe !important;
-        color: #1d4ed8 !important;
-    }
-
-    html[data-role-theme="light"] .glass-modal .modal-content {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
-    }
-
-    html[data-role-theme="light"] .glass-modal .modal-header,
-    html[data-role-theme="light"] .glass-modal .modal-footer {
-        border-color: #e2e8f0;
-    }
-
-    html[data-role-theme="light"] .delete-confirm-title,
-    html[data-role-theme="light"] #payStudentName,
-    html[data-role-theme="light"] #payMonthlyFee {
-        color: #0f172a !important;
-    }
-
-    html[data-role-theme="light"] .delete-confirm-text,
-    html[data-role-theme="light"] .delete-confirm-hint,
-    html[data-role-theme="light"] .delete-cancel-btn {
-        color: #64748b;
-    }
-
-    html[data-role-theme="light"] .delete-confirm-name {
-        background: #fef2f2;
-        border-color: #fecaca;
-        color: #991b1b;
-    }
-
-    html[data-role-theme="light"] .delete-cancel-btn {
-        background: #ffffff;
-        border-color: #cbd5e1;
-    }
-
-    html[data-role-theme="light"] .payment-type-btn {
-        background: #f8fafc !important;
-        color: #475569 !important;
-        border-color: #e2e8f0 !important;
-    }
-
-    @media (max-width: 1199.98px) {
-        .debt-filter-grid,
-        .debt-filter-grid.has-clear {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
-
-    @media (max-width: 768px) {
-        .overview-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .summary-card-wide {
-            grid-column: auto;
-        }
-
-        .chart-container {
-            height: 200px;
-            min-height: 200px;
-        }
-
-        .table-footer {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .page-meta,
-        .page-size-form {
-            justify-content: space-between;
-            width: 100%;
-        }
-
-        .page-select {
-            min-width: 100px;
-        }
-
-        .debt-filter-grid,
-        .debt-filter-grid.has-clear {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .debt-filter-field.is-search,
-        .debt-filter-clear {
-            grid-column: 1 / -1;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        .filter-section {
-            padding: 14px;
-        }
-
-        .debt-filter-grid,
-        .debt-filter-grid.has-clear {
-            grid-template-columns: 1fr;
-        }
-
-        .clear-filter-btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-</style>
-
-<div class="tl-container">
+<div class="moliya-shell debtors-page-v2">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-4 align-items-stretch">
-        <div class="col-xl-5 col-lg-6">
-            <div class="overview-grid">
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Jami qarz</span>
-                            <div class="summary-value text-danger">{{ total_debt|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box">
-                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                        </div>
-                    </div>
-	                    <div class="summary-note">{{ selected_period_label }}</div>
-                </div>
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Filter bo'yicha</span>
-                            <div class="summary-value">{{ filtered_debt|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box"
-                            style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
-                            <i class="fa-solid fa-filter"></i>
-                        </div>
-                    </div>
-	                    <div class="summary-note">Filter va davr kesimidagi qarz</div>
-                </div>
-                <div class="premium-card summary-card summary-card-wide">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Holat</span>
-                            <div class="summary-value">{{ stats_summary.debtors }} ta qarzdor</div>
-                        </div>
-                        <div class="card-icon-box"
-                            style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2);">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">{{ stats_summary.paid }} ta o'quvchi to'langan holatda</div>
-                </div>
+    <!-- HERO: 2 stat cards (left) + chart (right) -->
+    <section class="debtors-hero">
+        <div class="debtors-hero__cards">
+            <div class="debtors-stat">
+                <span class="debtors-stat__label">Jami qarz</span>
+                <span class="debtors-stat__value">{{ total_debt|intcomma }} so'm</span>
+            </div>
+            <div class="debtors-stat">
+                <span class="debtors-stat__label">Filter bo'yicha jami</span>
+                <span class="debtors-stat__value">{{ filtered_debt|intcomma }} so'm</span>
             </div>
         </div>
-        <div class="col-xl-7 col-lg-6">
-            <div class="premium-card chart-card h-100">
-                <div class="chart-head">
-                    <div>
-                        <div class="chart-kicker">{{ chart_kicker|default:"Oxirgi 12 oy" }}</div>
-                        <h5 class="chart-title">Qarzdorlik grafigi</h5>
-                        <div class="summary-note mt-2">{{ chart_period_label }}</div>
-                    </div>
-                    <div class="chart-meta">
-                        <span><strong>{{ stats_summary.debtors }}</strong> qarzdor</span>
-                        <span><strong>{{ stats_summary.paid }}</strong> to'lagan</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div id="debtChart"></div>
-                </div>
+
+        <div class="debtors-hero__chart">
+            <div class="debtors-hero__chart-body" id="debtChartBody">
+                <div id="debtChart"></div>
+                <div class="chart-skeleton" id="debtChartSkeleton"></div>
             </div>
         </div>
+    </section>
+
+    <!-- Hidden meta nodes — preserved for chart JS that fills 4-card analytics block.
+         The visual analytics row is removed from this redesign, but the JS still
+         updates these nodes; keeping them out of the DOM would require JS edits. -->
+    <div class="debtors-analytics-sink" hidden aria-hidden="true">
+        <span id="anCurrentDebt"></span>
+        <span id="anCurrentDebtFoot"></span>
+        <span id="anChangeValue"></span>
+        <span id="anChangeFoot"></span>
+        <span id="anPeakMonth"></span>
+        <span id="anPeakAmount"></span>
+        <span id="anHighestPoint"></span>
+        <span id="anLowestPoint"></span>
     </div>
 
     <!-- FILTERS -->
-    <div class="filter-section">
+    <div class="filter-bar filter-bar--debtors-v2">
         <form method="get" id="filterForm">
             <input type="hidden" name="per_page" value="{{ per_page }}">
-            <div class="debt-filter-grid{% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %} has-clear{% endif %}">
-                <div class="debt-filter-field is-search">
-                    <label class="filter-label">🔍 Qidiruv</label>
-                    <div class="search-input-wrap">
-                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
-                        <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon..." class="filter-input">
+            {# Preserve filters that are not surfaced in the new UI but may still be set via URL #}
+            {% if selected_lesson_pattern_filter %}
+            <input type="hidden" name="lesson_pattern_filter" value="{{ selected_lesson_pattern_filter }}">
+            {% endif %}
+            {% if pay_month %}
+            <input type="hidden" name="pay_month" value="{{ pay_month }}">
+            {% endif %}
+
+            <div class="filter-grid--debtors-v2{% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date or request.GET.status %} has-clear{% endif %}">
+                <div class="filter-field">
+                    <label class="filter-label">Qidiruv</label>
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass filter-search__icon"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Qidiruv" class="filter-input">
                     </div>
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">👥 Guruh</label>
-                    <select name="group" class="filter-select">
+                <div class="filter-field">
+                    <label class="filter-label">Status</label>
+                    <select name="status" class="filter-select" aria-label="Status">
+                        {% with current_status=request.GET.status|default:"active" %}
+                        <option value="active" {% if current_status == "active" %}selected{% endif %}>Faol qarzdorlar</option>
+                        <option value="all" {% if current_status == "all" %}selected{% endif %}>Barchasi</option>
+                        <option value="deferred" {% if current_status == "deferred" %}selected{% endif %}>Kechiktirilgan</option>
+                        {% endwith %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label">Guruh bo'yicha</label>
+                    <select name="group" class="filter-select" aria-label="Guruh bo'yicha">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
                         <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">🗓 Dars kuni</label>
-                    <select name="lesson_pattern_filter" class="filter-select">
-                        <option value="">Barchasi ({{ lesson_pattern_filter_counts.all }})</option>
-                        <option value="odd" {% if selected_lesson_pattern_filter == 'odd' %}selected{% endif %}>
-                            Toq kunlari ({{ lesson_pattern_filter_counts.odd }})
-                        </option>
-                        <option value="even" {% if selected_lesson_pattern_filter == 'even' %}selected{% endif %}>
-                            Juft kunlari ({{ lesson_pattern_filter_counts.even }})
-                        </option>
-                        <option value="daily" {% if selected_lesson_pattern_filter == 'daily' %}selected{% endif %}>
-                            Har kuni ({{ lesson_pattern_filter_counts.daily }})
-                        </option>
-                    </select>
+                <div class="filter-field">
+                    <label class="filter-label">Qarz miqdori (dan)</label>
+                    <input type="number" name="min_debt" value="{{ min_debt }}" placeholder="Min" class="filter-input">
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">📅 Sanadan</label>
-                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
+                <div class="filter-field">
+                    <label class="filter-label">Qarz miqdori (gacha)</label>
+                    <input type="number" name="max_debt" value="{{ max_debt }}" placeholder="Max" class="filter-input">
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">📅 Oy</label>
-                    <select name="pay_month" class="filter-select">
-                        <option value="">Joriy oy</option>
-                        {% for mid, mname in uz_months %}
-                        <option value="{{ mid }}" {% if pay_month == mid|stringformat:"s" %}selected{% endif %}>{{ mname }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="filter-field">
+                    <label class="filter-label">Sanadan boshlab</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input" placeholder="Sanani tanlang">
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">💰 Qarz dan</label>
-                    <input type="number" name="min_debt" value="{{ min_debt }}" placeholder="0" class="filter-input">
+                <div class="filter-field">
+                    <label class="filter-label">Sana bo'yicha</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input" placeholder="Sanani tanlang">
                 </div>
-                <div class="debt-filter-field">
-                    <label class="filter-label">📅 Sanagacha</label>
-                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
-                </div>
-                {% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %}
-                <div class="clear-filter-wrap debt-filter-clear">
-                    <a href="?per_page={{ per_page }}" class="clear-filter-btn" title="Filtrlarni tozalash">
+                {% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date or request.GET.status %}
+                <div class="filter-field filter-field--clear">
+                    <label class="filter-label">&nbsp;</label>
+                    <a href="?per_page={{ per_page }}" class="filter-clear" title="Filtrlarni tozalash">
                         <i class="fa-solid fa-xmark"></i> Tozalash
                     </a>
                 </div>
@@ -1334,201 +118,168 @@
         </form>
     </div>
 
-    <!-- TABLE -->
-        <!-- Stats Summary Header -->
-        <div class="row g-2 mb-3 anim-fade-in">
-            <div class="col-xl-3 col-md-6 col-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-primary-soft text-primary"><i class="fas fa-users"></i></div>
-                    <div class="stat-label">Jami O'quvchilar</div>
-                    <div class="stat-value">{{ stats_summary.total }}</div>
-                </div>
+    <!-- TABLE / EMPTY STATE -->
+    {% if page_obj.paginator.count %}
+    <div class="data-table-card">
+            <div class="data-table-card__head">
+                <h3 class="data-table-card__title">Qarzdorlar ro'yxati</h3>
+                <span class="pill-badge pill-badge--debt">Jami: {{ page_obj.paginator.count }} ta</span>
             </div>
-            <div class="col-xl-3 col-md-6 col-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-danger-soft text-danger"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="stat-label">Qarzdorlar</div>
-                    <div class="stat-value text-danger">{{ stats_summary.debtors }}</div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6 col-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-success-soft text-success"><i class="fas fa-check-circle"></i></div>
-                    <div class="stat-label">To'laganlar</div>
-                    <div class="stat-value text-success">{{ stats_summary.paid }}</div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6 col-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-warning-soft text-warning"><i class="fas fa-user-slash"></i></div>
-                    <div class="stat-label">Guruhsizlar</div>
-                    <div class="stat-value text-warning">{{ stats_summary.no_group }}</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="table-container anim-fade-in delay-2">
-        <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
-            <h5 class="m-0 fw-bold text-white">Qarzdorlar Ro'yxati</h5>
-            <span
-                class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-3 py-2 rounded-3">
-                Jami: {{ page_obj.paginator.count }} ta
-            </span>
-        </div>
-        <div class="table-responsive">
-            <table class="premium-table">
-	                <thead>
-	                    <tr>
-	                        <th>O'quvchi</th>
-	                        <th>Guruh</th>
-	                        <th>Start date</th>
-	                        <th>Darslar</th>
-	                        <th>Qarz</th>
-	                        <th>To'langan</th>
-	                        <th class="text-end">Amallar</th>
-	                    </tr>
-	                </thead>
-	                <tbody>
-	                    {% for row in page_obj %}
-	                    <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.07); border-left:3px solid rgba(245,158,11,0.5);"{% endif %}>
-	                        <td>
-	                            <div class="student-info">
-	                                <span class="student-name">{{ row.student.get_full_name }}</span>
-	                                {% if row.is_deferred %}
-	                                <span style="font-size:11px; color:#f59e0b; font-weight:700;">⏳ Kechiktirilgan</span>
-                                {% endif %}
-                                {% if row.student.telefon1 %}
-                                <span class="student-meta">
-                                    {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
-                                </span>
-	                                {% endif %}
-	                            </div>
-	                        </td>
-	                        <td>
-	                            {% if row.group_cards %}
+            <div class="data-table-wrap">
+                <table class="data-table data-table--debtors-v2">
+                    <thead>
+                        <tr>
+                            <th>O'quvchi</th>
+                            <th>Guruh</th>
+                            <th>Boshlanish</th>
+                            <th>Darslar</th>
+                            <th>Qarz</th>
+                            <th>To'langan</th>
+                            <th class="text-end">Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in page_obj %}
+                        <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.06); box-shadow: inset 3px 0 0 rgba(245,158,11,0.55);"{% endif %}>
+                            <td>
+                                <div class="cell-stack">
+                                    <span class="cell-stack__primary">{{ row.student.get_full_name }}</span>
+                                    {% if row.is_deferred %}
+                                    <span class="pill-badge pill-badge--pending" style="align-self:flex-start;">
+                                        <i class="fa-solid fa-clock"></i> Kechiktirilgan
+                                    </span>
+                                    {% endif %}
+                                    {% if row.student.telefon1 %}
+                                    <span class="cell-stack__meta">
+                                        {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if row.group_cards %}
                                 <div class="group-stack">
-                                    {% for group_card in row.visible_group_cards %}
-                                    <div class="group-card-mini">
-                                        <strong>{{ group_card.group_name }}</strong>
-                                        <span>{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta</span>
+                                    {% with first_card=row.group_cards|first hidden_count=row.group_cards|length|add:"-1" %}
+                                    <div class="group-mini">
+                                        <strong>{{ first_card.group_name }}</strong>
+                                        <span>{{ first_card.lesson_pattern_label }} • {{ first_card.lesson_count }} ta</span>
                                     </div>
-                                    {% endfor %}
-                                    {% if row.remaining_group_card_count %}
+                                    {% if hidden_count > 0 %}
                                     <button
                                         type="button"
                                         class="group-more-btn"
-                                        data-group-toggle="group-extra-{{ row.student.id }}">
-                                        {{ row.remaining_group_card_count }} ta guruh
+                                        data-group-toggle="group-extra-{{ row.student.id }}"
+                                        data-collapsed-label="{{ hidden_count }} ta guruh ko'rish">
+                                        {{ hidden_count }} ta guruh ko'rish
                                     </button>
-                                    <div id="group-extra-{{ row.student.id }}" hidden>
-                                        {% for group_card in row.group_cards|slice:"2:" %}
-                                        <div class="group-card-mini mt-2">
+                                    <div id="group-extra-{{ row.student.id }}" class="group-extra" hidden>
+                                        {% for group_card in row.group_cards|slice:"1:" %}
+                                        <div class="group-mini">
                                             <strong>{{ group_card.group_name }}</strong>
                                             <span>{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta</span>
                                         </div>
                                         {% endfor %}
                                     </div>
                                     {% endif %}
+                                    {% endwith %}
                                 </div>
-	                            {% else %}
-	                                <span class="text-secondary small italic">Guruhsiz</span>
-	                            {% endif %}
-	                        </td>
-	                        <td>
-	                            <div class="table-meta">
-	                                {% if row.start_date %}
-	                                <strong>{{ row.start_date|date:"d.m.Y" }}</strong>
-	                                {% else %}
-	                                <strong>—</strong>
-	                                {% endif %}
-	                                <span>Boshlanish sanasi</span>
-	                            </div>
-	                        </td>
-	                        <td>
-	                            <div class="table-meta">
-	                                <span class="lesson-pill"><i class="fa-solid fa-calendar-days"></i> {{ row.lesson_count }} ta</span>
-	                                <span>{{ row.enrollment_count }} ta guruh</span>
-	                            </div>
-	                        </td>
-	                        <td>
-	                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|money_uz }}</div>
-	                            {% if row.has_teacher_share_only %}
-	                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|money_uz }}</div>
-	                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|money_uz }}</div>
-	                            {% endif %}
-	                        </td>
-	                        <td>
-	                            <div class="table-meta">
-	                                <strong>{{ row.total_paid|money_uz }}</strong>
-	                                <span>Tanlangan davr</span>
-	                            </div>
-	                        </td>
-	                        <td class="text-end">
-	                            <div class="d-flex justify-content-end gap-2">
-	                                <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
-	                                    data-student-id="{{ row.student.id }}"
-	                                    data-enrollment-id="{% if row.has_teacher_share_only %}{{ row.teacher_share_only_payment_enrollment_id|default:'' }}{% else %}{{ row.payment_enrollment_id|default:'' }}{% endif %}"
-	                                    data-payment-scope="{{ row.payment_scope }}"
-	                                    data-payment-label="{% if row.has_teacher_share_only %}O'qituvchi haqqi{% else %}Joriy qarz summasi{% endif %}"
-	                                    data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.payment_amount }}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                {% if row.enrollment %}
-                                {% with deferred_target=row.deferred_enrollment|default:row.enrollment %}
-                                <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_toggle_deferred' deferred_target.id %}" method="post" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                    <button type="submit" class="action-btn"
-                                        title="{% if row.is_deferred %}Qaytarish{% else %}Kechiktirish{% endif %}"
-                                        style="{% if row.is_deferred %}border-color:rgba(245,158,11,0.4); color:#f59e0b;{% endif %}">
-                                        <i class="fas {% if row.is_deferred %}fa-check{% else %}fa-clock{% endif %}"></i>
-                                    </button>
-                                </form>
-                                <a href="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
-                                    class="action-btn" title="Tahrirlash">
-                                    <i class="fas fa-pen"></i>
-                                </a>
-                                <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
-                                    id="deleteEnrollmentForm{{ row.enrollment.id }}"
-                                    style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                    <button
-                                        type="button"
-                                        class="action-btn delete"
-                                        title="O'chirish"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#deleteConfirmModal"
-                                        data-form-id="deleteEnrollmentForm{{ row.enrollment.id }}"
-                                        data-student-name="{{ row.student.get_full_name }}"
-                                        data-group-name="{% if row.group_label %}{{ row.group_label }}{% else %}Guruhsiz{% endif %}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                                {% endwith %}
                                 {% else %}
-                                <span class="text-secondary small">Ma'lumot yo'q</span>
+                                <span class="pill-badge pill-badge--ghost">Guruhsiz</span>
                                 {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-	                    {% empty %}
-	                    <tr>
-	                        <td colspan="7">
-	                            <div class="empty-state">
-	                                <div class="empty-state-icon"><i class="fa-solid fa-check"></i></div>
-	                                <div class="empty-state-title">Qarzdorlar yo'q</div>
-	                                <p class="empty-state-copy">Tanlangan davr va filterlar bo'yicha qarzdorlik topilmadi.</p>
-	                            </div>
-	                        </td>
-	                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                            <td>
+                                <div class="cell-stack">
+                                    {% if row.start_date %}
+                                    <span class="cell-stack__primary">{{ row.start_date|date:"d.m.Y" }}</span>
+                                    {% else %}
+                                    <span class="cell-stack__primary">—</span>
+                                    {% endif %}
+                                    <span class="cell-stack__meta">Boshlanish sanasi</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell-stack">
+                                    <span class="lesson-pill"><i class="fa-solid fa-calendar-days"></i> {{ row.lesson_count }} ta</span>
+                                    <span class="cell-stack__meta">{{ row.enrollment_count }} ta guruh</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell-amount cell-amount--red"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %}>
+                                    {{ row.debt|money_uz }}
+                                </div>
+                                {% if row.has_teacher_share_only %}
+                                <span class="cell-amount__sub cell-amount__sub--amber">O'qituvchi haqqi: {{ row.teacher_share_only_debt|money_uz }}</span>
+                                <span class="cell-amount__sub cell-amount__sub--strike">Umumiy: {{ row.teacher_share_only_full_total|money_uz }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="cell-stack">
+                                    <span class="cell-amount">{{ row.total_paid|money_uz }}</span>
+                                    <span class="cell-stack__meta">Tanlangan davr</span>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                        data-student-id="{{ row.student.id }}"
+                                        data-enrollment-id="{% if row.has_teacher_share_only %}{{ row.teacher_share_only_payment_enrollment_id|default:'' }}{% else %}{{ row.payment_enrollment_id|default:'' }}{% endif %}"
+                                        data-payment-scope="{{ row.payment_scope }}"
+                                        data-payment-label="{% if row.has_teacher_share_only %}O'qituvchi haqqi{% else %}Joriy qarz summasi{% endif %}"
+                                        data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.payment_amount }}"
+                                        title="To'lov">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    {% if row.enrollment %}
+                                    {% with deferred_target=row.deferred_enrollment|default:row.enrollment %}
+                                    <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_toggle_deferred' deferred_target.id %}" method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="action-btn{% if row.is_deferred %} action-btn--amber{% endif %}"
+                                            title="{% if row.is_deferred %}Qaytarish{% else %}Kechiktirish{% endif %}">
+                                            <i class="fa-solid {% if row.is_deferred %}fa-check{% else %}fa-clock{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <a href="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
+                                        class="action-btn" title="Tahrirlash">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
+                                        id="deleteEnrollmentForm{{ row.enrollment.id }}"
+                                        style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button
+                                            type="button"
+                                            class="action-btn action-btn--delete"
+                                            title="O'chirish"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteConfirmModal"
+                                            data-form-id="deleteEnrollmentForm{{ row.enrollment.id }}"
+                                            data-student-name="{{ row.student.get_full_name }}"
+                                            data-group-name="{% if row.group_label %}{{ row.group_label }}{% else %}Guruhsiz{% endif %}">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endwith %}
+                                    {% else %}
+                                    <span class="pill-badge pill-badge--ghost">—</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
+    {% else %}
+    <div class="data-table-card data-table-card--empty">
+        <div class="empty-state-simple">Qarzdor talabalar topilmadi</div>
     </div>
+    {% endif %}
 
     <!-- PAGINATION -->
+    {% if page_obj.paginator.count %}
     <div class="table-footer">
         <div class="page-meta">
             <span>Sahifa <strong>{{ page_obj.number }}</strong> / <strong>{{ page_obj.paginator.num_pages }}</strong></span>
@@ -1550,11 +301,11 @@
             </div>
         </form>
     </div>
-    <div class="debtors-pagination">
+    <div class="moliya-pagination">
         {% include "partials/pagination.html" %}
     </div>
+    {% endif %}
 </div>
-
 {% endblock %}
 
 {% block modals %}
@@ -1563,7 +314,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-white">To'lov qilish</h5>
+                <h5 class="modal-title">To'lov qilish</h5>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
             <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:create_payment' %}" method="post">
@@ -1577,34 +328,38 @@
                     <input type="hidden" name="month" value="{{ effective_pay_month }}">
 
                     <div class="mb-4 text-center">
-                        <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>
-                        <p class="text-secondary small mb-3" id="payGroupName">Guruh nomi</p>
-                        <div class="bg-black bg-opacity-25 p-3 rounded-4 border border-white border-opacity-10">
-                            <div class="small text-secondary mb-1" id="payDebtLabel">Joriy qarz summasi:</div>
-                            <div class="h3 fw-bold text-white mb-0" id="payMonthlyFee">0 so'm</div>
+                        <h4 class="fw-bold mb-1" id="payStudentName" style="color:var(--m-text);">Ism Familya</h4>
+                        <p class="mb-3" id="payGroupName" style="color:var(--m-text-muted); font-size:13px;">Guruh nomi</p>
+                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 14px; border:1px solid var(--m-border);">
+                            <div style="color:var(--m-text-muted); font-size:12px; margin-bottom:4px;" id="payDebtLabel">Joriy qarz summasi:</div>
+                            <div class="h3 fw-bold mb-0" id="payMonthlyFee" style="color:var(--m-text); font-feature-settings:'tnum' 1;">0 so'm</div>
                         </div>
                     </div>
 
-                    <div class="row g-1 bg-black bg-opacity-25 p-1 rounded-3 mb-4">
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method" id="methodCash" value="cash"
-                                checked>
-                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodCash">
-                                <i class="fas fa-money-bill-wave d-block mb-1"></i> Naqd
+                    <div class="payment-method-grid mb-4" style="background: rgba(0,0,0,0.25); padding: 4px; border-radius:14px;">
+                        {% for pm in payment_methods %}
+                            {% if pm.nom == "NAQD" %}
+                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="cash" data-mode="cash" {% if forloop.first %}checked{% endif %}>
+                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
+                                <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> {{ pm.nom|title }}
                             </label>
-                        </div>
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method" id="methodCard" value="card">
-                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodCard">
-                                <i class="fas fa-credit-card d-block mb-1"></i> Karta
+                            {% elif pm.nom == "ARALASH" %}
+                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="mixed" data-mode="mixed">
+                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
+                                <i class="fa-solid fa-layer-group d-block mb-1"></i> {{ pm.nom|title }}
                             </label>
-                        </div>
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method" id="methodMixed" value="mixed">
-                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodMixed">
-                                <i class="fas fa-layer-group d-block mb-1"></i> Aralash
+                            {% else %}
+                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="card" data-mode="card" data-method-name="{{ pm.nom }}">
+                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
+                                <i class="fa-solid fa-credit-card d-block mb-1"></i> {{ pm.nom|title }}
                             </label>
-                        </div>
+                            {% endif %}
+                        {% empty %}
+                        <input type="radio" class="btn-check" name="payment_method" id="methodCash" value="cash" checked>
+                        <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodCash">
+                            <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> Naqd
+                        </label>
+                        {% endfor %}
                     </div>
 
                     <div class="row g-3">
@@ -1622,27 +377,26 @@
                         </div>
                         <div class="col-12">
                             <label class="filter-label">Izoh (Comment)</label>
-                            <textarea name="note" class="filter-input" rows="2"
-                                placeholder="Izoh qoldirish..."></textarea>
+                            <textarea name="note" class="filter-input" rows="2" placeholder="Izoh qoldirish..."></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                        data-bs-dismiss="modal">Bekor qilish</button>
-                    <button type="submit" class="btn btn-primary px-4 rounded-3 fw-bold shadow-lg">Saqlash</button>
+                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn-primary-pill">Saqlash</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- DELETE CONFIRM MODAL -->
 <div class="modal fade glass-modal" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered delete-confirm-dialog">
         <div class="modal-content">
             <div class="delete-confirm-body">
                 <div class="delete-confirm-icon">
-                    <i class="fas fa-trash"></i>
+                    <i class="fa-solid fa-trash"></i>
                 </div>
                 <h5 class="delete-confirm-title">Rostdan ham o'chirasizmi?</h5>
                 <p class="delete-confirm-text">
@@ -1686,13 +440,136 @@
             else { divCash.style.display = 'block'; divCash.className = 'col-6'; divCard.style.display = 'block'; divCard.className = 'col-6'; }
         }
 
+        // ====================================================
+        // Number formatting helpers (Uzbek format)
+        // ====================================================
+        function formatUzNumber(value) {
+            // "537430014" -> "537 430 014"
+            const n = Number(value || 0);
+            return n.toLocaleString('uz-UZ').replace(/ |,/g, ' ');
+        }
+        function formatUzMoney(value) {
+            return formatUzNumber(value) + " so'm";
+        }
+        function formatUzShort(value) {
+            // 1 234 567 -> "1.2 mln", 1 234 567 890 -> "1.2 mlrd"
+            const n = Math.abs(Number(value || 0));
+            if (n >= 1e9) return (n / 1e9).toFixed(n >= 1e10 ? 0 : 1).replace('.0','') + ' mlrd';
+            if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace('.0','') + ' mln';
+            if (n >= 1e3) return (n / 1e3).toFixed(0) + ' ming';
+            return String(Math.round(n));
+        }
+
+        // ====================================================
+        // DebtSummaryCards — fill the 4 small analytics cards
+        // ====================================================
+        function renderDebtSummaryCards(data, labels) {
+            const lastIdx = data.length - 1;
+            const last = Number(data[lastIdx] || 0);
+            const prev = Number(data[lastIdx - 1] || 0);
+
+            // Change vs previous month
+            const changeEl = document.getElementById('anChangeValue');
+            const changeFootEl = document.getElementById('anChangeFoot');
+            if (changeEl && changeFootEl) {
+                if (!data.length || lastIdx < 1) {
+                    changeEl.textContent = '—';
+                    changeEl.innerHTML = '<span class="analytics-card__delta analytics-card__delta--flat">— %</span>';
+                    changeFootEl.textContent = "Yetarli ma'lumot yo'q";
+                } else {
+                    const diff = last - prev;
+                    const pct = prev > 0 ? (diff / prev) * 100 : (last > 0 ? 100 : 0);
+                    let cls = 'analytics-card__delta--flat';
+                    let arrow = '<i class="fa-solid fa-equals"></i>';
+                    if (Math.abs(pct) > 0.5) {
+                        if (diff > 0) { cls = 'analytics-card__delta--up'; arrow = '<i class="fa-solid fa-arrow-up"></i>'; }
+                        else { cls = 'analytics-card__delta--down'; arrow = '<i class="fa-solid fa-arrow-down"></i>'; }
+                    }
+                    const sign = diff > 0 ? '+' : (diff < 0 ? '−' : '');
+                    changeEl.innerHTML = `<span class="analytics-card__delta ${cls}">${arrow} ${sign}${Math.abs(pct).toFixed(1).replace('.0','')}%</span>`;
+                    const diffAbs = Math.abs(diff);
+                    changeFootEl.textContent = (diff === 0)
+                        ? "O'zgarish yo'q"
+                        : `${diff > 0 ? "+" : "−"}${formatUzMoney(diffAbs)} farq`;
+                }
+            }
+
+            // Peak month
+            const peakMonthEl = document.getElementById('anPeakMonth');
+            const peakAmountEl = document.getElementById('anPeakAmount');
+            if (peakMonthEl && peakAmountEl) {
+                if (!data.length) {
+                    peakMonthEl.textContent = '—';
+                    peakAmountEl.textContent = "Ma'lumot yo'q";
+                } else {
+                    let maxVal = -Infinity, maxIdx = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const v = Number(data[i] || 0);
+                        if (v > maxVal) { maxVal = v; maxIdx = i; }
+                    }
+                    peakMonthEl.textContent = labels[maxIdx] || '—';
+                    peakAmountEl.textContent = formatUzMoney(maxVal);
+                }
+            }
+
+            // Highest / lowest in chart-card meta
+            const highEl = document.getElementById('anHighestPoint');
+            const lowEl = document.getElementById('anLowestPoint');
+            if (highEl && lowEl) {
+                if (!data.length) {
+                    highEl.textContent = '—';
+                    lowEl.textContent = '—';
+                } else {
+                    const numeric = data.map(v => Number(v || 0));
+                    highEl.textContent = formatUzShort(Math.max(...numeric)) + " so'm";
+                    lowEl.textContent = formatUzShort(Math.min(...numeric)) + " so'm";
+                }
+            }
+        }
+
+        // ====================================================
+        // DebtTrendChart — ApexCharts area chart
+        // ====================================================
+        function renderEmptyState(container) {
+            container.innerHTML = `
+                <div class="chart-empty">
+                    <div class="chart-empty__inner">
+                        <div class="chart-empty__icon"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="chart-empty__title">Trend uchun ma'lumot yo'q</div>
+                        <p class="chart-empty__copy">Tanlangan davr bo'yicha qarzdorlik bo'yicha hech qanday yozuv topilmadi.</p>
+                    </div>
+                </div>`;
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
             // Chart
             const chartEl = document.getElementById("chart-data");
             const chartLabelsEl = document.getElementById("chart-labels");
-            if (chartEl && chartLabelsEl) {
-                const chartData = JSON.parse(chartEl.textContent) || [];
-                const chartLabels = JSON.parse(chartLabelsEl.textContent) || [];
+            const skeletonEl = document.getElementById("debtChartSkeleton");
+            const chartHost = document.getElementById("debtChart");
+
+            if (chartEl && chartLabelsEl && chartHost) {
+                let chartData = [];
+                let chartLabels = [];
+                try {
+                    chartData = JSON.parse(chartEl.textContent) || [];
+                    chartLabels = JSON.parse(chartLabelsEl.textContent) || [];
+                } catch (err) {
+                    console.error("Trend chart: ma'lumotni o'qib bo'lmadi", err);
+                    if (skeletonEl) skeletonEl.style.display = 'none';
+                    renderEmptyState(chartHost);
+                    return;
+                }
+
+                renderDebtSummaryCards(chartData, chartLabels);
+
+                const hasData = chartData.length > 0 && chartData.some(v => Number(v || 0) > 0);
+                if (!hasData) {
+                    if (skeletonEl) skeletonEl.style.display = 'none';
+                    renderEmptyState(chartHost);
+                    return;
+                }
+
                 let debtChart = null;
                 let activeTheme = getThemeMode();
 
@@ -1701,47 +578,104 @@
                 }
 
                 function buildOptions() {
-                    const isLightTheme = getThemeMode() === 'light';
-                    const labelColor = isLightTheme ? '#475569' : '#94a3b8';
-                    const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
-
+                    const isLight = getThemeMode() === 'light';
                     return {
-                        series: [{ name: 'Qarz', data: chartData }],
+                        series: [{ name: 'Jami qarz', data: chartData }],
                         chart: {
                             type: 'area',
-                            height: 220,
-                            offsetY: -8,
+                            height: '100%',
                             toolbar: { show: false },
                             background: 'transparent',
-                            parentHeightOffset: 0
+                            parentHeightOffset: 0,
+                            zoom: { enabled: false },
+                            animations: {
+                                enabled: true, easing: 'easeOutCubic', speed: 600,
+                                animateGradually: { enabled: false },
+                                dynamicAnimation: { enabled: true, speed: 350 }
+                            },
+                            fontFamily: 'inherit'
                         },
                         stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
-                        markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
+                        markers: {
+                            size: 0,
+                            colors: ['#ef4444'],
+                            strokeColors: isLight ? '#FFFFFF' : '#0B1220',
+                            strokeWidth: 2,
+                            hover: { size: 7, sizeOffset: 3 }
+                        },
                         colors: ['#ef4444'],
                         fill: {
                             type: 'gradient',
-                            gradient: { shadeIntensity: 1, opacityFrom: 0.38, opacityTo: 0.04, stops: [0, 90, 100] }
+                            gradient: {
+                                shadeIntensity: 1,
+                                type: 'vertical',
+                                opacityFrom: isLight ? 0.32 : 0.45,
+                                opacityTo: 0.02,
+                                stops: [0, 95, 100]
+                            }
                         },
                         xaxis: {
                             categories: chartLabels,
-                            labels: { style: { colors: labelColor, fontSize: '11px' } },
+                            labels: {
+                                rotate: chartLabels.length > 8 ? -35 : 0,
+                                rotateAlways: chartLabels.length > 8,
+                                hideOverlappingLabels: true,
+                                trim: false,
+                                style: { fontSize: '11px', fontWeight: 600 }
+                            },
                             axisBorder: { show: false },
-                            axisTicks: { show: false }
+                            axisTicks: { show: false },
+                            tooltip: { enabled: false },
+                            crosshairs: {
+                                show: true,
+                                stroke: { color: isLight ? 'rgba(15,23,42,0.18)' : 'rgba(255,255,255,0.18)', width: 1, dashArray: 4 }
+                            }
                         },
                         yaxis: {
-                            tickAmount: 4,
+                            tickAmount: 5,
+                            forceNiceScale: true,
                             labels: {
-                                style: { colors: labelColor, fontSize: '11px' },
-                                formatter: v => Number(v).toLocaleString() + " so'm"
+                                style: { fontSize: '11px', fontWeight: 600 },
+                                formatter: v => formatUzShort(v) + " so'm"
                             }
                         },
                         grid: {
-                            borderColor: gridColor,
                             strokeDashArray: 4,
-                            padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                            padding: { left: 8, right: 16, top: 4, bottom: 0 },
+                            xaxis: { lines: { show: false } },
+                            yaxis: { lines: { show: true } }
                         },
+                        dataLabels: { enabled: false },
                         legend: { show: false },
-                        theme: { mode: isLightTheme ? 'light' : 'dark' }
+                        tooltip: {
+                            enabled: true,
+                            shared: false,
+                            intersect: false,
+                            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                                const value = Number(series[seriesIndex][dataPointIndex] || 0);
+                                const label = (w.globals.labels[dataPointIndex] || '').toString();
+                                const prevValue = dataPointIndex > 0 ? Number(series[seriesIndex][dataPointIndex - 1] || 0) : null;
+                                let trendLine = '';
+                                if (prevValue !== null) {
+                                    const diff = value - prevValue;
+                                    const pct = prevValue > 0 ? (diff / prevValue * 100) : 0;
+                                    const sign = diff > 0 ? '+' : (diff < 0 ? '−' : '');
+                                    const cls = diff > 0 ? 'moliya-tooltip__amount--red' : '';
+                                    trendLine = `
+                                        <div class="moliya-tooltip__row">
+                                            <span>O'tgan oyga</span>
+                                            <strong class="${cls}">${sign}${Math.abs(pct).toFixed(1).replace('.0','')}%</strong>
+                                        </div>`;
+                                }
+                                return `
+                                    <div class="moliya-tooltip__inner">
+                                        <div class="moliya-tooltip__title">${label}</div>
+                                        <div class="moliya-tooltip__amount moliya-tooltip__amount--red">${formatUzMoney(value)}</div>
+                                        ${trendLine}
+                                    </div>`;
+                            },
+                            cssClass: 'moliya-tooltip'
+                        }
                     };
                 }
 
@@ -1749,8 +683,14 @@
                     if (debtChart) {
                         debtChart.destroy();
                     }
-                    debtChart = new ApexCharts(document.querySelector("#debtChart"), buildOptions());
-                    debtChart.render();
+                    debtChart = new ApexCharts(chartHost, buildOptions());
+                    debtChart.render().then(() => {
+                        if (skeletonEl) skeletonEl.style.display = 'none';
+                    }).catch((err) => {
+                        console.error('Trend chart render xatosi:', err);
+                        if (skeletonEl) skeletonEl.style.display = 'none';
+                        renderEmptyState(chartHost);
+                    });
                 }
 
                 renderDebtChart();
@@ -1762,11 +702,24 @@
                         renderDebtChart();
                     }
                 });
-
                 themeObserver.observe(document.documentElement, {
                     attributes: true,
                     attributeFilter: ['data-role-theme']
                 });
+
+                // Re-render on container resize (sidebar toggle, window resize)
+                if ('ResizeObserver' in window) {
+                    let resizeTimer = null;
+                    const resizeObserver = new ResizeObserver(() => {
+                        clearTimeout(resizeTimer);
+                        resizeTimer = setTimeout(() => {
+                            if (debtChart && typeof debtChart.updateOptions === 'function') {
+                                debtChart.updateOptions({}, false, false);
+                            }
+                        }, 150);
+                    });
+                    resizeObserver.observe(chartHost);
+                }
             }
 
             // Modal
@@ -1794,7 +747,6 @@
                     document.getElementById('inputCash').value = debt;
                     document.getElementById('inputCard').value = '';
 
-                    // Show all groups for this student
                     fetch(buildTenantPath(`/talim/tolovlar/student/${studentId}/groups/`))
                         .then(res => res.json())
                         .then(data => {
@@ -1837,7 +789,7 @@
                 confirmDeleteBtn.addEventListener('click', function () {
                     if (!activeDeleteForm) return;
                     confirmDeleteBtn.disabled = true;
-                    confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> O\'chirilmoqda...';
+                    confirmDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> O\'chirilmoqda...';
                     activeDeleteForm.submit();
                 });
             }
@@ -1853,8 +805,13 @@
                         button.textContent = "Yopish";
                     } else {
                         target.setAttribute('hidden', '');
-                        const hiddenItems = target.querySelectorAll('.group-card-mini').length;
-                        button.textContent = hiddenItems + " ta guruh";
+                        const collapsedLabel = button.getAttribute('data-collapsed-label');
+                        if (collapsedLabel) {
+                            button.textContent = collapsedLabel;
+                        } else {
+                            const hiddenItems = target.querySelectorAll('.group-mini').length;
+                            button.textContent = hiddenItems + " ta guruh ko'rish";
+                        }
                     }
                 });
             });

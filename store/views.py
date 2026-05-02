@@ -740,6 +740,14 @@ def expenses(request):
     ExpenseCategory.objects.get_or_create(nom="Do'kon", center=center)
     categories = ExpenseCategory.objects.filter(center=center)
     workers = User.objects.filter(center=center, role__in=['manager', 'director'])
+
+    # Dynamic payment methods (PaymentMethod table) — auto-seed defaults so
+    # the dropdown is never empty even on a fresh center.
+    from .models import PaymentMethod
+    _ensure_default_payment_methods(center)
+    dynamic_payment_methods = list(
+        PaymentMethod.objects.filter(center=center, is_active=True).order_by('nom')
+    )
     
     context = {
         'items': items,
@@ -764,6 +772,7 @@ def expenses(request):
         'selected_method': payment_method,
         'selected_worker': int(worker_id) if worker_id and worker_id.isdigit() else None,
         'q': q,
+        'dynamic_payment_methods': dynamic_payment_methods,
     }
 
     return render(request, 'store/expenses.html', context)
@@ -1055,7 +1064,7 @@ def expense_comment(request, pk):
     """
     center = require_center(request)
     from .models import Expense
-    
+
     if request.method == 'POST':
         expense = get_object_or_404(Expense, pk=pk, center=center)
         izoh = request.POST.get('izoh', '').strip()
@@ -1063,5 +1072,113 @@ def expense_comment(request, pk):
             expense.izoh = izoh
             expense.save()
             messages.success(request, "Izoh yangilandi")
-        
+
     return redirect('store:expenses')
+
+
+# =============================================================
+# To'lov usullari (PaymentMethod) — CRUD
+# =============================================================
+DEFAULT_PAYMENT_METHODS = ("NAQD", "KARTA", "ARALASH", "CLICK", "PAYME")
+
+
+def _ensure_default_payment_methods(center):
+    from .models import PaymentMethod
+    if not center:
+        return
+    for nom in DEFAULT_PAYMENT_METHODS:
+        PaymentMethod.objects.get_or_create(center=center, nom=nom, defaults={"is_active": True})
+
+
+@login_required
+def payment_methods(request):
+    from .models import PaymentMethod
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    _ensure_default_payment_methods(center)
+    methods = PaymentMethod.objects.filter(center=center).order_by('-is_active', 'nom')
+    return render(request, 'store/payment_methods.html', {'methods': methods})
+
+
+@login_required
+def payment_method_create(request):
+    from .models import PaymentMethod
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    if request.method == 'POST':
+        nom = (request.POST.get('nom') or '').strip().upper()
+        if not nom:
+            messages.error(request, "To'lov usuli nomi bo'sh bo'lmasligi kerak")
+        else:
+            _, created = PaymentMethod.objects.get_or_create(
+                center=center, nom=nom, defaults={'is_active': True}
+            )
+            if created:
+                messages.success(request, f"\"{nom}\" qo'shildi")
+            else:
+                messages.info(request, f"\"{nom}\" allaqachon mavjud")
+
+    return redirect('store:payment_methods')
+
+
+@login_required
+def payment_method_update(request, pk):
+    from .models import PaymentMethod
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    method = get_object_or_404(PaymentMethod, pk=pk, center=center)
+    if request.method == 'POST':
+        nom = (request.POST.get('nom') or '').strip().upper()
+        if not nom:
+            messages.error(request, "Nom bo'sh bo'lmasligi kerak")
+        else:
+            method.nom = nom
+            try:
+                method.save(update_fields=['nom', 'updated_at'])
+                messages.success(request, "Yangilandi")
+            except Exception:
+                messages.error(request, "Bunday nomli usul allaqachon mavjud")
+
+    return redirect('store:payment_methods')
+
+
+@login_required
+def payment_method_toggle(request, pk):
+    from .models import PaymentMethod
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    method = get_object_or_404(PaymentMethod, pk=pk, center=center)
+    if request.method == 'POST':
+        method.is_active = not method.is_active
+        method.save(update_fields=['is_active', 'updated_at'])
+        messages.success(request, "Holat o'zgartirildi")
+
+    return redirect('store:payment_methods')
+
+
+@login_required
+def payment_method_delete(request, pk):
+    from .models import PaymentMethod
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    method = get_object_or_404(PaymentMethod, pk=pk, center=center)
+    if request.method == 'POST':
+        method.delete()
+        messages.success(request, "O'chirildi")
+
+    return redirect('store:payment_methods')

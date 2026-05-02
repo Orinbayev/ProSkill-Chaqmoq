@@ -1,1616 +1,561 @@
-{% extends 'base.html' %}
-{% load humanize custom_tags %}
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
 {% block body_class %}payments-page{% endblock %}
 
 {% block title %}
 💰 To'lovlar — ChaqmoqApp
 {% endblock %}
 
-{% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
 <style>
-    :root {
-        --primary: #3b82f6;
-        --primary-light: #60a5fa;
-        --primary-glow: rgba(59, 130, 246, 0.3);
-        --teal: #14b8a6;
-        --teal-glow: rgba(20, 184, 166, 0.2);
-        --purple: #8b5cf6;
-        --amber: #f59e0b;
-        --card-bg: rgba(15, 23, 42, 0.5);
-        --card-border: rgba(255, 255, 255, 0.08);
+    /* Tolovlar-specific small components (unique to this tab) */
+    .pay-tags-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .pay-tag {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+        background: var(--m-bg-elevated); border: 1px solid var(--m-border); color: var(--m-text-soft);
+        white-space: nowrap;
     }
-
-    .tl-container {
-        padding: 0 0 60px;
+    .pay-tag--month { background: var(--m-violet-soft); border-color: var(--m-violet-glow); color: #C4B5FD; }
+    .pay-tag--group { background: var(--m-blue-soft); border-color: var(--m-blue-glow); color: #BFDBFE; }
+    .pay-tag--more {
+        background: rgba(255, 255, 255, 0.05); border-color: var(--m-border);
+        color: var(--m-text-muted); font-weight: 800;
     }
+    .cell-caption { color: var(--m-text-faint); font-size: 11px; font-weight: 600; margin-top: 4px; display: block; }
 
-    /* ===== STAT CARDS ===== */
-    .premium-card {
-        background: var(--card-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        padding: 24px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-        z-index: 10;
-        height: 100%;
+    .type-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 999px;
+        font-size: 11px; font-weight: 800;
+        white-space: nowrap;
     }
+    .type-badge.bg-cash { background: var(--m-green-soft); border: 1px solid var(--m-green-glow); color: #6EE7B7; }
+    .type-badge.bg-card { background: var(--m-blue-soft); border: 1px solid var(--m-blue-glow); color: #93C5FD; }
+    .type-badge.bg-mixed { background: var(--m-amber-soft); border: 1px solid var(--m-amber-glow); color: #FCD34D; }
 
-    .premium-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-    }
-
-    .premium-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-icon-box {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        margin-bottom: 20px;
-        background: rgba(20, 184, 166, 0.1);
-        color: var(--teal);
-        border: 1px solid var(--teal-glow);
-        box-shadow: 0 0 20px rgba(20, 184, 166, 0.1);
-    }
-
-    .tl-card-lbl {
-        font-size: 14px;
-        color: #94a3b8;
-        font-weight: 600;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .tl-card-val {
-        font-size: 28px;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1.2;
-    }
-
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-        height: 100%;
-    }
-
-    .summary-card {
-        padding: 20px;
-        min-height: 152px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .summary-card-wide {
-        grid-column: 1 / -1;
-    }
-
-    .summary-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-    }
-
-    .summary-copy {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .summary-label {
-        font-size: 12px;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-
-    .summary-value {
-        color: #fff;
-        font-size: clamp(24px, 2vw, 31px);
-        font-weight: 800;
-        line-height: 1.15;
-    }
-
-    .summary-note {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .summary-card .card-icon-box {
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-
-    .chart-card {
-        padding: 22px 24px 18px;
-    }
-
-    .chart-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-    }
-
-    .chart-kicker {
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        color: #2dd4bf;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-    }
-
-    .chart-title {
-        margin: 0;
-        color: #fff;
-        font-size: 22px;
-        font-weight: 800;
-    }
-
-    .chart-meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-
-    .chart-meta strong {
-        color: #fff;
-        font-weight: 800;
-    }
-
-    /* ===== CHART BOX ===== */
-    .chart-container {
-        height: 220px;
-        min-height: 220px;
-    }
-
-    /* ===== FILTER SECTION ===== */
-    .filter-section {
-        background: rgba(15, 23, 42, 0.3);
-        border: 1px solid var(--card-border);
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 30px;
-        backdrop-filter: blur(10px);
-    }
-
-    .filter-label {
-        font-size: 12px;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 8px;
-        display: block;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filter-input,
-    .filter-select {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 10px 16px;
-        color: #fff;
-        font-size: 14px;
-        width: 100%;
-        outline: none;
-        transition: all 0.2s;
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-        border-color: var(--primary);
-        background: rgba(0, 0, 0, 0.3);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-
-    .filter-select option {
-        background: #0f172a;
-        color: #fff;
-    }
-
-    .search-input-wrap {
-        position: relative;
-    }
-
-    .search-input-icon {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #60a5fa;
-        font-size: 14px;
-        pointer-events: none;
-    }
-
-    .search-input-wrap .filter-input {
-        padding-left: 42px;
-    }
-
-    /* ===== PREMIUM TABLE ===== */
-    .table-container {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-    }
-
-    .premium-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .premium-table th {
-        background: rgba(255, 255, 255, 0.03);
-        padding: 18px 20px;
-        font-size: 12px;
-        font-weight: 800;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        border-bottom: 1px solid var(--card-border);
-        text-align: left;
-    }
-
-    .premium-table td {
-        padding: 16px 20px;
-        font-size: 14px;
-        color: #cbd5e1;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        vertical-align: middle;
-    }
-
-    .premium-table tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
-        color: #fff;
-    }
-
-    .premium-table tr:last-child td {
-        border-bottom: none;
-    }
-
-    .student-info {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .student-name {
-        font-weight: 700;
-        color: #fff;
-        margin-bottom: 2px;
+    .amount-badge {
+        display: inline-block; padding: 5px 10px; border-radius: 10px;
+        background: var(--m-green-soft); border: 1px solid var(--m-green-glow);
+        color: var(--m-green); font-weight: 800; font-size: 13.5px;
+        font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
     }
 
     .student-name-btn {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: #fff;
-        font-weight: 800;
-        text-align: left;
-        transition: color 0.2s ease;
+        background: transparent; border: 0; padding: 0;
+        color: var(--m-text); font-weight: 700; font-size: 13.5px;
+        text-align: left; cursor: pointer; transition: color 0.15s ease;
+    }
+    .student-name-btn:hover { color: var(--m-blue); text-decoration: underline; }
+
+    .note-trigger {
+        cursor: pointer; color: var(--m-blue); font-size: 12.5px;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .note-trigger:hover { color: #93C5FD; text-decoration: underline; }
+
+    .table-actions { display: inline-flex; align-items: center; gap: 10px; }
+    .table-export-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 13px; border-radius: 10px;
+        background: var(--m-green-soft); border: 1px solid var(--m-green-glow);
+        color: #6EE7B7; font-size: 12px; font-weight: 700;
+        text-decoration: none; transition: all 0.18s ease;
+    }
+    .table-export-btn:hover {
+        background: linear-gradient(135deg, var(--m-green), #059669);
+        color: #fff; transform: translateY(-1px);
     }
 
-    .student-name-btn:hover {
-        color: #93c5fd;
+    /* History modal */
+    .history-modal-dialog { max-width: 880px; }
+    .history-modal-content { padding: 0; }
+    .history-modal-body { padding: 22px 24px 26px; }
+    .history-stats {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        margin-bottom: 18px;
     }
-
-    .student-meta {
-        font-size: 12px;
-        color: #64748b;
+    .history-stat {
+        padding: 12px 14px; border-radius: 14px;
+        background: var(--m-bg-glass-soft); border: 1px solid var(--m-border);
     }
-
-    .summary-subtext {
-        font-size: 12px;
-        color: #64748b;
-        margin-top: 4px;
+    .history-stat-label {
+        display: block; color: var(--m-text-muted);
+        font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
     }
-
-    .amount-badge {
-        font-weight: 800;
-        color: var(--teal);
-        font-size: 15px;
+    .history-stat-value {
+        color: var(--m-text); font-size: 16px; font-weight: 800;
+        font-feature-settings: "tnum" 1;
     }
-
-    .type-badge {
-        padding: 6px 12px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+    .history-list { display: flex; flex-direction: column; gap: 12px; }
+    .history-empty {
+        padding: 32px 16px; text-align: center;
+        color: var(--m-text-muted); font-size: 13.5px;
     }
-
-    .bg-cash {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--amber);
-        border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-
-    .bg-card {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--primary-light);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-
-    .bg-mixed {
-        background: rgba(139, 92, 246, 0.1);
-        color: #a78bfa;
-        border: 1px solid rgba(139, 92, 246, 0.2);
-    }
-
-    .group-tag {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 12px;
-        color: #cbd5e1;
-    }
-
-    .month-tag {
-        background: rgba(139, 92, 246, 0.05);
-        border: 1px solid rgba(139, 92, 246, 0.15);
-        padding: 3px 8px;
-        border-radius: 8px;
-        font-size: 10px;
-        font-weight: 700;
-        color: #a78bfa;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        display: inline-block;
-        width: fit-content;
-    }
-
-    .tag-more {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px dashed rgba(255, 255, 255, 0.12);
-        color: #94a3b8;
-        font-size: 11px;
-        font-weight: 700;
-        width: fit-content;
-    }
-
-    .group-stack,
-    .month-stack,
-    .type-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .tag-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .group-caption {
-        font-size: 12px;
-        color: #64748b;
-    }
-
-    /* ===== ACTION BUTTONS ===== */
-    .action-btn {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
-        transition: all 0.2s;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    .action-btn:hover {
-        background: rgba(59, 130, 246, 0.12);
-        color: #60a5fa;
-        border-color: rgba(59, 130, 246, 0.3);
-        transform: translateY(-1px);
-    }
-
-    .action-btn.delete:hover {
-        background: rgba(239, 68, 68, 0.12);
-        color: #f87171;
-        border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .action-btn.edit:hover {
-        background: rgba(245, 158, 11, 0.12);
-        color: #fbbf24;
-        border-color: rgba(245, 158, 11, 0.3);
-    }
-
-    /* Note Tooltip */
-    [data-note]:hover::after {
-        content: attr(data-note);
-        position: absolute;
-        bottom: 110%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(15, 23, 42, 0.95);
-        color: #e2e8f0;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        white-space: nowrap;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        z-index: 999;
-    }
-
-    [data-note] {
-        position: relative;
-    }
-
-    /* Edit Modal */
-    .glass-modal .modal-content {
-        background: rgba(15, 23, 42, 0.97);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 24px;
-    }
-
-    .glass-modal .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 20px 24px;
-    }
-
-    .glass-modal .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 16px 24px;
-    }
-
-    .gl-input {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 10px 14px;
-        color: #fff;
-        width: 100%;
-        outline: none;
-        font-size: 14px;
-    }
-
-    .gl-input:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-
-    .gl-label {
-        font-size: 12px;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: block;
-    }
-
-    .history-modal-dialog {
-        max-width: min(1080px, calc(100vw - 32px));
-    }
-
-    .history-modal-content {
+    .history-card {
+        background: var(--m-bg-glass-soft);
+        border: 1px solid var(--m-border); border-radius: 14px;
         overflow: hidden;
     }
-
-    .history-modal-body {
-        padding: 20px 24px 22px !important;
-    }
-
-    .history-stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-        margin-bottom: 14px;
-    }
-
-    .history-stat {
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        min-height: 84px;
-    }
-
-    .history-stat-label {
-        display: block;
-        font-size: 11px;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 6px;
-    }
-
-    .history-stat-value {
-        color: #fff;
-        font-size: clamp(15px, 1.35vw, 18px);
-        font-weight: 800;
-        line-height: 1.35;
-    }
-
-    .history-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        max-height: 54vh;
-        overflow-y: auto;
-        padding-right: 2px;
-    }
-
-    .history-card {
-        padding: 14px 16px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
     .history-card-shell {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 14px;
-        align-items: start;
+        display: flex; gap: 18px; padding: 14px 16px;
+        align-items: stretch; justify-content: space-between;
     }
-
-    .history-card-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 8px;
-    }
-
-    .history-date {
-        color: #fff;
-        font-weight: 800;
-        font-size: 14px;
-        line-height: 1.35;
-    }
-
-    .history-subline {
-        color: #64748b;
-        font-size: 11px;
-        margin-top: 3px;
-    }
-
-    .history-total {
-        color: #2dd4bf;
-        font-size: 16px;
-        font-weight: 800;
-        white-space: nowrap;
-        text-align: right;
-    }
-
-    .history-side {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 10px;
-        min-width: 168px;
-        position: relative;
-        z-index: 2;
-    }
-
+    .history-card-shell > div:first-child { flex: 1; min-width: 0; }
+    .history-card-head { margin-bottom: 8px; }
+    .history-date { color: var(--m-text); font-weight: 800; font-size: 14px; }
+    .history-subline { color: var(--m-text-muted); font-size: 12px; font-weight: 600; }
     .history-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 8px;
-        color: #cbd5e1;
-        font-size: 11px;
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        color: var(--m-text-muted); font-size: 12px; font-weight: 600;
     }
-
     .history-dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.7);
+        width: 4px; height: 4px; border-radius: 50%;
+        background: var(--m-text-faint);
     }
-
-    .history-allocations {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .history-allocation {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 8px;
-        border-radius: 999px;
-        background: rgba(59, 130, 246, 0.08);
-        border: 1px solid rgba(59, 130, 246, 0.15);
-        color: #bfdbfe;
-        font-size: 11px;
-        font-weight: 700;
-        max-width: 100%;
-    }
-
-    .history-allocation.is-more {
-        background: rgba(255, 255, 255, 0.03);
-        border-style: dashed;
-        color: #94a3b8;
-    }
-
-    .history-allocations-wrap {
-        margin-bottom: 8px;
-    }
-
+    .history-allocations-wrap { margin-top: 10px; }
     .history-allocations-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #64748b;
-        margin-bottom: 6px;
+        color: var(--m-text-muted); font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px;
     }
-
+    .history-allocations {
+        display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .history-allocation {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 9px; border-radius: 999px;
+        background: var(--m-violet-soft); border: 1px solid var(--m-violet-glow);
+        color: #C4B5FD; font-size: 11px; font-weight: 700;
+    }
+    .history-allocation.is-more {
+        background: rgba(255, 255, 255, 0.05); border-color: var(--m-border);
+        color: var(--m-text-muted);
+    }
     .history-note {
-        margin-bottom: 0;
-        padding: 8px 10px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.03);
-        color: #cbd5e1;
-        font-size: 12px;
-        line-height: 1.45;
+        margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+        background: rgba(0, 0, 0, 0.25); border: 1px solid var(--m-border);
+        color: var(--m-text-soft); font-size: 12.5px; line-height: 1.5;
     }
-
-    .history-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 6px;
-        flex-wrap: wrap;
+    .history-side {
+        display: flex; flex-direction: column; align-items: flex-end;
+        gap: 12px; flex-shrink: 0;
     }
-
-    .history-actions .action-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 11px;
-        position: relative;
-        z-index: 3;
-        pointer-events: auto;
+    .history-total {
+        color: var(--m-green); font-weight: 800; font-size: 18px;
+        font-feature-settings: "tnum" 1;
     }
-
-    .history-empty {
-        padding: 22px 18px;
-        border-radius: 18px;
-        border: 1px dashed rgba(255, 255, 255, 0.12);
-        color: #94a3b8;
-        text-align: center;
-        font-weight: 700;
-    }
-
-    .delete-popover {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 18px;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        z-index: 2000;
-        transition: opacity 0.22s ease, visibility 0.22s ease;
-    }
-
-    .delete-popover.is-visible {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-    }
-
-    .delete-popover__backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(2, 6, 23, 0.7);
-        backdrop-filter: blur(10px);
-    }
-
-    .delete-popover__card {
-        position: relative;
-        width: min(460px, calc(100vw - 32px));
-        padding: 24px;
-        border-radius: 26px;
-        background:
-            radial-gradient(circle at top right, rgba(239, 68, 68, 0.18), transparent 32%),
-            linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
-        border: 1px solid rgba(248, 113, 113, 0.2);
-        box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55);
-        transform: translateY(14px) scale(0.98);
-        transition: transform 0.24s ease;
-    }
-
-    .delete-popover.is-visible .delete-popover__card {
-        transform: translateY(0) scale(1);
-    }
-
-    .delete-popover__close {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 38px;
-        height: 38px;
-        border: 0;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #94a3b8;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-    }
-
-    .delete-popover__close:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
-    }
-
-    .delete-popover__icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 20px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 18px;
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.08));
-        border: 1px solid rgba(248, 113, 113, 0.24);
-        color: #fda4af;
-        font-size: 26px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    }
-
-    .delete-popover__kicker {
-        color: #fca5a5;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-
-    .delete-popover__title {
-        margin: 0 0 10px;
-        color: #fff;
-        font-size: clamp(24px, 3vw, 30px);
-        font-weight: 900;
-        line-height: 1.15;
-        max-width: calc(100% - 48px);
-    }
-
-    .delete-popover__text {
-        margin: 0;
-        color: #cbd5e1;
-        font-size: 15px;
-        line-height: 1.65;
-    }
-
-    .delete-popover__amount {
-        color: #f87171;
-        font-weight: 900;
-    }
-
-    .delete-popover__meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 18px;
-    }
-
-    .delete-popover__meta-item {
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .delete-popover__meta-item span {
-        display: block;
-        color: #64748b;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 6px;
-    }
-
-    .delete-popover__meta-item strong {
-        display: block;
-        color: #fff;
-        font-size: 15px;
-        font-weight: 800;
-        line-height: 1.4;
-    }
-
-    .delete-popover__warning {
-        margin-top: 14px;
-        padding: 14px 16px;
-        border-radius: 18px;
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px solid rgba(245, 158, 11, 0.18);
-        color: #fcd34d;
-        font-size: 13px;
-        line-height: 1.6;
-    }
-
-    .delete-popover__warning strong {
-        color: #fde68a;
-    }
-
-    .delete-popover__actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 18px;
-    }
-
-    .delete-popover__btn {
-        min-width: 132px;
-        height: 48px;
-        padding: 0 18px;
-        border-radius: 14px;
-        border: 1px solid transparent;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: 800;
-        transition: all 0.2s ease;
-    }
-
-    .delete-popover__btn:hover {
-        transform: translateY(-1px);
-    }
-
-    .delete-popover__btn-cancel {
-        background: rgba(255, 255, 255, 0.04);
-        border-color: rgba(255, 255, 255, 0.08);
-        color: #cbd5e1;
-    }
-
-    .delete-popover__btn-cancel:hover {
-        background: rgba(255, 255, 255, 0.07);
-        color: #fff;
-    }
-
-    .delete-popover__btn-confirm {
-        background: linear-gradient(135deg, #ef4444, #fb7185);
-        color: #fff;
-        box-shadow: 0 18px 36px rgba(239, 68, 68, 0.28);
-    }
-
-    .delete-popover__btn-confirm:hover {
-        box-shadow: 0 22px 40px rgba(239, 68, 68, 0.32);
-    }
-
-    .delete-popover__btn-confirm:disabled,
-    .delete-popover__btn-cancel:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .delete-popover__error {
-        min-height: 20px;
-        margin-top: 12px;
-        color: #fca5a5;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-
-    /* ===== ANIMATIONS ===== */
-    @keyframes fadeInSlide {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .anim-fade-in {
-        animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    .delay-1 {
-        animation-delay: 0.1s;
-    }
-
-    .delay-2 {
-        animation-delay: 0.2s;
-    }
-
-    .delay-3 {
-        animation-delay: 0.3s;
-    }
-
-    .table-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-
-    .page-meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        padding: 12px 16px;
-        border-radius: 16px;
-        background: rgba(15, 23, 42, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .page-meta strong {
-        color: #fff;
-        font-weight: 800;
-    }
-
-    .page-size-form {
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        padding: 10px 12px;
-        border-radius: 16px;
-        background: rgba(15, 23, 42, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
-    }
-
-    .page-size-label {
-        margin: 0;
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-    }
-
-    .page-select-wrap {
-        position: relative;
-    }
-
-    .page-select-wrap::after {
-        content: '\f078';
-        font-family: "Font Awesome 6 Free";
-        font-weight: 900;
-        position: absolute;
-        right: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #93c5fd;
-        pointer-events: none;
-        font-size: 11px;
-    }
-
-    .page-select {
-        min-width: 112px;
-        padding: 10px 38px 10px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background:
-            linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.96));
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        outline: none;
-        appearance: none;
-        -webkit-appearance: none;
-        transition: all 0.2s ease;
-    }
-
-    .page-select:focus {
-        border-color: rgba(96, 165, 250, 0.85);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
-    }
-
-    .payments-pagination {
-        margin-top: 18px;
-    }
-
-    .payments-pagination .pagination {
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .payments-pagination .page-item {
-        margin: 0;
-    }
-
-    .payments-pagination .page-link {
-        min-width: 44px;
-        height: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 14px;
-        border-radius: 14px !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        background: rgba(15, 23, 42, 0.48) !important;
-        color: #cbd5e1 !important;
-        backdrop-filter: blur(12px);
-        box-shadow: none !important;
-        transition: all 0.2s ease;
-    }
-
-    .payments-pagination .page-link:hover {
-        color: #fff !important;
-        border-color: rgba(96, 165, 250, 0.28) !important;
-        background: rgba(30, 41, 59, 0.9) !important;
-        transform: translateY(-1px);
-    }
-
-    .payments-pagination .page-item.active .page-link,
-    .payments-pagination .page-link.bg-primary {
-        color: #fff !important;
-        border-color: transparent !important;
-        background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
-        box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28) !important;
-    }
-
-    /* Clear Filter Button */
-    .clear-filter-wrap {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 12px;
-    }
-
-    .clear-filter-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: none !important;
-        transition: all 0.2s;
-        backdrop-filter: blur(10px);
-    }
-
-    .clear-filter-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    .payments-table-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .export-action-btn {
-        height: 44px;
-        padding: 0 18px;
-        border-radius: 14px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        text-decoration: none;
-        border: 1px solid transparent;
-        transition: all 0.24s ease;
-    }
-
-    .export-action-btn {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(14, 165, 233, 0.14));
-        border-color: rgba(251, 191, 36, 0.18);
-        color: #f8fafc;
-        box-shadow: 0 16px 32px rgba(14, 165, 233, 0.12);
-    }
-
-    .export-action-btn:hover {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(37, 99, 235, 0.18));
-        border-color: rgba(251, 191, 36, 0.28);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    /* Date Input Visibility */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: invert(1) opacity(0.5);
-        cursor: pointer;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-        opacity: 0.8;
-    }
-
-    @media (max-width: 991.98px) {
-        .overview-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .summary-card-wide {
-            grid-column: auto;
-        }
-
-        .chart-container {
-            height: 200px;
-            min-height: 200px;
-        }
-    }
+    .history-actions { display: flex; gap: 6px; }
 
     @media (max-width: 768px) {
-        .table-footer {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .page-meta,
-        .page-size-form {
-            width: 100%;
-            justify-content: space-between;
-        }
-
-        .history-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .history-modal-dialog {
-            max-width: calc(100vw - 16px);
-            margin: 8px auto;
-        }
-
-        .history-modal-body {
-            padding: 16px !important;
-        }
-
-        .history-card-shell {
-            grid-template-columns: 1fr;
-        }
-
-        .payments-table-actions {
-            width: 100%;
-            justify-content: stretch;
-        }
-
-        .payments-table-actions .badge {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .export-action-btn {
-            flex: 1 1 calc(50% - 6px);
-        }
-
-        .history-side {
-            min-width: 0;
-            width: 100%;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .history-total {
-            text-align: left;
-        }
-
-        .history-actions {
-            justify-content: flex-start;
-        }
+        .history-stats { grid-template-columns: repeat(2, 1fr); }
+        .history-card-shell { flex-direction: column; }
+        .history-side { align-items: flex-start; }
     }
 
+    /* Delete popover (custom slide-up) */
+    .delete-popover {
+        position: fixed; inset: 0; z-index: 2050;
+        display: none; align-items: center; justify-content: center;
+        padding: 16px;
+    }
+    .delete-popover.is-visible { display: flex; }
+    .delete-popover__backdrop {
+        position: absolute; inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(6px);
+    }
+    .delete-popover__card {
+        position: relative; width: 100%; max-width: 420px;
+        padding: 26px 24px 22px; border-radius: 22px;
+        background: rgba(15, 23, 42, 0.96); border: 1px solid var(--m-border);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+        animation: dpFadeUp 0.22s ease-out;
+    }
+    @keyframes dpFadeUp {
+        from { transform: translateY(12px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .delete-popover__close {
+        position: absolute; top: 12px; right: 12px;
+        width: 32px; height: 32px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05); border: 1px solid var(--m-border);
+        color: var(--m-text-muted); cursor: pointer;
+        display: grid; place-items: center;
+    }
+    .delete-popover__close:hover { color: var(--m-text); background: rgba(255, 255, 255, 0.1); }
+    .delete-popover__icon {
+        width: 56px; height: 56px; margin: 0 auto 14px;
+        border-radius: 18px; display: grid; place-items: center;
+        font-size: 22px; color: #FCA5A5;
+        background: var(--m-red-soft); border: 1px solid var(--m-red-glow);
+    }
+    .delete-popover__kicker {
+        text-align: center; color: var(--m-red); font-size: 10.5px;
+        font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .delete-popover__title {
+        text-align: center; color: var(--m-text);
+        font-size: 19px; font-weight: 800; margin: 0 0 12px;
+    }
+    .delete-popover__text {
+        text-align: center; color: var(--m-text-muted);
+        font-size: 13.5px; line-height: 1.6; margin: 0 0 14px;
+    }
+    .delete-popover__amount {
+        color: var(--m-text); font-weight: 800;
+        font-feature-settings: "tnum" 1;
+    }
+    .delete-popover__meta {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        margin-bottom: 14px;
+    }
+    .delete-popover__meta-item {
+        padding: 8px 10px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03); border: 1px solid var(--m-border);
+        text-align: center;
+    }
+    .delete-popover__meta-item span {
+        display: block; color: var(--m-text-muted);
+        font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .delete-popover__meta-item strong {
+        color: var(--m-text); font-size: 12px; font-weight: 700;
+    }
+    .delete-popover__warning {
+        padding: 10px 12px; border-radius: 12px;
+        background: var(--m-amber-soft); border: 1px solid var(--m-amber-glow);
+        color: #FCD34D; font-size: 12px; line-height: 1.5;
+        margin-bottom: 14px;
+    }
+    .delete-popover__actions {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .delete-popover__btn {
+        padding: 11px 14px; border-radius: 12px;
+        font-size: 13.5px; font-weight: 700; cursor: pointer;
+        border: 1px solid transparent; transition: all 0.18s ease;
+    }
+    .delete-popover__btn-cancel {
+        background: rgba(255, 255, 255, 0.04); color: var(--m-text-soft);
+        border-color: var(--m-border);
+    }
+    .delete-popover__btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.08); color: var(--m-text);
+    }
+    .delete-popover__btn-confirm {
+        background: linear-gradient(135deg, var(--m-red), #DC2626);
+        color: #fff; border-color: rgba(248, 113, 113, 0.35);
+        box-shadow: 0 10px 22px rgba(220, 38, 38, 0.28);
+    }
+    .delete-popover__btn-confirm:hover { transform: translateY(-1px); }
+    .delete-popover__btn-confirm:disabled {
+        opacity: 0.6; cursor: not-allowed; transform: none;
+    }
+    .delete-popover__error {
+        margin-top: 10px; color: var(--m-red);
+        font-size: 12px; text-align: center; min-height: 14px;
+    }
+
+    /* Action-btn extra: edit variant */
+    .action-btn.edit:hover {
+        background: var(--m-amber-soft); color: var(--m-amber);
+        border-color: var(--m-amber-glow);
+    }
+    .action-btn.delete:hover {
+        background: var(--m-red-soft); color: var(--m-red);
+        border-color: var(--m-red-glow);
+    }
+
+    /* Filter grid for tolovlar (10 fields) */
+    .filter-bar__grid--payments {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    @media (max-width: 1199.98px) {
+        .filter-bar__grid--payments { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 768px) {
+        .filter-bar__grid--payments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     @media (max-width: 575.98px) {
-        .history-stats {
-            grid-template-columns: 1fr;
-        }
-
-        .delete-popover__card {
-            width: calc(100vw - 20px);
-            padding: 20px 18px 18px;
-            border-radius: 22px;
-        }
-
-        .delete-popover__title {
-            max-width: calc(100% - 24px);
-            font-size: 22px;
-        }
-
-        .delete-popover__meta {
-            grid-template-columns: 1fr;
-        }
-
-        .delete-popover__actions {
-            flex-direction: column-reverse;
-            align-items: stretch;
-        }
-
-        .delete-popover__btn {
-            width: 100%;
-        }
-
-        .export-action-btn,
-        .delete-popover__btn {
-            width: 100%;
-        }
+        .filter-bar__grid--payments { grid-template-columns: 1fr; }
     }
-</style>
 
-<style>
-    body.delete-popover-open {
-        overflow: hidden;
-    }
+    html[data-role-theme="light"] .pay-tag { background: #F1F5F9; border-color: #E2E8F0; color: #334155; }
+    html[data-role-theme="light"] .pay-tag--month { background: #EDE9FE; border-color: #DDD6FE; color: #5B21B6; }
+    html[data-role-theme="light"] .pay-tag--group { background: #DBEAFE; border-color: #BFDBFE; color: #1D4ED8; }
+    html[data-role-theme="light"] .pay-tag--more { background: #F8FAFC; border-color: #E2E8F0; color: #64748B; }
+    html[data-role-theme="light"] .type-badge.bg-cash { background: #DCFCE7; border-color: #BBF7D0; color: #166534; }
+    html[data-role-theme="light"] .type-badge.bg-card { background: #DBEAFE; border-color: #BFDBFE; color: #1D4ED8; }
+    html[data-role-theme="light"] .type-badge.bg-mixed { background: #FEF3C7; border-color: #FDE68A; color: #92400E; }
+    html[data-role-theme="light"] .amount-badge { background: #DCFCE7; border-color: #BBF7D0; color: #15803D; }
+    html[data-role-theme="light"] .student-name-btn { color: #0F172A; }
+    html[data-role-theme="light"] .history-card,
+    html[data-role-theme="light"] .history-stat { background: #F8FAFC; border-color: #E2E8F0; }
+    html[data-role-theme="light"] .history-stat-value,
+    html[data-role-theme="light"] .history-date { color: #0F172A; }
+    html[data-role-theme="light"] .history-stat-label,
+    html[data-role-theme="light"] .history-subline,
+    html[data-role-theme="light"] .history-meta { color: #64748B; }
+    html[data-role-theme="light"] .history-allocation { background: #EDE9FE; border-color: #DDD6FE; color: #5B21B6; }
+    html[data-role-theme="light"] .history-note { background: #F1F5F9; border-color: #E2E8F0; color: #334155; }
+    html[data-role-theme="light"] .delete-popover__card { background: #FFFFFF; border-color: #CBD5E1; }
+    html[data-role-theme="light"] .delete-popover__title { color: #0F172A; }
+    html[data-role-theme="light"] .delete-popover__text,
+    html[data-role-theme="light"] .delete-popover__close { color: #475569; }
+    html[data-role-theme="light"] .delete-popover__amount { color: #0F172A; }
+    html[data-role-theme="light"] .delete-popover__warning { background: #FEF3C7; border-color: #FDE68A; color: #92400E; }
+    html[data-role-theme="light"] .delete-popover__meta-item { background: #F8FAFC; border-color: #E2E8F0; }
+    html[data-role-theme="light"] .delete-popover__meta-item strong { color: #0F172A; }
+    html[data-role-theme="light"] .delete-popover__btn-cancel { background: #FFFFFF; border-color: #CBD5E1; color: #334155; }
 </style>
+{% endblock %}
 
-<div class="tl-container">
+{% block content %}
+<div class="moliya-shell payments-page-v2">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-4 align-items-stretch">
-        <div class="col-xl-5 col-lg-6 anim-fade-in delay-1">
-            <div class="overview-grid">
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Umumiy daromad</span>
-                            <div class="summary-value">{{ total_income|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box">
-                            <i class="fa-solid fa-money-bill-trend-up"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">Markaz bo'yicha jami tushum</div>
-                </div>
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Filter bo'yicha</span>
-                            <div class="summary-value">{{ filtered_income|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box"
-                            style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
-                            <i class="fa-solid fa-filter"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">Tanlangan filterlar natijasi</div>
-                </div>
-                <div class="premium-card summary-card summary-card-wide">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">To'lagan o'quvchilar</span>
-                            <div class="summary-value">{{ unique_payers_count }} ta</div>
-                        </div>
-                        <div class="card-icon-box"
-                            style="background: rgba(139, 92, 246, 0.1); color: var(--purple); border-color: rgba(139, 92, 246, 0.2);">
-                            <i class="fa-solid fa-user-graduate"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">Ro'yxatdagi noyob o'quvchilar soni</div>
-                </div>
+    <!-- HERO: 2 stat cards (left) + chart (right) -->
+    <section class="payments-hero">
+        <div class="payments-hero__cards">
+            <div class="payments-stat">
+                <span class="payments-stat__label">Umumiy daromad</span>
+                <span class="payments-stat__value">{{ total_income|intcomma }} so'm</span>
+            </div>
+            <div class="payments-stat">
+                <span class="payments-stat__label">Filter bo'yicha</span>
+                <span class="payments-stat__value payments-stat__value--muted">{{ filtered_income|intcomma }} so'm</span>
             </div>
         </div>
-        <div class="col-xl-7 col-lg-6 anim-fade-in delay-3">
-            <div class="premium-card chart-card h-100">
-                <div class="chart-head">
-                    <div>
-                        <div class="chart-kicker">{{ chart_kicker|default:"Tanlangan davr" }}</div>
-                        <h5 class="chart-title">Daromad grafigi</h5>
-                        <div class="summary-note mt-2">{{ chart_period_label }}</div>
-                    </div>
-                    <div class="chart-meta">
-                        <span><strong>{{ chart_payment_record_count }}</strong> ta to'lov</span>
-                        <span><strong>{{ chart_unique_payers_count }}</strong> o'quvchi</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div id="tl-income-chart"></div>
-                </div>
+
+        <div class="payments-hero__chart">
+            <div class="payments-hero__chart-body">
+                <div id="tl-income-chart"></div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- FILTERS -->
-    <div class="filter-section anim-fade-in">
+    <div class="filter-bar filter-bar--payments-v2">
+        <h3 class="filter-bar__title">To'lovlar Filtrlari</h3>
         <form method="get" id="tlFilterForm">
             <input type="hidden" name="per_page" value="{{ per_page }}">
-            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff or request.GET.pay_month %}
-            <div class="clear-filter-wrap">
-                <a href="?per_page={{ per_page }}" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
-                </a>
-            </div>
-            {% endif %}
-            <div class="row g-4 align-items-end">
-                <div class="col-lg-4 col-md-6">
-                    <label class="filter-label">🔍 O'quvchi qidirish</label>
-                    <div class="search-input-wrap">
-                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
-                        <input type="text" name="q" value="{{ q }}" placeholder="Ism, telefon yoki email..." class="filter-input">
+            <div class="filter-grid--payments-v2">
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-regular fa-calendar"></i> Sanadan boshlab</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input" aria-label="Sanadan boshlab">
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-regular fa-calendar"></i> Sanagacha</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input" aria-label="Sanagacha">
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-regular fa-circle-user"></i> To'liq ism</label>
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass filter-search__icon"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon raqam bo'yicha qidirish" class="filter-input">
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-6">
-                    <label class="filter-label">📅 Sanadan boshlab</label>
-                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
-                </div>
-                <div class="col-lg-2 col-md-6">
-                    <label class="filter-label">📅 Sanagacha</label>
-                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
-                </div>
-                <div class="col-lg-2 col-md-6">
-                    <label class="filter-label"> To'lov turi</label>
-                    <select name="payment_type" class="filter-select">
-                        <option value="">Barchasi</option>
-                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
-                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
-                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
-                    </select>
-                </div>
-                <div class="col-lg-2 col-md-6">
-                    <label class="filter-label">📅 Qaysi oy uchun?</label>
-                    <select name="pay_month" class="filter-select">
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-regular fa-calendar"></i> To'lov oyi</label>
+                    <select name="pay_month" class="filter-select" aria-label="To'lov oyi">
                         <option value="">Barcha oylar</option>
                         {% for mid, mname in uz_months %}
                         <option value="{{ mid }}" {% if sel_month == mid|stringformat:"s" %}selected{% endif %}>{{ mname }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="filter-label">👥 Guruh</label>
-                    <select name="group" class="filter-select">
-                        <option value="">Barchasi</option>
+
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-solid fa-people-group"></i> Guruh</label>
+                    <select name="group" class="filter-select" aria-label="Guruh">
+                        <option value="">Barcha guruhlar</option>
                         {% for g in groups %}
                         <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="filter-label">🎓 Kurs</label>
-                    <select name="course" class="filter-select">
-                        <option value="">Barchasi</option>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-solid fa-book"></i> Kurs</label>
+                    <select name="course" class="filter-select" aria-label="Kurs">
+                        <option value="">Barcha kurslar</option>
                         {% for c in courses %}
                         <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="filter-label">👨‍🏫 O'qituvchi</label>
-                    <select name="teacher" class="filter-select">
-                        <option value="">Barchasi</option>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-solid fa-user-tie"></i> O'qituvchi</label>
+                    <select name="teacher" class="filter-select" aria-label="O'qituvchi">
+                        <option value="">Barcha o'qituvchilar</option>
                         {% for t in teachers %}
                         <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.ism }} {{ t.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="filter-label">🏢 Xodim</label>
-                    <select name="staff" class="filter-select">
-                        <option value="">Barchasi</option>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-solid fa-id-badge"></i> Xodim</label>
+                    <select name="staff" class="filter-select" aria-label="Xodim">
+                        <option value="">Barcha xodimlar</option>
                         {% for s in staffs %}
-                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %} selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
+                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div class="filter-field">
+                    <label class="filter-label"><i class="fa-regular fa-credit-card"></i> To'lov turi</label>
+                    <select name="payment_type" class="filter-select" aria-label="To'lov turi">
+                        <option value="">Barcha to'lov turlari</option>
+                        {% for pm in dynamic_payment_methods %}
+                        <option value="{{ pm.nom|lower }}" {% if sel_type|lower == pm.nom|lower %}selected{% endif %}>{{ pm.nom|title }}</option>
+                        {% empty %}
+                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
+                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
+                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff or request.GET.pay_month %}
+                <div class="filter-field filter-field--clear">
+                    <label class="filter-label">&nbsp;</label>
+                    <a href="?per_page={{ per_page }}" class="filter-clear">
+                        <i class="fa-solid fa-xmark"></i> Tozalash
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- TABLE -->
-    <div class="table-container anim-fade-in shadow-lg">
-        <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
-            <h5 class="m-0 fw-bold text-white">To'lovlar Tarixi</h5>
-            <div class="payments-table-actions">
-                <a href="{% url 'education:payment_export_xlsx' %}{% if query_string %}?{{ query_string }}{% endif %}" class="export-action-btn">
-                    <i class="fa-solid fa-file-export"></i>
-                    Excel export
-                </a>
-                <span
-                    class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-3 py-2 rounded-3">
-                    Jami: {{ total_count }} ta
-                </span>
+    <!-- TABLE (full width) -->
+    <div class="data-table-card">
+            <div class="data-table-card__head">
+                <h3 class="data-table-card__title">To'lovlar</h3>
+                <div class="table-actions">
+                    <span class="payments-meta">Jami {{ total_count }} ta | Sahifa {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</span>
+                    <a href="{% url 'education:payment_export_xlsx' %}{% if query_string %}?{{ query_string }}{% endif %}" class="table-export-btn">
+                        <i class="fa-solid fa-file-export"></i> Excel
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="table-responsive">
-            <table class="premium-table">
-                <thead>
-                    <tr>
-                        <th>Sana</th>
-                        <th>O'quvchi</th>
-                        <th>Summa</th>
-                        <th>Qaysi oy uchun?</th>
-                        <th>Yonalish</th>
-                        <th>Tur</th>
-                        <th>Izoh</th>
-                        <th>Xodim</th>
-                        <th class="text-end">Amallar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in page_obj %}
-                    <tr>
-                        <td>
-                            <div class="fw-bold text-white">{{ row.latest_paid_date|date:"d.m.Y" }}</div>
-                            <div class="small text-secondary">{{ row.latest_payment.paid_time|time:"H:i" }}</div>
-                        </td>
-                        <td>
-                            <div class="student-info">
+            <div class="data-table-wrap">
+                <table class="data-table data-table--payments-v2">
+                    <thead>
+                        <tr>
+                            <th>TO'LOV SANASI</th>
+                            <th>ISM</th>
+                            <th>MIQDOR VA USUL</th>
+                            <th>TO'LOV OYI</th>
+                            <th>GURUH</th>
+                            <th>XODIM</th>
+                            <th>IZOH</th>
+                            <th class="text-end">AMALLAR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in page_obj %}
+                        <tr>
+                            <td>
+                                <div class="pay-cell-date">
+                                    <span class="pay-cell-date__primary">{{ row.latest_paid_date|date:"d M Y" }}</span>
+                                    <span class="pay-cell-date__time">{{ row.latest_payment.paid_time|time:"H:i" }}</span>
+                                </div>
+                            </td>
+                            <td>
                                 <button
                                     type="button"
-                                    class="student-name-btn"
+                                    class="pay-cell-name"
                                     onclick="openHistoryModal({{ row.student.id }}, '{{ row.student.get_full_name|escapejs }}')">
                                     {{ row.student.ism }} {{ row.student.familya }}
                                 </button>
-                                <span class="student-meta">{{ row.student.telefon1|default:row.student.telefon2|default:"—" }}</span>
-                                <span class="summary-subtext">{{ row.payment_count }} ta to'lov yozuvi</span>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="amount-badge">{{ row.total_sum|intcomma }} so'm</span>
-                            <div class="summary-subtext">Jami to'langan summa</div>
-                        </td>
-                        <td>
-                            <div class="month-stack" title="{{ row.month_summary_title }}">
-                                <div class="tag-row">
-                                    {% for month in row.visible_month_entries %}
-                                    <span class="month-tag">{{ month.label }}</span>
-                                    {% empty %}
-                                    <span class="text-secondary opacity-50 small">—</span>
-                                    {% endfor %}
-                                    {% if row.remaining_month_count %}
-                                    <span class="tag-more">+{{ row.remaining_month_count }} ta</span>
-                                    {% endif %}
+                            </td>
+                            <td>
+                                <div class="pay-cell-amount">
+                                    <span class="pay-cell-amount__value">{{ row.total_sum|intcomma }} so'm</span>
+                                    <span class="pay-cell-amount__method">
+                                        {% with first_type=row.visible_type_entries|first %}
+                                            {% if first_type %}{{ first_type.label }}{% else %}-{% endif %}
+                                        {% endwith %}
+                                    </span>
                                 </div>
-                                {% if row.month_entries %}
-                                <div class="group-caption">{{ row.month_entries|length }} ta oy yozuvi</div>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="group-stack" title="{{ row.group_summary_title }}">
-                                <div class="tag-row">
-                                    {% for group in row.visible_group_entries %}
-                                    <span class="group-tag">{{ group.name }}</span>
-                                    {% empty %}
-                                    <span class="text-secondary opacity-50 small">—</span>
-                                    {% endfor %}
-                                    {% if row.remaining_group_count %}
-                                    <span class="tag-more">+{{ row.remaining_group_count }} ta</span>
+                            </td>
+                            <td>
+                                {% with first_month=row.visible_month_entries|first %}
+                                    {% if first_month %}
+                                    <span class="pay-cell-month">{{ first_month.label }}</span>
+                                    {% else %}
+                                    <span class="pay-cell-muted">—</span>
                                     {% endif %}
-                                </div>
-                                <small class="group-caption">{{ row.category_summary }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="type-stack">
-                                <div class="tag-row">
-                                    {% for payment_type in row.visible_type_entries %}
-                                        {% if payment_type.code == "cash" %}
-                                        <span class="type-badge bg-cash"><i class="fa-solid fa-money-bill"></i> {{ payment_type.label }}</span>
-                                        {% elif payment_type.code == "card" %}
-                                        <span class="type-badge bg-card"><i class="fa-solid fa-credit-card"></i> {{ payment_type.label }}</span>
-                                        {% elif payment_type.code == "mixed" %}
-                                        <span class="type-badge bg-mixed"><i class="fa-solid fa-layer-group"></i> {{ payment_type.label }}</span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="pay-cell-group" title="{{ row.group_summary_title }}">
+                                    {% with first_group=row.visible_group_entries|first %}
+                                        {% if first_group %}
+                                        <span class="pay-cell-group__pill">{{ first_group.name }}</span>
+                                        {% if row.remaining_group_count %}
+                                        <span class="pay-cell-group__more">+{{ row.remaining_group_count }}</span>
                                         {% endif %}
-                                    {% empty %}
-                                    <span class="text-secondary">—</span>
-                                    {% endfor %}
-                                    {% if row.remaining_type_count %}
-                                    <span class="tag-more">+{{ row.remaining_type_count }} ta</span>
+                                        {% else %}
+                                        <span class="pay-cell-muted">—</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                    {% if row.category_summary %}
+                                    <span class="pay-cell-group__sub">{{ row.category_summary }}</span>
                                     {% endif %}
                                 </div>
-                            </div>
-                        </td>
-                        <td>
-                            {% if row.latest_note %}
-                            <span onclick="showNote('{{ row.latest_note|escapejs }}')" title="Oxirgi izohni ko'rish"
-                                style="cursor:pointer;color:#60a5fa;font-size:13px;">
-                                💬 {{ row.latest_note|truncatechars:22 }}
-                            </span>
-                            {% else %}
-                            <span class="text-secondary opacity-40">—</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="text-secondary fw-medium">{{ row.staff_summary }}</span>
-
-                        </td>
-                        <td class="text-end">
-                            <div class="d-flex justify-content-end gap-1">
-                                <button class="action-btn" title="Tarix"
-                                    onclick="openHistoryModal({{ row.student.id }}, '{{ row.student.get_full_name|escapejs }}')">
-                                    <i class="fas fa-eye"></i>
+                            </td>
+                            <td>
+                                <div class="pay-cell-staff">
+                                    <span class="pay-cell-staff__name">{{ row.staff_summary|default:"—" }}</span>
+                                    <span class="pay-cell-staff__time">{{ row.latest_paid_date|date:"d M Y" }} {{ row.latest_payment.paid_time|time:"H:i" }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if row.latest_note %}
+                                <button type="button" class="pay-cell-note pay-cell-note--has"
+                                    onclick="showNote('{{ row.latest_note|escapejs }}')"
+                                    title="Izohni ko'rish">
+                                    Batafsil
                                 </button>
-                                <button class="action-btn edit" title="So'nggi to'lovni tahrirlash"
-                                    onclick="openEditModal({{ row.latest_payment_id }}, {{ row.latest_cash_amount }}, {{ row.latest_card_amount }}, '{{ row.latest_note|escapejs }}')">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="action-btn delete" title="So'nggi to'lovni o'chirish"
-                                    onclick="openDeleteModal({{ row.latest_payment_id }}, '{{ row.student.ism|escapejs }} {{ row.student.familya|escapejs }}', '{{ row.latest_payment.summa|escapejs }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="text-center py-5">
-                            <div class="opacity-30 mb-3"><i class="fa-solid fa-folder-open fa-3x"></i></div>
-                            <p class="text-secondary m-0">To'lovlar topilmadi</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                {% else %}
+                                <span class="pay-cell-note pay-cell-note--empty">Izoh yo'q</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="pay-cell-actions">
+                                    <button class="action-btn" title="Tarix"
+                                        onclick="openHistoryModal({{ row.student.id }}, '{{ row.student.get_full_name|escapejs }}')">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <button class="action-btn edit" title="So'nggi to'lovni tahrirlash"
+                                        onclick="openEditModal({{ row.latest_payment_id }}, {{ row.latest_cash_amount }}, {{ row.latest_card_amount }}, '{{ row.latest_note|escapejs }}')">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button class="action-btn delete" title="So'nggi to'lovni o'chirish"
+                                        onclick="openDeleteModal({{ row.latest_payment_id }}, '{{ row.student.ism|escapejs }} {{ row.student.familya|escapejs }}', '{{ row.latest_payment.summa|escapejs }}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state-simple empty-state-simple--padded">To'lovlar topilmadi</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
+    <!-- PAGINATION -->
     <div class="table-footer">
         <div class="page-meta">
             <span>Sahifa <strong>{{ page_obj.number }}</strong> / <strong>{{ page_obj.paginator.num_pages }}</strong></span>
@@ -1632,11 +577,10 @@
             </div>
         </form>
     </div>
-    <div class="payments-pagination">
+    <div class="moliya-pagination">
         {% include "partials/pagination.html" %}
     </div>
 </div>
-
 {% endblock %}
 
 {% block modals %}
@@ -1645,23 +589,24 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-white"><span class="me-2">💬</span> Izoh</h5>
+                <h5 class="modal-title"><i class="fa-solid fa-message me-2" style="color:var(--m-blue);"></i> Izoh</h5>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-white-50 m-0" id="noteModalText" style="font-size:15px;line-height:1.8;"></p>
+                <p class="m-0" id="noteModalText" style="font-size:14.5px; line-height:1.7; color:var(--m-text-soft);"></p>
             </div>
         </div>
     </div>
 </div>
 
+<!-- HISTORY MODAL -->
 <div class="modal fade glass-modal" id="paymentHistoryModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-xl history-modal-dialog">
         <div class="modal-content history-modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title fw-bold text-white"><span class="me-2">🧾</span> To'lov tarixi</h5>
-                    <div class="text-secondary small" id="paymentHistorySubtitle">O'quvchi tarixi</div>
+                    <h5 class="modal-title"><i class="fa-solid fa-receipt me-2" style="color:var(--m-violet);"></i> To'lov tarixi</h5>
+                    <div class="cell-stack__meta" id="paymentHistorySubtitle">O'quvchi tarixi</div>
                 </div>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
@@ -1697,7 +642,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-white"><span class="me-2">✏️</span> To'lovni tahrirlash</h5>
+                <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2" style="color:var(--m-amber);"></i> To'lovni tahrirlash</h5>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
             <form id="editPayForm" method="post" action="">
@@ -1718,15 +663,15 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                        data-bs-dismiss="modal">Bekor qilish</button>
-                    <button type="submit" class="btn btn-warning px-4 rounded-3 fw-bold">💾 Saqlash</button>
+                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn-primary-pill"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- DELETE POPOVER -->
 <div class="delete-popover" id="deletePayModal" aria-hidden="true">
     <div class="delete-popover__backdrop" data-delete-close></div>
     <div class="delete-popover__card" role="dialog" aria-modal="true" aria-labelledby="deletePopoverTitle">
@@ -1751,7 +696,7 @@
             </div>
             <div class="delete-popover__meta-item">
                 <span>Natija</span>
-                <strong>Qarzdorlik qayta hisoblanadi</strong>
+                <strong>Qarz qayta hisoblanadi</strong>
             </div>
         </div>
 
@@ -1812,18 +757,8 @@
             if (!value || !String(value).includes("-")) return value || "—";
             const [year, month] = String(value).split("-");
             const monthNames = [
-                "Yanvar",
-                "Fevral",
-                "Mart",
-                "Aprel",
-                "May",
-                "Iyun",
-                "Iyul",
-                "Avgust",
-                "Sentyabr",
-                "Oktyabr",
-                "Noyabr",
-                "Dekabr"
+                "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+                "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
             ];
             const monthIndex = Number(month) - 1;
             return `${monthNames[monthIndex] || month} ${year}`;
@@ -1865,7 +800,6 @@
         function getCsrfToken() {
             const formToken = document.querySelector('#quickDeletePayForm input[name="csrfmiddlewaretoken"]');
             if (formToken && formToken.value) return formToken.value;
-
             const cookieMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
             return cookieMatch ? decodeURIComponent(cookieMatch[1]) : "";
         }
@@ -1946,18 +880,15 @@
             });
         }
 
-        // Show note modal
         window.showNote = function (text) {
             document.getElementById('noteModalText').textContent = text;
             new bootstrap.Modal(document.getElementById('noteModal')).show();
         };
 
-        // Open edit modal
         window.openEditModal = function (paymentId, cash, card, note) {
             document.getElementById('editCash').value = cash || 0;
             document.getElementById('editCard').value = card || 0;
             document.getElementById('editNote').value = note || '';
-            // Store payment ID in form dataset
             document.getElementById('editPayForm').dataset.paymentId = paymentId;
             showModalWithHistorySwap(editModalEl);
         };
@@ -1976,7 +907,7 @@
             historyFee.textContent = "—";
             historyPaid.textContent = "—";
             historyBalance.textContent = "—";
-            historyBalance.style.color = "#fff";
+            historyBalance.style.color = "";
             historyList.innerHTML = '<div class="history-empty">Yuklanmoqda...</div>';
 
             new bootstrap.Modal(modalEl).show();
@@ -1988,7 +919,7 @@
                     historyFee.textContent = formatMoney(data.fee);
                     historyPaid.textContent = formatMoney(data.paid_this_month);
                     historyBalance.textContent = formatMoney(data.qoldiq);
-                    historyBalance.style.color = Number(data.qoldiq || 0) > 0 ? "#f87171" : "#34d399";
+                    historyBalance.style.color = Number(data.qoldiq || 0) > 0 ? "var(--m-red)" : "var(--m-green)";
 
                     const payments = data.payments || [];
                     if (!payments.length) {
@@ -2065,13 +996,13 @@
                                             ${receiptButton}
                                             <button class="action-btn edit" type="button" title="Tahrirlash"
                                                 onclick="openEditModal(${payment.id}, ${payment.cash || 0}, ${payment.card || 0}, decodeURIComponent('${encodeURIComponent(payment.note || "")}'))">
-                                                <i class="fas fa-pen"></i>
+                                                <i class="fa-solid fa-pen"></i>
                                             </button>
                                             <button class="action-btn delete js-history-delete" type="button" title="O'chirish"
                                                 data-payment-id="${payment.id}"
                                                 data-student-name="${encodeURIComponent(studentName)}"
                                                 data-amount="${payment.total || 0}">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -2085,7 +1016,6 @@
                 });
         };
 
-        // Edit form: AJAX submit (payment_update returns JSON)
         document.addEventListener('DOMContentLoaded', function () {
             const editForm = document.getElementById('editPayForm');
             if (editForm) {
@@ -2110,19 +1040,18 @@
                             } else {
                                 alert('Xatolik: ' + (data.error || 'Noma\'lum xato'));
                                 btn.disabled = false;
-                                btn.textContent = '💾 Saqlash';
+                                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Saqlash';
                             }
                         })
                         .catch(() => {
                             alert('Server xatoligi. Qayta urinib ko\'ring.');
                             btn.disabled = false;
-                            btn.textContent = '💾 Saqlash';
+                            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Saqlash';
                         });
                 });
             }
         });
 
-        // Open delete confirm modal
         window.openDeleteModal = function (paymentId, studentName, amount) {
             showDeletePopover(paymentId, studentName, amount);
         };
@@ -2132,7 +1061,6 @@
         };
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Auto-submit filters
             const form = document.getElementById("tlFilterForm");
             if (form) {
                 form.querySelectorAll("select, input[type='date']").forEach(el => {
@@ -2201,7 +1129,7 @@
                 }
             });
 
-            // Chart
+            // Income chart
             const dataEl = document.getElementById("tl-chart-data");
             const labelEl = document.getElementById("tl-chart-labels");
             const chartDiv = document.querySelector("#tl-income-chart");
@@ -2217,7 +1145,7 @@
 
                 function buildOptions() {
                     const isLightTheme = getThemeMode() === 'light';
-                    const labelColor = isLightTheme ? '#475569' : '#64748b';
+                    const labelColor = isLightTheme ? '#475569' : '#94a3b8';
                     const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
 
                     return {
@@ -2231,22 +1159,17 @@
                             zoom: { enabled: false },
                             parentHeightOffset: 0
                         },
-                        colors: ["#14b8a6"],
+                        colors: ["#10b981"],
                         stroke: { curve: "smooth", width: 3, lineCap: "round" },
-                        markers: {
-                            size: 0,
-                            hover: { size: 5 },
-                            strokeWidth: 0,
-                        },
+                        markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
                         fill: {
                             type: "gradient",
                             gradient: {
-                                shadeIntensity: 1,
-                                opacityFrom: 0.38,
-                                opacityTo: 0.04,
-                                stops: [0, 90, 100], colorStops: [
-                                    { offset: 0, color: "#14b8a6", opacity: 0.4 },
-                                    { offset: 100, color: "#14b8a6", opacity: 0.02 }
+                                shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.04,
+                                stops: [0, 90, 100],
+                                colorStops: [
+                                    { offset: 0, color: "#10b981", opacity: 0.4 },
+                                    { offset: 100, color: "#10b981", opacity: 0.02 }
                                 ]
                             }
                         },

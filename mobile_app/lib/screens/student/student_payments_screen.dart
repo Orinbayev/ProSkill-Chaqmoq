@@ -1,35 +1,20 @@
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
-import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
-import 'package:intl/intl.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/payments_provider.dart';
+import 'package:chaqmoq_mobile/screens/student/widgets/student_atmospheric_backdrop.dart';
+import 'package:chaqmoq_mobile/screens/student/widgets/student_payment_action_sheet.dart';
+import 'package:chaqmoq_mobile/widgets/app_badge.dart';
 import 'package:chaqmoq_mobile/widgets/app_card.dart';
 import 'package:chaqmoq_mobile/widgets/app_parent_app_bar.dart';
 import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-String _shortAmount(int value) {
-  if (value == 0) return '0';
-  if (value.abs() >= 1000000) {
-    final n = value / 1000000;
-    return '${n.toStringAsFixed(value % 1000000 == 0 ? 0 : 1)} mln';
-  }
-  if (value.abs() >= 1000) {
-    final n = value / 1000;
-    return '${n.toStringAsFixed(0)} ming';
-  }
-  return Formatters.number(value);
-}
-
-String _monthLabel(DateTime date) {
-  return DateFormat('MMM yyyy', 'uz').format(date);
-}
-
-/// Student Payments — dark teal hero, mini stats, filter chips, glass list.
 class StudentPaymentsScreen extends StatefulWidget {
   const StudentPaymentsScreen({super.key});
 
@@ -38,11 +23,15 @@ class StudentPaymentsScreen extends StatefulWidget {
 }
 
 class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
+  bool _hydrated = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_hydrated) return;
     final user = context.read<AuthProvider>().user;
     if (user != null) {
+      _hydrated = true;
       context.read<PaymentsProvider>().load(user);
     }
   }
@@ -55,21 +44,22 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<PaymentsProvider>();
     final user = auth.user;
     if (user == null) return const SizedBox.shrink();
 
     return Scaffold(
-      backgroundColor: StudentColors.bg,
+      backgroundColor: tokens.bg,
       body: Stack(
         children: [
-          const _AtmosphericBackdrop(),
+          const StudentAtmosphericBackdrop(),
           SafeArea(
             child: RefreshIndicator(
-              color: StudentColors.primary,
+              color: tokens.primary,
               onRefresh: _refresh,
-              child: _body(user, provider),
+              child: _body(user, provider, tokens),
             ),
           ),
         ],
@@ -77,21 +67,24 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     );
   }
 
-  Widget _body(UserModel user, PaymentsProvider provider) {
+  Widget _body(UserModel user, PaymentsProvider provider, StudentTokens tokens) {
     if (provider.state == ViewState.loading && provider.filteredItems.isEmpty) {
-      return const AppLoadingState(dark: true);
+      return AppLoadingState(dark: tokens.isDark);
     }
     if (provider.state == ViewState.error && provider.filteredItems.isEmpty) {
       return AppErrorState(
         title: "To‘lovlar yuklanmadi",
         message: provider.errorMessage ??
             'Server bilan aloqa yo‘q. Qayta urinib ko‘ring.',
-        dark: true,
+        dark: tokens.isDark,
         onRetry: () => provider.refresh(user),
       );
     }
 
     final items = provider.filteredItems;
+    final summary = provider.summary;
+    final lastPaid = _lastPaid(provider.filteredItems);
+    final nextDue = _nextDue(provider.filteredItems);
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -100,23 +93,35 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
         Row(
           children: [
             Expanded(
-              child: Text("To‘lovlar",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: StudentColors.text,
-                    letterSpacing: -0.2,
-                  )),
+              child: Text(
+                "To‘lovlar",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: tokens.text,
+                  letterSpacing: -0.2,
+                ),
+              ),
             ),
             AppStudentIconButton(icon: Icons.history_rounded, onTap: () {}),
           ],
         ),
         const SizedBox(height: 14),
-        _Hero(summary: provider.summary),
+        _Hero(summary: summary, lastPaid: lastPaid, nextDue: nextDue),
+        const SizedBox(height: 12),
+        _PayCtaButton(
+          summary: summary,
+          onTap: () => StudentPaymentActionSheet.show(
+            context,
+            summary: summary,
+            debtItems: provider.filteredItems.where((p) => p.isDebt).toList(),
+            center: user.center,
+          ),
+        ),
         const SizedBox(height: 14),
-        _MiniStats(summary: provider.summary),
+        _MiniStats(summary: summary),
         const SizedBox(height: 12),
         _FilterChips(
           active: provider.filter,
@@ -124,12 +129,12 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: AppEmptyState(
-              dark: true,
+              dark: tokens.isDark,
               title: "To‘lov mavjud emas",
-              subtitle: 'Yangi yozuvlar paydo bo‘lganda shu yerda ko‘rinadi.',
+              subtitle: "Yangi yozuvlar paydo bo‘lganda shu yerda ko‘rinadi.",
               icon: Icons.receipt_long_outlined,
             ),
           )
@@ -141,102 +146,161 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
       ],
     );
   }
-}
 
-class _AtmosphericBackdrop extends StatelessWidget {
-  const _AtmosphericBackdrop();
+  PaymentModel? _lastPaid(List<PaymentModel> items) {
+    final paid = items.where((p) => !p.isDebt).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return paid.isEmpty ? null : paid.first;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Stack(children: [
-        Positioned(
-          top: 60,
-          right: -40,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [Color(0x3300D4AA), Color(0x0000D4AA)]),
-            ),
-          ),
-        ),
-      ]),
-    );
+  DateTime? _nextDue(List<PaymentModel> items) {
+    final debt = items.where((p) => p.isDebt).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    return debt.isEmpty ? null : debt.first.date;
   }
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.summary});
+  const _Hero({required this.summary, required this.lastPaid, required this.nextDue});
 
   final PaymentSummaryModel summary;
+  final PaymentModel? lastPaid;
+  final DateTime? nextDue;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    final lateDays = _lateDays(nextDue);
+    final hasDebt = summary.openDebt > 0;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0x3300D4AA), Color(0x296C63FF)],
+          colors: [
+            tokens.primary.withValues(alpha: 0.20),
+            tokens.secondary.withValues(alpha: 0.18),
+          ],
         ),
         borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: const Color(0x4700D4AA)),
+        border: Border.all(color: tokens.primary.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'JORIY HOLAT',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: StudentColors.primary,
-              letterSpacing: 1.6,
-            ),
-          ),
-          const SizedBox(height: 4),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
-                  _shortAmount(summary.openDebt),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'JORIY HOLAT',
                   style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: StudentColors.text,
-                    letterSpacing: -0.6,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.primary,
+                    letterSpacing: 1.6,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                "so‘m qarzdorlik",
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: StudentColors.textMuted,
-                ),
+              AppBadge(
+                label: !hasDebt
+                    ? "To‘langan"
+                    : (lateDays > 0 ? '$lateDays kun kechikkan' : 'Qarz bor'),
+                tone: !hasDebt
+                    ? AppBadgeTone.success
+                    : (lateDays > 0 ? AppBadgeTone.danger : AppBadgeTone.warning),
+                dark: tokens.isDark,
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            hasDebt ? Formatters.currency(summary.openDebt) : 'Qarz yo‘q',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: hasDebt
+                  ? (lateDays > 0 ? tokens.danger : tokens.warning)
+                  : tokens.success,
+              letterSpacing: -0.6,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
-            "Bu oy: ${_shortAmount(summary.thisMonth)} so‘m",
+            'Bu oy: ${Formatters.currency(summary.thisMonth)}',
             style: GoogleFonts.inter(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: StudentColors.textMuted,
+              color: tokens.textMuted,
             ),
+          ),
+          const SizedBox(height: 12),
+          Container(height: 1, color: tokens.border),
+          const SizedBox(height: 10),
+          _HeroRow(
+            label: "Oxirgi to‘lov",
+            value: lastPaid == null
+                ? 'Ma’lumot yo‘q'
+                : '${Formatters.currency(lastPaid!.amount)} · ${Formatters.shortDayMonth(lastPaid!.date)}',
+          ),
+          const SizedBox(height: 4),
+          _HeroRow(
+            label: "Keyingi to‘lov",
+            value: nextDue == null
+                ? '—'
+                : '${Formatters.shortDayMonth(nextDue)}${lateDays > 0 ? ' · $lateDays kun kechikkan' : ''}',
+            valueColor: lateDays > 0 ? tokens.danger : null,
           ),
         ],
       ),
+    );
+  }
+
+  static int _lateDays(DateTime? due) {
+    if (due == null) return 0;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dueDay = DateTime(due.year, due.month, due.day);
+    final diff = today.difference(dueDay).inDays;
+    return diff > 0 ? diff : 0;
+  }
+}
+
+class _HeroRow extends StatelessWidget {
+  const _HeroRow({required this.label, required this.value, this.valueColor});
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    return Row(
+      children: [
+        Text(label,
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: tokens.textMuted,
+            )),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? tokens.text,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -248,29 +312,30 @@ class _MiniStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     return Row(
       children: [
         Expanded(
           child: _MiniCard(
             label: "Jami to‘langan",
-            value: _shortAmount(summary.totalReceived),
-            color: StudentColors.primary,
+            value: Formatters.currency(summary.totalReceived, compact: true),
+            color: tokens.primary,
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _MiniCard(
             label: 'Bu oy',
-            value: _shortAmount(summary.thisMonth),
-            color: StudentColors.text,
+            value: Formatters.currency(summary.thisMonth, compact: true),
+            color: tokens.text,
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _MiniCard(
             label: 'Qarzdorlik',
-            value: _shortAmount(summary.openDebt),
-            color: summary.openDebt > 0 ? StudentColors.danger : StudentColors.success,
+            value: Formatters.currency(summary.openDebt, compact: true),
+            color: summary.openDebt > 0 ? tokens.danger : tokens.success,
           ),
         ),
       ],
@@ -287,6 +352,7 @@ class _MiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     return AppGCard(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -299,7 +365,7 @@ class _MiniCard extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: StudentColors.textMuted,
+                color: tokens.textMuted,
                 letterSpacing: 0.3,
               )),
           const SizedBox(height: 4),
@@ -307,7 +373,7 @@ class _MiniCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
-                fontSize: 16,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w800,
                 color: color,
                 letterSpacing: -0.3,
@@ -336,7 +402,6 @@ class _FilterChips extends StatelessWidget {
         for (var i = 0; i < items.length; i++) ...[
           if (i > 0) const SizedBox(width: 8),
           _Chip(
-            id: items[i].$1,
             label: items[i].$2,
             isActive: items[i].$1 == active,
             onTap: () => onChanged(items[i].$1),
@@ -349,19 +414,18 @@ class _FilterChips extends StatelessWidget {
 
 class _Chip extends StatelessWidget {
   const _Chip({
-    required this.id,
     required this.label,
     required this.isActive,
     required this.onTap,
   });
 
-  final String id;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(100),
@@ -371,10 +435,10 @@ class _Chip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isActive ? StudentColors.primary : StudentColors.glass,
+            color: isActive ? tokens.primary : tokens.glass,
             borderRadius: BorderRadius.circular(100),
             border: Border.all(
-              color: isActive ? Colors.transparent : StudentColors.border,
+              color: isActive ? Colors.transparent : tokens.border,
             ),
           ),
           child: Text(
@@ -382,7 +446,7 @@ class _Chip extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: isActive ? StudentColors.onPrimary : StudentColors.textMuted,
+              color: isActive ? tokens.onPrimary : tokens.textMuted,
             ),
           ),
         ),
@@ -398,10 +462,18 @@ class _PaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     final isPaid = !item.isDebt;
-    final iconBg = isPaid ? const Color(0x292ED573) : const Color(0x29FFA502);
-    final iconFg = isPaid ? StudentColors.success : StudentColors.warning;
-    final monthLabel = _monthLabel(item.date);
+    final lateDays = isPaid ? 0 : _lateDays(item.date);
+    final iconBg = isPaid
+        ? tokens.tonedSurface(tokens.success)
+        : (lateDays > 0
+            ? tokens.tonedSurface(tokens.danger)
+            : tokens.tonedSurface(tokens.warning));
+    final iconFg = isPaid
+        ? tokens.success
+        : (lateDays > 0 ? tokens.danger : tokens.warning);
+    final monthLabel = DateFormat('MMM yyyy', 'uz').format(item.date);
     return AppGCard(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -414,7 +486,13 @@ class _PaymentRow extends StatelessWidget {
               color: iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(isPaid ? Icons.check_circle_outline_rounded : Icons.schedule_rounded, color: iconFg, size: 22),
+            child: Icon(
+              isPaid
+                  ? Icons.check_circle_outline_rounded
+                  : (lateDays > 0 ? Icons.error_outline_rounded : Icons.schedule_rounded),
+              color: iconFg,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -422,55 +500,144 @@ class _PaymentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(monthLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: StudentColors.text,
-                    )),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        monthLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: tokens.text,
+                        ),
+                      ),
+                    ),
+                    if (isPaid)
+                      AppBadge(label: "To‘langan", tone: AppBadgeTone.success, dark: tokens.isDark)
+                    else if (lateDays > 0)
+                      AppBadge(label: 'Kechikkan', tone: AppBadgeTone.danger, dark: tokens.isDark)
+                    else
+                      AppBadge(label: 'Qarz', tone: AppBadgeTone.warning, dark: tokens.isDark),
+                  ],
+                ),
                 const SizedBox(height: 2),
                 Text(
                   isPaid
                       ? '${item.method.isEmpty ? 'Naqd' : item.method} · ${Formatters.shortDayMonth(item.date)}'
-                      : 'Muddati: ${Formatters.shortDayMonth(item.date)}',
+                      : (lateDays > 0
+                          ? 'Muddati: ${Formatters.shortDayMonth(item.date)} · $lateDays kun'
+                          : 'Muddati: ${Formatters.shortDayMonth(item.date)}'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: StudentColors.textMuted,
+                    color: tokens.textMuted,
                   ),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _shortAmount(item.amount),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: StudentColors.text,
-                ),
-              ),
-              Text(
-                "so‘m",
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: StudentColors.textMuted,
-                ),
+          const SizedBox(width: 8),
+          Text(
+            Formatters.currency(item.amount),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: tokens.text,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static int _lateDays(DateTime due) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dueDay = DateTime(due.year, due.month, due.day);
+    final diff = today.difference(dueDay).inDays;
+    return diff > 0 ? diff : 0;
+  }
+}
+
+class _PayCtaButton extends StatelessWidget {
+  const _PayCtaButton({required this.summary, required this.onTap});
+
+  final PaymentSummaryModel summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    final hasDebt = summary.openDebt > 0;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: tokens.primaryGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: tokens.primary.withValues(alpha: 0.32),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.payments_rounded, color: tokens.onPrimary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "To‘lov qilish",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: tokens.onPrimary,
+                      ),
+                    ),
+                    Text(
+                      hasDebt
+                          ? 'Click · Payme · Karta · Naqd'
+                          : 'Qarz yo‘q — usullarni ko‘rish',
+                      style: GoogleFonts.inter(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.onPrimary.withValues(alpha: 0.78),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: tokens.onPrimary, size: 22),
+            ],
+          ),
+        ),
       ),
     );
   }

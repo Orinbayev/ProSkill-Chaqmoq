@@ -1,614 +1,256 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load static %}
 {% block body_class %}expenses-page{% endblock %}
 
 {% block title %}
 📉 Xarajatlar — ChaqmoqApp
 {% endblock %}
 
-{% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
 <style>
-    :root {
-        --primary: #3b82f6;
-        --primary-light: #60a5fa;
-        --primary-glow: rgba(59, 130, 246, 0.3);
-        --purple: #a855f7;
-        --purple-glow: rgba(168, 85, 247, 0.2);
-        --card-bg: rgba(15, 23, 42, 0.5);
-        --card-border: rgba(255, 255, 255, 0.08);
+    .filter-bar__grid--expenses {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    @media (max-width: 1199.98px) {
+        .filter-bar__grid--expenses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 768px) {
+        .filter-bar__grid--expenses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 575.98px) {
+        .filter-bar__grid--expenses { grid-template-columns: 1fr; }
     }
 
-    .tl-container {
-        padding: 0 0 60px;
+    .expense-actions {
+        display: flex; gap: 8px; align-items: end; min-height: 40px;
+    }
+    .expense-actions .btn-primary-pill { flex: 1; min-height: 40px; justify-content: center; }
+    .add-cat-btn {
+        width: 40px; height: 40px;
+        border-radius: 12px; border: 1px solid var(--m-border);
+        background: rgba(255, 255, 255, 0.04); color: var(--m-text);
+        display: grid; place-items: center;
+        cursor: pointer; transition: all 0.18s ease;
+    }
+    .add-cat-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--m-border-strong); }
+
+    .pm-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 999px;
+        font-size: 11px; font-weight: 800;
+        white-space: nowrap;
+    }
+    .pm-pill--naqd { background: var(--m-green-soft); border: 1px solid var(--m-green-glow); color: #6EE7B7; }
+    .pm-pill--plastik { background: var(--m-blue-soft); border: 1px solid var(--m-blue-glow); color: #93C5FD; }
+    .pm-pill--otkazma { background: var(--m-amber-soft); border: 1px solid var(--m-amber-glow); color: #FCD34D; }
+
+    .view-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 0; border-bottom: 1px solid var(--m-border);
+    }
+    .view-row:last-of-type { border-bottom: none; }
+    .view-row span:first-child { color: var(--m-text-muted); font-size: 12px; font-weight: 600; }
+    .view-row span:last-child { color: var(--m-text); font-weight: 700; font-size: 13.5px; }
+    .view-izoh-box {
+        margin-top: 12px; padding: 12px;
+        background: rgba(0, 0, 0, 0.25); border-radius: 12px;
+        border: 1px solid var(--m-border);
+        color: var(--m-text-soft); font-size: 13px; line-height: 1.6;
+        word-break: break-word;
     }
 
-    /* ===== STAT CARDS ===== */
-    .premium-card {
-        background: var(--card-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        padding: 24px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-        z-index: 10;
-        height: 100%;
-    }
-
-    .premium-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-    }
-
-    .premium-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-icon-box {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        margin-bottom: 20px;
-        background: rgba(168, 85, 247, 0.1);
-        color: var(--purple);
-        border: 1px solid var(--purple-glow);
-        box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
-    }
-
-    .tl-card-lbl {
-        font-size: 14px;
-        color: #94a3b8;
-        font-weight: 600;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .tl-card-val {
-        font-size: 28px;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1.2;
-    }
-
-    .overview-grid {
-        display: grid;
-        gap: 16px;
-        height: 100%;
-    }
-
-    .summary-card {
-        padding: 20px;
-        min-height: 152px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .summary-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-    }
-
-    .summary-copy {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .summary-label {
-        font-size: 12px;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-
-    .summary-value {
-        color: #fff;
-        font-size: clamp(24px, 2vw, 31px);
-        font-weight: 800;
-        line-height: 1.15;
-    }
-
-    .summary-note {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .summary-card .card-icon-box {
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-
-    .chart-card {
-        padding: 22px 24px 18px;
-    }
-
-    .chart-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-    }
-
-    .chart-kicker {
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        color: #c084fc;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-    }
-
-    .chart-title {
-        margin: 0;
-        color: #fff;
-        font-size: 22px;
-        font-weight: 800;
-    }
-
-    .chart-meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-
-    .chart-meta strong {
-        color: #fff;
-        font-weight: 800;
-    }
-
-    .chart-container {
-        height: 220px;
-        min-height: 220px;
-    }
-
-    /* ===== FILTER SECTION ===== */
-    .filter-section {
-        background: rgba(15, 23, 42, 0.3);
-        border: 1px solid var(--card-border);
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 30px;
-        backdrop-filter: blur(10px);
-    }
-
-    .filter-label {
-        font-size: 11px;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 8px;
-        display: block;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filter-input,
-    .filter-select {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 10px 16px;
-        color: #fff;
-        font-size: 14px;
-        width: 100%;
-        outline: none;
-        transition: all 0.2s;
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-        border-color: var(--primary);
-        background: rgba(0, 0, 0, 0.3);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-
-    .search-input-wrap {
-        position: relative;
-    }
-
-    .search-input-icon {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #60a5fa;
-        font-size: 14px;
-        pointer-events: none;
-    }
-
-    .search-input-wrap .filter-input {
-        padding-left: 42px;
-    }
-
-    .filter-actions {
-        display: flex;
-        gap: 12px;
-        width: 100%;
-    }
-
-    .filter-actions .btn {
-        min-height: 46px;
-        border-radius: 14px;
-        font-weight: 700;
-    }
-
-    /* Clear Filter Button */
-    .clear-filter-wrap {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 12px;
-    }
-
-    .clear-filter-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: none !important;
-        transition: all 0.2s;
-        backdrop-filter: blur(10px);
-    }
-
-    .clear-filter-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    /* Date Input Visibility */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: invert(1) opacity(0.5);
-        cursor: pointer;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-        opacity: 0.8;
-    }
-
-    /* ===== PREMIUM TABLE ===== */
-    .table-container {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-    }
-
-    .premium-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .premium-table th {
-        background: rgba(255, 255, 255, 0.03);
-        padding: 18px 20px;
-        font-size: 11px;
-        font-weight: 800;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        border-bottom: 1px solid var(--card-border);
-        text-align: left;
-    }
-
-    .premium-table td {
-        padding: 16px 20px;
-        font-size: 13px;
-        color: #cbd5e1;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        vertical-align: middle;
-    }
-
-    .premium-table tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
-        color: #fff;
-    }
-
-    .premium-btn {
-        padding: 10px 18px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 700;
-        transition: all 0.2s;
-        border: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: #fff !important;
-    }
-
-    .btn-glass {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #c084fc !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-
-    .btn-glass:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff !important;
-    }
-
-    .action-icon-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #94a3b8;
-        transition: all 0.2s;
-        background: transparent;
-        border: none;
-    }
-
-    .action-icon-btn:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Modal Styling */
-    .glass-modal .modal-content {
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(20px);
-        border: 1px solid var(--card-border);
-        border-radius: 28px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        color: #fff;
-    }
-
-    .glass-modal .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 24px;
-    }
-
-    .glass-modal .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 20px 24px;
-    }
-
-    @media (max-width: 991.98px) {
-        .chart-container {
-            height: 200px;
-            min-height: 200px;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .filter-actions {
-            flex-direction: column;
-        }
-    }
+    html[data-role-theme="light"] .pm-pill--naqd { background: #DCFCE7; border-color: #BBF7D0; color: #166534; }
+    html[data-role-theme="light"] .pm-pill--plastik { background: #DBEAFE; border-color: #BFDBFE; color: #1D4ED8; }
+    html[data-role-theme="light"] .pm-pill--otkazma { background: #FEF3C7; border-color: #FDE68A; color: #92400E; }
+    html[data-role-theme="light"] .add-cat-btn { background: #FFFFFF; border-color: #CBD5E1; color: #334155; }
+    html[data-role-theme="light"] .view-izoh-box { background: #F1F5F9; border-color: #E2E8F0; color: #334155; }
 </style>
+{% endblock %}
 
-<div class="tl-container">
+{% block content %}
+<div class="moliya-shell expenses-page-v2">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-4 align-items-stretch">
-        <div class="col-xl-4 col-lg-5">
-            <div class="overview-grid">
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Jami xarajat</span>
-                            <div class="summary-value">{{ total_sum|default:0|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box">
-                            <i class="fa-solid fa-receipt"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">Markaz bo'yicha umumiy chiqim</div>
-                </div>
-                <div class="premium-card summary-card">
-                    <div class="summary-head">
-                        <div class="summary-copy">
-                            <span class="summary-label">Filter bo'yicha</span>
-                            <div class="summary-value">{{ filtered_sum|default:0|intcomma }} so'm</div>
-                        </div>
-                        <div class="card-icon-box"
-                            style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
-                            <i class="fa-solid fa-filter"></i>
-                        </div>
-                    </div>
-                    <div class="summary-note">Tanlangan filterlar kesimidagi chiqim</div>
-                </div>
+    <!-- HERO: 2 stat cards (left) + chart (right) -->
+    <section class="expenses-hero">
+        <div class="expenses-hero__cards">
+            <div class="expenses-stat">
+                <span class="expenses-stat__label">Umumiy harajat</span>
+                <span class="expenses-stat__value">{{ total_sum|default:0|intcomma }} so'm</span>
+            </div>
+            <div class="expenses-stat">
+                <span class="expenses-stat__label">Filter bo'yicha umumiy harajat</span>
+                <span class="expenses-stat__value">{{ filtered_sum|default:0|intcomma }} so'm</span>
             </div>
         </div>
-        <div class="col-xl-8 col-lg-7">
-            <div class="premium-card chart-card h-100">
-                <div class="chart-head">
-                    <div>
-                        <div class="chart-kicker">{{ chart_kicker|default:"Tanlangan davr" }}</div>
-                        <h5 class="chart-title">Xarajatlar grafigi</h5>
-                        <div class="summary-note mt-2">{{ chart_period_label }}</div>
-                    </div>
-                    <div class="chart-meta">
-                        <span><strong>{{ filtered_sum|default:0|intcomma }}</strong> filter</span>
-                        <span><strong>{{ total_sum|default:0|intcomma }}</strong> jami</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div id="expenseChart"></div>
-                </div>
+
+        <div class="expenses-hero__chart">
+            <div class="expenses-hero__chart-body">
+                <div id="expenseChart"></div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- FILTERS & ACTIONS -->
-    <div class="filter-section">
-        <form method="get" id="expenseFilterForm">
-            {% if request.GET.sana_dan or request.GET.sana_gacha or request.GET.category or request.GET.payment_method  or request.GET.q %}
-            <div class="clear-filter-wrap">
-                <a href="?" class="clear-filter-btn">
-                    <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
-                </a>
-            </div>
-            {% endif %}
-            <div class="row g-3 align-items-end">
-                <div class="col-xl-2 col-lg-3 col-md-4">
-                    <label class="filter-label">📅 Sana dan</label>
-                    <input type="date" name="sana_dan" value="{{ sana_dan|default:'' }}" class="filter-input">
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4">
-                    <label class="filter-label">📅 Sana gacha</label>
-                    <input type="date" name="sana_gacha" value="{{ sana_gacha|default:'' }}" class="filter-input">
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4">
-                    <label class="filter-label">🏷️ Toifa</label>
-                    <select name="category" class="filter-select">
-                        <option value="">Barchasi</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if selected_cat == cat.id %}selected{% endif %}>{{ cat.nom }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4">
-                    <label class="filter-label">💳 To'lov usuli</label>
-                    <select name="payment_method" class="filter-select">
-                        <option value="">Barchasi</option>
-                        <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
-                        <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
-                        <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-4 col-md-6">
-                    <label class="filter-label">🔍 Qidiruv</label>
-                    <div class="search-input-wrap">
-                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
-                        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Qidirish..."
-                            class="filter-input">
+    <!-- FILTERS + ACTIONS -->
+    <div class="expenses-filter-row">
+        <div class="filter-bar filter-bar--expenses-v2">
+            <form method="get" id="expenseFilterForm">
+                <div class="filter-grid--expenses-v2">
+                    <div class="filter-field">
+                        <label class="filter-label">Sana dan</label>
+                        <input type="date" name="sana_dan" value="{{ sana_dan|default:'' }}" class="filter-input" aria-label="Sana dan">
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">Sana gacha</label>
+                        <input type="date" name="sana_gacha" value="{{ sana_gacha|default:'' }}" class="filter-input" aria-label="Sana gacha">
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">Xarajatlar toifasi</label>
+                        <select name="category" class="filter-select" aria-label="Xarajatlar toifasi">
+                            <option value="">Barchasi</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if selected_cat == cat.id %}selected{% endif %}>{{ cat.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label class="filter-label">Hodim</label>
+                        <select name="worker" class="filter-select" aria-label="Hodim">
+                            <option value="">Barchasi</option>
+                            {% for w in workers %}
+                            <option value="{{ w.id }}" {% if selected_worker == w.id %}selected{% endif %}>
+                                {{ w.get_full_name|default:w.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">To'lov usuli</label>
+                        <select name="payment_method" class="filter-select" aria-label="To'lov usuli">
+                            <option value="">Barchasi</option>
+                            <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
+                            <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
+                            <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
+                            {% for pm in dynamic_payment_methods %}
+                            <option value="{{ pm.nom|lower }}" {% if selected_method == pm.nom|lower %}selected{% endif %}>{{ pm.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">Qabul qiluvchi</label>
+                        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Qidirish" class="filter-input">
                     </div>
                 </div>
-                <div class="col-xl-2 col-lg-8 col-md-6">
-                    <div class="filter-actions">
-                        <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"
-                            data-bs-target="#addExpenseModal">
-                            + Xarajat
-                        </button>
-                        <button type="button" class="btn btn-glass add-category-btn" data-bs-toggle="modal"
-                            data-bs-target="#addCategoryModal">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-            </div> <!-- End row -->
-        </form>
+            </form>
+        </div>
+
+        <aside class="expenses-actions">
+            <button type="button" class="exp-action exp-action--primary"
+                data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                <i class="fa-solid fa-plus"></i> Xarajat qo'shish
+            </button>
+            <button type="button" class="exp-action exp-action--ghost"
+                data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <i class="fa-solid fa-plus"></i> Toifa
+            </button>
+            <a href="?" class="exp-action exp-action--ghost">
+                <i class="fa-solid fa-arrow-rotate-right"></i> Filtrlarni yangilash
+            </a>
+        </aside>
     </div>
 
-    <div class="mb-4"></div> <!-- Separator gap -->
-
-    <!-- TABLE -->
-    <div class="table-container shadow-lg">
-        <div class="table-responsive">
-            <table class="premium-table">
+    <!-- TABLE (full width) -->
+    {% if items %}
+    <div class="data-table-card">
+        <div class="data-table-card__head">
+            <h3 class="data-table-card__title">Xarajatlar ro'yxati</h3>
+            <span class="pill-badge pill-badge--violet">Jami: {{ items|length }} ta</span>
+        </div>
+        <div class="data-table-wrap">
+            <table class="data-table data-table--expenses-v2">
                 <thead>
                     <tr>
-                        <th class="ps-4">Sana</th>
-                        <th>Nomi (Izoh)</th>
+                        <th>№</th>
+                        <th>Sana</th>
+                        <th>Xarajat nomi</th>
+                        <th>Tavsif</th>
                         <th>Kategoriya</th>
                         <th>Qabul qiluvchi</th>
                         <th>To'lov usuli</th>
                         <th>Summa</th>
-                        <th>Xodim</th>
-                        <th class="pe-4 text-end">Amallar</th>
+                        <th>Hodim</th>
+                        <th class="text-end">Harakatlar</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in items %}
                     <tr>
-                        <td class="ps-4 text-secondary">{{ item.sana|date:"d.m.Y" }}</td>
-                        <td class="fw-bold text-white">{{ item.izoh }}</td>
-                        <td><span class="text-primary fw-bold">{{ item.category.nom|default:"-" }}</span></td>
-                        <td>{{ item.receiver|default:"-" }}</td>
+                        <td><span class="exp-num">{{ forloop.counter }}</span></td>
+                        <td><span class="cell-stack__primary">{{ item.sana|date:"d.m.Y" }}</span></td>
+                        <td><span class="cell-stack__primary">{{ item.izoh|default:"—"|truncatechars:32 }}</span></td>
+                        <td><span class="cell-stack__meta">{{ item.product.nom|default:"—" }}</span></td>
                         <td>
-                            {% if item.payment_method == 'naqd' %}<span class="text-success small fw-bold">NAQD</span>
-                            {% elif item.payment_method == 'plastik' %}<span
-                                class="text-info small fw-bold">PLASTIK</span>
-                            {% else %}<span class="text-warning small fw-bold">O'TKAZMA</span>{% endif %}
+                            {% if item.category.nom %}
+                            <span class="pill-badge pill-badge--info">{{ item.category.nom }}</span>
+                            {% else %}
+                            <span class="cell-stack__meta">—</span>
+                            {% endif %}
                         </td>
-                        <td class="fw-bold text-white text-nowrap">{{ item.summa|intcomma }} so'm</td>
-                        <td><small class="text-secondary">{{ item.worker.get_full_name|default:item.worker.username }}</small></td>
-                        <td class="pe-4 text-end">
+                        <td><span class="exp-cell-receiver">{{ item.receiver|default:"—" }}</span></td>
+                        <td>
+                            {% if item.payment_method == 'naqd' %}
+                            <span class="pm-pill pm-pill--naqd"><i class="fa-solid fa-money-bill"></i> NAQD</span>
+                            {% elif item.payment_method == 'plastik' %}
+                            <span class="pm-pill pm-pill--plastik"><i class="fa-solid fa-credit-card"></i> PLASTIK</span>
+                            {% else %}
+                            <span class="pm-pill pm-pill--otkazma"><i class="fa-solid fa-arrow-right-arrow-left"></i> O'TKAZMA</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="cell-amount cell-amount--violet">{{ item.summa|intcomma }} so'm</span></td>
+                        <td><span class="cell-stack__meta">{{ item.worker.get_full_name|default:item.worker.username|default:"—" }}</span></td>
+                        <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                <button class="action-icon-btn" data-bs-toggle="modal"
+                                <button class="action-btn" data-bs-toggle="modal"
                                     data-bs-target="#viewExpenseModal" data-id="{{ item.id }}"
                                     data-sana="{{ item.sana|date:'d.m.Y' }}" data-izoh="{{ item.izoh }}"
                                     data-category="{{ item.category.nom|default:'-' }}"
                                     data-receiver="{{ item.receiver|default:'-' }}"
                                     data-payment="{{ item.payment_method }}" data-summa="{{ item.summa|intcomma }}"
-                                    data-worker="{{ item.worker.get_full_name|default:item.worker.username }}">
+                                    data-worker="{{ item.worker.get_full_name|default:item.worker.username }}"
+                                    title="Ko'rish">
                                     <i class="fa-regular fa-eye"></i>
                                 </button>
-                                <button class="action-icon-btn" data-bs-toggle="modal"
+                                <button class="action-btn" data-bs-toggle="modal"
                                     data-bs-target="#editExpenseModal" data-id="{{ item.id }}"
                                     data-sana="{{ item.sana|date:'Y-m-d' }}" data-izoh="{{ item.izoh }}"
                                     data-category-id="{{ item.category.id|default:'' }}"
                                     data-receiver="{{ item.receiver|default:'' }}"
-                                    data-payment="{{ item.payment_method }}" data-summa="{{ item.summa }}">
+                                    data-payment="{{ item.payment_method }}" data-summa="{{ item.summa }}"
+                                    title="Tahrirlash">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <button class="action-icon-btn text-danger" data-bs-toggle="modal"
-                                    data-bs-target="#deleteExpenseModal" data-id="{{ item.id }}">
+                                <button class="action-btn action-btn--delete" data-bs-toggle="modal"
+                                    data-bs-target="#deleteExpenseModal" data-id="{{ item.id }}"
+                                    title="O'chirish">
                                     <i class="fa-regular fa-trash-can"></i>
                                 </button>
                             </div>
                         </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-secondary">Ma'lumot topilmadi</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    {% else %}
+    <div class="data-table-card data-table-card--empty">
+        <div class="empty-state-simple empty-state-simple--padded">Xarajatlar topilmadi</div>
+    </div>
+    {% endif %}
 </div>
-
 {% endblock %}
 
 {% block modals %}
@@ -617,7 +259,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Yangi xarajat toifasi</h5>
+                <h5 class="modal-title">Yangi xarajat toifasi</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{% url 'store:expense_category_create' %}" method="post">
@@ -627,9 +269,8 @@
                     <input type="text" name="nom" class="filter-input" placeholder="Masalan: Ofis ijarasi" required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                        data-bs-dismiss="modal">Bekor</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold">Saqlash</button>
+                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn-primary-pill">Saqlash</button>
                 </div>
             </form>
         </div>
@@ -641,7 +282,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Yangi xarajat qo'shish</h5>
+                <h5 class="modal-title">Yangi xarajat qo'shish</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{% url 'store:expense_create' %}" method="post">
@@ -654,8 +295,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="filter-label">Summa (so'm)</label>
-                            <input type="number" name="summa" class="filter-input" placeholder="Summani kiriting"
-                                required>
+                            <input type="number" name="summa" class="filter-input" placeholder="Summani kiriting" required>
                         </div>
                         <div class="col-md-6">
                             <label class="filter-label">Kategoriya</label>
@@ -668,10 +308,14 @@
                         </div>
                         <div class="col-md-6">
                             <label class="filter-label">To'lov usuli</label>
-                            <select name="payment_method" class="filter-select" required>
+                            <select name="payment_method" class="filter-select" required aria-label="To'lov usuli">
+                                {% for pm in dynamic_payment_methods %}
+                                <option value="{{ pm.nom|lower }}" {% if forloop.first %}selected{% endif %}>{{ pm.nom|title }}</option>
+                                {% empty %}
                                 <option value="naqd" selected>Naqd</option>
                                 <option value="plastik">Plastik</option>
                                 <option value="otkazma">O'tkazma</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-12">
@@ -680,15 +324,13 @@
                         </div>
                         <div class="col-12">
                             <label class="filter-label">Izoh (Nomi) (ixtiyoriy)</label>
-                            <textarea name="izoh" class="filter-input" rows="3"
-                                placeholder="Xarajat haqida izoh..."></textarea>
+                            <textarea name="izoh" class="filter-input" rows="3" placeholder="Xarajat haqida izoh..."></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                        data-bs-dismiss="modal">Bekor</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold">Qo'shish</button>
+                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn-primary-pill">Qo'shish</button>
                 </div>
             </form>
         </div>
@@ -700,33 +342,25 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Xarajat ma'lumotlari</h5>
+                <h5 class="modal-title">Xarajat ma'lumotlari</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="vstack gap-3" id="viewExpenseContent">
-                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-10 pb-2"><span
-                            class="text-secondary small">Sana</span><span class="fw-bold" id="view_sana"></span></div>
-                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-10 pb-2"><span
-                            class="text-secondary small">Summa</span><span class="fw-bold" id="view_summa"></span></div>
-                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-10 pb-2"><span
-                            class="text-secondary small">Usul</span><span class="fw-bold" id="view_payment"></span>
-                    </div>
-                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-10 pb-2"><span
-                            class="text-secondary small">Toifa</span><span class="fw-bold" id="view_category"></span>
-                    </div>
-                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-10 pb-2"><span
-                            class="text-secondary small">Qabul qiluvchi</span><span class="fw-bold"
-                            id="view_receiver"></span></div>
-                    <div class="mb-2"><span class="text-secondary small d-block mb-1">Izoh (Nomi)</span>
-                        <div class="bg-black bg-opacity-25 p-3 rounded-3 border border-white border-opacity-10 text-break"
-                            id="view_izoh"></div>
+                <div id="viewExpenseContent">
+                    <div class="view-row"><span>Sana</span><span id="view_sana"></span></div>
+                    <div class="view-row"><span>Summa</span><span id="view_summa"></span></div>
+                    <div class="view-row"><span>Usul</span><span id="view_payment"></span></div>
+                    <div class="view-row"><span>Toifa</span><span id="view_category"></span></div>
+                    <div class="view-row"><span>Qabul qiluvchi</span><span id="view_receiver"></span></div>
+                    <div style="margin-top:14px;">
+                        <span style="color:var(--m-text-muted); font-size:12px; font-weight:600;">Izoh (Nomi)</span>
+                        <div class="view-izoh-box" id="view_izoh"></div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary w-100 py-2 fw-bold" onclick="downloadCheck()">
-                    <i class="fa-solid fa-download me-2"></i> Chekni yuklab olish
+                <button type="button" class="btn-primary-pill w-100 justify-content-center" onclick="downloadCheck()">
+                    <i class="fa-solid fa-download"></i> Chekni yuklab olish
                 </button>
             </div>
         </div>
@@ -740,7 +374,7 @@
             <form id="editExpenseForm" method="post" action="">
                 {% csrf_token %}
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Xarajatni tahrirlash</h5>
+                    <h5 class="modal-title">Xarajatni tahrirlash</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -764,10 +398,14 @@
                         </div>
                         <div class="col-md-6">
                             <label class="filter-label">To'lov usuli</label>
-                            <select name="payment_method" id="edit_payment" class="filter-select">
+                            <select name="payment_method" id="edit_payment" class="filter-select" aria-label="To'lov usuli">
+                                {% for pm in dynamic_payment_methods %}
+                                <option value="{{ pm.nom|lower }}">{{ pm.nom|title }}</option>
+                                {% empty %}
                                 <option value="naqd">Naqd</option>
                                 <option value="plastik">Plastik</option>
                                 <option value="otkazma">O'tkazma</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-12">
@@ -781,9 +419,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                        data-bs-dismiss="modal">Bekor</button>
-                    <button type="submit" class="btn btn-success px-4 fw-bold">Saqlash</button>
+                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn-primary-pill" style="background: linear-gradient(135deg, var(--m-amber), #D97706); border-color: var(--m-amber-glow); box-shadow: 0 8px 22px rgba(245,158,11,0.3);"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
                 </div>
             </form>
         </div>
@@ -792,18 +429,18 @@
 
 <!-- Delete Modal -->
 <div class="modal fade glass-modal" id="deleteExpenseModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content text-center">
+    <div class="modal-dialog modal-dialog-centered delete-confirm-dialog">
+        <div class="modal-content">
             <form id="deleteExpenseForm" method="post" action="">
                 {% csrf_token %}
-                <div class="modal-body p-5">
-                    <div class="mb-4 text-danger display-4"><i class="fa-regular fa-trash-can"></i></div>
-                    <h4 class="fw-bold mb-2">Haqiqatan ham o'chirmoqchimisiz?</h4>
-                    <p class="text-secondary small mb-4">Ushbu xarajat butunlay o'chiriladi.</p>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <button type="button" class="btn btn-glass px-4" data-bs-dismiss="modal">Bekor</button>
-                        <button type="submit" class="btn btn-danger px-4 fw-bold">O'chirish</button>
-                    </div>
+                <div class="delete-confirm-body">
+                    <div class="delete-confirm-icon"><i class="fa-regular fa-trash-can"></i></div>
+                    <h5 class="delete-confirm-title">Haqiqatan ham o'chirmoqchimisiz?</h5>
+                    <p class="delete-confirm-text">Ushbu xarajat butunlay o'chiriladi va qaytarib bo'lmaydi.</p>
+                </div>
+                <div class="modal-footer justify-content-center gap-2">
+                    <button type="button" class="btn delete-cancel-btn" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn delete-submit-btn">O'chirish</button>
                 </div>
             </form>
         </div>
@@ -860,7 +497,7 @@
                 return {
                     series: [{ name: "Xarajat", data: chartData }],
                     stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
-                    colors: ['#a855f7'],
+                    colors: ['#8B5CF6'],
                     markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
                     chart: {
                         type: 'area',

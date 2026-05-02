@@ -6,23 +6,39 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => _build(brightness: Brightness.dark);
+  static ThemeData get lightTheme => _build(brightness: Brightness.light);
+
+  static ThemeData _build({required Brightness brightness}) {
+    final isDark = brightness == Brightness.dark;
+    final scaffoldBg = isDark ? AppColors.background : AppColors.backgroundLight;
+    final surface = isDark ? AppColors.surface : AppColors.surfaceLight;
+    final surfaceAlt = isDark ? AppColors.surfaceAlt : AppColors.surfaceAltLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final border = isDark ? AppColors.border : AppColors.borderLight;
+    final glass = isDark ? AppColors.glass : AppColors.glassLight;
+    final primary = AppColors.primary;
+
     final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme.dark(
-        brightness: Brightness.dark,
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        surface: AppColors.surface,
-        error: AppColors.danger,
+      brightness: brightness,
+      scaffoldBackgroundColor: scaffoldBg,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: primary,
         onPrimary: AppColors.white,
-        onSecondary: AppColors.background,
-        onSurface: AppColors.textPrimary,
+        secondary: AppColors.secondary,
+        onSecondary: AppColors.white,
+        error: AppColors.danger,
         onError: AppColors.white,
+        surface: surface,
+        onSurface: textPrimary,
       ),
-      textTheme: AppTextStyles.textTheme,
+      textTheme: AppTextStyles.textTheme.apply(
+        bodyColor: textPrimary,
+        displayColor: textPrimary,
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
@@ -33,41 +49,41 @@ class AppTheme {
     );
 
     return base.copyWith(
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.glass,
+        color: glass,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: border),
         ),
       ),
-      dividerColor: AppColors.border,
+      dividerColor: border,
       splashFactory: InkRipple.splashFactory,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.glass,
-        hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
-        labelStyle: AppTextStyles.label.copyWith(color: AppColors.textMuted),
-        prefixIconColor: AppColors.textMuted,
-        suffixIconColor: AppColors.textMuted,
+        fillColor: glass,
+        hintStyle: AppTextStyles.body.copyWith(color: textMuted),
+        labelStyle: AppTextStyles.label.copyWith(color: textMuted),
+        prefixIconColor: textMuted,
+        suffixIconColor: textMuted,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.lg,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -83,24 +99,24 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.glassStrong,
+        backgroundColor: surface,
+        indicatorColor: glass,
         labelTextStyle: WidgetStatePropertyAll(
-          AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+          AppTextStyles.bodySmall.copyWith(color: textPrimary),
         ),
-        iconTheme: const WidgetStatePropertyAll(
-          IconThemeData(color: AppColors.textPrimary),
+        iconTheme: WidgetStatePropertyAll(
+          IconThemeData(color: textPrimary),
         ),
         elevation: 0,
         height: 76,
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: AppColors.glass,
-        side: const BorderSide(color: AppColors.border),
+        backgroundColor: glass,
+        side: BorderSide(color: border),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        labelStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+        labelStyle: AppTextStyles.bodySmall.copyWith(color: textMuted),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.xs,
@@ -110,29 +126,29 @@ class AppTheme {
         color: AppColors.primary,
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: AppColors.surfaceAlt,
+        backgroundColor: surfaceAlt,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.xl),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.surfaceAlt,
+        backgroundColor: surfaceAlt,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: border),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceAlt,
-        contentTextStyle: AppTextStyles.body,
+        backgroundColor: surfaceAlt,
+        contentTextStyle: AppTextStyles.body.copyWith(color: textPrimary),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         behavior: SnackBarBehavior.floating,
       ),
-      listTileTheme: const ListTileThemeData(
-        iconColor: AppColors.textMuted,
-        textColor: AppColors.textPrimary,
+      listTileTheme: ListTileThemeData(
+        iconColor: textMuted,
+        textColor: textPrimary,
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
 import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
-import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Parent (light) card. Mirrors `PCard` from primitives.jsx.
@@ -73,12 +73,19 @@ class AppGCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     final radius = borderRadius ?? BorderRadius.circular(AppRadius.xl);
+    final defaultBg = tokens.isDark
+        ? (strong ? tokens.glassStrong : tokens.glass)
+        : (strong ? tokens.surfaceElevated : tokens.surface);
     final card = Container(
       decoration: BoxDecoration(
-        color: background ?? (strong ? StudentColors.glassStrong : StudentColors.glass),
+        color: background ?? defaultBg,
         borderRadius: radius,
-        border: Border.all(color: borderColor ?? StudentColors.border),
+        border: Border.all(color: borderColor ?? tokens.border),
+        boxShadow: tokens.isDark
+            ? null
+            : [BoxShadow(color: tokens.shadow, blurRadius: 16, offset: const Offset(0, 4))],
       ),
       padding: padding,
       child: child,

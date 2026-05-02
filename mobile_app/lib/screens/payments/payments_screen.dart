@@ -364,41 +364,256 @@ class _DebtHero extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
+              Material(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () => _showPayProviders(context),
                   borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.credit_card_rounded,
-                      color: Colors.white,
-                      size: 22,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "Hozir to'lash",
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.credit_card_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Hozir to'lash",
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+void _showPayProviders(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: false,
+    builder: (sheetContext) {
+      return SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A0B1220),
+                blurRadius: 22,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8E0EC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                "To'lov usulini tanlang",
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF111827),
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Quyidagi xizmatlar orqali to‘lov qilishingiz mumkin.',
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B7280),
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _PayProviderTile(
+                name: 'Click',
+                shortLabel: 'Click orqali to‘lash',
+                background: const Color(0xFFE9F2FF),
+                accent: const Color(0xFF1E73F8),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _showComingSoon(context, 'Click');
+                },
+              ),
+              const SizedBox(height: 10),
+              _PayProviderTile(
+                name: 'Payme',
+                shortLabel: 'Payme orqali to‘lash',
+                background: const Color(0xFFEAF8EF),
+                accent: const Color(0xFF15803D),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _showComingSoon(context, 'Payme');
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+void _showComingSoon(BuildContext context, String providerName) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: const Color(0xFF111827),
+      duration: const Duration(seconds: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      content: Row(
+        children: [
+          const Icon(
+            Icons.access_time_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$providerName tez orada qo‘shiladi',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _PayProviderTile extends StatelessWidget {
+  const _PayProviderTile({
+    required this.name,
+    required this.shortLabel,
+    required this.background,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String name;
+  final String shortLabel;
+  final Color background;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5EAF2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Text(
+                  name,
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.inter(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF111827),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      shortLabel,
+                      style: GoogleFonts.inter(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF8B95A1),
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

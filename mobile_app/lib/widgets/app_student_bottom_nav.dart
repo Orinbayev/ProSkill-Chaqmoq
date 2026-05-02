@@ -1,4 +1,4 @@
-import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,7 +16,6 @@ class AppStudentBottomNavItem {
   final int badgeCount;
 }
 
-/// Floating dark-glass 4-tab pill — Panel / To'lovlar / Xabarlar / Profil.
 class AppStudentBottomNav extends StatelessWidget {
   const AppStudentBottomNav({
     super.key,
@@ -31,6 +30,10 @@ class AppStudentBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    final navBg = tokens.isDark
+        ? const Color(0xD913131A)
+        : Colors.white.withValues(alpha: 0.96);
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.only(bottom: 8),
@@ -39,14 +42,16 @@ class AppStudentBottomNav extends StatelessWidget {
         child: Container(
           height: 70,
           decoration: BoxDecoration(
-            color: const Color(0xD913131A),
+            color: navBg,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: StudentColors.border),
-            boxShadow: const [
+            border: Border.all(color: tokens.border),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x66000000),
+                color: tokens.isDark
+                    ? const Color(0x66000000)
+                    : tokens.shadow,
                 blurRadius: 24,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -82,8 +87,10 @@ class _StudentNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? StudentColors.primary : StudentColors.textMuted;
-    final pillBg = active ? const Color(0x2400D4AA) : Colors.transparent;
+    final tokens = StudentTokens.of(context);
+    final color = active ? tokens.primary : tokens.textMuted;
+    final pillBg = active ? tokens.primary.withValues(alpha: 0.16) : Colors.transparent;
+    final badgeBorder = tokens.isDark ? const Color(0xFF13131A) : Colors.white;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
@@ -124,9 +131,9 @@ class _StudentNavItem extends StatelessWidget {
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(horizontal: 3),
                         decoration: BoxDecoration(
-                          color: StudentColors.danger,
+                          color: tokens.danger,
                           borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: const Color(0xFF13131A), width: 2),
+                          border: Border.all(color: badgeBorder, width: 2),
                         ),
                         child: Text(
                           item.badgeCount > 9 ? '9+' : '${item.badgeCount}',

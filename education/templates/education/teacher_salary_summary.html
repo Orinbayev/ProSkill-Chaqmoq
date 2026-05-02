@@ -5,8 +5,11 @@
 {% block title %}Director Dashboard | Maoshlar va Foyda{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 <style>
+  /* === LEGACY STYLES BELOW — kept for the chart canvas + JS-rendered table cells.
+        Visual chrome (header/KPI/panel) is now driven by moliya.css :: .salary-summary-v2 === */
   :root {
     --bg-deep: #070a13;
     --card-bg: rgba(11, 18, 32, 0.82);
@@ -725,163 +728,108 @@
 {% endblock %}
 
 {% block content %}
-<div class="report-container" data-teacher-url-template="{% url 'core:teacher_detail' 0 %}">
-  <header class="dashboard-header animate__animated animate__fadeInDown">
-    <div class="header-left">
-      <a href="{% url 'core:home' %}" class="back-btn" aria-label="Orqaga">
+<div class="report-container salary-summary-v2" data-teacher-url-template="{% url 'core:teacher_detail' 0 %}">
+  <header class="ssv2-header">
+    <div class="ssv2-header__left">
+      <a href="{% url 'core:home' %}" class="ssv2-back" aria-label="Orqaga">
         <i class="fa-solid fa-chevron-left"></i>
       </a>
-      <div class="header-title-box">
-        <span class="header-eyebrow">
-          <i class="fa-solid fa-chart-pie"></i>
-          Moliyaviy nazorat
-        </span>
-        <h1>Moliya Paneli</h1>
-        <p id="header-subtitle" class="header-subtitle">
+      <div class="ssv2-title-block">
+        <span class="ssv2-eyebrow">Hisobot</span>
+        <h1 class="ssv2-title">Moliya Paneli</h1>
+        <p id="header-subtitle" class="ssv2-subtitle">
           {% for num, name in months %}{% if num == selected_month %}{{ name }} {{ selected_year }}{% endif %}{% endfor %}
           uchun haqi, foyda va aylanma bir joyda.
         </p>
       </div>
     </div>
-    <div class="header-right">
-      <div class="filters-bar">
-        <div class="filters-icon">
-          <i class="fa-solid fa-calendar-days"></i>
+    <div class="ssv2-header__right">
+      <div class="ssv2-period">
+        <span class="ssv2-period__label">Hisobot davri</span>
+        <div class="ssv2-period__controls">
+          <select id="year" class="ssv2-select" aria-label="Yil">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+          <select id="month" class="ssv2-select" aria-label="Oy">
+            {% for num, name in months %}
+            <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="filter-stack">
-          <span class="filter-label">Hisobot davri</span>
-          <div class="filters-controls">
-            <div class="select-wrap">
-              <select id="year" class="nav-select">
-                {% for y in years %}
-                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} yil</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="filters-divider"></div>
-            <div class="select-wrap">
-              <select id="month" class="nav-select">
-                {% for num, name in months %}
-                <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-left:12px; display:flex; align-items:center;">
-        {% include "components/profile_dropdown.html" %}
       </div>
     </div>
   </header>
 
-  <section class="kpi-grid animate__animated animate__fadeInUp">
-    <article class="kpi-card kpi-card-turnover">
-      <div class="kpi-topline">
-        <div class="kpi-icon icon-turnover">
-          <i class="fa-solid fa-coins"></i>
-        </div>
-        <span class="kpi-chip">Aylanma</span>
-      </div>
-      <div class="kpi-label">Umumiy aylanma</div>
-      <h2 id="kpi-total-turnover" class="kpi-value">0 so'm</h2>
-      <p class="kpi-meta">Tanlangan oy bo'yicha jami tushum.</p>
+  <section class="ssv2-kpi-grid">
+    <article class="ssv2-kpi" data-accent="amber">
+      <span class="ssv2-kpi__label">Umumiy aylanma</span>
+      <h2 id="kpi-total-turnover" class="ssv2-kpi__value">0 so'm</h2>
+      <p class="ssv2-kpi__meta">Tanlangan oy bo'yicha jami tushum</p>
     </article>
 
-    <article class="kpi-card kpi-card-payout">
-      <div class="kpi-topline">
-        <div class="kpi-icon icon-payout">
-          <i class="fa-solid fa-wallet"></i>
-        </div>
-        <span class="kpi-chip">To'lov</span>
-      </div>
-      <div class="kpi-label">O'qituvchilar haqi</div>
-      <h2 id="kpi-total-teacher" class="kpi-value">0 so'm</h2>
-      <p class="kpi-meta">Ustozlarga ajratilgan jami ulush.</p>
+    <article class="ssv2-kpi" data-accent="teal">
+      <span class="ssv2-kpi__label">O'qituvchilar haqi</span>
+      <h2 id="kpi-total-teacher" class="ssv2-kpi__value">0 so'm</h2>
+      <p class="ssv2-kpi__meta">Ustozlarga ajratilgan jami ulush</p>
     </article>
 
-    <article class="kpi-card kpi-card-profit">
-      <div class="kpi-topline">
-        <div class="kpi-icon icon-profit">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
-        <span class="kpi-chip">Foyda</span>
-      </div>
-      <div class="kpi-label">Markaz foydasi</div>
-      <h2 id="kpi-total-profit" class="kpi-value">0 so'm</h2>
-      <p class="kpi-meta">Tanlangan davrdagi markaz ulushi.</p>
+    <article class="ssv2-kpi" data-accent="indigo">
+      <span class="ssv2-kpi__label">Markaz foydasi</span>
+      <h2 id="kpi-total-profit" class="ssv2-kpi__value">0 so'm</h2>
+      <p class="ssv2-kpi__meta">Tanlangan davrdagi markaz ulushi</p>
     </article>
 
-    <article class="kpi-card kpi-card-insight">
-      <div class="kpi-topline">
-        <div class="kpi-icon icon-insight">
-          <i class="fa-solid fa-user-group"></i>
-        </div>
-        <span class="kpi-chip">Snapshot</span>
-      </div>
-      <div class="kpi-label">Faol o'qituvchilar</div>
-      <h2 id="kpi-active-teachers" class="kpi-value">0 ta</h2>
-      <p class="kpi-meta">Tanlangan oyda hisobga tushgan ustozlar.</p>
-      <div class="kpi-inline">
-        <span class="kpi-inline-label">Eng yuqori aylanma</span>
-        <span id="kpi-top-teacher" class="kpi-inline-name">Ma'lumot yo'q</span>
-        <span id="kpi-top-teacher-value" class="kpi-inline-value">0 so'm</span>
+    <article class="ssv2-kpi" data-accent="rose">
+      <span class="ssv2-kpi__label">Faol o'qituvchilar</span>
+      <h2 id="kpi-active-teachers" class="ssv2-kpi__value">0 ta</h2>
+      <div class="ssv2-kpi__inline">
+        <span class="ssv2-kpi__inline-label">Eng yuqori aylanma</span>
+        <span id="kpi-top-teacher" class="ssv2-kpi__inline-name">Ma'lumot yo'q</span>
+        <span id="kpi-top-teacher-value" class="ssv2-kpi__inline-value">0 so'm</span>
       </div>
     </article>
   </section>
 
-  <section class="dashboard-panel animate__animated animate__fadeInUp">
-    <div class="panel-header">
-      <div class="panel-copy">
-        <span class="panel-kicker">
-          <i class="fa-solid fa-wave-square"></i>
-          Trendlar
-        </span>
-        <h2 class="panel-title">Moliyaviy o'sish retrospektivasi</h2>
-        <p class="panel-subtitle">
-          Grafik 12 oy ichidagi aylanma, ustoz haqi va foydani taqqoslaydi.
-        </p>
+  <section class="ssv2-panel">
+    <div class="ssv2-panel__head">
+      <div>
+        <h2 class="ssv2-panel__title">Moliyaviy o'sish retrospektivasi</h2>
+        <p class="ssv2-panel__sub">12 oy ichidagi aylanma, ustoz haqi va foydani taqqoslaydi</p>
       </div>
-      <div class="panel-side">
-        <div id="report-title" class="report-chip">
-          Hisobot - <span class="report-strong">{{ selected_year }} yil</span>
-        </div>
+      <div id="report-title" class="ssv2-panel__chip">
+        Hisobot — <span class="report-strong">{{ selected_year }} yil</span>
       </div>
     </div>
-    <div class="chart-frame">
+    <div class="ssv2-chart-frame chart-frame">
       <canvas id="incomeChart"></canvas>
     </div>
   </section>
 
-  <section class="dashboard-panel animate__animated animate__fadeInUp" style="animation-delay: 0.08s;">
-    <div class="panel-header">
-      <div class="panel-copy">
-        <span class="panel-kicker">
-          <i class="fa-solid fa-ranking-star"></i>
-          Tahlil
-        </span>
-        <h2 class="panel-title">O'qituvchilar bo'yicha tahlil</h2>
-        <p class="panel-subtitle">
-          Ustozlar kesimida yuklama va moliyaviy natijalar bir qatorda ko'rinadi.
-        </p>
+  <section class="ssv2-panel">
+    <div class="ssv2-panel__head">
+      <div>
+        <h2 class="ssv2-panel__title">O'qituvchilar bo'yicha tahlil</h2>
+        <p class="ssv2-panel__sub">Ustozlar kesimida yuklama va moliyaviy natijalar</p>
       </div>
-      <div class="table-summary">
+      <div class="ssv2-panel__chip ssv2-panel__chip--muted">
         Faol ustozlar
         <strong id="teacher-count-badge">{{ teacher_data|length }} ta</strong>
       </div>
     </div>
 
-    <div class="table-shell">
-      <table class="premium-table">
+    <div class="ssv2-table-wrap table-shell">
+      <table class="ssv2-table premium-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>O'qituvchi</th>
-            <th>Darslar</th>
-            <th>Guruhlar</th>
-            <th>O'qituvchi haqi</th>
-            <th>Markaz foydasi</th>
-            <th>Umumiy aylanma</th>
+            <th>O'QITUVCHI</th>
+            <th>DARSLAR</th>
+            <th>GURUHLAR</th>
+            <th>O'QITUVCHI HAQI</th>
+            <th>MARKAZ FOYDASI</th>
+            <th>UMUMIY AYLANMA</th>
           </tr>
         </thead>
         <tbody id="table-body">

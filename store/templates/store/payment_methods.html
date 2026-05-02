@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+{% block body_class %}payment-methods-page{% endblock %}
+
+{% block title %}
+💳 To'lov usullari — ChaqmoqApp
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
+{% endblock %}
+
+{% block content %}
+<div class="moliya-shell pmethods-page-v2">
+    {% include "partials/moliya_header.html" %}
+
+    <section class="pmethods-card">
+        <div class="pmethods-head">
+            <div>
+                <h2 class="pmethods-title">To'lov usullari</h2>
+                <p class="pmethods-sub">To'lov usullarini boshqarish va qo'shish</p>
+            </div>
+            <button type="button" class="pmethods-add-btn"
+                data-bs-toggle="modal" data-bs-target="#addPaymentMethodModal">
+                <i class="fa-solid fa-plus"></i> Yangi qo'shish
+            </button>
+        </div>
+
+        <div class="pmethods-grid">
+            {% for method in methods %}
+            <div class="pmethods-item {% if not method.is_active %}is-inactive{% endif %}">
+                <span class="pmethods-item__name">{{ method.nom }}</span>
+                <div class="pmethods-item__actions">
+                    <button type="button" class="pmethods-icon-btn" title="Tahrirlash"
+                        data-bs-toggle="modal" data-bs-target="#editPaymentMethodModal"
+                        data-id="{{ method.id }}" data-nom="{{ method.nom }}">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <form action="{% url 'store:payment_method_toggle' method.id %}" method="post" class="pmethods-toggle-form">
+                        {% csrf_token %}
+                        {% if method.is_active %}
+                        <button type="submit" class="pmethods-toggle is-on" title="O'chirish" aria-pressed="true">
+                            <span class="pmethods-toggle__thumb"></span>
+                        </button>
+                        {% else %}
+                        <button type="submit" class="pmethods-toggle" title="Yoqish" aria-pressed="false">
+                            <span class="pmethods-toggle__thumb"></span>
+                        </button>
+                        {% endif %}
+                    </form>
+                    <button type="button" class="pmethods-icon-btn pmethods-icon-btn--danger" title="O'chirish"
+                        data-bs-toggle="modal" data-bs-target="#deletePaymentMethodModal"
+                        data-id="{{ method.id }}" data-nom="{{ method.nom }}">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                    <span class="pmethods-status {% if method.is_active %}is-active{% else %}is-off{% endif %}">
+                        {% if method.is_active %}Faol{% else %}O'chirilgan{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="pmethods-empty">
+                Hech qanday to'lov usuli qo'shilmagan. Yuqoridagi <strong>+ Yangi qo'shish</strong> tugmasini bosing.
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Add Payment Method Modal -->
+<div class="modal fade glass-modal" id="addPaymentMethodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content pmethods-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Yangi to'lov usuli qo'shish</h5>
+                    <p class="pmethods-modal__sub">Yangi to'lov usulini qo'shing (masalan: CASH, PAYME, CLICK)</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Yopish"></button>
+            </div>
+            <form action="{% url 'store:payment_method_create' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <label class="form-label pmethods-form-label" for="addPaymentMethodNom">
+                        To'lov usuli nomi <span class="pmethods-required">*</span>
+                    </label>
+                    <input id="addPaymentMethodNom" type="text" name="nom"
+                        class="pmethods-input" placeholder="CASH, PAYME, CLICK, UZUM..."
+                        required maxlength="80" autocomplete="off">
+                    <p class="pmethods-form-hint">Katta harflar bilan kiritiladi (masalan: PAYME)</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="pmethods-btn pmethods-btn--ghost" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="pmethods-btn pmethods-btn--primary">Qo'shish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Payment Method Modal -->
+<div class="modal fade glass-modal" id="editPaymentMethodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content pmethods-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">To'lov usulini tahrirlash</h5>
+                    <p class="pmethods-modal__sub">Faqat nomini o'zgartirishingiz mumkin</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Yopish"></button>
+            </div>
+            <form id="editPaymentMethodForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <label class="form-label pmethods-form-label" for="editPaymentMethodNom">
+                        To'lov usuli nomi <span class="pmethods-required">*</span>
+                    </label>
+                    <input id="editPaymentMethodNom" type="text" name="nom"
+                        class="pmethods-input" required maxlength="80" autocomplete="off">
+                    <p class="pmethods-form-hint">Katta harflar bilan kiritiladi (masalan: PAYME)</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="pmethods-btn pmethods-btn--ghost" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="pmethods-btn pmethods-btn--primary">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Payment Method Modal -->
+<div class="modal fade glass-modal" id="deletePaymentMethodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content pmethods-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">O'chirishni tasdiqlang</h5>
+                    <p class="pmethods-modal__sub">Bu amalni qaytarib bo'lmaydi.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Yopish"></button>
+            </div>
+            <form id="deletePaymentMethodForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="pmethods-delete-text">
+                        <strong id="deletePaymentMethodNom">—</strong> to'lov usuli o'chiriladi.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="pmethods-btn pmethods-btn--ghost" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="pmethods-btn pmethods-btn--danger">Ha, o'chirish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        {% url 'store:payment_method_update' 0 as update_url %}
+        {% url 'store:payment_method_delete' 0 as delete_url %}
+        const updateUrlTemplate = "{{ update_url|safe }}";
+        const deleteUrlTemplate = "{{ delete_url|safe }}";
+
+        const editModal = document.getElementById('editPaymentMethodModal');
+        const editForm = document.getElementById('editPaymentMethodForm');
+        const editInput = document.getElementById('editPaymentMethodNom');
+        if (editModal && editForm && editInput) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                const trigger = event.relatedTarget;
+                if (!trigger) return;
+                const id = trigger.getAttribute('data-id');
+                const nom = trigger.getAttribute('data-nom') || '';
+                editForm.action = updateUrlTemplate.replace('/0/', '/' + id + '/');
+                editInput.value = nom;
+            });
+        }
+
+        const deleteModal = document.getElementById('deletePaymentMethodModal');
+        const deleteForm = document.getElementById('deletePaymentMethodForm');
+        const deleteName = document.getElementById('deletePaymentMethodNom');
+        if (deleteModal && deleteForm && deleteName) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const trigger = event.relatedTarget;
+                if (!trigger) return;
+                const id = trigger.getAttribute('data-id');
+                const nom = trigger.getAttribute('data-nom') || '';
+                deleteForm.action = deleteUrlTemplate.replace('/0/', '/' + id + '/');
+                deleteName.textContent = nom;
+            });
+        }
+    });
+</script>
+{% endblock %}

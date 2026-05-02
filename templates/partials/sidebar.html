@@ -1292,39 +1292,45 @@
   }
 
   .si-ico {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, .045);
-    border: 1px solid rgba(148, 163, 184, .14);
-    font-size: 18px;
-    color: rgba(226, 232, 240, .84);
+    position: relative;
+    background: var(--sb-surface-3);
+    border: 1px solid var(--sb-border);
+    font-size: 17px;
+    color: var(--sb-text-strong);
     flex: 0 0 auto;
     pointer-events: none;
-    transition: background .16s ease, border-color .16s ease, color .16s ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .si-ico::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 55%);
+    pointer-events: none;
   }
 
   .si-ico i {
+    position: relative;
     font-size: 1em;
     line-height: 1;
     pointer-events: none;
   }
 
-  .sidebar-item:hover:not(.active) .si-ico {
-    background: rgba(255, 255, 255, .055);
-    border-color: rgba(148, 163, 184, .14);
-    color: var(--sb-text-strong);
-  }
-
   .sidebar-item.active .si-ico {
-    background: rgba(250, 204, 21, .16);
-    border-color: rgba(250, 204, 21, .20);
-    color: #facc15;
-    backdrop-filter: blur(4px);
-    box-shadow: none;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.20) 0%, rgba(245, 158, 11, 0.10) 100%);
+    border-color: rgba(250, 204, 21, 0.32);
+    color: var(--sb-gold);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 0 3px rgba(250, 204, 21, 0.08);
   }
 
   .si-text {
@@ -1392,22 +1398,24 @@
   }
 
   html[data-role-theme="light"] .si-ico {
-    background: #ffffff;
-    border-color: #d8e0ec;
+    background: #FFFFFF;
+    border-color: #D8E0EC;
     color: #475569;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   }
 
-  html[data-role-theme="light"] .sidebar-item:hover:not(.active) .si-ico {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    color: #0f172a;
+  html[data-role-theme="light"] .si-ico::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
   }
 
   html[data-role-theme="light"] .sidebar-item.active .si-ico,
   html[data-role-theme="light"] .sidebar-item.active-state .si-ico {
-    background: #fff1b8;
-    border-color: #e8c765;
-    color: #92400e;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border-color: #F59E0B;
+    color: #92400E;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 0 0 3px rgba(245, 158, 11, 0.10);
   }
 
   html[data-role-theme="light"] .sidebar-submenu {

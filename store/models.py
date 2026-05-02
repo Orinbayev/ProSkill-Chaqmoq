@@ -223,6 +223,32 @@ class ExpenseCategory(models.Model):
         return self.nom
 
 
+class PaymentMethod(models.Model):
+    """
+    Markaz tomonidan qo'shilgan to'lov usullari (NAQD, CLICK, PAYME, ...).
+    Filtrlar va to'lov modallarida dropdown sifatida ishlatiladi.
+    """
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True, related_name='payment_methods')
+    nom = models.CharField(max_length=80, verbose_name="To'lov usuli nomi")
+    is_active = models.BooleanField(default=True, verbose_name="Faol")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "To'lov usuli"
+        verbose_name_plural = "To'lov usullari"
+        ordering = ['-is_active', 'nom']
+        unique_together = ('center', 'nom')
+
+    def save(self, *args, **kwargs):
+        if self.nom:
+            self.nom = self.nom.strip().upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nom
+
+
 class Expense(models.Model):
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     summa = models.PositiveIntegerField(verbose_name="Summa (so'm)")

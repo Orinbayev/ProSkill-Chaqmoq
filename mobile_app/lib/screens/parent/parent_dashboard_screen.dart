@@ -585,26 +585,38 @@ class _ChaqmoqStatsCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 56,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    for (var i = 0; i < months.length; i++) ...<Widget>[
-                      if (i > 0) const SizedBox(width: 6),
-                      Expanded(
-                        child: _ChaqmoqMonthBar(
-                          month: months[i],
-                          maxValue: maxValue,
-                          isCurrent: i == lastIndex,
-                          monthShortLabel:
-                              _ozMonthsShort[(months[i].month - 1) % 12],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Card kengligi mobil ekranda 320..480 atrofida bo'ladi.
+                  // Tor ekranlarda oy yorlig'ini qisqartirib (3 harf), katta
+                  // ekranlarda esa to'la qisqa nomda chiqaramiz.
+                  final showLabels = constraints.maxWidth > 220;
+                  // Diagramma uchun yetarli, lekin overflow qilmaydigan
+                  // baland mezon. Adaptiv: bar 36..44 oralig'ida.
+                  final chartHeight = constraints.maxWidth < 320 ? 64.0 : 72.0;
+                  return SizedBox(
+                    height: chartHeight,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        for (var i = 0; i < months.length; i++) ...<Widget>[
+                          if (i > 0) const SizedBox(width: 6),
+                          Expanded(
+                            child: _ChaqmoqMonthBar(
+                              month: months[i],
+                              maxValue: maxValue,
+                              isCurrent: i == lastIndex,
+                              monthShortLabel: showLabels
+                                  ? _ozMonthsShort[(months[i].month - 1) % 12]
+                                  : '',
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -695,49 +707,85 @@ class _ChaqmoqMonthBar extends StatelessWidget {
     final ratio = maxValue <= 0
         ? 0.0
         : (month.earned / maxValue).clamp(0.0, 1.0).toDouble();
-    final barHeight = ratio == 0 ? 4.0 : (32 * ratio).clamp(4.0, 32.0);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          '${month.earned}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: ParentTextStyles.label.copyWith(
-            color: isCurrent
-                ? Colors.white
-                : const Color(0xFFC2DDFF),
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          height: barHeight,
-          decoration: BoxDecoration(
-            color: isCurrent
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          monthShortLabel,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: ParentTextStyles.label.copyWith(
-            color: isCurrent
-                ? Colors.white
-                : const Color(0xFFC2DDFF),
-            fontSize: 10.5,
-            fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ],
+    final barColor = isCurrent
+        ? Colors.white
+        : Colors.white.withValues(alpha: 0.45);
+    final textColor = isCurrent
+        ? Colors.white
+        : const Color(0xFFC2DDFF);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Matn satrlari uchun aniq joy (FittedBox bilan ham himoyalangan).
+        // Overflow qilmasligi uchun real font geometriyasidan ham ko'proq
+        // joy ajratamiz.
+        const valueLineHeight = 13.0;
+        const labelLineHeight = 13.0;
+        const verticalGap = 2.0;
+        final hasMonthLabel = monthShortLabel.isNotEmpty;
+        final reserved = valueLineHeight +
+            verticalGap +
+            verticalGap +
+            (hasMonthLabel ? labelLineHeight : 0.0);
+        final available = constraints.maxHeight - reserved;
+        final maxBar = available.isFinite
+            ? available.clamp(4.0, 44.0)
+            : 32.0;
+        final barHeight = ratio == 0
+            ? 4.0
+            : (maxBar * ratio).clamp(4.0, maxBar);
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            SizedBox(
+              height: valueLineHeight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '${month.earned}',
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: ParentTextStyles.label.copyWith(
+                    color: textColor,
+                    fontSize: 10.5,
+                    height: 1.0,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: verticalGap),
+            Container(
+              height: barHeight,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            if (hasMonthLabel) ...<Widget>[
+              const SizedBox(height: verticalGap),
+              SizedBox(
+                height: labelLineHeight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    monthShortLabel,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: ParentTextStyles.label.copyWith(
+                      color: textColor,
+                      fontSize: 10.5,
+                      height: 1.0,
+                      fontWeight:
+                          isCurrent ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

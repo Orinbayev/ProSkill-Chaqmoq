@@ -63,4 +63,11 @@ urlpatterns = [
     path('expenses/<int:pk>/edit/', views.expense_edit, name='expense_edit'),
     path('expenses/<int:pk>/delete/', views.expense_delete, name='expense_delete'),
     path('expenses/<int:pk>/comment/', views.expense_comment, name='expense_comment'),
+
+    # To'lov usullari (PaymentMethod CRUD)
+    path('payment-methods/', views.payment_methods, name='payment_methods'),
+    path('payment-methods/create/', views.payment_method_create, name='payment_method_create'),
+    path('payment-methods/<int:pk>/update/', views.payment_method_update, name='payment_method_update'),
+    path('payment-methods/<int:pk>/toggle/', views.payment_method_toggle, name='payment_method_toggle'),
+    path('payment-methods/<int:pk>/delete/', views.payment_method_delete, name='payment_method_delete'),
 ]

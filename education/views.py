@@ -1556,7 +1556,7 @@ def enrollment_edit(request, enrollment_id):
         )
         student_ism = request.POST.get("ism", "").strip()
         student_familya = request.POST.get("familya", "").strip()
-        student_email = request.POST.get("email", "").strip()
+        student_telefon1 = request.POST.get("telefon1", "").strip()
 
         gid = _parse_int_value(request.POST.get("group_id"))
         selected_group = active_enrollment.group
@@ -1700,8 +1700,8 @@ def enrollment_edit(request, enrollment_id):
 
         active_enrollment.student.ism = student_ism
         active_enrollment.student.familya = student_familya
-        active_enrollment.student.email = student_email
-        active_enrollment.student.save(update_fields=["ism", "familya", "email"])
+        active_enrollment.student.telefon1 = student_telefon1
+        active_enrollment.student.save(update_fields=["ism", "familya", "telefon1"])
 
         active_enrollment.save()
 
@@ -2404,9 +2404,19 @@ def qarzdorlar_home(request):
     selected_from = parse_date(date_from_raw) if date_from_raw else None
     selected_to = parse_date(date_to_raw) if date_to_raw else None
 
+    used_default_period = False
     if not selected_from and not selected_to:
-        selected_from = today.replace(day=1)
+        # Default: kumulyativ qarz — oldingi oylardan qolgan to'lanmagan summa
+        # ham, joriy oy qarzi ham bitta jamga qo'shiladi.
+        # So'nggi 12 oy ichidagi barcha qarzlar e'tiborga olinadi.
+        used_default_period = True
         selected_to = today
+        _from_year = today.year
+        _from_month = today.month - 12
+        while _from_month <= 0:
+            _from_month += 12
+            _from_year -= 1
+        selected_from = date(_from_year, _from_month, 1)
     else:
         if selected_from and not selected_to:
             selected_to = today if selected_from <= today else selected_from
@@ -2687,6 +2697,8 @@ def qarzdorlar_home(request):
     chart_labels = [_human_month_label(month) for month in chart_months]
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
     selected_period_label = _human_period_label(selected_from, selected_to)
+    if used_default_period:
+        selected_period_label = "Kumulyativ qarz · oldingi oylardan qolgan + joriy oy"
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
@@ -2732,6 +2744,19 @@ def qarzdorlar_home(request):
             "no_group": no_group_count,
         },
     }
+
+    try:
+        from store.views import _ensure_default_payment_methods as _seed_pm
+        from store.models import PaymentMethod as _PM
+        if center:
+            _seed_pm(center)
+            context["payment_methods"] = list(
+                _PM.objects.filter(center=center, is_active=True).order_by('nom')
+            )
+        else:
+            context["payment_methods"] = []
+    except Exception:
+        context["payment_methods"] = []
 
     return render(request, "education/qarzdorlar.html", context)
     
@@ -3080,6 +3105,22 @@ def _get_payment_dashboard_data(request):
     sel_type = request.GET.get("payment_type") or ""
     sel_month = request.GET.get("pay_month") or ""
 
+    # Map any payment-method name (NAQD/KARTA/CLICK/PAYME/...) to internal
+    # Payment.payment_type code (cash/card/mixed) for DB filtering.
+    # `sel_type` is preserved for UI dropdown; `sel_type_filter` is used in queryset.
+    _PM_NAME_TO_MODE = {
+        'cash': 'cash',
+        'card': 'card',
+        'mixed': 'mixed',
+        'naqd': 'cash',
+        'karta': 'card',
+        'plastik': 'card',
+        'aralash': 'mixed',
+    }
+    sel_type_filter = ''
+    if sel_type:
+        sel_type_filter = _PM_NAME_TO_MODE.get(sel_type.lower(), 'card')
+
     selected_from = parse_date(date_from_raw) if date_from_raw else None
     selected_to = parse_date(date_to_raw) if date_to_raw else None
 
@@ -3135,8 +3176,8 @@ def _get_payment_dashboard_data(request):
             qs = qs.filter(group__category_obj_id=sel_course)
         if sel_staff:
             qs = qs.filter(created_by_id=sel_staff)
-        if sel_type:
-            qs = qs.filter(payment_type=sel_type)
+        if sel_type_filter:
+            qs = qs.filter(payment_type=sel_type_filter)
 
         if sel_month and sel_month.isdigit():
             qs = qs.filter(
@@ -3679,6 +3720,20 @@ def tolovlar_home(request):
             "is_paginated": page_obj.has_other_pages(),
         }
     )
+    try:
+        from store.models import PaymentMethod as _PM
+        from store.views import _ensure_default_payment_methods as _seed_pm
+        from core.tenant import get_request_center as _grc
+        _center = _grc(request)
+        if _center:
+            _seed_pm(_center)
+            dashboard["dynamic_payment_methods"] = list(
+                _PM.objects.filter(center=_center, is_active=True).order_by('nom')
+            )
+        else:
+            dashboard["dynamic_payment_methods"] = []
+    except Exception:
+        dashboard["dynamic_payment_methods"] = []
     return render(request, "education/tolovlar_list.html", dashboard)
 
 @login_required

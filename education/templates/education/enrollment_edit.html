@@ -334,6 +334,33 @@
     grid-column: 1 / -1;
   }
 
+  .form-label .field-meta {
+    margin-left: 6px;
+    font-weight: 500;
+    font-size: 11px;
+    color: rgba(148, 163, 184, 0.85);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .field-stack--with-icon {
+    position: relative;
+  }
+
+  .field-stack--with-icon .form-control {
+    padding-left: 46px !important;
+  }
+
+  .field-stack--with-icon .field-icon {
+    position: absolute;
+    left: 18px;
+    bottom: 18px;
+    color: rgba(148, 163, 184, 0.7);
+    font-size: 15px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
   .picker-card {
     min-width: 0;
     padding: 0;
@@ -1047,10 +1074,12 @@
                 <input type="text" name="familya" value="{{ enr.student.familya }}" class="form-control custom-input"
                   placeholder="Familyani kiriting" required>
               </div>
-              <div class="field-stack profile-field--wide">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" value="{{ enr.student.email }}" class="form-control custom-input"
-                  placeholder="Email kiriting">
+              <div class="field-stack profile-field--wide field-stack--with-icon">
+                <label class="form-label">Telefon raqami</label>
+                <i class="fa-solid fa-phone field-icon"></i>
+                <input type="tel" name="telefon1" value="{{ enr.student.telefon1|default:'' }}"
+                  class="form-control custom-input" placeholder="+998 90 123 45 67"
+                  inputmode="tel" autocomplete="tel">
               </div>
             </div>
           </div>

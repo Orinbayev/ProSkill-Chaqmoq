@@ -1,5 +1,6 @@
 import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/core/theme/parent_text_styles.dart';
+import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Parent app bar mirroring primitives.jsx `ParentAppBar`.
@@ -139,6 +140,7 @@ class AppStudentIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
@@ -152,11 +154,11 @@ class AppStudentIconButton extends StatelessWidget {
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: const Color(0x0AFFFFFF),
+                color: tokens.glass,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0x14FFFFFF)),
+                border: Border.all(color: tokens.border),
               ),
-              child: Icon(icon, color: const Color(0xFFF1F2F6), size: iconSize),
+              child: Icon(icon, color: tokens.text, size: iconSize),
             ),
             if (badgeCount != null && badgeCount! > 0)
               Positioned(
@@ -168,9 +170,9 @@ class AppStudentIconButton extends StatelessWidget {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF4757),
+                    color: tokens.danger,
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: const Color(0xFF0A0A0F), width: 2),
+                    border: Border.all(color: tokens.bg, width: 2),
                   ),
                   child: Text(
                     badgeCount! > 9 ? '9+' : '$badgeCount',

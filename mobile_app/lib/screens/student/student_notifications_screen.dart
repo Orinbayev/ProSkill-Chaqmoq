@@ -1,4 +1,4 @@
-import 'package:chaqmoq_mobile/core/theme/student_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
@@ -35,28 +35,29 @@ class _StudentNotificationsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     final provider = context.watch<NotificationsProvider>();
     return Scaffold(
-      backgroundColor: StudentColors.bg,
+      backgroundColor: tokens.bg,
       body: SafeArea(
         child: RefreshIndicator(
-          color: StudentColors.primary,
+          color: tokens.primary,
           onRefresh: _refresh,
-          child: _body(provider),
+          child: _body(provider, tokens),
         ),
       ),
     );
   }
 
-  Widget _body(NotificationsProvider provider) {
+  Widget _body(NotificationsProvider provider, StudentTokens tokens) {
     if (provider.state == ViewState.loading && provider.items.isEmpty) {
-      return const AppLoadingState(dark: true);
+      return AppLoadingState(dark: tokens.isDark);
     }
     if (provider.state == ViewState.error && provider.items.isEmpty) {
       return AppErrorState(
         title: 'Bildirishnomalar yuklanmadi',
         message: 'Server bilan aloqa yo‘q. Qayta urinib ko‘ring.',
-        dark: true,
+        dark: tokens.isDark,
         onRetry: () => provider.refresh(),
       );
     }
@@ -79,7 +80,7 @@ class _StudentNotificationsScreenState
                     style: GoogleFonts.inter(
                       fontSize: 19,
                       fontWeight: FontWeight.w800,
-                      color: StudentColors.text,
+                      color: tokens.text,
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -89,7 +90,7 @@ class _StudentNotificationsScreenState
                     style: GoogleFonts.inter(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
-                      color: StudentColors.textMuted,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],
@@ -105,21 +106,21 @@ class _StudentNotificationsScreenState
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: StudentColors.glass,
-                      border: Border.all(color: StudentColors.border),
+                      color: tokens.glass,
+                      border: Border.all(color: tokens.border),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.done_all_rounded, color: StudentColors.text, size: 18),
+                        Icon(Icons.done_all_rounded, color: tokens.text, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           'Hammasi',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: StudentColors.text,
+                            color: tokens.text,
                           ),
                         ),
                       ],
@@ -133,8 +134,8 @@ class _StudentNotificationsScreenState
         ),
         const SizedBox(height: 14),
         if (provider.items.isEmpty)
-          const AppEmptyState(
-            dark: true,
+          AppEmptyState(
+            dark: tokens.isDark,
             title: 'Bildirishnoma yo‘q',
             subtitle: 'Yangi xabarlar paydo bo‘lganda shu yerda ko‘rinadi.',
             icon: Icons.notifications_off_outlined,
@@ -160,11 +161,12 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
     final unread = !item.isRead;
-    final iconBg = unread ? const Color(0x2900D4AA) : StudentColors.glass;
-    final iconFg = unread ? StudentColors.primary : StudentColors.textMuted;
+    final iconBg = unread ? tokens.tonedSurface(tokens.primary) : tokens.glass;
+    final iconFg = unread ? tokens.primary : tokens.textMuted;
     return AppGCard(
-      borderColor: unread ? const Color(0x3300D4AA) : null,
+      borderColor: unread ? tokens.tonedBorder(tokens.primary) : null,
       onTap: onTap,
       padding: const EdgeInsets.all(14),
       child: Stack(
@@ -199,7 +201,7 @@ class _NotificationTile extends StatelessWidget {
                             style: GoogleFonts.inter(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w800,
-                              color: StudentColors.text,
+                              color: tokens.text,
                             ),
                           ),
                         ),
@@ -209,7 +211,7 @@ class _NotificationTile extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
-                            color: StudentColors.textMuted,
+                            color: tokens.textMuted,
                           ),
                         ),
                       ],
@@ -223,7 +225,7 @@ class _NotificationTile extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: StudentColors.textMuted,
+                          color: tokens.textMuted,
                           height: 1.45,
                         ),
                       ),
@@ -234,17 +236,15 @@ class _NotificationTile extends StatelessWidget {
             ],
           ),
           if (unread)
-            const Positioned(
+            Positioned(
               top: 0,
               right: 0,
-              child: SizedBox(
+              child: Container(
                 width: 8,
                 height: 8,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: StudentColors.primary,
-                    shape: BoxShape.circle,
-                  ),
+                decoration: BoxDecoration(
+                  color: tokens.primary,
+                  shape: BoxShape.circle,
                 ),
               ),
             ),
