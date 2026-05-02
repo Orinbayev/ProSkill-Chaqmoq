@@ -2406,17 +2406,12 @@ def qarzdorlar_home(request):
 
     used_default_period = False
     if not selected_from and not selected_to:
-        # Default: kumulyativ qarz — oldingi oylardan qolgan to'lanmagan summa
-        # ham, joriy oy qarzi ham bitta jamga qo'shiladi.
-        # So'nggi 12 oy ichidagi barcha qarzlar e'tiborga olinadi.
+        # Default: faqat JORIY OY qarzi.
+        # Foydalanuvchi o'tgan oyni ko'rmoqchi bo'lsa filterdan tanlaydi
+        # (Sanadan / Sanagacha yoki "Oy" select).
         used_default_period = True
+        selected_from = today.replace(day=1)
         selected_to = today
-        _from_year = today.year
-        _from_month = today.month - 12
-        while _from_month <= 0:
-            _from_month += 12
-            _from_year -= 1
-        selected_from = date(_from_year, _from_month, 1)
     else:
         if selected_from and not selected_to:
             selected_to = today if selected_from <= today else selected_from
@@ -2698,7 +2693,7 @@ def qarzdorlar_home(request):
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
     selected_period_label = _human_period_label(selected_from, selected_to)
     if used_default_period:
-        selected_period_label = "Kumulyativ qarz · oldingi oylardan qolgan + joriy oy"
+        selected_period_label = "Joriy oy qarzi · o'tgan oylar uchun filtrni o'zgartiring"
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
