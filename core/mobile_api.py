@@ -2784,29 +2784,7 @@ def mobile_chaqmoq_leaderboard(request):
     ):
         return _json_error("Permission denied", status=403, code="permission_denied")
 
-    center = _request_center(request)
-
-    students_qs = User.objects.filter(role="student")
-    if center is not None:
-        students_qs = students_qs.filter(center=center)
-
-    students = list(students_qs.values("id", "first_name", "last_name", "username"))
-    student_ids = [row["id"] for row in students]
-    balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
-
-    rows = [
-        {
-            "id": row["id"],
-            "full_name": (
-                f"{row.get('first_name') or ''} {row.get('last_name') or ''}".strip()
-                or (row.get("username") or "")
-            ),
-            "balance": int(balance_map.get(row["id"], 0)),
-        }
-        for row in students
-    ]
-    rows.sort(key=lambda r: (-int(r["balance"]), (r["full_name"] or "").lower(), r["id"]))
-
+    # Reyting kontekstidagi o'quvchini aniqlash (ota-ona uchun bola).
     me_user = request.user
     if request.user.role == "parent":
         student_id = request.GET.get("student_id")
@@ -2814,6 +2792,74 @@ def mobile_chaqmoq_leaderboard(request):
             child = request.user.children.filter(pk=student_id).first()
             if child is not None:
                 me_user = child
+
+    # Markazni aniqlash: sub-domen / X-Center-Slug yoki foydalanuvchi markazidan
+    # foydalanamiz. Agar talabnoma kontekstida markaz yo'q-u, lekin "men"ning
+    # markazi mavjud bo'lsa, undan foydalanamiz, shunda o'quvchi roziyajiy
+    # ravishda o'z markazidagi reytingni ko'radi.
+    center = _request_center(request) or getattr(me_user, "center", None)
+
+    students_qs = User.objects.filter(role="student")
+    if center is not None:
+        students_qs = students_qs.filter(center=center)
+
+    students = list(
+        students_qs.values(
+            "id",
+            "ism",
+            "familya",
+            "otchestvo",
+            "first_name",
+            "last_name",
+            "email",
+        )
+    )
+
+    # Talabnoma egasi (me_user) ro'yxatda yo'q bo'lsa ham qo'shamiz —
+    # masalan, role/markaz nomuvofiqligi tufayli filtrdan tushib qolgan
+    # bo'lsa, foydalanuvchi reytingda hech bo'lmasa o'zini ko'radi.
+    if me_user.role == "student" and me_user.id not in {row["id"] for row in students}:
+        students.append(
+            {
+                "id": me_user.id,
+                "ism": getattr(me_user, "ism", "") or "",
+                "familya": getattr(me_user, "familya", "") or "",
+                "otchestvo": getattr(me_user, "otchestvo", "") or "",
+                "first_name": me_user.first_name or "",
+                "last_name": me_user.last_name or "",
+                "email": me_user.email or "",
+            }
+        )
+
+    student_ids = [row["id"] for row in students]
+    balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
+
+    def _full_name(row: dict) -> str:
+        # `User.full_name()` mantig'ini takrorlaymiz: ism/familya/otchestvo
+        # birikmasi bo'sh bo'lsa, AbstractUser maydonlariga qaytamiz.
+        parts = []
+        seen = set()
+        for raw in (row.get("ism"), row.get("familya"), row.get("otchestvo")):
+            word = (raw or "").strip()
+            if word and word.lower() not in ("none", "null") and word not in seen:
+                parts.append(word)
+                seen.add(word)
+        composed = " ".join(parts).strip()
+        if composed:
+            return composed
+        legacy = f"{row.get('first_name') or ''} {row.get('last_name') or ''}".strip()
+        return legacy or (row.get("email") or "")
+
+    rows = [
+        {
+            "id": row["id"],
+            "full_name": _full_name(row),
+            "balance": int(balance_map.get(row["id"], 0)),
+        }
+        for row in students
+    ]
+    rows.sort(key=lambda r: (-int(r["balance"]), (r["full_name"] or "").lower(), r["id"]))
+
     me_id = getattr(me_user, "id", None)
     me_rank = 0
     me_balance = 0
