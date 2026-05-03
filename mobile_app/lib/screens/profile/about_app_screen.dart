@@ -7,7 +7,7 @@ class AboutAppScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProfileUiColors.background,
+      backgroundColor: ProfileUiColors.of(context).background,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -18,13 +18,13 @@ class AboutAppScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('ChaqmoqApp', style: ProfileUiTextStyles.title),
+                  Text('ChaqmoqApp', style: ProfileUiTextStyles.of(context).title),
                   const SizedBox(height: 6),
-                  Text('Versiya 1.0.0', style: ProfileUiTextStyles.muted),
+                  Text('Versiya 1.0.0', style: ProfileUiTextStyles.of(context).muted),
                   const SizedBox(height: 14),
                   Text(
                     'ChaqmoqApp ota-onalar uchun farzand davomatini, to‘lovlarini, yutuqlarini va bildirishnomalarni qulay kuzatish imkonini beradi.',
-                    style: ProfileUiTextStyles.body,
+                    style: ProfileUiTextStyles.of(context).body,
                   ),
                 ],
               ),
@@ -33,13 +33,13 @@ class AboutAppScreen extends StatelessWidget {
             ProfilePageCard(
               padding: EdgeInsets.zero,
               child: Column(
-                children: const <Widget>[
-                  _InfoRow(
+                children: <Widget>[
+                  const _InfoRow(
                     title: 'Maxfiylik siyosati',
                     subtitle: 'Tez orada to‘liq matn joylanadi',
                   ),
-                  Divider(height: 1, color: ProfileUiColors.border),
-                  _InfoRow(
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
+                  const _InfoRow(
                     title: 'Foydalanish shartlari',
                     subtitle: 'Tez orada to‘liq matn joylanadi',
                   ),
@@ -63,11 +63,11 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      title: Text(title, style: ProfileUiTextStyles.section),
-      subtitle: Text(subtitle, style: ProfileUiTextStyles.muted),
-      trailing: const Icon(
+      title: Text(title, style: ProfileUiTextStyles.of(context).section),
+      subtitle: Text(subtitle, style: ProfileUiTextStyles.of(context).muted),
+      trailing: Icon(
         Icons.chevron_right_rounded,
-        color: ProfileUiColors.secondaryText,
+        color: ProfileUiColors.of(context).secondaryText,
       ),
     );
   }

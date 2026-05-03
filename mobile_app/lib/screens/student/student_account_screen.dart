@@ -4,7 +4,6 @@ import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/about_app_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/edit_profile_screen.dart';
-import 'package:chaqmoq_mobile/screens/profile/help_support_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/language_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/notification_settings_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/security_screen.dart';
@@ -150,12 +149,6 @@ class StudentAccountScreen extends StatelessWidget {
                       ),
                       const _RowDivider(),
                       _SettingRow(
-                        icon: Icons.help_outline_rounded,
-                        label: 'Yordam',
-                        onTap: () => _openHelp(context),
-                      ),
-                      const _RowDivider(),
-                      _SettingRow(
                         icon: Icons.info_outline_rounded,
                         label: 'Ilova haqida',
                         value: 'v1.0.0',
@@ -234,12 +227,6 @@ class StudentAccountScreen extends StatelessWidget {
   void _openTheme(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<bool>(builder: (_) => const ThemeScreen()),
-    );
-  }
-
-  void _openHelp(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const HelpSupportScreen()),
     );
   }
 

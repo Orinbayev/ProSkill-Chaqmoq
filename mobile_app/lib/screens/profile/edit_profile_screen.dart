@@ -197,7 +197,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Theme(
       data: buildProfileFormTheme(context),
       child: Scaffold(
-        backgroundColor: ProfileUiColors.background,
+        backgroundColor: ProfileUiColors.of(context).background,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -222,7 +222,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               children: <Widget>[
                                 Text(
                                   'Profil ma’lumotlaringizni yangilang.',
-                                  style: ProfileUiTextStyles.muted,
+                                  style: ProfileUiTextStyles.of(context).muted,
                                 ),
                                 const SizedBox(height: 16),
                                 Center(
@@ -266,15 +266,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               color: Colors.white,
                                               shape: BoxShape.circle,
                                               boxShadow:
-                                                  ProfileUiDecorations
-                                                      .softShadow,
+                                                  ProfileUiDecorations.of(context).softShadow,
                                               border: Border.all(
-                                                color: ProfileUiColors.border,
+                                                color: ProfileUiColors.of(context).border,
                                               ),
                                             ),
-                                            child: const Icon(
+                                            child: Icon(
                                               Icons.photo_camera_outlined,
-                                              color: ProfileUiColors.primary,
+                                              color: ProfileUiColors.of(context).primary,
                                               size: 18,
                                             ),
                                           ),
@@ -286,11 +285,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _firstNameController,
-                                  style: ProfileUiTextStyles.input,
-                                  cursorColor: ProfileUiColors.primary,
+                                  style: ProfileUiTextStyles.of(context).input,
+                                  cursorColor: ProfileUiColors.of(context).primary,
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
-                                  decoration: profileInputDecoration(
+                                  decoration: profileInputDecoration(context, 
                                     label: 'Ism',
                                     hintText: 'Ismingiz',
                                     icon: Icons.person_outline_rounded,
@@ -305,11 +304,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _lastNameController,
-                                  style: ProfileUiTextStyles.input,
-                                  cursorColor: ProfileUiColors.primary,
+                                  style: ProfileUiTextStyles.of(context).input,
+                                  cursorColor: ProfileUiColors.of(context).primary,
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
-                                  decoration: profileInputDecoration(
+                                  decoration: profileInputDecoration(context, 
                                     label: 'Familiya',
                                     hintText: 'Familiyangiz',
                                     icon: Icons.badge_outlined,
@@ -324,11 +323,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _phoneController,
-                                  style: ProfileUiTextStyles.input,
-                                  cursorColor: ProfileUiColors.primary,
+                                  style: ProfileUiTextStyles.of(context).input,
+                                  cursorColor: ProfileUiColors.of(context).primary,
                                   keyboardType: TextInputType.phone,
                                   textInputAction: TextInputAction.next,
-                                  decoration: profileInputDecoration(
+                                  decoration: profileInputDecoration(context, 
                                     label: 'Telefon',
                                     hintText: '+998 90 123 45 67',
                                     icon: Icons.phone_outlined,
@@ -355,11 +354,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _emailController,
-                                  style: ProfileUiTextStyles.input,
-                                  cursorColor: ProfileUiColors.primary,
+                                  style: ProfileUiTextStyles.of(context).input,
+                                  cursorColor: ProfileUiColors.of(context).primary,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.done,
-                                  decoration: profileInputDecoration(
+                                  decoration: profileInputDecoration(context, 
                                     label: 'Email',
                                     hintText: 'example@chaqmoq.uz',
                                     icon: Icons.mail_outline_rounded,
@@ -385,7 +384,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   child: FilledButton(
                                     onPressed: _saving ? null : _save,
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: ProfileUiColors.primary,
+                                      backgroundColor: ProfileUiColors.of(context).primary,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 14,
@@ -405,7 +404,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           )
                                         : Text(
                                             'Saqlash',
-                                            style: ProfileUiTextStyles.button,
+                                            style: ProfileUiTextStyles.of(context).button,
                                           ),
                                   ),
                                 ),

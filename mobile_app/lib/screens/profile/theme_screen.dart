@@ -11,7 +11,7 @@ class ThemeScreen extends StatelessWidget {
     final AppPreferencesProvider preferences = context
         .watch<AppPreferencesProvider>();
     return Scaffold(
-      backgroundColor: ProfileUiColors.background,
+      backgroundColor: ProfileUiColors.of(context).background,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -27,13 +27,13 @@ class ThemeScreen extends StatelessWidget {
                     value: AppThemePreference.system,
                     groupValue: preferences.themePreference,
                   ),
-                  const Divider(height: 1, color: ProfileUiColors.border),
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
                   _ThemeOption(
                     title: 'Light',
                     value: AppThemePreference.light,
                     groupValue: preferences.themePreference,
                   ),
-                  const Divider(height: 1, color: ProfileUiColors.border),
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
                   _ThemeOption(
                     title: 'Dark',
                     value: AppThemePreference.dark,
@@ -72,12 +72,12 @@ class _ThemeOption extends StatelessWidget {
         }
         Navigator.of(context).pop(true);
       },
-      title: Text(title, style: ProfileUiTextStyles.section),
+      title: Text(title, style: ProfileUiTextStyles.of(context).section),
       trailing: Icon(
         selected ? Icons.check_circle_rounded : Icons.circle_outlined,
         color: selected
-            ? ProfileUiColors.primary
-            : ProfileUiColors.secondaryText,
+            ? ProfileUiColors.of(context).primary
+            : ProfileUiColors.of(context).secondaryText,
       ),
     );
   }

@@ -68,7 +68,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     return Theme(
       data: buildProfileFormTheme(context),
       child: Scaffold(
-        backgroundColor: ProfileUiColors.background,
+        backgroundColor: ProfileUiColors.of(context).background,
         body: SafeArea(
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -86,16 +86,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       children: <Widget>[
                         Text(
                           'Parolingizni xavfsiz yangilang.',
-                          style: ProfileUiTextStyles.muted,
+                          style: ProfileUiTextStyles.of(context).muted,
                         ),
                         const SizedBox(height: 18),
                         TextFormField(
                           controller: _currentPasswordController,
-                          style: ProfileUiTextStyles.input,
-                          cursorColor: ProfileUiColors.primary,
+                          style: ProfileUiTextStyles.of(context).input,
+                          cursorColor: ProfileUiColors.of(context).primary,
                           obscureText: true,
                           textInputAction: TextInputAction.next,
-                          decoration: profileInputDecoration(
+                          decoration: profileInputDecoration(context, 
                             label: 'Joriy parol',
                             icon: Icons.lock_outline_rounded,
                           ),
@@ -109,11 +109,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _newPasswordController,
-                          style: ProfileUiTextStyles.input,
-                          cursorColor: ProfileUiColors.primary,
+                          style: ProfileUiTextStyles.of(context).input,
+                          cursorColor: ProfileUiColors.of(context).primary,
                           obscureText: true,
                           textInputAction: TextInputAction.next,
-                          decoration: profileInputDecoration(
+                          decoration: profileInputDecoration(context, 
                             label: 'Yangi parol',
                             icon: Icons.password_rounded,
                             helperText: 'Kamida 8 ta belgi',
@@ -128,11 +128,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _confirmPasswordController,
-                          style: ProfileUiTextStyles.input,
-                          cursorColor: ProfileUiColors.primary,
+                          style: ProfileUiTextStyles.of(context).input,
+                          cursorColor: ProfileUiColors.of(context).primary,
                           obscureText: true,
                           textInputAction: TextInputAction.done,
-                          decoration: profileInputDecoration(
+                          decoration: profileInputDecoration(context, 
                             label: 'Parolni tasdiqlang',
                             icon: Icons.verified_user_outlined,
                           ),
@@ -149,7 +149,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           child: FilledButton(
                             onPressed: _submitting ? null : _submit,
                             style: FilledButton.styleFrom(
-                              backgroundColor: ProfileUiColors.primary,
+                              backgroundColor: ProfileUiColors.of(context).primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
@@ -167,7 +167,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                   )
                                 : Text(
                                     'Parolni yangilash',
-                                    style: ProfileUiTextStyles.button,
+                                    style: ProfileUiTextStyles.of(context).button,
                                   ),
                           ),
                         ),

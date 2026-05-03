@@ -122,7 +122,7 @@ class _NotificationSettingsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProfileUiColors.background,
+      backgroundColor: ProfileUiColors.of(context).background,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -130,11 +130,11 @@ class _NotificationSettingsScreenState
             const ProfilePageHeader(title: 'Bildirishnoma sozlamalari'),
             const SizedBox(height: 18),
             if (_loading)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: CircularProgressIndicator(
-                    color: ProfileUiColors.primary,
+                    color: ProfileUiColors.of(context).primary,
                   ),
                 ),
               )
@@ -144,19 +144,19 @@ class _NotificationSettingsScreenState
                   children: <Widget>[
                     Text(
                       'Sozlamalar yuklanmadi',
-                      style: ProfileUiTextStyles.section,
+                      style: ProfileUiTextStyles.of(context).section,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage!,
                       textAlign: TextAlign.center,
-                      style: ProfileUiTextStyles.muted,
+                      style: ProfileUiTextStyles.of(context).muted,
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _load,
                       style: FilledButton.styleFrom(
-                        backgroundColor: ProfileUiColors.primary,
+                        backgroundColor: ProfileUiColors.of(context).primary,
                       ),
                       child: const Text('Qayta urinish'),
                     ),
@@ -177,7 +177,7 @@ class _NotificationSettingsScreenState
                       });
                     },
                   ),
-                  const Divider(height: 1, color: ProfileUiColors.border),
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
                   _NotificationTile(
                     title: 'To‘lov eslatmalari',
                     value: _settings.payments,
@@ -187,7 +187,7 @@ class _NotificationSettingsScreenState
                       });
                     },
                   ),
-                  const Divider(height: 1, color: ProfileUiColors.border),
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
                   _NotificationTile(
                     title: 'Progress xabarnomalari',
                     value: _settings.progress,
@@ -197,7 +197,7 @@ class _NotificationSettingsScreenState
                       });
                     },
                   ),
-                  const Divider(height: 1, color: ProfileUiColors.border),
+                  Divider(height: 1, color: ProfileUiColors.of(context).border),
                   _NotificationTile(
                     title: 'Umumiy bildirishnomalar',
                     value: _settings.general,
@@ -216,7 +216,7 @@ class _NotificationSettingsScreenState
               child: FilledButton(
                 onPressed: _saving ? null : _save,
                 style: FilledButton.styleFrom(
-                  backgroundColor: ProfileUiColors.primary,
+                  backgroundColor: ProfileUiColors.of(context).primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
@@ -232,7 +232,7 @@ class _NotificationSettingsScreenState
                           color: Colors.white,
                         ),
                       )
-                    : Text('Saqlash', style: ProfileUiTextStyles.button),
+                    : Text('Saqlash', style: ProfileUiTextStyles.of(context).button),
               ),
             ),
             ],
@@ -259,13 +259,13 @@ class _NotificationTile extends StatelessWidget {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      activeThumbColor: ProfileUiColors.primary,
+      activeThumbColor: ProfileUiColors.of(context).primary,
       activeTrackColor: const Color(0xFFD9E8FF),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      title: Text(title, style: ProfileUiTextStyles.section),
+      title: Text(title, style: ProfileUiTextStyles.of(context).section),
       subtitle: Text(
         value ? 'Yoqilgan' : 'O‘chirilgan',
-        style: ProfileUiTextStyles.muted,
+        style: ProfileUiTextStyles.of(context).muted,
       ),
     );
   }

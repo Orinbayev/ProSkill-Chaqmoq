@@ -7,7 +7,7 @@ class HelpSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProfileUiColors.background,
+      backgroundColor: ProfileUiColors.of(context).background,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -20,7 +20,7 @@ class HelpSupportScreen extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     'Ko‘p so‘raladigan savollar',
-                    style: ProfileUiTextStyles.section,
+                    style: ProfileUiTextStyles.of(context).section,
                   ),
                   const SizedBox(height: 12),
                   const _FaqTile(
@@ -46,16 +46,16 @@ class HelpSupportScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('Bog‘lanish', style: ProfileUiTextStyles.section),
+                  Text('Bog‘lanish', style: ProfileUiTextStyles.of(context).section),
                   const SizedBox(height: 10),
                   Text(
                     'Telegram: @chaqmoq_support',
-                    style: ProfileUiTextStyles.body,
+                    style: ProfileUiTextStyles.of(context).body,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Qo‘llab-quvvatlash telefoni: +998 90 000 00 00',
-                    style: ProfileUiTextStyles.body,
+                    style: ProfileUiTextStyles.of(context).body,
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -71,7 +71,7 @@ class HelpSupportScreen extends StatelessWidget {
                         );
                       },
                       style: FilledButton.styleFrom(
-                        backgroundColor: ProfileUiColors.primary,
+                        backgroundColor: ProfileUiColors.of(context).primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
@@ -81,7 +81,7 @@ class HelpSupportScreen extends StatelessWidget {
                       icon: const Icon(Icons.support_agent_rounded),
                       label: Text(
                         'Markaz adminiga yozish',
-                        style: ProfileUiTextStyles.button,
+                        style: ProfileUiTextStyles.of(context).button,
                       ),
                     ),
                   ),
@@ -108,13 +108,13 @@ class _FaqTile extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 8),
-        iconColor: ProfileUiColors.primary,
-        collapsedIconColor: ProfileUiColors.secondaryText,
-        title: Text(question, style: ProfileUiTextStyles.body),
+        iconColor: ProfileUiColors.of(context).primary,
+        collapsedIconColor: ProfileUiColors.of(context).secondaryText,
+        title: Text(question, style: ProfileUiTextStyles.of(context).body),
         children: <Widget>[
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(answer, style: ProfileUiTextStyles.muted),
+            child: Text(answer, style: ProfileUiTextStyles.of(context).muted),
           ),
         ],
       ),

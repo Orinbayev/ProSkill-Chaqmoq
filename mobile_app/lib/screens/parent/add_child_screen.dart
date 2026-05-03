@@ -59,7 +59,7 @@ class _AddChildScreenState extends State<AddChildScreen> {
     return Theme(
       data: buildProfileFormTheme(context),
       child: Scaffold(
-        backgroundColor: ProfileUiColors.background,
+        backgroundColor: ProfileUiColors.of(context).background,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -84,17 +84,17 @@ class _AddChildScreenState extends State<AddChildScreen> {
                               children: <Widget>[
                                 Text(
                                   'Farzandni maxsus kod orqali profilingizga bog‘lang.',
-                                  style: ProfileUiTextStyles.muted,
+                                  style: ProfileUiTextStyles.of(context).muted,
                                 ),
                                 const SizedBox(height: 18),
                                 TextFormField(
                                   controller: _childCodeController,
-                                  style: ProfileUiTextStyles.input,
-                                  cursorColor: ProfileUiColors.primary,
+                                  style: ProfileUiTextStyles.of(context).input,
+                                  cursorColor: ProfileUiColors.of(context).primary,
                                   textCapitalization:
                                       TextCapitalization.characters,
                                   textInputAction: TextInputAction.done,
-                                  decoration: profileInputDecoration(
+                                  decoration: profileInputDecoration(context, 
                                     label: 'Farzand kodi',
                                     hintText: 'Masalan: CHQ-000123',
                                     helperText:
@@ -116,7 +116,7 @@ class _AddChildScreenState extends State<AddChildScreen> {
                                   child: FilledButton(
                                     onPressed: _submitting ? null : _submit,
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: ProfileUiColors.primary,
+                                      backgroundColor: ProfileUiColors.of(context).primary,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 15,
@@ -136,7 +136,7 @@ class _AddChildScreenState extends State<AddChildScreen> {
                                           )
                                         : Text(
                                             'Farzand qo‘shish',
-                                            style: ProfileUiTextStyles.button,
+                                            style: ProfileUiTextStyles.of(context).button,
                                           ),
                                   ),
                                 ),
