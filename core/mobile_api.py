@@ -2768,9 +2768,13 @@ def mobile_chaqmoq_history(request):
 def mobile_chaqmoq_leaderboard(request):
     """Markazdagi barcha o'quvchilarning chaqmoq ball reytingi.
 
-    Bitta bulk ``Sum`` so'rovi orqali Ledger summasi hisoblanadi (per-student
-    so'rovsiz), shu bilan 100+ o'quvchili markazlarda ham tezkor javob beradi.
+    Backend-dagi ``chaqmoq:reyting`` (chaqmoq/views.py: ``reyting``) sahifasi
+    bilan bir xil ma'lumot manbasidan foydalanadi — shuning uchun mobil
+    ilovadagi ro'yxat o'quv markaz panelidagi reyting ro'yxati bilan to'liq
+    mos keladi (Ledger asosiy, LightningHistory fallback).
     """
+    from chaqmoq.views import _get_balances_with_legacy_fallback
+
     if not request.user.is_superuser and request.user.role not in (
         "student",
         "parent",
@@ -2782,28 +2786,26 @@ def mobile_chaqmoq_leaderboard(request):
 
     center = _request_center(request)
 
-    students_qs = User.objects.filter(role="student", is_active=True)
+    students_qs = User.objects.filter(role="student")
     if center is not None:
         students_qs = students_qs.filter(center=center)
-    if hasattr(User, "is_archived"):
-        students_qs = students_qs.exclude(is_archived=True)
 
-    student_ids = list(students_qs.values_list("id", flat=True))
+    students = list(students_qs.values("id", "first_name", "last_name", "username"))
+    student_ids = [row["id"] for row in students]
+    balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
 
-    ledger_qs = Ledger.objects.filter(student_id__in=student_ids)
-    if center is not None:
-        ledger_qs = ledger_qs.filter(
-            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
-        )
-    balance_rows = ledger_qs.values("student_id").annotate(total=Sum("ball"))
-    balance_map = {row["student_id"]: int(row["total"] or 0) for row in balance_rows}
-
-    rows = []
-    for student in students_qs.only("id", "first_name", "last_name", "username"):
-        balance = balance_map.get(student.id, 0)
-        rows.append((student, balance))
-
-    rows.sort(key=lambda r: (-r[1], (r[0].get_full_name() or r[0].username).lower()))
+    rows = [
+        {
+            "id": row["id"],
+            "full_name": (
+                f"{row.get('first_name') or ''} {row.get('last_name') or ''}".strip()
+                or (row.get("username") or "")
+            ),
+            "balance": int(balance_map.get(row["id"], 0)),
+        }
+        for row in students
+    ]
+    rows.sort(key=lambda r: (-int(r["balance"]), (r["full_name"] or "").lower(), r["id"]))
 
     me_user = request.user
     if request.user.role == "parent":
@@ -2816,17 +2818,17 @@ def mobile_chaqmoq_leaderboard(request):
     me_rank = 0
     me_balance = 0
     items = []
-    for index, (student, balance) in enumerate(rows, start=1):
-        is_me = student.id == me_id
+    for index, row in enumerate(rows, start=1):
+        is_me = row["id"] == me_id
         if is_me:
             me_rank = index
-            me_balance = balance
+            me_balance = row["balance"]
         items.append(
             {
                 "rank": index,
-                "id": student.id,
-                "full_name": student.get_full_name() or student.username,
-                "balance": balance,
+                "id": row["id"],
+                "full_name": row["full_name"],
+                "balance": row["balance"],
                 "is_me": is_me,
             }
         )

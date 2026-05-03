@@ -10,7 +10,6 @@ import 'package:chaqmoq_mobile/screens/student/widgets/student_atmospheric_backd
 import 'package:chaqmoq_mobile/screens/student/widgets/student_attendance_card.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_dashboard_header.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_hero_card.dart';
-import 'package:chaqmoq_mobile/screens/student/widgets/student_leaderboard_sheet.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_payment_summary_card.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_rating_card.dart';
 import 'package:chaqmoq_mobile/widgets/app_section_header.dart';
@@ -23,12 +22,14 @@ class StudentDashboardScreen extends StatefulWidget {
     super.key,
     this.onOpenPayments,
     this.onOpenAttendance,
+    this.onOpenLeaderboard,
     this.onOpenNotifications,
     this.onOpenProfile,
   });
 
   final VoidCallback? onOpenPayments;
   final VoidCallback? onOpenAttendance;
+  final VoidCallback? onOpenLeaderboard;
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenProfile;
 
@@ -144,7 +145,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           score: data.studentScore,
           rank: data.studentRank,
           totalRanked: data.studentTotalRanked,
-          onTap: () => StudentLeaderboardSheet.show(context),
+          onTap: widget.onOpenLeaderboard,
         ),
         const SizedBox(height: 14),
         const AppSectionHeader(title: 'FAOLLIK'),

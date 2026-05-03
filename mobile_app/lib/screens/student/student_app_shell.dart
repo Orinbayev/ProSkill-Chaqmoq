@@ -4,6 +4,7 @@ import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/screens/student/student_account_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_attendance_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_dashboard_screen.dart';
+import 'package:chaqmoq_mobile/screens/student/student_leaderboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_payments_screen.dart';
 import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
@@ -21,15 +22,17 @@ class StudentAppShell extends StatefulWidget {
 class _StudentAppShellState extends State<StudentAppShell> {
   int _currentIndex = 0;
 
-  // Tab order: Panel (0) | Davomat (1) | To'lovlar (2) | Profil (3)
+  // Tab order: Panel (0) | Davomat (1) | Reyting (2) | To'lovlar (3) | Profil (4)
   late final List<Widget> _screens = [
     StudentDashboardScreen(
-      onOpenPayments: () => _setTab(2),
+      onOpenPayments: () => _setTab(3),
       onOpenAttendance: () => _setTab(1),
+      onOpenLeaderboard: () => _setTab(2),
       onOpenNotifications: _openNotifications,
-      onOpenProfile: () => _setTab(3),
+      onOpenProfile: () => _setTab(4),
     ),
     const StudentAttendanceScreen(),
+    const StudentLeaderboardScreen(),
     const StudentPaymentsScreen(),
     const StudentAccountScreen(),
   ];
@@ -92,6 +95,11 @@ class _StudentAppShellState extends State<StudentAppShell> {
             label: 'Davomat',
             icon: Icons.fact_check_outlined,
             activeIcon: Icons.fact_check_rounded,
+          ),
+          AppStudentBottomNavItem(
+            label: 'Reyting',
+            icon: Icons.bolt_outlined,
+            activeIcon: Icons.bolt_rounded,
           ),
           AppStudentBottomNavItem(
             label: "To‘lovlar",
