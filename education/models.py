@@ -59,6 +59,24 @@ class Group(SoftDeleteMixin, models.Model):
         limit_choices_to={"role": "teacher"},
     )
 
+    # ── Support teacher (markaz darajasida feature flag bilan yoqiladi) ──
+    # Davomatni asosiy o'qituvchi qiladi, lekin support'ga ham foiz yoziladi.
+    # Support — istalgan xodim bo'lishi mumkin (teacher / manager / admin).
+    support_teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="support_groups",
+        verbose_name="Support xodimi",
+        help_text="Guruh uchun yordamchi (teacher/manager). Tanlanmasa bo'sh qoldiring.",
+    )
+    support_foiz = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Support foizi (%)",
+        help_text="Support xodimga ajratiladigan foiz. Asosiy o'qituvchi foizidan ayrimcha.",
+    )
+
     tuzilgan = models.DateTimeField(auto_now_add=True)
 
     kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")

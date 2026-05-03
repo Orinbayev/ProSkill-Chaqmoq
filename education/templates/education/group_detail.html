@@ -1041,8 +1041,15 @@
       <div>
         <h1 class="main-title">{{ g.nom }}</h1>
         <div class="sub-title">
-          {{ g.center }} <span class="mx-1 opacity-40">|</span> 
+          {{ g.center }} <span class="mx-1 opacity-40">|</span>
           {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}O'qituvchi tayinlanmagan{% endif %}
+          {% if g.support_teacher and g.support_foiz %}
+            <span class="mx-1 opacity-40">|</span>
+            <span style="color:#bfdbfe;">🤝 Support:
+              {{ g.support_teacher.ism }} {{ g.support_teacher.familya }}
+              ({{ g.support_foiz }}%)
+            </span>
+          {% endif %}
         </div>
       </div>
     </div>

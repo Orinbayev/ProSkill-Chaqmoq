@@ -35,6 +35,13 @@ class GroupForm(forms.ModelForm):
         max_length=60,
     )
 
+    # ── Support teacher (markaz darajasida feature flag bilan yoqiladi) ──
+    use_support = forms.BooleanField(
+        required=False,
+        label="Support qo'shish",
+        help_text="Yoqsangiz, ushbu guruhga yordamchi xodim biriktiriladi va davomatdan foiz oladi.",
+    )
+
     class Meta:
         model = Group
         fields = [
@@ -45,6 +52,8 @@ class GroupForm(forms.ModelForm):
             "course_start_date",
             "duration_months",
             "estimated_end_date",
+            "support_teacher",
+            "support_foiz",
         ]
         labels = {
             "nom": "Guruh nomi",
@@ -54,6 +63,8 @@ class GroupForm(forms.ModelForm):
             "course_start_date": "Boshlanish sanasi",
             "duration_months": "Davomiyligi (oy)",
             "estimated_end_date": "Tugash sanasi",
+            "support_teacher": "Support xodimi",
+            "support_foiz": "Support foizi (%)",
         }
         widgets = {
             "max_students": forms.NumberInput(attrs={"min": "1", "step": "1"}),
@@ -65,6 +76,7 @@ class GroupForm(forms.ModelForm):
                     "readonly": "readonly",
                 }
             ),
+            "support_foiz": forms.NumberInput(attrs={"min": "0", "max": "100", "step": "1"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -80,6 +92,43 @@ class GroupForm(forms.ModelForm):
             self.fields["oqituvchi"].queryset = teach_qs.order_by("ism", "familya")
             self.fields["oqituvchi"].empty_label = "O'qituvchini tanlang"
             self.fields["oqituvchi"].label_from_instance = lambda obj: f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
+
+        # ── Support teacher field'larini sozlash ──
+        # Faqat markazda feature yoqilgan bo'lsa ko'rinadi.
+        from education.services.support_teacher import (
+            is_support_enabled,
+            staff_queryset_for_support_dropdown,
+        )
+
+        self.support_enabled_for_center = is_support_enabled(center)
+
+        if self.support_enabled_for_center:
+            # Support dropdown — barcha xodimlar (teacher, manager, admin, ...).
+            qs = staff_queryset_for_support_dropdown(center)
+            self.fields["support_teacher"].queryset = qs
+            self.fields["support_teacher"].required = False
+            self.fields["support_teacher"].empty_label = "Support tanlang (ixtiyoriy)"
+            self.fields["support_teacher"].label_from_instance = (
+                lambda obj: (
+                    f"{(obj.ism or '').strip()} {(obj.familya or '').strip()}".strip()
+                    or obj.email
+                )
+                + f" ({obj.get_role_display() if hasattr(obj, 'get_role_display') else obj.role})"
+            )
+            self.fields["support_foiz"].required = False
+
+            # Mavjud guruhda support biriktirilgan bo'lsa, checkbox yoqilgan
+            instance = getattr(self, "instance", None)
+            has_support_already = bool(
+                instance and instance.pk and instance.support_teacher_id
+                and (instance.support_foiz or 0) > 0
+            )
+            self.fields["use_support"].initial = has_support_already
+        else:
+            # Feature yo'q — formdan butunlay o'chiramiz.
+            self.fields.pop("support_teacher", None)
+            self.fields.pop("support_foiz", None)
+            self.fields.pop("use_support", None)
 
         for f in [
             "kurs_narxi",
@@ -171,6 +220,36 @@ class GroupForm(forms.ModelForm):
             ):
                 self.add_error("oqituvchi", "Tanlangan kun va vaqtda bu o'qituvchi band.")
 
+        # ── Support teacher validatsiyasi ──
+        if getattr(self, "support_enabled_for_center", False):
+            use_support = cleaned.get("use_support")
+            support_teacher = cleaned.get("support_teacher")
+            support_foiz = cleaned.get("support_foiz") or 0
+
+            if use_support:
+                if not support_teacher:
+                    self.add_error("support_teacher", "Support xodimini tanlang yoki 'Support qo'shish' belgisini olib tashlang.")
+                if support_foiz <= 0:
+                    self.add_error("support_foiz", "Support foizi 0 dan katta bo'lsin.")
+                if support_foiz > 100:
+                    self.add_error("support_foiz", "Support foizi 100 dan oshmasin.")
+                if support_teacher and teacher and support_teacher.id == teacher.id:
+                    self.add_error("support_teacher", "Support va asosiy o'qituvchi bir kishi bo'la olmaydi.")
+
+                # Asosiy o'qituvchi foizi + support foizi <= 100 bo'lishi kerak.
+                main_foiz = 0
+                if teacher:
+                    main_foiz = int(getattr(teacher, "oqituvchi_foizi", 0) or 0)
+                if main_foiz + support_foiz > 100:
+                    self.add_error(
+                        "support_foiz",
+                        f"O'qituvchi ({main_foiz}%) + Support ({support_foiz}%) = {main_foiz + support_foiz}% — 100% dan oshmasin."
+                    )
+            else:
+                # Use support yoqilmagan — bo'sh qoldiramiz.
+                cleaned["support_teacher"] = None
+                cleaned["support_foiz"] = 0
+
         return cleaned
 
     def save(self, commit=True):
@@ -178,6 +257,19 @@ class GroupForm(forms.ModelForm):
         obj.estimated_end_date_manual = False
         obj.kurs_narxi = obj.kurs_narxi or 500000
         obj.max_students = obj.max_students or 15
+
+        # Support teacher: feature yoqilgan markazlarda — clean'dan kelgan qiymat
+        if getattr(self, "support_enabled_for_center", False):
+            use_support = self.cleaned_data.get("use_support")
+            if use_support:
+                obj.support_teacher = self.cleaned_data.get("support_teacher")
+                obj.support_foiz = int(self.cleaned_data.get("support_foiz") or 0)
+            else:
+                obj.support_teacher = None
+                obj.support_foiz = 0
+        # Aks holda: support_teacher / support_foiz formada yo'q,
+        # ModelForm o'zgartirmaydi — eski qiymat saqlanadi.
+
         if commit:
             obj.save()
         return obj

@@ -396,12 +396,26 @@
           <div class="teacher-header">
             <div class="icon">👩‍🏫</div>
             <div>
-              <div class="title">{{ teacher.ism }} {{ teacher.familya }}</div>
-              <div class="sub">O'qituvchi guruhlari</div>
+              <div class="title">
+                {{ teacher.ism }} {{ teacher.familya }}
+                {% if is_support_member and not is_main_teacher %}
+                  <span style="display:inline-block;padding:3px 10px;border-radius:10px;background:rgba(59,130,246,0.18);border:1px solid rgba(59,130,246,0.4);color:#bfdbfe;font-size:11px;font-weight:800;margin-left:6px;vertical-align:middle;">SUPPORT</span>
+                {% elif is_support_member and is_main_teacher %}
+                  <span style="display:inline-block;padding:3px 10px;border-radius:10px;background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.45);color:#e9d5ff;font-size:11px;font-weight:800;margin-left:6px;vertical-align:middle;">O'QIT. + SUPPORT</span>
+                {% endif %}
+              </div>
+              <div class="sub">{% if is_support_member and not is_main_teacher %}Support guruhlari{% else %}O'qituvchi guruhlari{% endif %}</div>
             </div>
             <div style="margin-left: auto; text-align: right;">
               <div class="sub" style="font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 700;">Jami Yig'ilgan Summa</div>
               <div class="title" style="font-size: 18px; color: #fff;">{{ jami_umumiy_daromad|intcomma }} so'm</div>
+              {% if is_support_member and is_main_teacher %}
+                <div class="sub" style="font-size:10px;opacity:0.8;margin-top:4px;">
+                  O'qit: <b>{{ teacher_salary_total|intcomma }}</b> · Sup: <b>{{ support_salary_total|intcomma }}</b>
+                </div>
+              {% elif is_support_member and not is_main_teacher %}
+                <div class="sub" style="font-size:10px;opacity:0.8;margin-top:4px;">Support ulushi</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -447,7 +461,12 @@
                   </div>
 
                   <div class="sum-group">
-                    <div class="gname">{{ item.group.nom }}</div>
+                    <div class="gname">
+                      {{ item.group.nom }}
+                      {% if item.is_support %}
+                        <span style="display:inline-block;padding:2px 8px;border-radius:8px;background:rgba(59,130,246,0.18);border:1px solid rgba(59,130,246,0.4);color:#bfdbfe;font-size:11px;font-weight:700;margin-left:6px;">SUPPORT</span>
+                      {% endif %}
+                    </div>
                     <div class="gmeta">{{ item.students_count }} ta o'quvchi</div>
                   </div>
 

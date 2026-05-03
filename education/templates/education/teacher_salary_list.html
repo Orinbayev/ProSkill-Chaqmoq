@@ -508,11 +508,21 @@ body{
                   </div>
 
                   <div style="min-width:0;">
-                    <div class="t-name">{{ row.teacher.get_full_name }}</div>
+                    <div class="t-name">
+                      {{ row.teacher.get_full_name }}
+                      {% if row.is_support and not row.is_main_teacher %}
+                        <span class="pill" style="background:rgba(59,130,246,0.18);border-color:rgba(59,130,246,0.45);color:#bfdbfe;font-weight:800;">Support</span>
+                      {% elif row.is_support and row.is_main_teacher %}
+                        <span class="pill" style="background:rgba(168,85,247,0.18);border-color:rgba(168,85,247,0.45);color:#e9d5ff;font-weight:800;">O'qit. + Support</span>
+                      {% endif %}
+                    </div>
 
                     <div class="t-meta">
                       <div class="pill">Guruh: <strong>{{ row.groups_count }}</strong></div>
                       <div class="pill">Oylik: <strong class="t-salary">{{ row.month_salary|intcomma }}</strong> so'm</div>
+                      {% if row.is_support and row.support_salary > 0 %}
+                        <div class="pill" style="background:rgba(59,130,246,0.10);border-color:rgba(59,130,246,0.30);">Support ulushi: <strong>{{ row.support_salary|intcomma }}</strong></div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>

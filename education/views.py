@@ -70,6 +70,7 @@ from education.services.tuition import (
     tuition_amount_breakdown,
     lesson_pattern_label,
     lesson_pattern_hint,
+    preload_enrollment_history_starts,
 )
 
 
@@ -2466,6 +2467,9 @@ def qarzdorlar_home(request):
             "id",
         )
     )
+    # Bulk-load StudentGroupHistory once so per-enrollment start-date
+    # lookups in the snapshot loop hit memory instead of the DB.
+    preload_enrollment_history_starts(enrollment_list)
     debt_snapshots = calculate_enrollment_debt_snapshots(enrollment_list, period_months)
 
     # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
@@ -5847,14 +5851,33 @@ def teacher_salary_list(request):
         "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
     ]
     month_name = month_names_uz[month - 1]
-    
+
     from core.tenant import get_request_center
     center = get_request_center(request)
-    
+
+    from education.services.support_teacher import (
+        is_support_enabled,
+        list_support_user_ids,
+        calculate_support_salary,
+    )
+    support_feature_on = is_support_enabled(center)
+
+    # Asosiy o'qituvchilar
     teacher_qs = User.objects.filter(role="teacher")
     if center:
         teacher_qs = teacher_qs.filter(center=center)
-    teachers = teacher_qs.order_by("ism")
+    teacher_ids = set(teacher_qs.values_list("id", flat=True))
+
+    # Agar support feature yoqilgan bo'lsa, support bo'lib biriktirilgan
+    # boshqa rolli xodimlarni ham qo'shamiz (manager va boshqalar).
+    extra_user_ids = set()
+    if support_feature_on:
+        extra_user_ids = list_support_user_ids(center=center) - teacher_ids
+
+    all_ids = teacher_ids | extra_user_ids
+    users_qs = User.objects.filter(id__in=all_ids).order_by("ism", "familya")
+
+    support_user_ids_set = list_support_user_ids(center=center) if support_feature_on else set()
 
     teacher_rows = []
     total_all = 0
@@ -5865,19 +5888,40 @@ def teacher_salary_list(request):
 
     from education.services.historical_finance_service import HistoricalFinanceService
 
-    for t in teachers:
-        # Dynanic calculation or Snapshot for the teacher
-        salary_data = HistoricalFinanceService.calculate_teacher_salary(t, year, month, center)
-        teacher_salary = salary_data['salary']
-        groups_count = len(salary_data['details'])
-        total_all += teacher_salary
+    for t in users_qs:
+        # Asosiy o'qituvchi sifatida oylik
+        teacher_salary = 0
+        teacher_groups = 0
+        if t.id in teacher_ids:
+            salary_data = HistoricalFinanceService.calculate_teacher_salary(t, year, month, center)
+            teacher_salary = salary_data['salary']
+            teacher_groups = len(salary_data['details'])
 
+        # Support sifatida oylik (agar feature yoqilgan bo'lsa)
+        support_salary = 0
+        support_groups = 0
+        is_support = False
+        if support_feature_on and t.id in support_user_ids_set:
+            sup = calculate_support_salary(t, year, month, center)
+            support_salary = sup["salary"]
+            support_groups = len(sup["details"])
+            is_support = True
+
+        combined = teacher_salary + support_salary
+        if combined == 0 and t.id not in teacher_ids and not is_support:
+            continue
+
+        total_all += combined
         teacher_rows.append({
             "teacher": t,
-            "month_salary": teacher_salary,
-            "groups_count": groups_count,
+            "month_salary": combined,
+            "teacher_salary": teacher_salary,
+            "support_salary": support_salary,
+            "groups_count": teacher_groups + support_groups,
+            "is_support": is_support,
+            "is_main_teacher": t.id in teacher_ids,
         })
-        
+
     return render(request, "education/teacher_salary_list.html", {
         "teachers": teacher_rows,
         "year": year,
@@ -5885,6 +5929,7 @@ def teacher_salary_list(request):
         "month_name": month_name,
         "total_all": total_all,
         "is_closed": is_closed,
+        "support_feature_on": support_feature_on,
     })
 
 # 🔹 Excel Export — O'qituvchi oyligi hisoboti
@@ -6249,12 +6294,33 @@ def teacher_salary_export(request):
 @login_required
 def teacher_groups(request, teacher_id):
     from core.tenant import get_request_center
+    from education.services.support_teacher import (
+        is_support_enabled,
+        calculate_support_salary,
+        list_support_user_ids,
+    )
+
     center = get_request_center(request)
-    qs = User.objects.filter(role="teacher")
+
+    # Foydalanuvchi: o'qituvchi YOKI (markazda support feature yoqilgan bo'lsa)
+    # support sifatida biriktirilgan istalgan xodim bo'lishi mumkin.
+    base_qs = User.objects.all()
     if center:
-         qs = qs.filter(center=center)
-    teacher = get_object_or_404(qs, id=teacher_id)
-    
+        base_qs = base_qs.filter(center=center)
+
+    candidate = base_qs.filter(id=teacher_id).first()
+    if candidate is None:
+        return get_object_or_404(User.objects.none(), id=teacher_id)
+
+    is_main_teacher = candidate.role == "teacher"
+    is_support_member = (
+        is_support_enabled(center) and candidate.id in list_support_user_ids(center=center)
+    )
+    if not is_main_teacher and not is_support_member:
+        return get_object_or_404(User.objects.filter(role="teacher"), id=teacher_id)
+
+    teacher = candidate
+
     now = timezone.localdate()
     year = _get_int(request.GET, "year", now.year)
     month = _get_int(request.GET, "month", now.month)
@@ -6263,44 +6329,72 @@ def teacher_groups(request, teacher_id):
 
     years = list(range(now.year - 3, now.year + 4))
 
-    groups = (
-        Group.objects
-        .filter(oqituvchi=teacher, is_archived=False)
-        .prefetch_related(
-            "enrollments__student",
-            "attendances",
-        )
-    )
-
     from education.services.historical_finance_service import HistoricalFinanceService
-    salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, year, month, center)
-    
-    teacher_data = []
-    
-    for gcd in salary_data['details']:
-        # Fetch group object to pass to template (template still uses `group` var)
-        group_obj = Group.objects.filter(id=gcd['group_id']).first()
-        if not group_obj: continue
-        
-        enrollments = []
-        for en in gcd.get('enrollments', []):
-            enrollments.append({
-                "student_name": en.get('student_name', 'Noma\'lum'),
-                "kurs_narhi": en.get('kurs_narhi', 0),
-                "foiz": en.get('foiz', 0),
-                "attended": en.get('attended', 0),
-                "daromad": en.get('daromad', 0)
-            })
-            
-        teacher_data.append({
-            "group": group_obj,
-            "enrollments": enrollments,
-            "foiz": gcd.get('fi', getattr(teacher, 'oqituvchi_foizi', 0) or group_obj.oqituvchi_foiz),
-            "daromad": gcd['salary'],
-            "students_count": len(enrollments),
-        })
 
-    jami_umumiy_daromad = salary_data['salary']
+    teacher_data = []
+    teacher_salary_total = 0
+    teacher_is_locked = False
+
+    if is_main_teacher:
+        salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, year, month, center)
+        teacher_salary_total = salary_data['salary']
+        teacher_is_locked = salary_data['is_locked']
+
+        for gcd in salary_data['details']:
+            group_obj = Group.objects.filter(id=gcd['group_id']).first()
+            if not group_obj:
+                continue
+
+            enrollments = []
+            for en in gcd.get('enrollments', []):
+                enrollments.append({
+                    "student_name": en.get('student_name', "Noma'lum"),
+                    "kurs_narhi": en.get('kurs_narhi', 0),
+                    "foiz": en.get('foiz', 0),
+                    "attended": en.get('attended', 0),
+                    "daromad": en.get('daromad', 0),
+                })
+
+            teacher_data.append({
+                "group": group_obj,
+                "enrollments": enrollments,
+                "foiz": gcd.get('fi', getattr(teacher, 'oqituvchi_foizi', 0) or group_obj.oqituvchi_foiz),
+                "daromad": gcd['salary'],
+                "students_count": len(enrollments),
+                "is_support": False,
+            })
+
+    # ── Support sifatida ishlash (agar feature yoqilgan bo'lsa) ──
+    support_salary_total = 0
+    if is_support_member:
+        sup = calculate_support_salary(teacher, year, month, center)
+        support_salary_total = sup['salary']
+
+        for gcd in sup['details']:
+            group_obj = Group.objects.filter(id=gcd['group_id']).first()
+            if not group_obj:
+                continue
+
+            enrollments = [
+                {
+                    "student_name": s.get('student_name', "Noma'lum"),
+                    "kurs_narhi": int(getattr(group_obj, 'kurs_narxi', 0) or 0),
+                    "foiz": gcd.get('fi', 0),
+                    "attended": s.get('attended', 0),
+                    "daromad": s.get('daromad', 0),
+                }
+                for s in gcd.get('students', [])
+            ]
+            teacher_data.append({
+                "group": group_obj,
+                "enrollments": enrollments,
+                "foiz": gcd.get('fi', 0),
+                "daromad": gcd['salary'],
+                "students_count": len(enrollments),
+                "is_support": True,
+            })
+
+    jami_umumiy_daromad = teacher_salary_total + support_salary_total
 
     return render(request, "education/teacher_groups.html", {
         "teacher": teacher,
@@ -6309,7 +6403,12 @@ def teacher_groups(request, teacher_id):
         "month": month,
         "years": years,
         "jami_umumiy_daromad": jami_umumiy_daromad,
-        "is_locked": salary_data['is_locked'],
+        "is_locked": teacher_is_locked,
+        # Support meta
+        "is_main_teacher": is_main_teacher,
+        "is_support_member": is_support_member,
+        "teacher_salary_total": teacher_salary_total,
+        "support_salary_total": support_salary_total,
     })
 
 
@@ -6387,13 +6486,28 @@ def teacher_salary_summary(request):
     # 2) O'qituvchilar va ularning hisob-kitobi (Yagona To'g'ri Manba)
     # ================================
     from core.tenant import get_request_center
+    from education.services.support_teacher import (
+        is_support_enabled,
+        list_support_user_ids,
+        calculate_support_salary,
+    )
     center = get_request_center(request)
-    
-    user_qs = User.objects.filter(role="teacher", is_archived=False)
+    support_feature_on = is_support_enabled(center)
+
+    # Asosiy o'qituvchilar
+    teacher_user_qs = User.objects.filter(role="teacher", is_archived=False)
     if center:
-        user_qs = user_qs.filter(center=center)
-        
-    teachers = user_qs.order_by('ism', 'familya', 'id')
+        teacher_user_qs = teacher_user_qs.filter(center=center)
+    teacher_ids = set(teacher_user_qs.values_list("id", flat=True))
+
+    # Support sifatida biriktirilgan boshqa rolli xodimlar
+    extra_user_ids = set()
+    if support_feature_on:
+        extra_user_ids = list_support_user_ids(center=center) - teacher_ids
+
+    all_ids = teacher_ids | extra_user_ids
+    users_qs = User.objects.filter(id__in=all_ids, is_archived=False).order_by("ism", "familya", "id")
+    support_user_ids_set = list_support_user_ids(center=center) if support_feature_on else set()
 
     # ================================
     # Grafik uchun bo'sh massivlar (12 oy)
@@ -6403,33 +6517,64 @@ def teacher_salary_summary(request):
     chart_total_turnover = [0] * 12
 
     # ================================
-    # 3) HISOB-KITOB (HistoricalFinanceService orqali)
+    # 3) HISOB-KITOB (HistoricalFinanceService + support)
     # ================================
     teacher_data = []
 
-    for teacher in teachers:
-        yearly_stats = HistoricalFinanceService.get_yearly_teacher_stats(teacher, selected_year, center)
-        
-        # Hamma oylar bo'yicha markazning umumiy summasini grafik uchun yig'amiz
-        for m in range(12):
-            chart_teacher_income[m] += yearly_stats[m]['salary']
-            chart_center_income[m] += yearly_stats[m]['center_profit']
-            chart_total_turnover[m] += yearly_stats[m]['turnover']
-            
-        # Jadval uchun faqat tanlangan oyni olamiz
-        m_stat = yearly_stats[selected_month - 1]
-        
-        # O'qituvchining nechta guruhi bor?
-        groups_count = teacher.group_set.filter(is_archived=False).count()
+    for teacher in users_qs:
+        salary_main_year = 0
+        lessons_main = 0
+        profit_main = 0
+        turnover_main = 0
+        salary_support_year = 0
+        lessons_support = 0
+
+        # Asosiy o'qituvchi sifatida
+        if teacher.id in teacher_ids:
+            yearly_stats = HistoricalFinanceService.get_yearly_teacher_stats(
+                teacher, selected_year, center
+            )
+            for m in range(12):
+                chart_teacher_income[m] += yearly_stats[m]['salary']
+                chart_center_income[m] += yearly_stats[m]['center_profit']
+                chart_total_turnover[m] += yearly_stats[m]['turnover']
+            m_stat = yearly_stats[selected_month - 1]
+            salary_main_year = m_stat['salary']
+            lessons_main = m_stat['lessons']
+            profit_main = m_stat['center_profit']
+            turnover_main = m_stat['turnover']
+
+        # Support sifatida (faqat tanlangan oy uchun)
+        is_support = False
+        if support_feature_on and teacher.id in support_user_ids_set:
+            sup = calculate_support_salary(teacher, selected_year, selected_month, center)
+            salary_support_year = sup['salary']
+            lessons_support = sup['attendance_count']
+            is_support = True
+            # Grafikga support ulushini ham asosiy oylik (teacher_income) qatoriga qo'shamiz
+            # — chunki bu jami xodim daromadlari bo'yicha umumiy ko'rsatkich.
+            chart_teacher_income[selected_month - 1] += salary_support_year
+
+        groups_count = teacher.group_set.filter(is_archived=False).count() if teacher.id in teacher_ids else 0
+        if is_support:
+            from education.services.support_teacher import get_support_groups_for_user
+            groups_count += len(get_support_groups_for_user(teacher, center=center))
+
+        combined = salary_main_year + salary_support_year
+        if combined == 0 and teacher.id not in teacher_ids and not is_support:
+            continue
 
         teacher_data.append({
             "id": teacher.id,
             "teacher": teacher.get_full_name() or teacher.email,
             "groups": groups_count,
-            "lessons": m_stat['lessons'],
-            "teacher_income": int(m_stat['salary']),
-            "center_profit": int(m_stat['center_profit']),
-            "total_turnover": int(m_stat['turnover']),
+            "lessons": lessons_main + lessons_support,
+            "teacher_income": int(combined),
+            "center_profit": int(profit_main),
+            "total_turnover": int(turnover_main),
+            "is_support": bool(is_support),
+            "is_main_teacher": teacher.id in teacher_ids,
+            "support_income": int(salary_support_year),
         })
 
     # ================================

@@ -93,8 +93,36 @@ class CenterAdmin(admin.ModelAdmin):
         "block_centers",
         "unblock_centers",
         "remove_own_subscriptions",
+        "enable_support_teacher",
+        "disable_support_teacher",
     )
     raw_id_fields = ("parent_center",)
+
+    @admin.action(description="✓ Support teacher: yoqish (tanlangan markazlarda)")
+    def enable_support_teacher(self, request, queryset):
+        from education.services.support_teacher import set_support_enabled
+        n = 0
+        for c in queryset:
+            set_support_enabled(c, True)
+            n += 1
+        self.message_user(
+            request,
+            f"✅ {n} ta markazda 'Support teacher' yoqildi.",
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description="✗ Support teacher: o'chirish (tanlangan markazlarda)")
+    def disable_support_teacher(self, request, queryset):
+        from education.services.support_teacher import set_support_enabled
+        n = 0
+        for c in queryset:
+            set_support_enabled(c, False)
+            n += 1
+        self.message_user(
+            request,
+            f"⚠️ {n} ta markazda 'Support teacher' o'chirildi.",
+            level=messages.SUCCESS,
+        )
 
     def remove_own_subscriptions(self, request, queryset):
         """

@@ -236,6 +236,49 @@
             {% for error in form.oqituvchi.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
           </div>
 
+          {% if form.use_support %}
+          {# ── Support teacher bloki — faqat markazda feature yoqilgan bo'lsa ko'rinadi ── #}
+          <div class="full" style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:16px;margin-top:6px;">
+            <label class="ui-label" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" name="{{ form.use_support.html_name }}" id="{{ form.use_support.id_for_label }}"
+                     {% if form.use_support.value %}checked{% endif %}
+                     style="width:18px;height:18px;accent-color:#3b82f6;">
+              <span style="font-weight:700;color:#bfdbfe;">🤝 Support qo'shish</span>
+            </label>
+            <div class="field-help" style="margin:6px 0 12px;">
+              Support — yordamchi xodim (boshqa o'qituvchi yoki manager). Asosiy o'qituvchi davomatni oladi,
+              lekin support'ga ham foiz bo'yicha summa yoziladi.
+            </div>
+
+            <div id="support-fields" {% if not form.use_support.value %}style="display:none;"{% endif %}>
+              <div class="group-form-grid" style="grid-template-columns:2fr 1fr;gap:12px;">
+                <div>
+                  <label class="ui-label" for="{{ form.support_teacher.id_for_label }}">Support xodimi</label>
+                  {{ form.support_teacher }}
+                  {% for error in form.support_teacher.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div>
+                  <label class="ui-label" for="{{ form.support_foiz.id_for_label }}">Foiz (%)</label>
+                  {{ form.support_foiz }}
+                  <div class="field-help">0–100. Asosiy o'qituvchi foizi + Support foizi 100% dan oshmasin.</div>
+                  {% for error in form.support_foiz.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <script>
+          (function () {
+            var cb = document.getElementById("{{ form.use_support.id_for_label }}");
+            var box = document.getElementById("support-fields");
+            if (!cb || !box) return;
+            cb.addEventListener("change", function () {
+              box.style.display = cb.checked ? "" : "none";
+            });
+          })();
+          </script>
+          {% endif %}
+
           <div>
             <label class="ui-label" for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
             {{ form.course_start_date }}

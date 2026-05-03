@@ -509,7 +509,8 @@
             { key: 'ui_exam_sessions', label: "Barcha sessiyalar", description: "Imtihon sessiyalari ro'yxati va detail sahifalari", icon: 'bi-list-check' },
             { key: 'ui_failed_students', label: "Zaif o'quvchilar", description: "Past natija olgan o'quvchilar bo'limi", icon: 'bi-person-exclamation' },
             { key: 'ui_certificates', label: "Sertifikatlar", description: "Sertifikat shablonlari va berish sahifalari", icon: 'bi-patch-check' },
-            { key: 'ui_weekly_schedule', label: "Haftalik Jadval", description: "Haftalik jadval va guruh jadvali sahifalari", icon: 'bi-calendar-week' }
+            { key: 'ui_weekly_schedule', label: "Haftalik Jadval", description: "Haftalik jadval va guruh jadvali sahifalari", icon: 'bi-calendar-week' },
+            { key: 'support_teacher_enabled', label: "Support o'qituvchi", description: "Guruhga yordamchi xodim biriktirib, oylik foiz bilan to'lash", icon: 'bi-people-fill', defaultOff: true }
         ];
 
         const hiddenInput = document.querySelector('input[name="features"]');
@@ -533,9 +534,10 @@
             // UI module state'larini saqlash
             let data = {};
             UI_MODULE_LIST.forEach(item => {
+                const fallback = item.defaultOff ? false : true;
                 data[item.key] = Object.prototype.hasOwnProperty.call(currentData, item.key)
                     ? !!currentData[item.key]
-                    : true;
+                    : fallback;
             });
             // Core featurelarni har doim true
             CORE_FEATURES.forEach(f => { data[f.key] = true; });
@@ -622,7 +624,8 @@
             uiModulesContainer.innerHTML = '';
 
             UI_MODULE_LIST.forEach(item => {
-                const isActive = Object.prototype.hasOwnProperty.call(data, item.key) ? !!data[item.key] : true;
+                const fallback = item.defaultOff ? false : true;
+                const isActive = Object.prototype.hasOwnProperty.call(data, item.key) ? !!data[item.key] : fallback;
                 const col = document.createElement('div');
                 col.innerHTML = `
                     <div class="ui-module-item ${isActive ? 'active' : ''}">

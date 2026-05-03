@@ -133,30 +133,113 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
     if not enrollment:
         return timezone.localdate()
 
+    # In-process memoization: this function is called repeatedly during a
+    # single dashboard render (e.g. once per (enrollment, month) in the
+    # debt snapshot loop). The result is deterministic for a given
+    # Enrollment instance, so cache it on the object to avoid hammering
+    # StudentGroupHistory with thousands of identical queries.
+    cached = getattr(enrollment, "__resolved_start_date__", None)
+    if cached is not None:
+        return cached
+
     explicit_start_date = getattr(enrollment, "_tuition_start_date", None)
     if explicit_start_date:
-        return normalize_lesson_start_date(explicit_start_date) or timezone.localdate()
+        result = normalize_lesson_start_date(explicit_start_date) or timezone.localdate()
+        try:
+            enrollment.__resolved_start_date__ = result
+        except Exception:
+            pass
+        return result
 
     joined_at = getattr(enrollment, "joined_at", None)
     student = getattr(enrollment, "student", None)
     group = getattr(enrollment, "group", None)
-    if student and group:
+    history_start = getattr(enrollment, "__preloaded_history_start_date__", _UNSET)
+    if history_start is _UNSET and student and group:
         history = StudentGroupHistory.objects.filter(
             student=student,
             group=group,
         ).order_by("-start_date").first()
-        if history and history.start_date:
-            created_at = getattr(enrollment, "created_at", None)
-            created_date = timezone.localtime(created_at).date() if created_at else None
-            if joined_at and joined_at != created_date:
-                return normalize_lesson_start_date(joined_at) or timezone.localdate()
-            return normalize_lesson_start_date(history.start_date) or timezone.localdate()
+        history_start = history.start_date if history and history.start_date else None
+    if history_start:
+        created_at = getattr(enrollment, "created_at", None)
+        created_date = timezone.localtime(created_at).date() if created_at else None
+        if joined_at and joined_at != created_date:
+            result = normalize_lesson_start_date(joined_at) or timezone.localdate()
+        else:
+            result = normalize_lesson_start_date(history_start) or timezone.localdate()
+        try:
+            enrollment.__resolved_start_date__ = result
+        except Exception:
+            pass
+        return result
 
     if joined_at:
-        return normalize_lesson_start_date(joined_at) or timezone.localdate()
+        result = normalize_lesson_start_date(joined_at) or timezone.localdate()
+        try:
+            enrollment.__resolved_start_date__ = result
+        except Exception:
+            pass
+        return result
 
     start_dt = getattr(enrollment, "created_at", None) or timezone.now()
-    return normalize_lesson_start_date(start_dt.date()) or timezone.localdate()
+    result = normalize_lesson_start_date(start_dt.date()) or timezone.localdate()
+    try:
+        enrollment.__resolved_start_date__ = result
+    except Exception:
+        pass
+    return result
+
+
+# Sentinel for "not yet preloaded" vs explicit None
+_UNSET = object()
+
+
+def preload_enrollment_history_starts(enrollments) -> None:
+    """
+    Pre-populate the __preloaded_history_start_date__ attribute on each
+    enrollment using a single grouped query, so the next call to
+    enrollment_start_date() doesn't hit the DB per-enrollment.
+
+    Safe to call with any iterable of enrollments. Idempotent.
+    """
+    enrollments = [e for e in enrollments if getattr(e, "id", None)]
+    if not enrollments:
+        return
+
+    pairs = [(e.student_id, e.group_id) for e in enrollments
+             if getattr(e, "student_id", None) and getattr(e, "group_id", None)]
+    if not pairs:
+        for e in enrollments:
+            if not hasattr(e, "__preloaded_history_start_date__"):
+                try:
+                    e.__preloaded_history_start_date__ = None
+                except Exception:
+                    pass
+        return
+
+    student_ids = {p[0] for p in pairs}
+    group_ids = {p[1] for p in pairs}
+
+    history_map: dict[tuple[int, int], date] = {}
+    rows = (
+        StudentGroupHistory.objects
+        .filter(student_id__in=student_ids, group_id__in=group_ids)
+        .order_by("student_id", "group_id", "-start_date")
+        .values("student_id", "group_id", "start_date")
+    )
+    for row in rows:
+        key = (row["student_id"], row["group_id"])
+        # First (newest) row wins because of order_by("-start_date")
+        if key not in history_map and row["start_date"]:
+            history_map[key] = row["start_date"]
+
+    for e in enrollments:
+        key = (getattr(e, "student_id", None), getattr(e, "group_id", None))
+        try:
+            e.__preloaded_history_start_date__ = history_map.get(key)
+        except Exception:
+            pass
 
 
 def effective_student_payable_amount(enrollment: Enrollment) -> int:
