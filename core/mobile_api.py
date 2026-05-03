@@ -2868,13 +2868,13 @@ def mobile_chaqmoq_leaderboard(request):
     me_id = getattr(me_user, "id", None)
     me_rank = 0
     me_balance = 0
-    items = []
+    full_items = []
     for index, row in enumerate(rows, start=1):
         is_me = row["id"] == me_id
         if is_me:
             me_rank = index
             me_balance = row["balance"]
-        items.append(
+        full_items.append(
             {
                 "rank": index,
                 "id": row["id"],
@@ -2883,12 +2883,194 @@ def mobile_chaqmoq_leaderboard(request):
                 "is_me": is_me,
             }
         )
+
+    q = (request.GET.get("q") or "").strip().lower()
+    if q:
+        filtered_items = [it for it in full_items if q in (it["full_name"] or "").lower()]
+    else:
+        filtered_items = full_items
+
+    try:
+        page = max(int(request.GET.get("page") or 1), 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.GET.get("per_page") or 20)
+    except (TypeError, ValueError):
+        per_page = 20
+    per_page = max(5, min(per_page, 100))
+
+    matched = len(filtered_items)
+    total_pages = max(1, (matched + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    start = (page - 1) * per_page
+    page_items = filtered_items[start : start + per_page]
+
     return JsonResponse(
         {
             "ok": True,
-            "total": len(items),
+            "total": len(full_items),
+            "matched": matched,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
             "me_rank": me_rank,
             "me_balance": me_balance,
+            "items": page_items,
+        }
+    )
+
+
+@require_GET
+@mobile_login_required
+def mobile_chaqmoq_student_detail(request, student_id: int):
+    """Bitta o'quvchining barcha chaqmoq tarixi (admin paneldagi
+    ``chaqmoq:student_detail`` sahifasi bilan bir xil ma'lumotlarni qaytaradi:
+    yig'indilar (kelgan/ketgan/sof), beruvchilar bo'yicha statistika va
+    sahifalangan ledger yozuvlari).
+    """
+    from django.db.models import Case, F, IntegerField, Value, When
+    from django.db.models.functions import Abs, Coalesce
+
+    center = _request_center(request)
+    students_qs = User.objects.filter(role="student")
+    if center is not None:
+        students_qs = students_qs.filter(center=center)
+    student = get_object_or_404(students_qs, pk=student_id)
+
+    # Faqat shu markazga tegishli rolega ega bo'lganlar ko'ra oladi.
+    if not request.user.is_superuser:
+        viewer_role = getattr(request.user, "role", None)
+        if viewer_role not in ("director", "manager", "teacher", "student", "parent"):
+            return _json_error("Permission denied", status=403, code="permission_denied")
+        viewer_center = getattr(request.user, "center", None)
+        if center is None and viewer_center and viewer_center != student.center:
+            return _json_error("Permission denied", status=403, code="permission_denied")
+
+    led_qs = Ledger.objects.filter(student=student)
+    if center is not None:
+        led_qs = led_qs.filter(
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
+        )
+    led_qs = led_qs.select_related("group", "rule", "beruvchi").order_by("-created_at", "-id")
+
+    totals = led_qs.aggregate(
+        total_plus=Coalesce(
+            Sum(
+                Case(
+                    When(ball__gt=0, then=F("ball")),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            0,
+        ),
+        total_minus=Coalesce(
+            Sum(
+                Case(
+                    When(ball__lt=0, then=Abs(F("ball"))),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            0,
+        ),
+        balance=Coalesce(Sum("ball"), 0),
+    )
+
+    teacher_stats_qs = (
+        led_qs.values(
+            "beruvchi__id",
+            "beruvchi__ism",
+            "beruvchi__familya",
+            "beruvchi__role",
+        )
+        .annotate(
+            coin_plus=Coalesce(
+                Sum(
+                    Case(
+                        When(ball__gt=0, then=F("ball")),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
+                0,
+            ),
+            coin_minus=Coalesce(
+                Sum(
+                    Case(
+                        When(ball__lt=0, then=Abs(F("ball"))),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
+                0,
+            ),
+        )
+        .order_by("-coin_plus", "-coin_minus", "beruvchi__ism")
+    )
+    teacher_stats = []
+    for row in teacher_stats_qs:
+        ism = (row.get("beruvchi__ism") or "").strip()
+        familya = (row.get("beruvchi__familya") or "").strip()
+        full = " ".join(p for p in (ism, familya) if p) or "—"
+        teacher_stats.append(
+            {
+                "id": row.get("beruvchi__id"),
+                "full_name": full,
+                "role": row.get("beruvchi__role") or "",
+                "coin_plus": int(row.get("coin_plus") or 0),
+                "coin_minus": int(row.get("coin_minus") or 0),
+            }
+        )
+
+    try:
+        page = max(int(request.GET.get("page") or 1), 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.GET.get("per_page") or 20)
+    except (TypeError, ValueError):
+        per_page = 20
+    per_page = max(5, min(per_page, 100))
+
+    paginator = Paginator(led_qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    items = []
+    for entry in page_obj.object_list:
+        rule_name = entry.rule_nom or (entry.rule.nom if entry.rule else "")
+        items.append(
+            {
+                "id": entry.id,
+                "points": entry.ball,
+                "rule_name": rule_name,
+                "group_name": entry.group.nom if entry.group else "",
+                "giver_name": entry.beruvchi.get_full_name() if entry.beruvchi else "",
+                "giver_role": getattr(entry.beruvchi, "role", "") if entry.beruvchi else "",
+                "created_at": timezone.localtime(entry.created_at).isoformat()
+                if entry.created_at
+                else timezone.localtime(entry.sana).isoformat(),
+            }
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "student": {
+                "id": student.id,
+                "full_name": student.get_full_name(),
+            },
+            "totals": {
+                "total_plus": int(totals.get("total_plus") or 0),
+                "total_minus": int(totals.get("total_minus") or 0),
+                "balance": int(totals.get("balance") or 0),
+            },
+            "teacher_stats": teacher_stats,
+            "page": page_obj.number,
+            "per_page": per_page,
+            "total_pages": paginator.num_pages,
+            "total_items": paginator.count,
             "items": items,
         }
     )

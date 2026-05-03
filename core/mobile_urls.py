@@ -42,6 +42,11 @@ urlpatterns = [
     path("store/products/", mobile_api.mobile_store_products, name="mobile_store_products"),
     path("chaqmoq/history/", mobile_api.mobile_chaqmoq_history, name="mobile_chaqmoq_history"),
     path("chaqmoq/leaderboard/", mobile_api.mobile_chaqmoq_leaderboard, name="mobile_chaqmoq_leaderboard"),
+    path(
+        "chaqmoq/students/<int:student_id>/",
+        mobile_api.mobile_chaqmoq_student_detail,
+        name="mobile_chaqmoq_student_detail",
+    ),
     path("store/purchase-requests/", mobile_api.mobile_purchase_requests, name="mobile_purchase_requests"),
     path("store/purchase-requests/create/", mobile_api.mobile_purchase_request_create, name="mobile_purchase_request_create"),
 ]
