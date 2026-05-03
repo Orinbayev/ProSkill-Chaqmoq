@@ -268,13 +268,45 @@ class DashboardService extends _BaseService {
       ),
     ];
 
+    final groups = jsonMapList(student['groups']);
+    var monthlyLessons = 0;
+    for (final g in groups) {
+      monthlyLessons += jsonInt(g['monthly_lessons']);
+    }
+
+    int meRank = 0;
+    int totalRanked = 0;
+    try {
+      final board = await apiClient.get('/api/mobile/chaqmoq/leaderboard/');
+      meRank = jsonInt(board['me_rank']);
+      totalRanked = jsonInt(board['total']);
+    } catch (_) {
+      meRank = 0;
+      totalRanked = 0;
+    }
+
     return DashboardData(
       metrics: metrics,
       revenueTrend: const <ChartPointModel>[],
       children: const <ChildSummaryModel>[],
       unreadCount: jsonInt(home['unread_notifications']),
       studentScore: jsonInt(lightning['balance'] ?? student['balance']),
-      studentRank: jsonMapList(lightning['items']).length,
+      studentRank: meRank,
+      studentTotalRanked: totalRanked,
+      monthlyLessonsTotal: monthlyLessons,
+    );
+  }
+
+  Future<ChaqmoqLeaderboardData> fetchChaqmoqLeaderboard() async {
+    final payload = await apiClient.get('/api/mobile/chaqmoq/leaderboard/');
+    final items = jsonMapList(payload['items'])
+        .map(ChaqmoqLeaderboardEntry.fromJson)
+        .toList();
+    return ChaqmoqLeaderboardData(
+      total: jsonInt(payload['total']),
+      meRank: jsonInt(payload['me_rank']),
+      meBalance: jsonInt(payload['me_balance']),
+      items: items,
     );
   }
 

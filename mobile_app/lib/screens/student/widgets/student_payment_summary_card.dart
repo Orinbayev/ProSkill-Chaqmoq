@@ -29,6 +29,11 @@ class StudentPaymentSummaryCard extends StatelessWidget {
         ? (lateDays > 0 ? _PayStatus.late : _PayStatus.due)
         : _PayStatus.paid;
 
+    final now = DateTime.now();
+    final monthName = _monthNameUz(now.month);
+    final firstNextMonth = DateTime(now.year, now.month + 1, 1);
+    final amountColor = hasDebt ? tokens.danger : tokens.success;
+
     return AppGCard(
       onTap: onTap,
       child: Column(
@@ -64,20 +69,22 @@ class StudentPaymentSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             hasDebt
-                ? Formatters.currency(summary.openDebt)
+                ? Formatters.number(summary.openDebt)
                 : 'Qarz yo‘q',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: hasDebt ? (lateDays > 0 ? tokens.danger : tokens.warning) : tokens.success,
+              color: amountColor,
               letterSpacing: -0.4,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Joriy oy: ${Formatters.currency(summary.thisMonth)}',
+            hasDebt
+                ? '$monthName oyidagi qarzingiz'
+                : '$monthName oyi to‘liq to‘langan',
             style: GoogleFonts.inter(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
@@ -91,16 +98,35 @@ class StudentPaymentSummaryCard extends StatelessWidget {
             label: "Oxirgi to‘lov",
             value: lastPayment == null
                 ? 'Ma’lumot yo‘q'
-                : '${Formatters.currency(lastPayment!.amount)} · ${Formatters.shortDayMonth(lastPayment!.date)}',
+                : '${Formatters.number(lastPayment!.amount)} · ${Formatters.shortDayMonth(lastPayment!.date)}',
           ),
           const SizedBox(height: 4),
           _Row(
             label: "Keyingi to‘lov",
-            value: nextDue == null ? '—' : Formatters.shortDayMonth(nextDue),
+            value: Formatters.shortDayMonth(firstNextMonth),
           ),
         ],
       ),
     );
+  }
+
+  static String _monthNameUz(int month) {
+    const names = [
+      'Yanvar',
+      'Fevral',
+      'Mart',
+      'Aprel',
+      'May',
+      'Iyun',
+      'Iyul',
+      'Avgust',
+      'Sentabr',
+      'Oktabr',
+      'Noyabr',
+      'Dekabr',
+    ];
+    if (month < 1 || month > 12) return '';
+    return names[month - 1];
   }
 
   static int _lateDays(DateTime? due) {

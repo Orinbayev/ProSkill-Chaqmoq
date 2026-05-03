@@ -5,31 +5,31 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-enum ActivityRange { week, twelveWeeks, threeMonths }
+enum ActivityRange { week, month, threeMonths }
 
 class StudentActivityChart extends StatefulWidget {
   const StudentActivityChart({
     super.key,
-    required this.points,
+    required this.entries,
   });
 
-  /// API-supplied series. We slice it according to active range.
-  /// Each point's [value] is the net ball change for that bucket.
-  final List<ChartPointModel> points;
+  /// All chaqmoq entries for the student (positive = added, negative = removed).
+  /// The chart slices and aggregates these per the active range.
+  final List<ChaqmoqEntryModel> entries;
 
   @override
   State<StudentActivityChart> createState() => _StudentActivityChartState();
 }
 
 class _StudentActivityChartState extends State<StudentActivityChart> {
-  ActivityRange _range = ActivityRange.twelveWeeks;
+  ActivityRange _range = ActivityRange.month;
   int? _highlight;
 
   @override
   Widget build(BuildContext context) {
     final tokens = StudentTokens.of(context);
-    final series = _seriesForRange(_range, widget.points);
-    final isEmpty = series.every((p) => p.value == 0);
+    final series = _seriesForRange(_range, widget.entries);
+    final isEmpty = series.every((p) => p.value == 0 && p.entries.isEmpty);
     final maxValue = series.fold<double>(0, (m, p) => p.value.abs() > m ? p.value.abs() : m);
     final total = series.fold<double>(0, (s, p) => s + p.value);
     return AppGCard(
@@ -51,13 +51,20 @@ class _StudentActivityChartState extends State<StudentActivityChart> {
                   ),
                 ),
               ),
-              Text(
-                '${total >= 0 ? '+' : ''}${total.round()} ball',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: total >= 0 ? tokens.success : tokens.danger,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${total >= 0 ? '+' : ''}${total.round()}',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: total >= 0 ? tokens.success : tokens.danger,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(Icons.bolt_rounded, color: tokens.primary, size: 14),
+                ],
               ),
             ],
           ),
@@ -102,70 +109,74 @@ class _StudentActivityChartState extends State<StudentActivityChart> {
     );
   }
 
-  List<_BucketPoint> _seriesForRange(ActivityRange range, List<ChartPointModel> raw) {
+  List<_BucketPoint> _seriesForRange(ActivityRange range, List<ChaqmoqEntryModel> raw) {
     final today = DateTime.now();
     switch (range) {
       case ActivityRange.week:
         return _bucketDaily(raw, days: 7, today: today);
-      case ActivityRange.twelveWeeks:
-        return _bucketWeekly(raw, weeks: 12, today: today);
+      case ActivityRange.month:
+        return _bucketWeekly(raw, weeks: 4, today: today);
       case ActivityRange.threeMonths:
-        return _bucketDaily(raw, days: 90, today: today);
+        return _bucketWeekly(raw, weeks: 12, today: today);
     }
   }
 
-  List<_BucketPoint> _bucketDaily(List<ChartPointModel> raw, {required int days, required DateTime today}) {
+  List<_BucketPoint> _bucketDaily(
+    List<ChaqmoqEntryModel> raw, {
+    required int days,
+    required DateTime today,
+  }) {
     final out = <_BucketPoint>[];
     for (var i = days - 1; i >= 0; i--) {
       final date = DateTime(today.year, today.month, today.day - i);
-      final value = _findRawValue(raw, date) ?? _stableSimulated(date);
+      final entries = raw
+          .where((e) =>
+              e.createdAt.year == date.year &&
+              e.createdAt.month == date.month &&
+              e.createdAt.day == date.day)
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final value = entries.fold<double>(0, (s, e) => s + e.points);
       out.add(_BucketPoint(
         bucket: BucketKind.day,
         start: date,
         end: date,
         label: DateFormat('d MMM', 'uz').format(date),
         value: value,
+        entries: entries,
       ));
     }
     return out;
   }
 
-  List<_BucketPoint> _bucketWeekly(List<ChartPointModel> raw, {required int weeks, required DateTime today}) {
-    final monday = today.subtract(Duration(days: (today.weekday - 1)));
+  List<_BucketPoint> _bucketWeekly(
+    List<ChaqmoqEntryModel> raw, {
+    required int weeks,
+    required DateTime today,
+  }) {
+    final monday = DateTime(today.year, today.month, today.day - (today.weekday - 1));
     final out = <_BucketPoint>[];
     for (var i = weeks - 1; i >= 0; i--) {
       final start = monday.subtract(Duration(days: 7 * i));
       final end = start.add(const Duration(days: 6));
-      var sum = 0.0;
-      for (var d = 0; d < 7; d++) {
-        final date = start.add(Duration(days: d));
-        sum += _findRawValue(raw, date) ?? _stableSimulated(date);
-      }
+      final endInclusive = DateTime(end.year, end.month, end.day, 23, 59, 59);
+      final entries = raw
+          .where((e) =>
+              !e.createdAt.isBefore(start) &&
+              !e.createdAt.isAfter(endInclusive))
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final sum = entries.fold<double>(0, (s, e) => s + e.points);
       out.add(_BucketPoint(
         bucket: BucketKind.week,
         start: start,
         end: end,
         label: 'H${weeks - i}',
         value: sum,
+        entries: entries,
       ));
     }
     return out;
-  }
-
-  static double? _findRawValue(List<ChartPointModel> raw, DateTime date) {
-    if (raw.isEmpty) return null;
-    final iso = DateFormat('yyyy-MM-dd').format(date);
-    for (final p in raw) {
-      if (p.label == iso) return p.value;
-    }
-    return null;
-  }
-
-  /// Stable pseudo-random walk so demo screen always shows lively bars
-  /// when backend hasn't yet returned per-day series — never random.
-  static double _stableSimulated(DateTime date) {
-    final seed = (date.year * 397 + date.month * 31 + date.day) % 13;
-    return (seed - 5).toDouble();
   }
 }
 
@@ -180,7 +191,7 @@ class _RangeChips extends StatelessWidget {
     final tokens = StudentTokens.of(context);
     final items = const [
       (ActivityRange.week, '7 kun'),
-      (ActivityRange.twelveWeeks, '12 hafta'),
+      (ActivityRange.month, '1 oy'),
       (ActivityRange.threeMonths, '3 oy'),
     ];
     return Wrap(
@@ -369,12 +380,24 @@ class _ActivityDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = StudentTokens.of(context);
-    final added = point.value > 0 ? point.value.round() : 0;
-    final removed = point.value < 0 ? point.value.abs().round() : 0;
+    final added = point.entries
+        .where((e) => e.points > 0)
+        .fold<int>(0, (s, e) => s + e.points);
+    final removed = point.entries
+        .where((e) => e.points < 0)
+        .fold<int>(0, (s, e) => s + e.points.abs());
     final net = point.value.round();
     final dateText = point.bucket == BucketKind.day
         ? DateFormat('EEEE, d MMMM yyyy', 'uz').format(point.start)
         : '${DateFormat('d MMM', 'uz').format(point.start)} – ${DateFormat('d MMM yyyy', 'uz').format(point.end)}';
+
+    final byGiver = <String, int>{};
+    for (final e in point.entries) {
+      final name = e.giverName.trim().isEmpty ? "Noma'lum" : e.giverName.trim();
+      byGiver.update(name, (v) => v + e.points, ifAbsent: () => e.points);
+    }
+    final givers = byGiver.entries.toList()
+      ..sort((a, b) => b.value.abs().compareTo(a.value.abs()));
 
     return SafeArea(
       top: false,
@@ -436,25 +459,24 @@ class _ActivityDetailSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            _DetailRow(
-              icon: Icons.schedule_rounded,
-              label: 'Vaqt',
-              value: point.bucket == BucketKind.day
-                  ? DateFormat('HH:mm', 'uz').format(point.start)
-                  : 'Hafta umumiy',
-            ),
-            _DetailRow(
-              icon: Icons.person_rounded,
-              label: 'Tomonidan',
-              value: 'Tafsilot tez orada',
-            ),
-            _DetailRow(
-              icon: Icons.label_outline_rounded,
-              label: 'Sabab',
-              value: net == 0
-                  ? 'Faollik qayd etilmagan'
-                  : (net > 0 ? 'Ijobiy faollik (dars/topshiriq)' : 'Davomatsizlik / kechikish'),
-            ),
+            if (givers.isNotEmpty) ...[
+              Text(
+                'Kim tomonidan',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.textMuted,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final g in givers) _GiverRow(name: g.key, points: g.value),
+            ] else
+              _DetailRow(
+                icon: Icons.person_off_rounded,
+                label: 'Kim tomonidan',
+                value: 'Hozircha ma\'lumot yo‘q',
+              ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -474,6 +496,60 @@ class _ActivityDetailSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _GiverRow extends StatelessWidget {
+  const _GiverRow({required this.name, required this.points});
+
+  final String name;
+  final int points;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    final positive = points >= 0;
+    final color = positive ? tokens.success : tokens.danger;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tokens.tonedSurface(tokens.primary),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.person_rounded, size: 14, color: tokens.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: tokens.text,
+              ),
+            ),
+          ),
+          Text(
+            '${positive ? '+' : ''}$points',
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Icon(Icons.bolt_rounded, size: 14, color: tokens.primary),
+        ],
       ),
     );
   }
@@ -571,6 +647,7 @@ class _BucketPoint {
     required this.end,
     required this.label,
     required this.value,
+    required this.entries,
   });
 
   final BucketKind bucket;
@@ -578,4 +655,5 @@ class _BucketPoint {
   final DateTime end;
   final String label;
   final double value;
+  final List<ChaqmoqEntryModel> entries;
 }

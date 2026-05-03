@@ -28,11 +28,12 @@ class StudentAttendanceCard extends StatelessWidget {
   double get monthlyPct => attendancePct.clamp(0, 1).toDouble();
 
   String _summaryLine() {
-    if (monthlyTotal != null && monthlyTotal! > 0) {
-      return '$monthlyTotal ta darsdan ${monthlyAttended ?? 0} tasiga qatnashgan';
+    final mTotal = monthlyTotal ?? 0;
+    final mAttended = monthlyAttended ?? 0;
+    if (mTotal > 0) {
+      return 'Bu oyda $mTotal ta darsdan $mAttended tasi o‘tildi';
     }
-    if (attendancePct == 0) return 'Bu oyda dars belgilanmagan';
-    return 'Davomat: ${(attendancePct * 100).round()}% (so‘nggi 30 kun)';
+    return 'Bu oy uchun dars rejasi belgilanmagan';
   }
 
   @override
@@ -42,7 +43,7 @@ class StudentAttendanceCard extends StatelessWidget {
         ? tokens.success
         : monthlyPct >= 0.65
             ? tokens.warning
-            : tokens.danger;
+            : tokens.primary;
     return AppGCard(
       onTap: onTap,
       child: Column(
@@ -72,13 +73,12 @@ class StudentAttendanceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              AppBadge(
-                label: '${(monthlyPct * 100).round()}%',
-                tone: monthlyPct >= 0.85
-                    ? AppBadgeTone.success
-                    : (monthlyPct >= 0.65 ? AppBadgeTone.warning : AppBadgeTone.danger),
-                dark: tokens.isDark,
-              ),
+              if ((monthlyTotal ?? 0) > 0)
+                AppBadge(
+                  label: '${monthlyAttended ?? 0}/${monthlyTotal!}',
+                  tone: AppBadgeTone.teal,
+                  dark: tokens.isDark,
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -100,24 +100,24 @@ class StudentAttendanceCard extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(tone),
             ),
           ),
-          if (weeklyTotal != null || monthlyTotal != null) ...[
+          if ((weeklyTotal ?? 0) > 0 || (monthlyTotal ?? 0) > 0) ...[
             const SizedBox(height: 10),
             Row(
               children: [
-                if (weeklyTotal != null && weeklyTotal! > 0)
+                if ((weeklyTotal ?? 0) > 0)
                   Expanded(
                     child: _MicroStat(
                       label: 'Bu hafta',
-                      value: '${weeklyAttended ?? 0}/$weeklyTotal',
+                      value: '${weeklyAttended ?? 0}/${weeklyTotal!}',
                     ),
                   ),
-                if (weeklyTotal != null && weeklyTotal! > 0 && monthlyTotal != null && monthlyTotal! > 0)
+                if ((weeklyTotal ?? 0) > 0 && (monthlyTotal ?? 0) > 0)
                   const SizedBox(width: 10),
-                if (monthlyTotal != null && monthlyTotal! > 0)
+                if ((monthlyTotal ?? 0) > 0)
                   Expanded(
                     child: _MicroStat(
                       label: 'Bu oy',
-                      value: '${monthlyAttended ?? 0}/$monthlyTotal',
+                      value: '${monthlyAttended ?? 0}/${monthlyTotal!}',
                     ),
                   ),
               ],

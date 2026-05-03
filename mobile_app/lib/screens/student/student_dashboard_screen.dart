@@ -10,9 +10,9 @@ import 'package:chaqmoq_mobile/screens/student/widgets/student_atmospheric_backd
 import 'package:chaqmoq_mobile/screens/student/widgets/student_attendance_card.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_dashboard_header.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_hero_card.dart';
+import 'package:chaqmoq_mobile/screens/student/widgets/student_leaderboard_sheet.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_payment_summary_card.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/student_rating_card.dart';
-import 'package:chaqmoq_mobile/screens/student/widgets/student_stats_grid.dart';
 import 'package:chaqmoq_mobile/widgets/app_section_header.dart';
 import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
 import 'package:flutter/material.dart';
@@ -124,7 +124,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final data = dashboard.data;
     final lastPayment = _findLastPayment(payments.filteredItems);
     final nextDue = _findNextDue(payments.filteredItems);
-    final attendance = _attendanceFromHistory(history);
+    final attendance = _attendanceFromHistory(history, data.monthlyLessonsTotal);
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -138,25 +138,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         StudentHeroCard(
           name: user.fullName.isEmpty ? 'O‘quvchi' : user.fullName,
           centerName: user.center?.name ?? '',
-          onPay: widget.onOpenPayments,
-          onMessages: widget.onOpenNotifications,
-          onProfile: widget.onOpenProfile,
         ),
         const SizedBox(height: 14),
         StudentRatingCard(
           score: data.studentScore,
           rank: data.studentRank,
-        ),
-        const SizedBox(height: 14),
-        StudentStatsGrid(
-          metrics: data.metrics,
-          fallbackAttendance: data.teacherAttendanceRate,
-          openDebt: payments.summary.openDebt,
+          totalRanked: data.studentTotalRanked,
+          onTap: () => StudentLeaderboardSheet.show(context),
         ),
         const SizedBox(height: 14),
         const AppSectionHeader(title: 'FAOLLIK'),
         const SizedBox(height: 8),
-        StudentActivityChart(points: data.revenueTrend),
+        StudentActivityChart(entries: history.items),
         const SizedBox(height: 14),
         const AppSectionHeader(title: "DAVOMAT VA TO‘LOV"),
         const SizedBox(height: 8),
@@ -191,19 +184,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     return debt.isEmpty ? null : debt.first.date;
   }
 
-  /// Derive this-month attendance counts directly from the chaqmoq ledger:
-  /// every distinct day with a positive entry counts as Kelgan; days with
-  /// only negative entries count as Kelmagan; their sum is the recorded total.
-  _AttendanceSnapshot _attendanceFromHistory(ChaqmoqHistoryProvider history) {
+  /// Combine the planned lesson schedule (group.monthly_lessons summed across
+  /// the student's groups) with the chaqmoq ledger to produce "X / Y" style
+  /// counts. The total comes from the schedule (so it stays stable even when
+  /// no attendance is taken yet); the attended count is the number of distinct
+  /// days this month with a positive ledger entry. Weekly total is derived
+  /// from the monthly plan (≈ monthly / 4) so a 12-lesson month surfaces as
+  /// 3/week, matching the typical group cadence.
+  _AttendanceSnapshot _attendanceFromHistory(
+    ChaqmoqHistoryProvider history,
+    int plannedMonthlyLessons,
+  ) {
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month);
     final monthEnd = DateTime(now.year, now.month + 1, 0);
     final weekStart = DateTime(now.year, now.month, now.day - (now.weekday - 1));
 
     final monthlyAttended = <DateTime>{};
-    final monthlyAbsent = <DateTime>{};
     final weeklyAttended = <DateTime>{};
-    final weeklyAbsent = <DateTime>{};
 
     final byDay = <DateTime, List<int>>{};
     for (final e in history.items) {
@@ -214,25 +212,28 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     byDay.forEach((day, pts) {
       if (day.isBefore(monthStart) || day.isAfter(monthEnd)) return;
       final hasPos = pts.any((p) => p > 0);
-      final hasNeg = pts.any((p) => p < 0);
-      final attended = hasPos;
-      final absent = !hasPos && hasNeg;
-      if (attended) monthlyAttended.add(day);
-      if (absent) monthlyAbsent.add(day);
+      if (!hasPos) return;
+      monthlyAttended.add(day);
       if (!day.isBefore(weekStart)) {
-        if (attended) weeklyAttended.add(day);
-        if (absent) weeklyAbsent.add(day);
+        weeklyAttended.add(day);
       }
     });
 
-    final monthTotal = monthlyAttended.length + monthlyAbsent.length;
-    final weekTotal = weeklyAttended.length + weeklyAbsent.length;
-    final pct = monthTotal == 0 ? 0.0 : monthlyAttended.length / monthTotal;
+    final monthlyTotal = plannedMonthlyLessons > 0 ? plannedMonthlyLessons : 0;
+    final attendedCapped = monthlyTotal > 0
+        ? (monthlyAttended.length > monthlyTotal ? monthlyTotal : monthlyAttended.length)
+        : monthlyAttended.length;
+    final weeklyTotal = monthlyTotal > 0 ? (monthlyTotal / 4).round().clamp(1, monthlyTotal) : 0;
+    final weeklyAttendedCapped = weeklyTotal > 0
+        ? (weeklyAttended.length > weeklyTotal ? weeklyTotal : weeklyAttended.length)
+        : weeklyAttended.length;
+    final pct = monthlyTotal == 0 ? 0.0 : attendedCapped / monthlyTotal;
+
     return _AttendanceSnapshot(
-      attendedDays: monthlyAttended.length,
-      totalDays: monthTotal,
-      weeklyAttended: weeklyAttended.length,
-      weeklyTotal: weekTotal,
+      attendedDays: attendedCapped,
+      totalDays: monthlyTotal,
+      weeklyAttended: weeklyAttendedCapped,
+      weeklyTotal: weeklyTotal,
       percent: pct,
     );
   }

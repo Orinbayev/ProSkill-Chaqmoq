@@ -2765,6 +2765,84 @@ def mobile_chaqmoq_history(request):
 
 @require_GET
 @mobile_login_required
+def mobile_chaqmoq_leaderboard(request):
+    """Markazdagi barcha o'quvchilarning chaqmoq ball reytingi.
+
+    Bitta bulk ``Sum`` so'rovi orqali Ledger summasi hisoblanadi (per-student
+    so'rovsiz), shu bilan 100+ o'quvchili markazlarda ham tezkor javob beradi.
+    """
+    if not request.user.is_superuser and request.user.role not in (
+        "student",
+        "parent",
+        "teacher",
+        "manager",
+        "director",
+    ):
+        return _json_error("Permission denied", status=403, code="permission_denied")
+
+    center = _request_center(request)
+
+    students_qs = User.objects.filter(role="student", is_active=True)
+    if center is not None:
+        students_qs = students_qs.filter(center=center)
+    if hasattr(User, "is_archived"):
+        students_qs = students_qs.exclude(is_archived=True)
+
+    student_ids = list(students_qs.values_list("id", flat=True))
+
+    ledger_qs = Ledger.objects.filter(student_id__in=student_ids)
+    if center is not None:
+        ledger_qs = ledger_qs.filter(
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
+        )
+    balance_rows = ledger_qs.values("student_id").annotate(total=Sum("ball"))
+    balance_map = {row["student_id"]: int(row["total"] or 0) for row in balance_rows}
+
+    rows = []
+    for student in students_qs.only("id", "first_name", "last_name", "username"):
+        balance = balance_map.get(student.id, 0)
+        rows.append((student, balance))
+
+    rows.sort(key=lambda r: (-r[1], (r[0].get_full_name() or r[0].username).lower()))
+
+    me_user = request.user
+    if request.user.role == "parent":
+        student_id = request.GET.get("student_id")
+        if student_id:
+            child = request.user.children.filter(pk=student_id).first()
+            if child is not None:
+                me_user = child
+    me_id = getattr(me_user, "id", None)
+    me_rank = 0
+    me_balance = 0
+    items = []
+    for index, (student, balance) in enumerate(rows, start=1):
+        is_me = student.id == me_id
+        if is_me:
+            me_rank = index
+            me_balance = balance
+        items.append(
+            {
+                "rank": index,
+                "id": student.id,
+                "full_name": student.get_full_name() or student.username,
+                "balance": balance,
+                "is_me": is_me,
+            }
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "total": len(items),
+            "me_rank": me_rank,
+            "me_balance": me_balance,
+            "items": items,
+        }
+    )
+
+
+@require_GET
+@mobile_login_required
 def mobile_purchase_requests(request):
     if request.user.role != "student" and not request.user.is_superuser:
         return _json_error("Permission denied", status=403, code="permission_denied")

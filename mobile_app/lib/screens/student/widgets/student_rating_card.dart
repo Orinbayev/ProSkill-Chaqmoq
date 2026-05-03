@@ -1,5 +1,4 @@
 import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
-import 'package:chaqmoq_mobile/widgets/app_badge.dart';
 import 'package:chaqmoq_mobile/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,20 +8,21 @@ class StudentRatingCard extends StatelessWidget {
     super.key,
     required this.score,
     required this.rank,
-    this.nextTarget,
+    this.totalRanked = 0,
+    this.onTap,
   });
 
   final int score;
   final int rank;
-  final int? nextTarget;
+  final int totalRanked;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = StudentTokens.of(context);
     final hasData = score > 0 || rank > 0;
-    final target = nextTarget ?? _suggestNextTarget(score);
-    final remaining = (target - score).clamp(0, 1 << 30);
     return AppGCard(
+      onTap: onTap,
       borderColor: tokens.secondary.withValues(alpha: 0.32),
       child: Stack(
         clipBehavior: Clip.hardEdge,
@@ -82,8 +82,7 @@ class StudentRatingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           hasData ? '$score' : '—',
@@ -94,42 +93,29 @@ class StudentRatingCard extends StatelessWidget {
                             letterSpacing: -0.6,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'ball',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: tokens.textMuted,
+                        const SizedBox(width: 4),
+                        Icon(Icons.bolt_rounded, color: tokens.primary, size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _rankLabel(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: rank > 0 ? tokens.primary : tokens.textMuted,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        if (rank > 0)
-                          AppBadge(
-                            label: '#$rank reyting',
-                            tone: AppBadgeTone.success,
-                            dark: tokens.isDark,
-                          )
-                        else
-                          AppBadge(
-                            label: 'Reyting tayyor emas',
-                            tone: AppBadgeTone.neutral,
-                            dark: tokens.isDark,
-                          ),
-                        if (hasData && remaining > 0)
-                          AppBadge(
-                            label: '+$remaining → $target',
-                            tone: AppBadgeTone.violet,
-                            dark: tokens.isDark,
-                          ),
-                      ],
-                    ),
+                    const SizedBox(height: 8),
+                    _DetailHint(tokens: tokens),
                   ],
                 ),
               ),
@@ -140,11 +126,43 @@ class StudentRatingCard extends StatelessWidget {
     );
   }
 
-  static int _suggestNextTarget(int score) {
-    if (score < 100) return 100;
-    if (score < 250) return 250;
-    if (score < 500) return 500;
-    if (score < 1000) return 1000;
-    return ((score ~/ 500) + 1) * 500;
+  String _rankLabel() {
+    if (rank <= 0) return 'Reyting tayyor emas';
+    if (totalRanked > 0) return 'Umumiy reyting: $rank / $totalRanked';
+    return 'Umumiy reyting: $rank-o‘rin';
+  }
+}
+
+class _DetailHint extends StatelessWidget {
+  const _DetailHint({required this.tokens});
+
+  final StudentTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: tokens.tonedSurface(tokens.primary),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: tokens.primary.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Batafsil',
+            style: GoogleFonts.inter(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: tokens.primary,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.chevron_right_rounded, size: 14, color: tokens.primary),
+        ],
+      ),
+    );
   }
 }

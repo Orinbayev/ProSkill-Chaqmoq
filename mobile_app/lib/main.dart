@@ -115,6 +115,7 @@ class ChaqmoqApp extends StatelessWidget {
       providers: [
         Provider<StorageService>.value(value: storageService),
         Provider<ParentDashboardService>.value(value: parentDashboardService),
+        Provider<DashboardService>.value(value: dashboardService),
         Provider<LocalNotificationService>.value(value: localNotificationService),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(

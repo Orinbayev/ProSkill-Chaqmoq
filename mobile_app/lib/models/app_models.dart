@@ -415,6 +415,8 @@ class DashboardData {
     this.teacherAttendanceRate = 0,
     this.studentScore = 0,
     this.studentRank = 0,
+    this.studentTotalRanked = 0,
+    this.monthlyLessonsTotal = 0,
   });
 
   final List<DashboardMetric> metrics;
@@ -424,6 +426,8 @@ class DashboardData {
   final double teacherAttendanceRate;
   final int studentScore;
   final int studentRank;
+  final int studentTotalRanked;
+  final int monthlyLessonsTotal;
 
   factory DashboardData.empty() {
     return const DashboardData(
@@ -442,6 +446,8 @@ class DashboardData {
     double? teacherAttendanceRate,
     int? studentScore,
     int? studentRank,
+    int? studentTotalRanked,
+    int? monthlyLessonsTotal,
   }) {
     return DashboardData(
       metrics: metrics ?? this.metrics,
@@ -452,8 +458,57 @@ class DashboardData {
           teacherAttendanceRate ?? this.teacherAttendanceRate,
       studentScore: studentScore ?? this.studentScore,
       studentRank: studentRank ?? this.studentRank,
+      studentTotalRanked: studentTotalRanked ?? this.studentTotalRanked,
+      monthlyLessonsTotal: monthlyLessonsTotal ?? this.monthlyLessonsTotal,
     );
   }
+}
+
+class ChaqmoqLeaderboardEntry {
+  const ChaqmoqLeaderboardEntry({
+    required this.rank,
+    required this.id,
+    required this.fullName,
+    required this.balance,
+    required this.isMe,
+  });
+
+  final int rank;
+  final int id;
+  final String fullName;
+  final int balance;
+  final bool isMe;
+
+  factory ChaqmoqLeaderboardEntry.fromJson(Map<String, dynamic> json) {
+    return ChaqmoqLeaderboardEntry(
+      rank: jsonInt(json['rank']),
+      id: jsonInt(json['id']),
+      fullName: jsonString(json['full_name']),
+      balance: jsonInt(json['balance']),
+      isMe: jsonBool(json['is_me']),
+    );
+  }
+}
+
+class ChaqmoqLeaderboardData {
+  const ChaqmoqLeaderboardData({
+    required this.total,
+    required this.meRank,
+    required this.meBalance,
+    required this.items,
+  });
+
+  final int total;
+  final int meRank;
+  final int meBalance;
+  final List<ChaqmoqLeaderboardEntry> items;
+
+  factory ChaqmoqLeaderboardData.empty() => const ChaqmoqLeaderboardData(
+        total: 0,
+        meRank: 0,
+        meBalance: 0,
+        items: <ChaqmoqLeaderboardEntry>[],
+      );
 }
 
 class StudentModel {

@@ -8,16 +8,10 @@ class StudentHeroCard extends StatelessWidget {
     super.key,
     required this.name,
     required this.centerName,
-    this.onPay,
-    this.onMessages,
-    this.onProfile,
   });
 
   final String name;
   final String centerName;
-  final VoidCallback? onPay;
-  final VoidCallback? onMessages;
-  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -66,65 +60,7 @@ class StudentHeroCard extends StatelessWidget {
               color: tokens.textMuted,
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _QuickAction(icon: Icons.payments_rounded, label: "To‘lovlar", onTap: onPay)),
-              const SizedBox(width: 8),
-              Expanded(child: _QuickAction(icon: Icons.forum_rounded, label: 'Xabarlar', onTap: onMessages)),
-              const SizedBox(width: 8),
-              Expanded(child: _QuickAction(icon: Icons.person_rounded, label: 'Profil', onTap: onProfile)),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({required this.icon, required this.label, this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = StudentTokens.of(context);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          decoration: BoxDecoration(
-            color: tokens.isDark
-                ? tokens.glassStrong
-                : Colors.white.withValues(alpha: 0.65),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: tokens.borderStrong),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: tokens.primary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.text,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
