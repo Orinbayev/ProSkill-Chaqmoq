@@ -128,7 +128,6 @@ class StudentRatingCard extends StatelessWidget {
 
   String _rankLabel() {
     if (rank <= 0) return 'Reyting tayyor emas';
-    if (totalRanked > 0) return 'Umumiy reyting: $rank / $totalRanked';
     return 'Umumiy reyting: $rank-o‘rin';
   }
 }

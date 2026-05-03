@@ -8,10 +8,14 @@ class StudentHeroCard extends StatelessWidget {
     super.key,
     required this.name,
     required this.centerName,
+    this.isActive = false,
+    this.isArchived = false,
   });
 
   final String name;
   final String centerName;
+  final bool isActive;
+  final bool isArchived;
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +32,21 @@ class StudentHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "O‘QUVCHI PANELI",
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: tokens.primary,
-              letterSpacing: 1.6,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "O‘QUVCHI PANELI",
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.primary,
+                    letterSpacing: 1.6,
+                  ),
+                ),
+              ),
+              _StatusBadge(isActive: isActive, isArchived: isArchived),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -58,6 +69,60 @@ class StudentHeroCard extends StatelessWidget {
               fontSize: 12.5,
               fontWeight: FontWeight.w500,
               color: tokens.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.isActive, required this.isArchived});
+
+  final bool isActive;
+  final bool isArchived;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = StudentTokens.of(context);
+    final active = isActive && !isArchived;
+    final color = active ? tokens.success : tokens.danger;
+    final label = active ? 'Faol' : 'Nofaol';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: tokens.tonedSurface(color),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withValues(alpha: 0.55), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.6),
+                        blurRadius: 6,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.3,
             ),
           ),
         ],

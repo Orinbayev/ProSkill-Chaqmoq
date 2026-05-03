@@ -417,6 +417,8 @@ class DashboardData {
     this.studentRank = 0,
     this.studentTotalRanked = 0,
     this.monthlyLessonsTotal = 0,
+    this.studentIsActive = false,
+    this.studentIsArchived = false,
   });
 
   final List<DashboardMetric> metrics;
@@ -428,6 +430,8 @@ class DashboardData {
   final int studentRank;
   final int studentTotalRanked;
   final int monthlyLessonsTotal;
+  final bool studentIsActive;
+  final bool studentIsArchived;
 
   factory DashboardData.empty() {
     return const DashboardData(
@@ -448,6 +452,8 @@ class DashboardData {
     int? studentRank,
     int? studentTotalRanked,
     int? monthlyLessonsTotal,
+    bool? studentIsActive,
+    bool? studentIsArchived,
   }) {
     return DashboardData(
       metrics: metrics ?? this.metrics,
@@ -460,6 +466,8 @@ class DashboardData {
       studentRank: studentRank ?? this.studentRank,
       studentTotalRanked: studentTotalRanked ?? this.studentTotalRanked,
       monthlyLessonsTotal: monthlyLessonsTotal ?? this.monthlyLessonsTotal,
+      studentIsActive: studentIsActive ?? this.studentIsActive,
+      studentIsArchived: studentIsArchived ?? this.studentIsArchived,
     );
   }
 }
@@ -493,22 +501,120 @@ class ChaqmoqLeaderboardEntry {
 class ChaqmoqLeaderboardData {
   const ChaqmoqLeaderboardData({
     required this.total,
+    required this.matched,
+    required this.page,
+    required this.perPage,
+    required this.totalPages,
     required this.meRank,
     required this.meBalance,
     required this.items,
   });
 
   final int total;
+  final int matched;
+  final int page;
+  final int perPage;
+  final int totalPages;
   final int meRank;
   final int meBalance;
   final List<ChaqmoqLeaderboardEntry> items;
 
   factory ChaqmoqLeaderboardData.empty() => const ChaqmoqLeaderboardData(
         total: 0,
+        matched: 0,
+        page: 1,
+        perPage: 20,
+        totalPages: 1,
         meRank: 0,
         meBalance: 0,
         items: <ChaqmoqLeaderboardEntry>[],
       );
+}
+
+class ChaqmoqStudentDetailData {
+  const ChaqmoqStudentDetailData({
+    required this.studentId,
+    required this.studentName,
+    required this.totalPlus,
+    required this.totalMinus,
+    required this.balance,
+    required this.teacherStats,
+    required this.page,
+    required this.perPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.items,
+  });
+
+  final int studentId;
+  final String studentName;
+  final int totalPlus;
+  final int totalMinus;
+  final int balance;
+  final List<ChaqmoqTeacherStat> teacherStats;
+  final int page;
+  final int perPage;
+  final int totalPages;
+  final int totalItems;
+  final List<ChaqmoqLedgerEntry> items;
+}
+
+class ChaqmoqTeacherStat {
+  const ChaqmoqTeacherStat({
+    required this.id,
+    required this.fullName,
+    required this.role,
+    required this.coinPlus,
+    required this.coinMinus,
+  });
+
+  final int id;
+  final String fullName;
+  final String role;
+  final int coinPlus;
+  final int coinMinus;
+
+  factory ChaqmoqTeacherStat.fromJson(Map<String, dynamic> json) {
+    return ChaqmoqTeacherStat(
+      id: jsonInt(json['id']),
+      fullName: jsonString(json['full_name']),
+      role: jsonString(json['role']),
+      coinPlus: jsonInt(json['coin_plus']),
+      coinMinus: jsonInt(json['coin_minus']),
+    );
+  }
+}
+
+class ChaqmoqLedgerEntry {
+  const ChaqmoqLedgerEntry({
+    required this.id,
+    required this.points,
+    required this.ruleName,
+    required this.groupName,
+    required this.giverName,
+    required this.giverRole,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int points;
+  final String ruleName;
+  final String groupName;
+  final String giverName;
+  final String giverRole;
+  final DateTime createdAt;
+
+  factory ChaqmoqLedgerEntry.fromJson(Map<String, dynamic> json) {
+    return ChaqmoqLedgerEntry(
+      id: jsonInt(json['id']),
+      points: jsonInt(json['points']),
+      ruleName: jsonString(json['rule_name']),
+      groupName: jsonString(json['group_name']),
+      giverName: jsonString(json['giver_name']),
+      giverRole: jsonString(json['giver_role']),
+      createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
 }
 
 class StudentModel {

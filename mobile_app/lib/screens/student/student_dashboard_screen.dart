@@ -139,6 +139,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         StudentHeroCard(
           name: user.fullName.isEmpty ? 'O‘quvchi' : user.fullName,
           centerName: user.center?.name ?? '',
+          isActive: data.studentIsActive,
+          isArchived: data.studentIsArchived,
         ),
         const SizedBox(height: 14),
         StudentRatingCard(

@@ -270,9 +270,17 @@ class DashboardService extends _BaseService {
 
     final groups = jsonMapList(student['groups']);
     var monthlyLessons = 0;
+    var hasActiveGroup = false;
     for (final g in groups) {
       monthlyLessons += jsonInt(g['monthly_lessons']);
+      if (jsonBool(g['is_active'])) hasActiveGroup = true;
     }
+    final isArchived = jsonBool(student['is_archived']);
+    // Server-provided "is_active_student" g'olib (truthy bo'lsa); aks holda
+    // mahalliy mantiq: arxivlanmagan + faol guruhi bor.
+    final isActiveStudent = student.containsKey('is_active_student')
+        ? jsonBool(student['is_active_student'])
+        : (!isArchived && hasActiveGroup);
 
     int meRank = 0;
     int totalRanked = 0;
@@ -294,19 +302,74 @@ class DashboardService extends _BaseService {
       studentRank: meRank,
       studentTotalRanked: totalRanked,
       monthlyLessonsTotal: monthlyLessons,
+      studentIsActive: isActiveStudent,
+      studentIsArchived: isArchived,
     );
   }
 
-  Future<ChaqmoqLeaderboardData> fetchChaqmoqLeaderboard() async {
-    final payload = await apiClient.get('/api/mobile/chaqmoq/leaderboard/');
+  Future<ChaqmoqLeaderboardData> fetchChaqmoqLeaderboard({
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+  }) async {
+    final params = <String, dynamic>{
+      'page': '$page',
+      'per_page': '$perPage',
+    };
+    if (query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    final payload = await apiClient.get(
+      '/api/mobile/chaqmoq/leaderboard/',
+      queryParameters: params,
+    );
     final items = jsonMapList(payload['items'])
         .map(ChaqmoqLeaderboardEntry.fromJson)
         .toList();
     return ChaqmoqLeaderboardData(
       total: jsonInt(payload['total']),
+      matched: jsonInt(payload['matched'] ?? payload['total']),
+      page: jsonInt(payload['page'] ?? 1),
+      perPage: jsonInt(payload['per_page'] ?? perPage),
+      totalPages: jsonInt(payload['total_pages'] ?? 1),
       meRank: jsonInt(payload['me_rank']),
       meBalance: jsonInt(payload['me_balance']),
       items: items,
+    );
+  }
+
+  Future<ChaqmoqStudentDetailData> fetchChaqmoqStudentDetail(
+    int studentId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final payload = await apiClient.get(
+      '/api/mobile/chaqmoq/students/$studentId/',
+      queryParameters: <String, dynamic>{
+        'page': '$page',
+        'per_page': '$perPage',
+      },
+    );
+    final student = jsonMap(payload['student']);
+    final totals = jsonMap(payload['totals']);
+    final teachers = jsonMapList(payload['teacher_stats'])
+        .map(ChaqmoqTeacherStat.fromJson)
+        .toList();
+    final entries = jsonMapList(payload['items'])
+        .map(ChaqmoqLedgerEntry.fromJson)
+        .toList();
+    return ChaqmoqStudentDetailData(
+      studentId: jsonInt(student['id']),
+      studentName: jsonString(student['full_name']),
+      totalPlus: jsonInt(totals['total_plus']),
+      totalMinus: jsonInt(totals['total_minus']),
+      balance: jsonInt(totals['balance']),
+      teacherStats: teachers,
+      page: jsonInt(payload['page'] ?? 1),
+      perPage: jsonInt(payload['per_page'] ?? perPage),
+      totalPages: jsonInt(payload['total_pages'] ?? 1),
+      totalItems: jsonInt(payload['total_items'] ?? 0),
+      items: entries,
     );
   }
 
