@@ -864,15 +864,20 @@ def _student_certificates(student: User, center, *, limit: int = 5) -> list[dict
 
 
 def _serialize_student_summary(student: User, center) -> dict:
+    groups = _student_groups(student, center)
+    is_archived = bool(getattr(student, "is_archived", False))
+    has_active_group = any(bool(g.get("is_active")) for g in groups)
     return {
         "id": student.id,
         "full_name": student.get_full_name(),
         "balance": _student_balance(student, center),
         "debt": _student_open_debt(student, center),
         "attendance": _student_attendance_summary(student, center),
-        "groups": _student_groups(student, center),
+        "groups": groups,
         "payments": _student_payments(student, center),
         "certificates": _student_certificates(student, center),
+        "is_archived": is_archived,
+        "is_active_student": (not is_archived) and has_active_group,
     }
 
 
