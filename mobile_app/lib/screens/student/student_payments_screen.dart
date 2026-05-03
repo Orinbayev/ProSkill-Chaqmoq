@@ -68,10 +68,10 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   }
 
   Widget _body(UserModel user, PaymentsProvider provider, StudentTokens tokens) {
-    if (provider.state == ViewState.loading && provider.filteredItems.isEmpty) {
+    if (provider.state == ViewState.loading && provider.allItems.isEmpty) {
       return AppLoadingState(dark: tokens.isDark);
     }
-    if (provider.state == ViewState.error && provider.filteredItems.isEmpty) {
+    if (provider.state == ViewState.error && provider.allItems.isEmpty) {
       return AppErrorState(
         title: "To‘lovlar yuklanmadi",
         message: provider.errorMessage ??
@@ -83,8 +83,10 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
     final items = provider.filteredItems;
     final summary = provider.summary;
-    final lastPaid = _lastPaid(provider.filteredItems);
-    final nextDue = _nextDue(provider.filteredItems);
+    final lastPaid = _lastPaid(provider.allItems);
+    final nextDue = _nextDue(provider.allItems);
+    final paidCount = provider.allItems.where((p) => !p.isDebt).length;
+    final debtCount = provider.allItems.where((p) => p.isDebt).length;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -116,7 +118,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
           onTap: () => StudentPaymentActionSheet.show(
             context,
             summary: summary,
-            debtItems: provider.filteredItems.where((p) => p.isDebt).toList(),
+            debtItems: provider.allItems.where((p) => p.isDebt).toList(),
             center: user.center,
           ),
         ),
@@ -126,6 +128,9 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
         _FilterChips(
           active: provider.filter,
           onChanged: provider.setFilter,
+          allCount: provider.allItems.length,
+          paidCount: paidCount,
+          debtCount: debtCount,
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
@@ -133,8 +138,8 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: AppEmptyState(
               dark: tokens.isDark,
-              title: "To‘lov mavjud emas",
-              subtitle: "Yangi yozuvlar paydo bo‘lganda shu yerda ko‘rinadi.",
+              title: _emptyTitle(provider.filter),
+              subtitle: _emptySubtitle(provider.filter),
               icon: Icons.receipt_long_outlined,
             ),
           )
@@ -145,6 +150,28 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
               )),
       ],
     );
+  }
+
+  String _emptyTitle(String filter) {
+    switch (filter) {
+      case 'received':
+        return "To‘langan to‘lov mavjud emas";
+      case 'debt':
+        return 'Qarz mavjud emas';
+      default:
+        return "To‘lov mavjud emas";
+    }
+  }
+
+  String _emptySubtitle(String filter) {
+    switch (filter) {
+      case 'debt':
+        return 'Hozirda hech qanday qarzingiz yo‘q. Yaxshi natija!';
+      case 'received':
+        return "Hozircha to‘langan yozuv yo‘q.";
+      default:
+        return "Yangi yozuvlar paydo bo‘lganda shu yerda ko‘rinadi.";
+    }
   }
 
   PaymentModel? _lastPaid(List<PaymentModel> items) {
@@ -172,19 +199,29 @@ class _Hero extends StatelessWidget {
     final tokens = StudentTokens.of(context);
     final lateDays = _lateDays(nextDue);
     final hasDebt = summary.openDebt > 0;
+    final amountColor = hasDebt ? tokens.danger : tokens.success;
+    final now = DateTime.now();
+    final monthName = _monthNameUz(now.month);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            tokens.primary.withValues(alpha: 0.20),
-            tokens.secondary.withValues(alpha: 0.18),
-          ],
+          colors: hasDebt
+              ? [
+                  tokens.danger.withValues(alpha: 0.16),
+                  tokens.warning.withValues(alpha: 0.10),
+                ]
+              : [
+                  tokens.primary.withValues(alpha: 0.20),
+                  tokens.secondary.withValues(alpha: 0.18),
+                ],
         ),
         borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: tokens.primary.withValues(alpha: 0.28)),
+        border: Border.all(
+          color: (hasDebt ? tokens.danger : tokens.primary).withValues(alpha: 0.32),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,11 +230,11 @@ class _Hero extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'JORIY HOLAT',
+                  hasDebt ? '$monthName OYI · QARZ' : 'JORIY HOLAT',
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.primary,
+                    fontWeight: FontWeight.w800,
+                    color: hasDebt ? tokens.danger : tokens.primary,
                     letterSpacing: 1.6,
                   ),
                 ),
@@ -213,23 +250,23 @@ class _Hero extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            hasDebt ? Formatters.currency(summary.openDebt) : 'Qarz yo‘q',
+            hasDebt ? Formatters.number(summary.openDebt) : 'Qarz yo‘q',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              fontSize: 26,
+              fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: hasDebt
-                  ? (lateDays > 0 ? tokens.danger : tokens.warning)
-                  : tokens.success,
+              color: amountColor,
               letterSpacing: -0.6,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Bu oy: ${Formatters.currency(summary.thisMonth)}',
+            hasDebt
+                ? '$monthName oyidagi qarzingiz'
+                : 'Bu oy: ${Formatters.number(summary.thisMonth)}',
             style: GoogleFonts.inter(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
@@ -243,19 +280,21 @@ class _Hero extends StatelessWidget {
             label: "Oxirgi to‘lov",
             value: lastPaid == null
                 ? 'Ma’lumot yo‘q'
-                : '${Formatters.currency(lastPaid!.amount)} · ${Formatters.shortDayMonth(lastPaid!.date)}',
+                : '${Formatters.number(lastPaid!.amount)} · ${Formatters.shortDayMonth(lastPaid!.date)}',
           ),
           const SizedBox(height: 4),
           _HeroRow(
             label: "Keyingi to‘lov",
-            value: nextDue == null
-                ? '—'
-                : '${Formatters.shortDayMonth(nextDue)}${lateDays > 0 ? ' · $lateDays kun kechikkan' : ''}',
-            valueColor: lateDays > 0 ? tokens.danger : null,
+            value: Formatters.shortDayMonth(_firstOfNextMonth()),
           ),
         ],
       ),
     );
+  }
+
+  static DateTime _firstOfNextMonth() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + 1, 1);
   }
 
   static int _lateDays(DateTime? due) {
@@ -266,14 +305,32 @@ class _Hero extends StatelessWidget {
     final diff = today.difference(dueDay).inDays;
     return diff > 0 ? diff : 0;
   }
+
+  static String _monthNameUz(int month) {
+    const names = [
+      'YANVAR',
+      'FEVRAL',
+      'MART',
+      'APREL',
+      'MAY',
+      'IYUN',
+      'IYUL',
+      'AVGUST',
+      'SENTABR',
+      'OKTABR',
+      'NOYABR',
+      'DEKABR',
+    ];
+    if (month < 1 || month > 12) return '';
+    return names[month - 1];
+  }
 }
 
 class _HeroRow extends StatelessWidget {
-  const _HeroRow({required this.label, required this.value, this.valueColor});
+  const _HeroRow({required this.label, required this.value});
 
   final String label;
   final String value;
-  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +353,7 @@ class _HeroRow extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: valueColor ?? tokens.text,
+              color: tokens.text,
             ),
           ),
         ),
@@ -318,7 +375,7 @@ class _MiniStats extends StatelessWidget {
         Expanded(
           child: _MiniCard(
             label: "Jami to‘langan",
-            value: Formatters.currency(summary.totalReceived, compact: true),
+            value: Formatters.number(summary.totalReceived),
             color: tokens.primary,
           ),
         ),
@@ -326,7 +383,7 @@ class _MiniStats extends StatelessWidget {
         Expanded(
           child: _MiniCard(
             label: 'Bu oy',
-            value: Formatters.currency(summary.thisMonth, compact: true),
+            value: Formatters.number(summary.thisMonth),
             color: tokens.text,
           ),
         ),
@@ -334,7 +391,7 @@ class _MiniStats extends StatelessWidget {
         Expanded(
           child: _MiniCard(
             label: 'Qarzdorlik',
-            value: Formatters.currency(summary.openDebt, compact: true),
+            value: Formatters.number(summary.openDebt),
             color: summary.openDebt > 0 ? tokens.danger : tokens.success,
           ),
         ),
@@ -369,15 +426,18 @@ class _MiniCard extends StatelessWidget {
                 letterSpacing: 0.3,
               )),
           const SizedBox(height: 4),
-          Text(value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: -0.3,
-              )),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                maxLines: 1,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: -0.3,
+                )),
+          ),
         ],
       ),
     );
@@ -385,29 +445,42 @@ class _MiniCard extends StatelessWidget {
 }
 
 class _FilterChips extends StatelessWidget {
-  const _FilterChips({required this.active, required this.onChanged});
+  const _FilterChips({
+    required this.active,
+    required this.onChanged,
+    required this.allCount,
+    required this.paidCount,
+    required this.debtCount,
+  });
 
   final String active;
   final ValueChanged<String> onChanged;
+  final int allCount;
+  final int paidCount;
+  final int debtCount;
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
-      ('all', 'Barchasi'),
-      ('received', "To‘langan"),
-      ('debt', 'Qarzlar'),
+    final items = [
+      ('all', 'Barchasi', allCount),
+      ('received', "To‘langan", paidCount),
+      ('debt', 'Qarz', debtCount),
     ];
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          _Chip(
-            label: items[i].$2,
-            isActive: items[i].$1 == active,
-            onTap: () => onChanged(items[i].$1),
-          ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            _Chip(
+              label: items[i].$2,
+              count: items[i].$3,
+              isActive: items[i].$1 == active,
+              onTap: () => onChanged(items[i].$1),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -415,17 +488,20 @@ class _FilterChips extends StatelessWidget {
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.label,
+    required this.count,
     required this.isActive,
     required this.onTap,
   });
 
   final String label;
+  final int count;
   final bool isActive;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = StudentTokens.of(context);
+    final fg = isActive ? tokens.onPrimary : tokens.textMuted;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(100),
@@ -441,13 +517,36 @@ class _Chip extends StatelessWidget {
               color: isActive ? Colors.transparent : tokens.border,
             ),
           ),
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isActive ? tokens.onPrimary : tokens.textMuted,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: fg,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : tokens.tonedSurface(tokens.primary),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  '$count',
+                  style: GoogleFonts.inter(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: isActive ? tokens.onPrimary : tokens.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -467,12 +566,9 @@ class _PaymentRow extends StatelessWidget {
     final lateDays = isPaid ? 0 : _lateDays(item.date);
     final iconBg = isPaid
         ? tokens.tonedSurface(tokens.success)
-        : (lateDays > 0
-            ? tokens.tonedSurface(tokens.danger)
-            : tokens.tonedSurface(tokens.warning));
-    final iconFg = isPaid
-        ? tokens.success
-        : (lateDays > 0 ? tokens.danger : tokens.warning);
+        : tokens.tonedSurface(tokens.danger);
+    final iconFg = isPaid ? tokens.success : tokens.danger;
+    final amountColor = isPaid ? tokens.text : tokens.danger;
     final monthLabel = DateFormat('MMM yyyy', 'uz').format(item.date);
     return AppGCard(
       padding: const EdgeInsets.all(14),
@@ -519,7 +615,7 @@ class _PaymentRow extends StatelessWidget {
                     else if (lateDays > 0)
                       AppBadge(label: 'Kechikkan', tone: AppBadgeTone.danger, dark: tokens.isDark)
                     else
-                      AppBadge(label: 'Qarz', tone: AppBadgeTone.warning, dark: tokens.isDark),
+                      AppBadge(label: 'Qarz', tone: AppBadgeTone.danger, dark: tokens.isDark),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -542,13 +638,13 @@ class _PaymentRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            Formatters.currency(item.amount),
+            Formatters.number(item.amount),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 13.5,
               fontWeight: FontWeight.w800,
-              color: tokens.text,
+              color: amountColor,
               letterSpacing: -0.2,
             ),
           ),
@@ -642,3 +738,4 @@ class _PayCtaButton extends StatelessWidget {
     );
   }
 }
+

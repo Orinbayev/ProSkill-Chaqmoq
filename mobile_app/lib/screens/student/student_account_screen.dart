@@ -9,12 +9,10 @@ import 'package:chaqmoq_mobile/screens/profile/language_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/notification_settings_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/security_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/theme_screen.dart';
-import 'package:chaqmoq_mobile/screens/settings/settings_screen.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/widgets/app_avatar.dart';
 import 'package:chaqmoq_mobile/widgets/app_badge.dart';
 import 'package:chaqmoq_mobile/widgets/app_card.dart';
-import 'package:chaqmoq_mobile/widgets/app_parent_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -68,30 +66,21 @@ class StudentAccountScreen extends StatelessWidget {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 110),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Profil',
-                        style: GoogleFonts.inter(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          color: tokens.text,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ),
-                    AppStudentIconButton(
-                      icon: Icons.settings_rounded,
-                      onTap: () => _openSettings(context),
-                    ),
-                  ],
+                Text(
+                  'Profil',
+                  style: GoogleFonts.inter(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.text,
+                    letterSpacing: -0.2,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _Hero(
                   name: user.fullName.isEmpty ? 'O‘quvchi' : user.fullName,
                   avatarUrl: user.avatarUrl,
                   role: user.role.isEmpty ? "O‘quvchi" : 'O‘quvchi · ${user.role}',
+                  onEdit: () => _openEditProfile(context),
                 ),
                 const SizedBox(height: 14),
                 AppGCard(
@@ -133,12 +122,6 @@ class StudentAccountScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(4),
                   child: Column(
                     children: [
-                      _SettingRow(
-                        icon: Icons.edit_rounded,
-                        label: 'Profilni tahrirlash',
-                        onTap: () => _openEditProfile(context),
-                      ),
-                      const _RowDivider(),
                       _SettingRow(
                         icon: Icons.lock_outline_rounded,
                         label: 'Xavfsizlik',
@@ -196,12 +179,6 @@ class StudentAccountScreen extends StatelessWidget {
         (s.payments ? 1 : 0) +
         (s.progress ? 1 : 0) +
         (s.general ? 1 : 0);
-  }
-
-  void _openSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-    );
   }
 
   Future<void> _openEditProfile(BuildContext context) async {
@@ -311,11 +288,17 @@ class StudentAccountScreen extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.name, required this.avatarUrl, required this.role});
+  const _Hero({
+    required this.name,
+    required this.avatarUrl,
+    required this.role,
+    required this.onEdit,
+  });
 
   final String name;
   final String avatarUrl;
   final String role;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -330,26 +313,38 @@ class _Hero extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              AppAvatar(name: name, size: 84, color: AppAvatarColor.violet, imageUrl: avatarUrl),
-              Positioned(
-                right: -2,
-                bottom: -2,
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: tokens.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: tokens.bg, width: 3),
+          GestureDetector(
+            onTap: onEdit,
+            behavior: HitTestBehavior.opaque,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AppAvatar(name: name, size: 84, color: AppAvatarColor.violet, imageUrl: avatarUrl),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onEdit,
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: tokens.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: tokens.bg, width: 3),
+                        ),
+                        child: Icon(Icons.edit_rounded, color: tokens.onPrimary, size: 14),
+                      ),
+                    ),
                   ),
-                  child: Icon(Icons.bolt_rounded, color: tokens.onPrimary, size: 14),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           Text(

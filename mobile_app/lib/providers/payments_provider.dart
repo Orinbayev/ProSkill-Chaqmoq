@@ -24,6 +24,8 @@ class PaymentsProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String get filter => _filter;
 
+  List<PaymentModel> get allItems => List.unmodifiable(_items);
+
   List<PaymentModel> get filteredItems {
     return _items.where((item) {
       return switch (_filter) {
