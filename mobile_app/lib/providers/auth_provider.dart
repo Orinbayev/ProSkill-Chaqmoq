@@ -172,7 +172,7 @@ class AuthProvider extends ChangeNotifier {
   void _flashJustAuthenticated() {
     _justAuthenticated = true;
     _justAuthenticatedTimer?.cancel();
-    _justAuthenticatedTimer = Timer(const Duration(milliseconds: 900), () {
+    _justAuthenticatedTimer = Timer(const Duration(milliseconds: 350), () {
       _justAuthenticated = false;
       notifyListeners();
     });

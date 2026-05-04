@@ -40,7 +40,7 @@ class AppParentBottomNav extends StatelessWidget {
       activeIcon: Icons.payments_rounded,
     ),
     AppParentBottomNavItem(
-      label: 'Progress',
+      label: "O‘zlashtirish",
       icon: Icons.insights_outlined,
       activeIcon: Icons.insights_rounded,
     ),
@@ -57,10 +57,13 @@ class AppParentBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(((0.92) * 255).round()),
-        border: const Border(
+        color: isDark
+            ? const Color(0xE6141926)
+            : Colors.white.withAlpha(((0.92) * 255).round()),
+        border: Border(
           top: BorderSide(color: ParentColors.line),
         ),
         boxShadow: const [

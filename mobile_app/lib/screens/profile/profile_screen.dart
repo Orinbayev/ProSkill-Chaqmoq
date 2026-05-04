@@ -2,7 +2,6 @@ import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
-import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
@@ -202,19 +201,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
+        final c = ProfileColors.of(dialogContext);
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: c.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
             'Hisobdan chiqish',
-            style: ProfileTextStyles.title.copyWith(fontSize: 20),
+            style: ProfileTextStyles.title.copyWith(
+              fontSize: 20,
+              color: c.text,
+            ),
           ),
           content: Text(
             'Rostdan ham hisobdan chiqmoqchimisiz?',
             style: ProfileTextStyles.body.copyWith(
-              color: ProfileColors.secondaryText,
+              color: c.secondaryText,
             ),
           ),
           actions: <Widget>[
@@ -222,13 +225,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(
                 'Bekor qilish',
-                style: ProfileTextStyles.link.copyWith(fontSize: 14),
+                style: ProfileTextStyles.link.copyWith(
+                  fontSize: 14,
+                  color: c.primaryBlue,
+                ),
               ),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               style: FilledButton.styleFrom(
-                backgroundColor: ProfileColors.red,
+                backgroundColor: c.red,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -294,22 +300,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final AppPreferencesProvider preferences = context
         .watch<AppPreferencesProvider>();
 
+    final c = ProfileColors.of(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.white,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: c.isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: c.isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: c.surface,
+        systemNavigationBarIconBrightness:
+            c.isDark ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: ProfileColors.background,
+        backgroundColor: c.background,
         bottomNavigationBar: widget.showBottomNav
             ? const ParentBottomNav()
             : null,
         body: SafeArea(
           child: RefreshIndicator(
-            color: ProfileColors.primaryBlue,
+            color: ProfileColors.of(context).primaryBlue,
             onRefresh: () => _load(force: true),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
@@ -329,10 +337,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   else ...<Widget>[
                     if (_state == ViewState.loading) ...<Widget>[
-                      const LinearProgressIndicator(
+                      LinearProgressIndicator(
                         minHeight: 3,
-                        color: ProfileColors.primaryBlue,
-                        backgroundColor: Color(0xFFEAF4FF),
+                        color: ProfileColors.of(context).primaryBlue,
+                        backgroundColor: const Color(0xFFEAF4FF),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -351,36 +359,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _AddChildCta(onTap: _openAddChild),
                     const SizedBox(height: ParentUi.sectionGap),
                     _SettingsGroup(
-                      title: 'Hisob',
+                      title: '',
                       rows: <SettingsRowData>[
-                        const SettingsRowData(
-                          action: ProfileAction.editProfile,
-                          icon: Icons.person_outline_rounded,
-                          iconColor: ProfileColors.primaryBlue,
-                          iconBackground: Color(0xFFE8F1FF),
-                          title: 'Shaxsiy ma’lumotlar',
-                          subtitle: 'Telefon, email va ismni tahrirlash',
-                        ),
-                        const SettingsRowData(
+                        SettingsRowData(
                           action: ProfileAction.security,
                           icon: Icons.lock_outline_rounded,
-                          iconColor: ProfileColors.purple,
-                          iconBackground: Color(0xFFEDE2FF),
+                          iconColor: ProfileColors.of(context).purple,
+                          iconBackground: const Color(0xFFEDE2FF),
                           title: 'Hisob xavfsizligi',
                           subtitle: 'Parolni yangilash',
                         ),
-                      ],
-                      onActionTap: _handleSettingAction,
-                    ),
-                    const SizedBox(height: 12),
-                    _SettingsGroup(
-                      title: 'Sozlamalar',
-                      rows: <SettingsRowData>[
-                        const SettingsRowData(
+                        SettingsRowData(
                           action: ProfileAction.notifications,
                           icon: Icons.notifications_none_rounded,
-                          iconColor: ProfileColors.green,
-                          iconBackground: Color(0xFFE4F8EC),
+                          iconColor: ProfileColors.of(context).green,
+                          iconBackground: const Color(0xFFE4F8EC),
                           title: 'Bildirishnomalar',
                           subtitle:
                               'Davomat, to‘lov va progress xabarlarini boshqarish',
@@ -388,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SettingsRowData(
                           action: ProfileAction.language,
                           icon: Icons.language_rounded,
-                          iconColor: ProfileColors.orange,
+                          iconColor: ProfileColors.of(context).orange,
                           iconBackground: const Color(0xFFFFF1D8),
                           title: 'Til',
                           value: preferences.languageLabel,
@@ -396,27 +389,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SettingsRowData(
                           action: ProfileAction.theme,
                           icon: Icons.dark_mode_outlined,
-                          iconColor: ProfileColors.primaryBlue,
+                          iconColor: ProfileColors.of(context).primaryBlue,
                           iconBackground: const Color(0xFFE8F1FF),
                           title: 'Mavzu',
                           value: preferences.themeLabel,
                         ),
-                      ],
-                      onActionTap: _handleSettingAction,
-                    ),
-                    const SizedBox(height: 12),
-                    _SettingsGroup(
-                      title: 'Yordam',
-                      rows: const <SettingsRowData>[
-                        SettingsRowData(
-                          action: ProfileAction.help,
-                          icon: Icons.help_outline_rounded,
-                          iconColor: ProfileColors.pink,
-                          iconBackground: Color(0xFFFFE1F0),
-                          title: 'Yordam va qo‘llab-quvvatlash',
-                          subtitle: 'Savollar va bog‘lanish',
-                        ),
-                        SettingsRowData(
+                        const SettingsRowData(
                           action: ProfileAction.about,
                           icon: Icons.info_outline_rounded,
                           iconColor: Color(0xFF6B7280),
@@ -486,6 +464,7 @@ class _HeroCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
+              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -502,17 +481,6 @@ class _HeroCard extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
-              ),
-              const Spacer(),
-              _GlassIconButton(
-                icon: Icons.notifications_none_rounded,
-                showBadge: true,
-                onTap: onNotifications,
-              ),
-              const SizedBox(width: 8),
-              _GlassIconButton(
-                icon: Icons.settings_outlined,
-                onTap: onSettings,
               ),
             ],
           ),
@@ -624,44 +592,6 @@ class _HeroCard extends StatelessWidget {
                   _HeroChip(icon: Icons.mail_outline_rounded, text: email),
               ],
             ),
-          const SizedBox(height: 14),
-          Material(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              onTap: onEdit,
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 11,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    const Icon(
-                      Icons.edit_outlined,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Profilni tahrirlash',
-                      style: ProfileTextStyles.label.copyWith(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -706,74 +636,6 @@ class _HeroChip extends StatelessWidget {
   }
 }
 
-class _GlassIconButton extends StatelessWidget {
-  const _GlassIconButton({
-    required this.icon,
-    required this.onTap,
-    this.showBadge = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool showBadge;
-
-  @override
-  Widget build(BuildContext context) {
-    final notifications = context.watch<NotificationsProvider>();
-    final fallbackUnreadCount =
-        context.watch<ParentDashboardProvider>().data?.unreadNotifications ?? 0;
-    final unreadCount = ParentUi.resolveUnreadCount(
-      notifications: notifications,
-      fallback: fallbackUnreadCount,
-    );
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Icon(icon, color: Colors.white, size: 19),
-          ),
-        ),
-        if (showBadge && unreadCount > 0)
-          Positioned(
-            right: 0,
-            top: -2,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 16),
-              height: 16,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: ProfileColors.red,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-              child: Text(
-                unreadCount > 9 ? '9+' : '$unreadCount',
-                style: ProfileTextStyles.label.copyWith(
-                  color: Colors.white,
-                  fontSize: 8.5,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 class _AddChildCta extends StatelessWidget {
   const _AddChildCta({required this.onTap});
@@ -795,7 +657,7 @@ class _AddChildCta extends StatelessWidget {
             color: const Color(0xFFEAF4FF),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: ProfileColors.primaryBlue.withValues(alpha: 0.25),
+              color: ProfileColors.of(context).primaryBlue.withValues(alpha: 0.25),
             ),
           ),
           child: Row(
@@ -804,8 +666,8 @@ class _AddChildCta extends StatelessWidget {
                 width: 38,
                 height: 38,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: ProfileColors.primaryBlue,
+                decoration: BoxDecoration(
+                  color: ProfileColors.of(context).primaryBlue,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -822,7 +684,7 @@ class _AddChildCta extends StatelessWidget {
                     Text(
                       'Farzand qo‘shish',
                       style: ProfileTextStyles.title.copyWith(
-                        color: ProfileColors.text,
+                        color: ProfileColors.of(context).text,
                         fontSize: 14,
                       ),
                     ),
@@ -832,7 +694,7 @@ class _AddChildCta extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: ProfileTextStyles.body.copyWith(
-                        color: ProfileColors.secondaryText,
+                        color: ProfileColors.of(context).secondaryText,
                         fontSize: 11.8,
                         height: 1.3,
                       ),
@@ -841,9 +703,9 @@ class _AddChildCta extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: ProfileColors.primaryBlue,
+                color: ProfileColors.of(context).primaryBlue,
                 size: 22,
               ),
             ],
@@ -870,17 +732,18 @@ class _SettingsGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title.toUpperCase(),
-            style: ProfileTextStyles.label.copyWith(
-              color: ProfileColors.secondaryText,
-              fontSize: 10.5,
-              letterSpacing: 0.6,
+        if (title.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              title.toUpperCase(),
+              style: ProfileTextStyles.label.copyWith(
+                color: ProfileColors.of(context).secondaryText,
+                fontSize: 10.5,
+                letterSpacing: 0.6,
+              ),
             ),
           ),
-        ),
         ProfileCard(
           padding: EdgeInsets.zero,
           child: Column(
@@ -924,7 +787,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.family_restroom_rounded,
-            color: ProfileColors.primaryBlue,
+            color: ProfileColors.of(context).primaryBlue,
             value: '$childrenCount',
             label: childrenCount == 1 ? 'Farzand' : 'Farzandlar',
           ),
@@ -933,7 +796,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.shield_outlined,
-            color: ProfileColors.green,
+            color: ProfileColors.of(context).green,
             value: 'Faol',
             label: 'Hisob',
           ),
@@ -942,7 +805,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.school_outlined,
-            color: ProfileColors.purple,
+            color: ProfileColors.of(context).purple,
             value: centerName.isEmpty ? joinedLabel : centerName,
             label: centerName.isEmpty ? 'Qo‘shilgan' : 'Markaz',
           ),
@@ -967,13 +830,14 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ProfileColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ProfileColors.border),
-        boxShadow: ProfileShadows.card,
+        border: Border.all(color: c.border),
+        boxShadow: c.isDark ? null : ProfileShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -994,7 +858,7 @@ class _StatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: ProfileTextStyles.title.copyWith(
-              color: ProfileColors.text,
+              color: c.text,
               fontSize: 13,
             ),
           ),
@@ -1004,7 +868,7 @@ class _StatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: ProfileTextStyles.body.copyWith(
-              color: ProfileColors.secondaryText,
+              color: c.secondaryText,
               fontSize: 11,
             ),
           ),
@@ -1032,22 +896,22 @@ class _LogoutButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: ProfileColors.red.withValues(alpha: 0.4),
+              color: ProfileColors.of(context).red.withValues(alpha: 0.4),
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.logout_rounded,
-                color: ProfileColors.red,
+                color: ProfileColors.of(context).red,
                 size: 18,
               ),
               const SizedBox(width: 8),
               Text(
                 'Hisobdan chiqish',
                 style: ProfileTextStyles.title.copyWith(
-                  color: ProfileColors.red,
+                  color: ProfileColors.of(context).red,
                   fontSize: 14,
                 ),
               ),
@@ -1073,6 +937,7 @@ class SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ProfileColors.of(context);
     return Column(
       children: <Widget>[
         InkWell(
@@ -1080,17 +945,18 @@ class SettingsRow extends StatelessWidget {
           child: Padding(
             padding: ParentUi.denseCardPadding,
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: data.iconBackground,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(data.icon, color: data.iconColor, size: 20),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1100,9 +966,7 @@ class SettingsRow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: ProfileTextStyles.title.copyWith(
-                          color: data.destructive
-                              ? ProfileColors.red
-                              : ProfileColors.text,
+                          color: data.destructive ? c.red : c.text,
                           fontSize: 14.4,
                         ),
                       ),
@@ -1113,9 +977,7 @@ class SettingsRow extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: ProfileTextStyles.body.copyWith(
-                            color: data.destructive
-                                ? ProfileColors.red
-                                : ProfileColors.secondaryText,
+                            color: data.destructive ? c.red : c.secondaryText,
                             fontSize: 12.4,
                           ),
                         ),
@@ -1124,25 +986,24 @@ class SettingsRow extends StatelessWidget {
                   ),
                 ),
                 if (data.value != null) ...<Widget>[
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      data.value!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: ProfileTextStyles.body.copyWith(
-                        color: ProfileColors.secondaryText,
-                        fontSize: 12.4,
-                      ),
+                  const SizedBox(width: 10),
+                  Text(
+                    data.value!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: ProfileTextStyles.body.copyWith(
+                      color: c.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
                 if (!data.destructive) ...<Widget>[
                   const SizedBox(width: 4),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF8B95A1),
+                    color: c.secondaryText,
                     size: 18,
                   ),
                 ],
@@ -1151,9 +1012,9 @@ class SettingsRow extends StatelessWidget {
           ),
         ),
         if (showDivider)
-          const Padding(
-            padding: EdgeInsets.only(left: 68),
-            child: Divider(height: 1, color: ProfileColors.border),
+          Padding(
+            padding: const EdgeInsets.only(left: 68),
+            child: Divider(height: 1, color: c.border),
           ),
       ],
     );
@@ -1165,10 +1026,11 @@ class ParentBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ProfileColors.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: ProfileShadows.topNav,
       ),
       child: SafeArea(
@@ -1179,11 +1041,11 @@ class ParentBottomNav extends StatelessWidget {
             currentIndex: 4,
             onTap: (_) {},
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
+            backgroundColor: c.surface,
             elevation: 0,
             iconSize: 24,
-            selectedItemColor: ProfileColors.primaryBlue,
-            unselectedItemColor: ProfileColors.secondaryText,
+            selectedItemColor: ProfileColors.of(context).primaryBlue,
+            unselectedItemColor: ProfileColors.of(context).secondaryText,
             selectedLabelStyle: ProfileTextStyles.label.copyWith(
               fontSize: 11,
             ),
@@ -1228,14 +1090,15 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ProfileColors.of(context);
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(ParentUi.cardRadius),
-        border: Border.all(color: ProfileColors.border),
-        boxShadow: ProfileShadows.card,
+        border: Border.all(color: c.border),
+        boxShadow: c.isDark ? null : ProfileShadows.card,
       ),
       child: child,
     );
@@ -1265,19 +1128,19 @@ class _ProfileStateCard extends StatelessWidget {
     return ProfileCard(
       padding: const EdgeInsets.fromLTRB(18, 28, 18, 28),
       child: loading
-          ? const SizedBox(
+          ? SizedBox(
               height: 200,
               child: Center(
                 child: CircularProgressIndicator(
-                  color: ProfileColors.primaryBlue,
+                  color: ProfileColors.of(context).primaryBlue,
                 ),
               ),
             )
           : Column(
               children: <Widget>[
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
-                  color: ProfileColors.primaryBlue,
+                  color: ProfileColors.of(context).primaryBlue,
                   size: 40,
                 ),
                 const SizedBox(height: 12),
@@ -1291,7 +1154,7 @@ class _ProfileStateCard extends StatelessWidget {
                   message,
                   textAlign: TextAlign.center,
                   style: ProfileTextStyles.body.copyWith(
-                    color: ProfileColors.secondaryText,
+                    color: ProfileColors.of(context).secondaryText,
                     fontSize: 14,
                   ),
                 ),
@@ -1301,7 +1164,7 @@ class _ProfileStateCard extends StatelessWidget {
                     onPressed: onPressed,
                     style: TextButton.styleFrom(
                       backgroundColor: const Color(0xFFEAF4FF),
-                      foregroundColor: ProfileColors.primaryBlue,
+                      foregroundColor: ProfileColors.of(context).primaryBlue,
                     ),
                     child: const Text('Qayta urinish'),
                   ),
@@ -1346,18 +1209,69 @@ class SettingsRowData {
 }
 
 class ProfileColors {
-  const ProfileColors._();
+  const ProfileColors._({
+    required this.background,
+    required this.surface,
+    required this.primaryBlue,
+    required this.red,
+    required this.green,
+    required this.purple,
+    required this.orange,
+    required this.pink,
+    required this.text,
+    required this.secondaryText,
+    required this.border,
+    required this.muted,
+  });
 
-  static const Color background = Color(0xFFF7FBFF);
-  static const Color primaryBlue = Color(0xFF1E73F8);
-  static const Color red = Color(0xFFEF4444);
-  static const Color green = Color(0xFF10B981);
-  static const Color purple = Color(0xFF7C3AED);
-  static const Color orange = Color(0xFFF59E0B);
-  static const Color pink = Color(0xFFEC4899);
-  static const Color text = Color(0xFF111827);
-  static const Color secondaryText = Color(0xFF6B7280);
-  static const Color border = Color(0xFFE5EAF2);
+  final Color background;
+  final Color surface;
+  final Color primaryBlue;
+  final Color red;
+  final Color green;
+  final Color purple;
+  final Color orange;
+  final Color pink;
+  final Color text;
+  final Color secondaryText;
+  final Color border;
+  final Color muted;
+
+  bool get isDark => background == _dark.background;
+
+  static const ProfileColors _light = ProfileColors._(
+    background: Color(0xFFF7FBFF),
+    surface: Color(0xFFFFFFFF),
+    primaryBlue: Color(0xFF1E73F8),
+    red: Color(0xFFEF4444),
+    green: Color(0xFF10B981),
+    purple: Color(0xFF7C3AED),
+    orange: Color(0xFFF59E0B),
+    pink: Color(0xFFEC4899),
+    text: Color(0xFF111827),
+    secondaryText: Color(0xFF6B7280),
+    border: Color(0xFFE5EAF2),
+    muted: Color(0xFFF1F4F9),
+  );
+
+  static const ProfileColors _dark = ProfileColors._(
+    background: Color(0xFF0B0F17),
+    surface: Color(0xFF141926),
+    primaryBlue: Color(0xFF4D8DFF),
+    red: Color(0xFFFF6F6F),
+    green: Color(0xFF34D399),
+    purple: Color(0xFFA78BFA),
+    orange: Color(0xFFFBBF24),
+    pink: Color(0xFFF472B6),
+    text: Color(0xFFEAF1FB),
+    secondaryText: Color(0xFF94A3B8),
+    border: Color(0xFF24304A),
+    muted: Color(0xFF1A2030),
+  );
+
+  static ProfileColors of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark ? _dark : _light;
+  }
 }
 
 class ProfileTextStyles {
@@ -1368,7 +1282,6 @@ class ProfileTextStyles {
       fontSize: 17,
       height: 1.16,
       fontWeight: FontWeight.w800,
-      color: ProfileColors.text,
       letterSpacing: 0,
     );
   }
@@ -1378,7 +1291,6 @@ class ProfileTextStyles {
       fontSize: 14,
       height: 1.28,
       fontWeight: FontWeight.w500,
-      color: ProfileColors.text,
       letterSpacing: 0,
     );
   }
@@ -1388,7 +1300,6 @@ class ProfileTextStyles {
       fontSize: 12.5,
       height: 1.16,
       fontWeight: FontWeight.w800,
-      color: ProfileColors.text,
       letterSpacing: 0,
     );
   }
@@ -1398,7 +1309,6 @@ class ProfileTextStyles {
       fontSize: 14,
       height: 1.16,
       fontWeight: FontWeight.w800,
-      color: ProfileColors.primaryBlue,
       letterSpacing: 0,
     );
   }

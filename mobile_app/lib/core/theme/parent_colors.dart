@@ -1,50 +1,79 @@
 import 'package:flutter/material.dart';
 
-/// Parent (light, soft blue) palette — extracted from tokens.css.
-/// Used only by parent-facing screens to avoid clashing with the
-/// existing dark `AppColors` palette consumed by other roles.
+/// Parent ranglar palitrasi — light va dark variantlari bilan.
+/// Static getterlar joriy mavzuni `_resolver` orqali aniqlaydi (App'da
+/// `ParentColors.attach(context)` chaqirilsa). Aks holda light qiymat
+/// qaytaradi.
 class ParentColors {
   const ParentColors._();
 
-  // Background / surface
-  static const Color bg = Color(0xFFF4F7FB);
-  static const Color bgSoft = Color(0xFFEAF1F9);
-  static const Color card = Color(0xFFFFFFFF);
+  // Mavzuga moslashuvchi static "current brightness" — ParentColorsScope orqali
+  // har build siklida yangilanib turadi.
+  static Brightness _brightness = Brightness.light;
 
-  // Text
-  static const Color text = Color(0xFF0F1E33);
-  static const Color textSoft = Color(0xFF4B5B72);
-  static const Color textMuted = Color(0xFF8090A8);
+  /// ParentColorsScope joriy mavzuga qarab static brightness'ni yangilaydi.
+  static void update(Brightness b) {
+    _brightness = b;
+  }
 
-  // Lines
-  static const Color line = Color(0xFFE4ECF5);
-  static const Color lineStrong = Color(0xFFCBD7E7);
+  static bool get _isDark => _brightness == Brightness.dark;
 
-  // Primary blue
+  // ===== Background / surface =====
+  static Color get bg =>
+      _isDark ? const Color(0xFF0B0F17) : const Color(0xFFF4F7FB);
+  static Color get bgSoft =>
+      _isDark ? const Color(0xFF111726) : const Color(0xFFEAF1F9);
+  static Color get card =>
+      _isDark ? const Color(0xFF141926) : const Color(0xFFFFFFFF);
+
+  // ===== Text =====
+  static Color get text =>
+      _isDark ? const Color(0xFFEAF1FB) : const Color(0xFF0F1E33);
+  static Color get textSoft =>
+      _isDark ? const Color(0xFFB6C2D6) : const Color(0xFF4B5B72);
+  static Color get textMuted =>
+      _isDark ? const Color(0xFF94A3B8) : const Color(0xFF8090A8);
+
+  // ===== Lines =====
+  static Color get line =>
+      _isDark ? const Color(0xFF24304A) : const Color(0xFFE4ECF5);
+  static Color get lineStrong =>
+      _isDark ? const Color(0xFF2C3854) : const Color(0xFFCBD7E7);
+
+  // ===== Primary blue (brand) =====
   static const Color primary = Color(0xFF3B82F6);
   static const Color primaryDeep = Color(0xFF2563EB);
-  static const Color primarySoft = Color(0xFFDBEAFE);
-  static const Color primaryTint = Color(0xFFEFF6FF);
+  static Color get primarySoft =>
+      _isDark ? const Color(0xFF1F2C44) : const Color(0xFFDBEAFE);
+  static Color get primaryTint =>
+      _isDark ? const Color(0xFF14213A) : const Color(0xFFEFF6FF);
 
-  // Amber
+  // ===== Amber =====
   static const Color amber = Color(0xFFF59E0B);
-  static const Color amberBg = Color(0xFFFEF3C7);
+  static Color get amberBg =>
+      _isDark ? const Color(0xFF3A2C0E) : const Color(0xFFFEF3C7);
   static const Color amberDeep = Color(0xFFB45309);
 
-  // Semantic
+  // ===== Semantic =====
   static const Color success = Color(0xFF10B981);
-  static const Color successBg = Color(0xFFDCFCE7);
-  static const Color successLine = Color(0xFFBBF7D0);
+  static Color get successBg =>
+      _isDark ? const Color(0xFF0F2A1F) : const Color(0xFFDCFCE7);
+  static Color get successLine =>
+      _isDark ? const Color(0xFF1F4A37) : const Color(0xFFBBF7D0);
   static const Color warning = Color(0xFFF59E0B);
-  static const Color warningBg = Color(0xFFFEF3C7);
+  static Color get warningBg =>
+      _isDark ? const Color(0xFF3A2C0E) : const Color(0xFFFEF3C7);
   static const Color danger = Color(0xFFEF4444);
-  static const Color dangerBg = Color(0xFFFEE2E2);
+  static Color get dangerBg =>
+      _isDark ? const Color(0xFF3A1818) : const Color(0xFFFEE2E2);
   static const Color info = Color(0xFF3B82F6);
-  static const Color infoBg = Color(0xFFDBEAFE);
+  static Color get infoBg =>
+      _isDark ? const Color(0xFF14213A) : const Color(0xFFDBEAFE);
   static const Color violet = Color(0xFF7C3AED);
-  static const Color violetBg = Color(0xFFEDE9FE);
+  static Color get violetBg =>
+      _isDark ? const Color(0xFF26204A) : const Color(0xFFEDE9FE);
 
-  // Gradients
+  // ===== Gradients =====
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -75,7 +104,7 @@ class ParentColors {
     colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
   );
 
-  // Shadows
+  // ===== Shadows =====
   static const List<BoxShadow> shadowSm = [
     BoxShadow(color: Color(0x0A0F1E33), blurRadius: 2, offset: Offset(0, 1)),
     BoxShadow(color: Color(0x0F0F1E33), blurRadius: 3, offset: Offset(0, 1)),
@@ -91,4 +120,18 @@ class ParentColors {
   static const List<BoxShadow> shadowBlue = [
     BoxShadow(color: Color(0x473B82F6), blurRadius: 22, offset: Offset(0, 10)),
   ];
+}
+
+/// Bu widget joriy mavzuni qo'lga oladi va ParentColors static brightness'ini
+/// yangilaydi. Parent role app shellni shu bilan o'rab qo'yish kerak.
+class ParentColorsScope extends StatelessWidget {
+  const ParentColorsScope({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    ParentColors.update(Theme.of(context).brightness);
+    return child;
+  }
 }

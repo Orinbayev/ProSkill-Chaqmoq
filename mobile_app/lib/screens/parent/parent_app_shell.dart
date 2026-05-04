@@ -92,6 +92,10 @@ class _ParentAppShellState extends State<ParentAppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Mavzuga moslashish uchun har build siklida ParentColors brightness'ini
+    // yangilab qo'yamiz — bu parent ekranlardagi static rang havolalarini
+    // dark/light uchun to'g'ri ranglarga aylantiradi.
+    ParentColors.update(Theme.of(context).brightness);
     final isOffline = context.watch<AuthProvider>().isOfflineMode;
     return Scaffold(
       key: _scaffoldKey,
@@ -221,7 +225,7 @@ class ParentDrawer extends StatelessWidget {
             _DrawerItem(Icons.fact_check_outlined, 'Davomat', onAttendance),
             _DrawerItem(
                 Icons.payments_outlined, 'To‘lovlar', onPayments),
-            _DrawerItem(Icons.insights_outlined, 'Progress', onProgress),
+            _DrawerItem(Icons.insights_outlined, "O‘zlashtirish", onProgress),
             _DrawerItem(Icons.notifications_none_rounded,
                 'Bildirishnomalar', onNotifications),
             _DrawerItem(Icons.settings_rounded, 'Sozlamalar', onSettings),

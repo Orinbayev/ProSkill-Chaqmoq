@@ -1203,3 +1203,82 @@ class StudentDetailModel {
     'badges': badges,
   };
 }
+
+class StoreProductModel {
+  const StoreProductModel({
+    required this.id,
+    required this.name,
+    required this.priceChaqmoq,
+    required this.priceSom,
+    required this.soldCount,
+    required this.description,
+    required this.imageUrl,
+  });
+
+  final int id;
+  final String name;
+  final int priceChaqmoq;
+  final int priceSom;
+  final int soldCount;
+  final String description;
+  final String imageUrl;
+
+  factory StoreProductModel.fromJson(Map<String, dynamic> json) {
+    return StoreProductModel(
+      id: jsonInt(json['id']),
+      name: jsonString(json['name']),
+      priceChaqmoq: jsonInt(json['price_chaqmoq']),
+      priceSom: jsonInt(json['price_som']),
+      soldCount: jsonInt(json['sold_count']),
+      description: jsonString(json['description']),
+      imageUrl: jsonString(json['image_url']),
+    );
+  }
+}
+
+enum PurchaseStatus { pending, approved, rejected, unknown }
+
+PurchaseStatus _parsePurchaseStatus(dynamic raw) {
+  switch (jsonString(raw).toLowerCase()) {
+    case 'pending':
+      return PurchaseStatus.pending;
+    case 'approved':
+      return PurchaseStatus.approved;
+    case 'rejected':
+      return PurchaseStatus.rejected;
+    default:
+      return PurchaseStatus.unknown;
+  }
+}
+
+class PurchaseRequestModel {
+  const PurchaseRequestModel({
+    required this.id,
+    required this.productId,
+    required this.productName,
+    required this.qty,
+    required this.status,
+    required this.managerName,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int productId;
+  final String productName;
+  final int qty;
+  final PurchaseStatus status;
+  final String managerName;
+  final DateTime createdAt;
+
+  factory PurchaseRequestModel.fromJson(Map<String, dynamic> json) {
+    return PurchaseRequestModel(
+      id: jsonInt(json['id']),
+      productId: jsonInt(json['product_id']),
+      productName: jsonString(json['product_name']),
+      qty: jsonInt(json['qty']),
+      status: _parsePurchaseStatus(json['status']),
+      managerName: jsonString(json['manager_name']),
+      createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+}

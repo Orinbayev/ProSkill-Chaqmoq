@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
@@ -10,7 +11,6 @@ import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class ProgressScreen extends StatefulWidget {
@@ -93,8 +93,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
     await _load(force: true, period: periodKey);
   }
 
+  String _currentMonthLabel() {
+    const months = <String>[
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
+    ];
+    final now = DateTime.now();
+    return '${months[now.month - 1]} ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    ParentColors.update(Theme.of(context).brightness);
     final fallbackChild = context
         .watch<ParentDashboardProvider>()
         .data
@@ -146,13 +156,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     _ProgressHeroCard(
                       child: child,
                       data: _data,
-                      periodLabel: _data?.selectedPeriodLabel ?? 'Joriy davr',
-                      onSelectPeriod: () => _showPeriodMenu(context),
+                      periodLabel: _currentMonthLabel(),
+                      onSelectPeriod: () {},
                     ),
                     const SizedBox(height: 12),
                     _BreakdownCard(data: _data),
-                    const SizedBox(height: 12),
-                    _QuickStatsRow(data: _data),
                     const SizedBox(height: 12),
                     _RecentActivityList(
                       timeline: _data?.progressTimeline,
@@ -170,36 +178,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
   }
 
-  Future<void> _showPeriodMenu(BuildContext anchorContext) async {
-    final periods = _data?.availablePeriods ?? const <ParentProgressPeriodModel>[];
-    if (periods.isEmpty) {
-      return;
-    }
-    final selected = await showModalBottomSheet<String>(
-      context: anchorContext,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _ProgressBottomSheet(
-          title: 'Davrni tanlang',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final period in periods)
-                _PeriodOptionTile(
-                  label: period.label,
-                  selected: period.key == (_selectedPeriod ?? _data?.selectedPeriod),
-                  onTap: () => Navigator.of(sheetContext).pop(period.key),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-    if (!mounted || selected == null) {
-      return;
-    }
-    await _changePeriod(selected);
-  }
 }
 
 // =====================================================================
@@ -210,7 +188,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   switch (trend) {
     case 'yaxshilandi':
       return (
-        label: 'Oxirgi 30 kunda yaxshilandi',
+        label: 'Yaxshilandi',
         color: ProgressColors.green,
         icon: Icons.trending_up_rounded,
       );
@@ -348,8 +326,6 @@ class _ProgressHeroCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _PeriodPill(label: periodLabel, onTap: onSelectPeriod),
-              const SizedBox(width: 6),
               InkWell(
                 onTap: () => _showInsightInfoSheet(context),
                 customBorder: const CircleBorder(),
@@ -491,7 +467,7 @@ class _ProgressHeroCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Oxirgi 30 kun asosida',
+                        '$periodLabel asosida',
                         style: ProgressTextStyles.body.copyWith(
                           color: const Color(0xFFC2DDFF),
                           fontSize: 11,
@@ -509,56 +485,6 @@ class _ProgressHeroCard extends StatelessWidget {
   }
 }
 
-class _PeriodPill extends StatelessWidget {
-  const _PeriodPill({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.18),
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.event_available_outlined,
-                color: Colors.white,
-                size: 14,
-              ),
-              const SizedBox(width: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 110),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ProgressTextStyles.label.copyWith(
-                    color: Colors.white,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 2),
-              const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Colors.white,
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ScoreGauge extends StatelessWidget {
   const _ScoreGauge({
@@ -728,7 +654,7 @@ class _BreakdownCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            const Divider(height: 1, color: ProgressColors.border),
+            Divider(height: 1, color: ProgressColors.border),
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Row(
@@ -844,143 +770,6 @@ class _BreakdownRow extends StatelessWidget {
   }
 }
 
-class _QuickStatsRow extends StatelessWidget {
-  const _QuickStatsRow({required this.data});
-
-  final ParentProgressModel? data;
-
-  Color _statColor(int percent, {bool noData = false}) {
-    if (noData) return ProgressColors.secondaryText;
-    if (percent >= 75) return ProgressColors.green;
-    if (percent >= 50) return ProgressColors.orange;
-    if (percent > 0) return const Color(0xFFEF4444);
-    return ProgressColors.secondaryText;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Davomat va vazifalar foizlari backend tomonida tanlangan davr asosida
-    // hisoblanib keladi (`attendance_rate`, `homework_rate`).
-    final hasData = data != null;
-    final attendancePercent = hasData
-        ? (data!.attendanceRate * 100).round().clamp(0, 100).toInt()
-        : 0;
-    final homeworkPercent = hasData
-        ? (data!.homeworkRate * 100).round().clamp(0, 100).toInt()
-        : 0;
-
-    final hasAttendance = hasData && data!.attendanceRate > 0;
-    final hasHomework =
-        hasData && (data!.homeworkRate > 0 || data!.activeDays > 0);
-
-    final attendanceLabel = !hasData
-        ? '—'
-        : hasAttendance
-            ? '$attendancePercent%'
-            : '—';
-    final homeworkLabel = !hasData
-        ? '—'
-        : hasHomework
-            ? '$homeworkPercent% bajarilgan'
-            : '—';
-
-    return Row(
-      children: [
-        Expanded(
-          child: _StatPill(
-            icon: Icons.event_available_rounded,
-            title: 'Davomat',
-            value: attendanceLabel,
-            color: _statColor(attendancePercent, noData: !hasAttendance),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatPill(
-            icon: Icons.menu_book_rounded,
-            title: 'Vazifalar',
-            value: homeworkLabel,
-            color: _statColor(homeworkPercent, noData: !hasHomework),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatPill extends StatelessWidget {
-  const _StatPill({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: ProgressShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: color),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ProgressTextStyles.body.copyWith(
-                    color: ProgressColors.secondaryText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              maxLines: 1,
-              style: ProgressTextStyles.title.copyWith(
-                color: color,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-enum _ActivityFilter { all, attendance, homework }
 
 enum _ReasonKind { attendance, attendanceMissed, homework, test, activity, other }
 
@@ -1048,83 +837,7 @@ _ReasonMeta _classifyReason(String reason) {
   );
 }
 
-class _DayReason {
-  const _DayReason({
-    required this.text,
-    required this.score,
-    required this.meta,
-    required this.entry,
-  });
 
-  final String text;
-  final int score;
-  final _ReasonMeta meta;
-  final ProgressReasonEntry entry;
-}
-
-class _DayEntry {
-  _DayEntry({
-    required this.date,
-    required this.score,
-    required this.reasons,
-  });
-
-  final DateTime date;
-  final int score;
-  final List<_DayReason> reasons;
-
-  bool get hasAttendance => reasons.any(
-        (r) =>
-            r.meta.kind == _ReasonKind.attendance ||
-            r.meta.kind == _ReasonKind.attendanceMissed,
-      );
-
-  bool get hasHomework => reasons.any(
-        (r) =>
-            r.meta.kind == _ReasonKind.homework ||
-            r.meta.kind == _ReasonKind.test,
-      );
-
-  bool get isPositive {
-    final negatives = reasons
-        .where((r) => r.meta.kind == _ReasonKind.attendanceMissed)
-        .length;
-    return negatives == 0 && score >= 0;
-  }
-
-  String summaryLabel() {
-    if (reasons.isEmpty) {
-      return score >= 0 ? 'Yaxshi natija' : 'E’tibor kerak';
-    }
-    if (reasons.length == 1) {
-      return reasons.first.text;
-    }
-    final first = reasons.first.text;
-    final extra = reasons.length - 1;
-    return '$first +$extra ta';
-  }
-
-  _ReasonMeta primaryMeta() {
-    if (reasons.isEmpty) {
-      return _ReasonMeta(
-        label: summaryLabel(),
-        icon: score >= 0
-            ? Icons.check_circle_rounded
-            : Icons.cancel_rounded,
-        color: score >= 0
-            ? ProgressColors.green
-            : const Color(0xFFEF4444),
-        kind: _ReasonKind.other,
-      );
-    }
-    final missed = reasons.firstWhere(
-      (r) => r.meta.kind == _ReasonKind.attendanceMissed,
-      orElse: () => reasons.first,
-    );
-    if (missed.meta.kind == _ReasonKind.attendanceMissed) return missed.meta;
-    return reasons.first.meta;
-  }
-}
 
 class _RecentActivityList extends StatefulWidget {
   const _RecentActivityList({
@@ -1144,124 +857,84 @@ class _RecentActivityList extends StatefulWidget {
 }
 
 class _RecentActivityListState extends State<_RecentActivityList> {
-  _ActivityFilter _filter = _ActivityFilter.all;
+  late DateTime _viewMonth;
 
-  List<_DayEntry> _dayEntries() {
-    final result = <_DayEntry>[];
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _viewMonth = DateTime(now.year, now.month);
+  }
+
+  /// Tanlangan oydagi har bir chaqmoq/yozuv — yassi (flat) ro'yxat.
+  /// Vaqt bo'yicha kamayuvchi tartibda saralangan, har bir element o'z
+  /// sanasi va soati bilan qaytadi.
+  List<_FlatEntry> _entriesForMonth() {
+    final result = <_FlatEntry>[];
     final points = widget.timeline?.points ?? const <ProgressTimelinePoint>[];
-    for (final point in points.reversed) {
-      if (point.score == 0 && point.entries.isEmpty) continue;
-      final date = point.parsedDate;
-      if (date == null) continue;
-      final reasons = <_DayReason>[];
+    for (final point in points) {
+      final dayDate = point.parsedDate;
+      if (dayDate == null) continue;
+      if (dayDate.year != _viewMonth.year || dayDate.month != _viewMonth.month) {
+        continue;
+      }
       for (final entry in point.entries) {
         final text = entry.text.trim();
-        if (text.isEmpty) continue;
-        reasons.add(_DayReason(
-          text: text,
+        if (text.isEmpty && entry.score == 0) continue;
+        final ts = entry.parsedCreatedAt ?? dayDate;
+        result.add(_FlatEntry(
+          timestamp: ts,
+          text: text.isEmpty ? 'Faollik' : text,
           score: entry.score,
           meta: _classifyReason(text),
           entry: entry,
         ));
       }
-      result.add(_DayEntry(
-        date: date,
-        score: point.score,
-        reasons: reasons,
-      ));
     }
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return result;
   }
 
-  List<_DayEntry> _filtered(List<_DayEntry> entries) {
-    switch (_filter) {
-      case _ActivityFilter.all:
-        return entries;
-      case _ActivityFilter.attendance:
-        return entries.where((e) => e.hasAttendance).toList();
-      case _ActivityFilter.homework:
-        return entries.where((e) => e.hasHomework).toList();
+  bool _canGoNext() {
+    final now = DateTime.now();
+    final next = DateTime(_viewMonth.year, _viewMonth.month + 1);
+    return !next.isAfter(DateTime(now.year, now.month));
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _viewMonth = DateTime(_viewMonth.year, _viewMonth.month + delta);
+    });
+    final now = DateTime.now();
+    if (_viewMonth.year == now.year && _viewMonth.month == now.month) {
+      widget.onChangePeriod('current');
+    } else if (_viewMonth.year == now.year && _viewMonth.month == now.month - 1) {
+      widget.onChangePeriod('last_month');
+    } else {
+      // 3 oylik radius — backenddan timeline'ni keng oraliqda olamiz.
+      widget.onChangePeriod('last_3_months');
     }
   }
 
-  void _showDayDetails(_DayEntry entry) {
-    final dateLabel = DateFormat('d MMMM, EEEE', 'uz').format(entry.date);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(sheetContext).size.height * 0.82,
-          ),
-          child: _ProgressBottomSheet(
-            title: dateLabel,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (entry.reasons.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Bu kunda yozuvlar yo‘q',
-                      style: ProgressTextStyles.body.copyWith(
-                        color: ProgressColors.secondaryText,
-                        fontSize: 13,
-                      ),
-                    ),
-                  )
-                else
-                  for (var i = 0; i < entry.reasons.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 8),
-                    _DayReasonTile(reason: entry.reasons[i]),
-                  ],
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7FBFF),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ProgressColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Jami:',
-                        style: ProgressTextStyles.title.copyWith(
-                          color: ProgressColors.text,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      _ChaqmoqPill(score: entry.score),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  String _monthLabel() {
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
+    ];
+    return '${months[_viewMonth.month - 1]} ${_viewMonth.year}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final all = _dayEntries();
-    final filtered = _filtered(all).take(15).toList();
-
-    final dateFmt = DateFormat('d MMMM', 'uz');
-    final groups = <String, List<_DayEntry>>{};
-    for (final entry in filtered) {
-      final key = dateFmt.format(entry.date);
-      groups.putIfAbsent(key, () => []).add(entry);
+    final entries = _entriesForMonth();
+    var totalChaqmoqMonth = 0;
+    for (final e in entries) {
+      totalChaqmoqMonth += e.score;
     }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -1277,17 +950,21 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                 style: ProgressTextStyles.title.copyWith(fontSize: 13.5),
               ),
               const Spacer(),
-              if (widget.totalChaqmoq > 0) ...[
-                const Icon(
+              if (totalChaqmoqMonth != 0) ...[
+                Icon(
                   Icons.bolt_rounded,
                   size: 13,
-                  color: ProgressColors.orange,
+                  color: totalChaqmoqMonth > 0
+                      ? ProgressColors.orange
+                      : const Color(0xFFEF4444),
                 ),
                 const SizedBox(width: 2),
                 Text(
-                  '+${widget.totalChaqmoq}',
+                  '${totalChaqmoqMonth > 0 ? '+' : ''}$totalChaqmoqMonth',
                   style: ProgressTextStyles.label.copyWith(
-                    color: ProgressColors.orange,
+                    color: totalChaqmoqMonth > 0
+                        ? ProgressColors.orange
+                        : const Color(0xFFEF4444),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1295,7 +972,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                 const SizedBox(width: 8),
               ],
               Text(
-                '${all.length} kun',
+                '${entries.length} ta yozuv',
                 style: ProgressTextStyles.body.copyWith(
                   color: ProgressColors.secondaryText,
                   fontSize: 11.5,
@@ -1304,437 +981,243 @@ class _RecentActivityListState extends State<_RecentActivityList> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          const SizedBox(height: 12),
+          // Oy tanlash paneli (chap/o'ng o'qlar + oy nomi)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F8FC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ProgressColors.border),
+            ),
             child: Row(
               children: [
-                _PeriodChip(
-                  label: 'Bu oy',
-                  selected: widget.currentPeriod == 'current' ||
-                      widget.currentPeriod == null,
-                  onTap: () => widget.onChangePeriod('current'),
+                _MonthArrowBtn(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: true,
+                  onTap: () => _shiftMonth(-1),
                 ),
-                const SizedBox(width: 6),
-                _PeriodChip(
-                  label: 'O‘tgan oy',
-                  selected: widget.currentPeriod == 'last_month',
-                  onTap: () => widget.onChangePeriod('last_month'),
+                Expanded(
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.calendar_month_rounded,
+                          size: 15,
+                          color: ProgressColors.primaryBlue,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _monthLabel(),
+                          style: ProgressTextStyles.title.copyWith(
+                            fontSize: 13,
+                            color: ProgressColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 6),
-                _PeriodChip(
-                  label: '3 oy',
-                  selected: widget.currentPeriod == 'last_3_months',
-                  onTap: () => widget.onChangePeriod('last_3_months'),
-                ),
-                const SizedBox(width: 6),
-                _PeriodChip(
-                  label: 'Barcha',
-                  selected: widget.currentPeriod == 'all',
-                  onTap: () => widget.onChangePeriod('all'),
+                _MonthArrowBtn(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: _canGoNext(),
+                  onTap: () => _shiftMonth(1),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: 'Hammasi',
-                  selected: _filter == _ActivityFilter.all,
-                  onTap: () => setState(() => _filter = _ActivityFilter.all),
-                ),
-                const SizedBox(width: 6),
-                _FilterChip(
-                  label: 'Davomat',
-                  selected: _filter == _ActivityFilter.attendance,
-                  onTap: () => setState(
-                    () => _filter = _ActivityFilter.attendance,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                _FilterChip(
-                  label: 'Vazifa',
-                  selected: _filter == _ActivityFilter.homework,
-                  onTap: () => setState(
-                    () => _filter = _ActivityFilter.homework,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (filtered.isEmpty)
+          const SizedBox(height: 12),
+          if (entries.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                all.isEmpty
-                    ? 'Faol kunlar topilmadi'
-                    : 'Tanlangan filtr bo‘yicha yozuv yo‘q',
-                style: ProgressTextStyles.body.copyWith(
-                  color: ProgressColors.secondaryText,
-                  fontSize: 12.5,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.event_busy_rounded,
+                      color: ProgressColors.secondaryText.withValues(alpha: 0.6),
+                      size: 28,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Bu oyda yozuv yo‘q",
+                      style: ProgressTextStyles.body.copyWith(
+                        color: ProgressColors.secondaryText,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )
           else
-            for (final entry in groups.entries) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 4),
-                child: Text(
-                  entry.key,
-                  style: ProgressTextStyles.label.copyWith(
+            for (var i = 0; i < entries.length; i++) ...[
+              if (i > 0) const SizedBox(height: 6),
+              _ActivityRow(entry: entries[i]),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FlatEntry {
+  const _FlatEntry({
+    required this.timestamp,
+    required this.text,
+    required this.score,
+    required this.meta,
+    required this.entry,
+  });
+
+  final DateTime timestamp;
+  final String text;
+  final int score;
+  final _ReasonMeta meta;
+  final ProgressReasonEntry entry;
+}
+
+class _MonthArrowBtn extends StatelessWidget {
+  const _MonthArrowBtn({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 32,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ProgressColors.border),
+            ),
+            child: Icon(icon, size: 16, color: ProgressColors.text),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({required this.entry});
+
+  final _FlatEntry entry;
+
+  String _shortDate(DateTime d) {
+    const m = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn',
+               'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'];
+    return '${d.day} ${m[d.month - 1]}';
+  }
+
+  String _shortTime(DateTime d) {
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = entry.score >= 0;
+    final pillColor = positive ? ProgressColors.green : const Color(0xFFEF4444);
+    final pillBg = positive
+        ? const Color(0xFFDCFCE7)
+        : const Color(0xFFFEE2E2);
+    final iconBg = entry.meta.color.withValues(alpha: 0.12);
+    final subtitleParts = <String>[];
+    if (entry.entry.group.trim().isNotEmpty) {
+      subtitleParts.add(entry.entry.group.trim());
+    }
+    final teacher = (entry.entry.awardedBy.trim().isNotEmpty
+            ? entry.entry.awardedBy
+            : entry.entry.teacher)
+        .trim();
+    if (teacher.isNotEmpty) subtitleParts.add(teacher);
+    final subtitle = subtitleParts.join(' · ');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFCFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ProgressColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(entry.meta.icon, size: 18, color: entry.meta.color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ProgressTextStyles.title.copyWith(fontSize: 12.5),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_shortDate(entry.timestamp)} · ${_shortTime(entry.timestamp)}'
+                  '${subtitle.isEmpty ? '' : ' · $subtitle'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ProgressTextStyles.body.copyWith(
                     color: ProgressColors.secondaryText,
                     fontSize: 11,
                   ),
                 ),
-              ),
-              for (var i = 0; i < entry.value.length; i++)
-                _DayRow(
-                  entry: entry.value[i],
-                  onTap: () => _showDayDetails(entry.value[i]),
-                ),
-            ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DayRow extends StatelessWidget {
-  const _DayRow({required this.entry, required this.onTap});
-
-  final _DayEntry entry;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final meta = entry.primaryMeta();
-    final hasMore = entry.reasons.length > 1;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: meta.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(meta.icon, size: 16, color: meta.color),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entry.summaryLabel(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ProgressTextStyles.body.copyWith(
-                        color: ProgressColors.text,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (hasMore)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          '${entry.reasons.length} ta sabab — batafsil',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProgressTextStyles.body.copyWith(
-                            color: ProgressColors.primaryBlue,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              _ChaqmoqPill(score: entry.score),
-              const SizedBox(width: 6),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFF9AA4B2),
-                size: 18,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String _sourceLabel(String type) {
-  switch (type) {
-    case 'attendance':
-      return 'Davomat';
-    case 'attendance_missed':
-      return 'Davomat';
-    case 'homework':
-      return 'Vazifa';
-    case 'test':
-      return 'Test';
-    case 'payment_bonus':
-    case 'payment_discipline':
-    case 'payment':
-      return 'To‘lov';
-    case 'attendance_bonus':
-      return 'Bonus';
-    case 'attendance_penalty':
-    case 'penalty':
-      return 'Jarima';
-    case 'plus':
-      return 'Bonus';
-    case 'minus':
-      return 'Jarima';
-    case 'participation':
-      return 'Faollik';
-    default:
-      return 'Boshqa';
-  }
-}
-
-class _DayReasonTile extends StatelessWidget {
-  const _DayReasonTile({required this.reason});
-
-  final _DayReason reason;
-
-  @override
-  Widget build(BuildContext context) {
-    final entry = reason.entry;
-    final meta = reason.meta;
-    final time = entry.parsedCreatedAt != null
-        ? DateFormat('HH:mm').format(entry.parsedCreatedAt!.toLocal())
-        : '';
-    final group = entry.group.trim();
-    final teacher = entry.teacher.trim();
-    final awardedBy = entry.awardedBy.trim();
-    final reasonText = entry.reason.trim();
-    final sourceLabel = _sourceLabel(entry.type);
-
-    final metaParts = <String>[
-      if (group.isNotEmpty) group,
-      if (teacher.isNotEmpty) teacher,
-    ];
-    final metaLine = metaParts.join(' · ');
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFBFC),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: meta.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(meta.icon, size: 16, color: meta.color),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reason.text,
-                      style: ProgressTextStyles.body.copyWith(
-                        color: ProgressColors.text,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: meta.color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            sourceLabel,
-                            style: ProgressTextStyles.label.copyWith(
-                              color: meta.color,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (time.isNotEmpty)
-                          Text(
-                            time,
-                            style: ProgressTextStyles.body.copyWith(
-                              color: ProgressColors.secondaryText,
-                              fontSize: 11,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (reason.score != 0) _ChaqmoqPill(score: reason.score),
-            ],
-          ),
-          if (metaLine.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(left: 42),
-              child: Text(
-                metaLine,
-                style: ProgressTextStyles.body.copyWith(
-                  color: ProgressColors.secondaryText,
-                  fontSize: 11.5,
-                  height: 1.3,
-                ),
-              ),
+              ],
             ),
-          ],
-          if (awardedBy.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 42),
-              child: Text(
-                'Bergan: $awardedBy',
-                style: ProgressTextStyles.body.copyWith(
-                  color: ProgressColors.secondaryText,
-                  fontSize: 11.5,
-                  height: 1.3,
-                ),
-              ),
-            ),
-          ],
-          if (reasonText.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 42),
-              child: Text(
-                reasonText,
-                style: ProgressTextStyles.body.copyWith(
-                  color: ProgressColors.text,
-                  fontSize: 12,
-                  height: 1.3,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PeriodChip extends StatelessWidget {
-  const _PeriodChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEAF4FF) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? ProgressColors.primaryBlue
-                : ProgressColors.border,
-            width: selected ? 1.4 : 1,
           ),
-        ),
-        child: Text(
-          label,
-          style: ProgressTextStyles.label.copyWith(
-            color: selected
-                ? ProgressColors.primaryBlue
-                : ProgressColors.secondaryText,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChaqmoqPill extends StatelessWidget {
-  const _ChaqmoqPill({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPositive = score >= 0;
-    final color = isPositive
-        ? ProgressColors.green
-        : const Color(0xFFEF4444);
-    final sign = isPositive ? '+' : '−';
-    final value = score.abs();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.bolt_rounded, size: 12, color: color),
-          const SizedBox(width: 3),
-          Text(
-            '$sign$value',
-            style: ProgressTextStyles.label.copyWith(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: pillBg,
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bolt_rounded, size: 12, color: pillColor),
+                const SizedBox(width: 2),
+                Text(
+                  '${positive ? '+' : ''}${entry.score}',
+                  style: ProgressTextStyles.label.copyWith(
+                    color: pillColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1743,43 +1226,11 @@ class _ChaqmoqPill extends StatelessWidget {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? ProgressColors.primaryBlue
-              : const Color(0xFFF1F4F8),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: ProgressTextStyles.label.copyWith(
-            color: selected ? Colors.white : ProgressColors.text,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
+
+
+
 
 class _ProgressBottomSheet extends StatelessWidget {
   const _ProgressBottomSheet({
@@ -1832,60 +1283,6 @@ class _ProgressBottomSheet extends StatelessWidget {
   }
 }
 
-class _PeriodOptionTile extends StatelessWidget {
-  const _PeriodOptionTile({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEAF4FF) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? ProgressColors.primaryBlue
-                : ProgressColors.border,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: ProgressTextStyles.body.copyWith(
-                  color: ProgressColors.text,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            Icon(
-              selected
-                  ? Icons.check_circle_rounded
-                  : Icons.chevron_right_rounded,
-              color: selected
-                  ? ProgressColors.primaryBlue
-                  : const Color(0xFF9AA4B2),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class ParentBottomNav extends StatelessWidget {
   const ParentBottomNav({super.key});
@@ -2026,15 +1423,23 @@ class _ProgressStateCard extends StatelessWidget {
 class ProgressColors {
   const ProgressColors._();
 
-  static const Color background = Color(0xFFF7FBFF);
+  static bool get _isDark =>
+      ParentColors.bg == const Color(0xFF0B0F17);
+  static Color get background => _isDark
+      ? const Color(0xFF0B0F17) : const Color(0xFFF7FBFF);
+  static Color get card => _isDark
+      ? const Color(0xFF141926) : const Color(0xFFFFFFFF);
+  static Color get text => _isDark
+      ? const Color(0xFFEAF1FB) : const Color(0xFF111827);
+  static Color get secondaryText => _isDark
+      ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+  static Color get border => _isDark
+      ? const Color(0xFF24304A) : const Color(0xFFE5EAF2);
   static const Color primaryBlue = Color(0xFF1E73F8);
   static const Color green = Color(0xFF10B981);
   static const Color orange = Color(0xFFF59E0B);
   static const Color purple = Color(0xFF7C3AED);
   static const Color pink = Color(0xFFEC4899);
-  static const Color text = Color(0xFF111827);
-  static const Color secondaryText = Color(0xFF6B7280);
-  static const Color border = Color(0xFFE5EAF2);
 }
 
 class ProgressTextStyles {

@@ -747,3 +747,29 @@ class NotificationsService extends _BaseService {
     ]);
   }
 }
+
+class StoreService extends _BaseService {
+  const StoreService(super.apiClient);
+
+  Future<List<StoreProductModel>> fetchProducts() async {
+    final payload = await apiClient.get('/api/mobile/store/products/');
+    return jsonMapList(payload['items'])
+        .map(StoreProductModel.fromJson)
+        .toList();
+  }
+
+  Future<List<PurchaseRequestModel>> fetchMyRequests() async {
+    final payload = await apiClient.get('/api/mobile/store/purchase-requests/');
+    return jsonMapList(payload['items'])
+        .map(PurchaseRequestModel.fromJson)
+        .toList();
+  }
+
+  Future<int> createPurchaseRequest({required int productId, int qty = 1}) async {
+    final payload = await apiClient.post(
+      '/api/mobile/store/purchase-requests/create/',
+      data: {'product_id': productId, 'qty': qty},
+    );
+    return jsonInt(payload['id']);
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
@@ -135,6 +136,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ParentColors.update(Theme.of(context).brightness);
     final fallbackChild = context
         .watch<ParentDashboardProvider>()
         .data
@@ -158,7 +160,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     };
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
@@ -255,7 +257,7 @@ class _Header extends StatelessWidget {
             border: Border.all(color: PaymentColors.line),
           ),
           alignment: Alignment.center,
-          child: const Icon(
+          child: Icon(
             Icons.notifications_active_outlined,
             size: 22,
             color: PaymentColors.text,
@@ -275,20 +277,27 @@ class _DebtHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final debt = summary.outstandingTotal;
     final due = summary.nextPaymentDate;
+    final hasDebt = debt > 0;
+    final gradientColors = hasDebt
+        ? const <Color>[Color(0xFFB91C1C), Color(0xFFEF4444)]
+        : const <Color>[Color(0xFF065F46), Color(0xFF10B981)];
+    final shadowColor = hasDebt
+        ? const Color(0x47B91C1C)
+        : const Color(0x47065F46);
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+          colors: gradientColors,
         ),
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x471E40AF),
+            color: shadowColor,
             blurRadius: 32,
-            offset: Offset(0, 14),
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -311,11 +320,13 @@ class _DebtHero extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'JORIY QARZDORLIK',
+                hasDebt
+                    ? '${_monthNameUpper(DateTime.now())} OYI · QARZ'
+                    : 'JORIY HOLAT · QARZ YO‘Q',
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withValues(alpha: 0.92),
                   letterSpacing: 1.4,
                 ),
               ),
@@ -849,8 +860,9 @@ class _PaymentRow extends StatelessWidget {
         : isOverdue
             ? Icons.error_outline_rounded
             : Icons.schedule_rounded;
-    final amountColor =
-        isOverdue ? const Color(0xFFEF4444) : PaymentColors.text;
+    final amountColor = isPaid
+        ? PaymentColors.text
+        : const Color(0xFFEF4444);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -1095,20 +1107,7 @@ class ParentBottomNav extends StatelessWidget {
 }
 
 // ---- Helpers ----
-String _fmtShort(int n) {
-  if (n <= 0) return '0';
-  if (n >= 1000000) {
-    final v = n / 1000000;
-    final s =
-        n % 1000000 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
-    return '$s mln';
-  }
-  if (n >= 1000) {
-    final v = n / 1000;
-    return '${v.toStringAsFixed(0)} K';
-  }
-  return '$n';
-}
+String _fmtShort(int n) => _fmtFull(n);
 
 String _fmtFull(int n) {
   final s = n.toString();
@@ -1119,6 +1118,15 @@ String _fmtFull(int n) {
     if (fromEnd > 1 && (fromEnd - 1) % 3 == 0) buf.write(' ');
   }
   return buf.toString();
+}
+
+String _monthNameUpper(DateTime d) {
+  const months = [
+    'YANVAR', 'FEVRAL', 'MART', 'APREL', 'MAY', 'IYUN',
+    'IYUL', 'AVGUST', 'SENTABR', 'OKTABR', 'NOYABR', 'DEKABR',
+  ];
+  if (d.month < 1 || d.month > 12) return '';
+  return months[d.month - 1];
 }
 
 String _monthLabel(DateTime d) {
@@ -1161,11 +1169,20 @@ enum PaymentStatus { paid, pending, overdue }
 
 class PaymentColors {
   const PaymentColors._();
-  static const Color background = Color(0xFFF4F7FB);
-  static const Color text = Color(0xFF0F1E33);
-  static const Color textSoft = Color(0xFF4B5B72);
-  static const Color textMuted = Color(0xFF8090A8);
-  static const Color line = Color(0xFFE4ECF5);
+  static bool get _isDark =>
+      ParentColors.bg == const Color(0xFF0B0F17);
+  static Color get background => _isDark
+      ? const Color(0xFF0B0F17) : const Color(0xFFF4F7FB);
+  static Color get card => _isDark
+      ? const Color(0xFF141926) : const Color(0xFFFFFFFF);
+  static Color get text => _isDark
+      ? const Color(0xFFEAF1FB) : const Color(0xFF0F1E33);
+  static Color get textSoft => _isDark
+      ? const Color(0xFFB6C2D6) : const Color(0xFF4B5B72);
+  static Color get textMuted => _isDark
+      ? const Color(0xFF94A3B8) : const Color(0xFF8090A8);
+  static Color get line => _isDark
+      ? const Color(0xFF24304A) : const Color(0xFFE4ECF5);
   static const Color primaryBlue = Color(0xFF3B82F6);
   static const Color green = Color(0xFF10B981);
   static const Color red = Color(0xFFEF4444);

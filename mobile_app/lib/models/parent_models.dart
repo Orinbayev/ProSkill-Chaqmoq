@@ -43,10 +43,14 @@ class ParentStatsModel {
     required this.currentLevel,
     required this.maxLevel,
     required this.monthlyChange,
+    this.monthlyTotalLessons = 0,
+    this.monthlyAttendedLessons = 0,
     this.nextPaymentDate,
   });
 
   final int attendancePercent;
+  final int monthlyTotalLessons;
+  final int monthlyAttendedLessons;
   final int debtAmount;
   final String debtStatus;
   final int averageScore;
@@ -58,6 +62,8 @@ class ParentStatsModel {
   factory ParentStatsModel.fromJson(Map<String, dynamic> json) {
     return ParentStatsModel(
       attendancePercent: jsonInt(json['attendance_percent']),
+      monthlyTotalLessons: jsonInt(json['monthly_total_lessons']),
+      monthlyAttendedLessons: jsonInt(json['monthly_attended_lessons']),
       debtAmount: jsonInt(json['debt_amount']),
       debtStatus: jsonString(json['debt_status']),
       averageScore: jsonInt(json['average_score']),

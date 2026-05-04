@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
@@ -107,16 +108,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ParentColors.update(Theme.of(context).brightness);
     final fallbackChild = context
         .watch<ParentDashboardProvider>()
         .data
         ?.selectedChild;
     final child = _data?.child ?? fallbackChild;
     final summary = _data?.summary;
-    final dayItems = _itemsForDate(_data?.items ?? const [], _selectedDate);
+    final monthItems = _itemsForMonth(_data?.items ?? const [], _month);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
@@ -181,20 +183,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       onSelect: _selectDate,
                     ),
                     const SizedBox(height: 18),
-                    Text(
-                      _selectedDayHeader(_selectedDate),
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AttendanceColors.text,
-                        letterSpacing: -0.2,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "${_monthYearLabel(_month)} davomati",
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AttendanceColors.text,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        if (monthItems.isNotEmpty)
+                          Text(
+                            '${monthItems.length} ta yozuv',
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: AttendanceColors.textMuted,
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 10),
-                    if (dayItems.isEmpty)
-                      _EmptyDayCard()
+                    if (monthItems.isEmpty)
+                      _EmptyMonthCard()
                     else
-                      for (final item in dayItems) ...[
+                      for (final item in monthItems) ...[
                         _LessonCard(item: item),
                         const SizedBox(height: 8),
                       ],
@@ -267,7 +284,7 @@ class _Header extends StatelessWidget {
                       child: Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AttendanceColors.primaryBlue,
                           shape: BoxShape.circle,
                         ),
@@ -294,7 +311,7 @@ class _FilterSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -598,7 +615,7 @@ class _MonthArrow extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
-        side: const BorderSide(color: AttendanceColors.line),
+        side: BorderSide(color: AttendanceColors.line),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(11),
@@ -698,7 +715,7 @@ class _CalendarCard extends StatelessWidget {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.only(top: 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: AttendanceColors.line)),
             ),
             child: Row(
@@ -792,7 +809,7 @@ class _DayCellTheme {
           foreground: Color(0xFFB45309),
         );
       case _DayStatus.none:
-        return const _DayCellTheme(
+        return _DayCellTheme(
           background: Colors.transparent,
           foreground: AttendanceColors.text,
         );
@@ -853,7 +870,13 @@ class _LessonCard extends StatelessWidget {
     final teacher = item.teacherName.trim().isEmpty
         ? 'O‘qituvchi'
         : item.teacherName.trim();
-    final subtitle = teacher;
+    final dateLabel = _shortDate(item.date);
+    final timeLabel = item.createdAt != null
+        ? _shortTime(item.createdAt!)
+        : '';
+    final subtitle = timeLabel.isEmpty
+        ? '$dateLabel · $teacher'
+        : '$dateLabel · $timeLabel · $teacher';
 
     final pillBg = present
         ? const Color(0xFFDCFCE7)
@@ -947,7 +970,7 @@ class _LessonCard extends StatelessWidget {
   }
 }
 
-class _EmptyDayCard extends StatelessWidget {
+class _EmptyMonthCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -960,7 +983,7 @@ class _EmptyDayCard extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        'Tanlangan kun uchun dars topilmadi',
+        "Bu oyda hali davomat yozuvi yo‘q",
         textAlign: TextAlign.center,
         style: GoogleFonts.inter(
           fontSize: 13,
@@ -1046,7 +1069,7 @@ class ParentBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
@@ -1118,6 +1141,38 @@ List<ParentAttendanceItemModel> _itemsForDate(
   return items.where((item) => _isSameDay(item.date, date)).toList();
 }
 
+List<ParentAttendanceItemModel> _itemsForMonth(
+  List<ParentAttendanceItemModel> items,
+  DateTime month,
+) {
+  final filtered = items
+      .where((item) =>
+          item.date.year == month.year && item.date.month == month.month)
+      .toList();
+  filtered.sort((a, b) {
+    final byDate = b.date.compareTo(a.date);
+    if (byDate != 0) return byDate;
+    final aTs = a.createdAt ?? a.date;
+    final bTs = b.createdAt ?? b.date;
+    return bTs.compareTo(aTs);
+  });
+  return filtered;
+}
+
+String _shortDate(DateTime date) {
+  const m = [
+    'yan', 'fev', 'mar', 'apr', 'may', 'iyn',
+    'iyl', 'avg', 'sen', 'okt', 'noy', 'dek',
+  ];
+  return '${date.day} ${m[date.month - 1]}';
+}
+
+String _shortTime(DateTime ts) {
+  final hh = ts.hour.toString().padLeft(2, '0');
+  final mm = ts.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
+}
+
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -1177,40 +1232,29 @@ String _monthYearUpper(DateTime date) {
   return '${m[date.month - 1]} ${date.year}';
 }
 
-String _selectedDayHeader(DateTime date) {
-  const months = [
-    'yanvar',
-    'fevral',
-    'mart',
-    'aprel',
-    'may',
-    'iyun',
-    'iyul',
-    'avgust',
-    'sentabr',
-    'oktabr',
-    'noyabr',
-    'dekabr',
-  ];
-  const weekdays = [
-    'dushanba',
-    'seshanba',
-    'chorshanba',
-    'payshanba',
-    'juma',
-    'shanba',
-    'yakshanba',
-  ];
-  return '${date.day}-${months[date.month - 1]}, ${weekdays[date.weekday - 1]}';
-}
 
 class AttendanceColors {
   const AttendanceColors._();
-  static const Color background = Color(0xFFF4F7FB);
-  static const Color text = Color(0xFF0F1E33);
-  static const Color textSoft = Color(0xFF4B5B72);
-  static const Color textMuted = Color(0xFF8090A8);
-  static const Color line = Color(0xFFE4ECF5);
+  static bool get _isDark =>
+      ParentColors.bg == const Color(0xFF0B0F17);
+  static Color get background => _isDark
+      ? const Color(0xFF0B0F17)
+      : const Color(0xFFF4F7FB);
+  static Color get card => _isDark
+      ? const Color(0xFF141926)
+      : const Color(0xFFFFFFFF);
+  static Color get text => _isDark
+      ? const Color(0xFFEAF1FB)
+      : const Color(0xFF0F1E33);
+  static Color get textSoft => _isDark
+      ? const Color(0xFFB6C2D6)
+      : const Color(0xFF4B5B72);
+  static Color get textMuted => _isDark
+      ? const Color(0xFF94A3B8)
+      : const Color(0xFF8090A8);
+  static Color get line => _isDark
+      ? const Color(0xFF24304A)
+      : const Color(0xFFE4ECF5);
   static const Color primaryBlue = Color(0xFF3B82F6);
   static const Color green = Color(0xFF10B981);
   static const Color red = Color(0xFFEF4444);

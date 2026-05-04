@@ -8,6 +8,7 @@ import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/parent/add_child_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
+import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/widgets/app_avatar.dart';
 import 'package:chaqmoq_mobile/widgets/app_bottom_sheet.dart';
 import 'package:chaqmoq_mobile/widgets/app_card.dart';
@@ -181,16 +182,24 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           onTap: () => _openSelector(data),
         ),
         const SizedBox(height: 14),
-        _ChaqmoqStatsCard(
-          chaqmoq: data.chaqmoq,
-          onTap: widget.onOpenProgress,
-        ),
-        const SizedBox(height: 14),
         _StatsGrid(
           stats: data.stats,
           onAttendance: widget.onOpenAttendance,
           onPayments: widget.onOpenPayments,
           onProgress: widget.onOpenProgress,
+        ),
+        const SizedBox(height: 12),
+        _AttendanceCard(
+          childId: data.selectedChild.id,
+          initialAttended: data.stats.monthlyAttendedLessons,
+          initialTotal: data.stats.monthlyTotalLessons,
+          initialPercent: data.stats.attendancePercent,
+          onOpenFull: widget.onOpenAttendance,
+        ),
+        const SizedBox(height: 14),
+        _ChaqmoqStatsCard(
+          chaqmoq: data.chaqmoq,
+          onTap: widget.onOpenProgress,
         ),
       ],
     );
@@ -248,7 +257,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 1),
               Text(
-                '$greeting aka 👋',
+                '$greeting 👋',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
@@ -741,16 +750,23 @@ class _ChaqmoqMonthBar extends StatelessWidget {
               height: valueLineHeight,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  '${month.earned}',
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                  style: ParentTextStyles.label.copyWith(
-                    color: textColor,
-                    fontSize: 10.5,
-                    height: 1.0,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      '${month.earned}',
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: ParentTextStyles.label.copyWith(
+                        color: textColor,
+                        fontSize: 10.5,
+                        height: 1.0,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 1),
+                    Icon(Icons.bolt_rounded, color: textColor, size: 10),
+                  ],
                 ),
               ),
             ),
@@ -790,6 +806,296 @@ class _ChaqmoqMonthBar extends StatelessWidget {
   }
 }
 
+class _AttendanceCard extends StatefulWidget {
+  const _AttendanceCard({
+    required this.childId,
+    required this.initialAttended,
+    required this.initialTotal,
+    required this.initialPercent,
+    this.onOpenFull,
+  });
+
+  final int childId;
+  final int initialAttended;
+  final int initialTotal;
+  final int initialPercent;
+  final VoidCallback? onOpenFull;
+
+  @override
+  State<_AttendanceCard> createState() => _AttendanceCardState();
+}
+
+class _AttendanceCardState extends State<_AttendanceCard> {
+  late DateTime _viewMonth;
+  late int _attended;
+  late int _total;
+  late int _percent;
+  bool _loading = false;
+  bool _isCurrentMonth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _viewMonth = DateTime(now.year, now.month);
+    _attended = widget.initialAttended;
+    _total = widget.initialTotal;
+    _percent = widget.initialPercent;
+  }
+
+  @override
+  void didUpdateWidget(covariant _AttendanceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isCurrentMonth) {
+      _attended = widget.initialAttended;
+      _total = widget.initialTotal;
+      _percent = widget.initialPercent;
+    }
+  }
+
+  bool _canGoNext() {
+    final now = DateTime.now();
+    final next = DateTime(_viewMonth.year, _viewMonth.month + 1);
+    return !next.isAfter(DateTime(now.year, now.month));
+  }
+
+  Future<void> _loadMonth(DateTime month) async {
+    setState(() {
+      _loading = true;
+      _viewMonth = month;
+      final now = DateTime.now();
+      _isCurrentMonth =
+          month.year == now.year && month.month == now.month;
+    });
+    try {
+      final service = context.read<ParentDashboardService>();
+      final data = await service.fetchAttendance(
+        childId: widget.childId,
+        month: month,
+      );
+      if (!mounted) return;
+      final s = data.summary;
+      setState(() {
+        _attended = s.attendedLessons;
+        _total = s.totalLessons;
+        _percent = s.attendancePercent;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _attended = 0;
+        _total = 0;
+        _percent = 0;
+        _loading = false;
+      });
+    }
+  }
+
+  void _shiftMonth(int delta) {
+    final next = DateTime(_viewMonth.year, _viewMonth.month + delta);
+    _loadMonth(next);
+  }
+
+  String _monthLabel() {
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
+    ];
+    return '${months[_viewMonth.month - 1]} ${_viewMonth.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = _total > 0
+        ? ((_attended / _total) * 100).round().clamp(0, 100)
+        : _percent.clamp(0, 100);
+    final hasPlan = _total > 0;
+    final tone = pct >= 85
+        ? ParentColors.success
+        : pct >= 60
+            ? ParentColors.amber
+            : ParentColors.danger;
+    final toneBg = pct >= 85
+        ? ParentColors.successBg
+        : pct >= 60
+            ? ParentColors.amberBg
+            : ParentColors.dangerBg;
+    final caption = !hasPlan
+        ? "Bu oyda dars rejasi belgilanmagan"
+        : pct == 0
+            ? "Bu oyda dars o‘tilmagan"
+            : pct >= 85
+                ? "A'lo davomat"
+                : pct >= 60
+                    ? "O‘rtacha davomat"
+                    : "Past davomat";
+    return AppPCard(
+      onTap: widget.onOpenFull,
+      borderRadius: BorderRadius.circular(18),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: toneBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.fact_check_outlined, color: tone, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      'Davomat',
+                      style: ParentTextStyles.bodySm,
+                    ),
+                    Text(
+                      caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: ParentColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    hasPlan ? '$_attended/$_total' : '—',
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: tone,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  Text(
+                    hasPlan ? '$pct%' : ' ',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: ParentColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child: LinearProgressIndicator(
+              value: pct / 100,
+              minHeight: 8,
+              backgroundColor: ParentColors.line,
+              valueColor: AlwaysStoppedAnimation<Color>(tone),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            decoration: BoxDecoration(
+              color: ParentColors.bgSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: <Widget>[
+                _MonthNavBtn(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: !_loading,
+                  onTap: () => _shiftMonth(-1),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _loading
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: ParentColors.primary,
+                            ),
+                          )
+                        : Text(
+                            _monthLabel(),
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: ParentColors.text,
+                            ),
+                          ),
+                  ),
+                ),
+                _MonthNavBtn(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: !_loading && _canGoNext(),
+                  onTap: () => _shiftMonth(1),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthNavBtn extends StatelessWidget {
+  const _MonthNavBtn({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 32,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: ParentColors.card,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ParentColors.line),
+            ),
+            child: Icon(icon, size: 16, color: ParentColors.text),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({
     required this.stats,
@@ -805,65 +1111,40 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tiles = <_StatTile>[
-      _StatTile(
-        icon: Icons.fact_check_outlined,
-        iconBg: ParentColors.successBg,
-        iconFg: ParentColors.success,
-        label: 'Davomat',
-        value: '${stats.attendancePercent}%',
-        sub: 'Bu oy',
-        trendUp: stats.attendancePercent >= 80,
-        onTap: onAttendance,
+    final hasDebt = stats.debtAmount > 0;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Expanded(
+            child: _StatTile(
+              icon: Icons.account_balance_wallet_outlined,
+              iconBg: hasDebt ? ParentColors.dangerBg : ParentColors.successBg,
+              iconFg: hasDebt ? ParentColors.danger : ParentColors.success,
+              label: 'Qarzdorlik',
+              value: hasDebt ? Formatters.number(stats.debtAmount) : '0',
+              valueColor: hasDebt ? ParentColors.danger : null,
+              sub: hasDebt ? 'Qarzdor' : 'To‘liq to‘langan',
+              onTap: onPayments,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatTile(
+              icon: Icons.grade_outlined,
+              iconBg: ParentColors.amberBg,
+              iconFg: ParentColors.amberDeep,
+              label: "O‘rtacha",
+              value: '${stats.averageScore}%',
+              sub: '5 dan',
+              trailingIcon: Icons.bolt_rounded,
+              trailingIconColor: ParentColors.primaryDeep,
+              trendUp: stats.averageScore >= 70,
+              onTap: onProgress,
+            ),
+          ),
+        ],
       ),
-      _StatTile(
-        icon: Icons.account_balance_wallet_outlined,
-        iconBg: stats.debtAmount <= 0
-            ? ParentColors.successBg
-            : ParentColors.dangerBg,
-        iconFg: stats.debtAmount <= 0
-            ? ParentColors.success
-            : ParentColors.danger,
-        label: 'Qarzdorlik',
-        value: stats.debtAmount <= 0
-            ? '0 so‘m'
-            : '${_compactSom(stats.debtAmount)} so‘m',
-        sub: stats.debtAmount <= 0 ? 'To‘liq to‘langan' : 'Qarzdor',
-        onTap: onPayments,
-      ),
-      _StatTile(
-        icon: Icons.grade_outlined,
-        iconBg: ParentColors.amberBg,
-        iconFg: ParentColors.amberDeep,
-        label: 'O‘rtacha ball',
-        value: '${stats.averageScore}%',
-        sub: '5 dan',
-        trendUp: stats.averageScore >= 70,
-        onTap: onProgress,
-      ),
-      _StatTile(
-        icon: Icons.event_outlined,
-        iconBg: ParentColors.infoBg,
-        iconFg: ParentColors.primaryDeep,
-        label: 'Keyingi to‘lov',
-        value: stats.nextPaymentDate == null
-            ? '—'
-            : Formatters.shortDayMonth(stats.nextPaymentDate),
-        sub: stats.debtAmount > 0
-            ? '${_compactSom(stats.debtAmount)} so‘m'
-            : 'To‘lov yo‘q',
-        onTap: onPayments,
-      ),
-    ];
-
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.42,
-      children: tiles,
     );
   }
 }
@@ -876,6 +1157,9 @@ class _StatTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.sub,
+    this.valueColor,
+    this.trailingIcon,
+    this.trailingIconColor,
     this.trendUp,
     this.onTap,
   });
@@ -886,11 +1170,17 @@ class _StatTile extends StatelessWidget {
   final String label;
   final String value;
   final String sub;
+  final Color? valueColor;
+  final IconData? trailingIcon;
+  final Color? trailingIconColor;
   final bool? trendUp;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = valueColor == null
+        ? ParentTextStyles.value
+        : ParentTextStyles.value.copyWith(color: valueColor);
     return AppPCard(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -928,10 +1218,25 @@ class _StatTile extends StatelessWidget {
             style: ParentTextStyles.bodySm,
           ),
           const SizedBox(height: 1),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(value, style: ParentTextStyles.value),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value, style: valueStyle),
+                ),
+              ),
+              if (trailingIcon != null) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  trailingIcon,
+                  size: 16,
+                  color: trailingIconColor ?? ParentColors.primaryDeep,
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 1),
           Text(
@@ -1122,10 +1427,3 @@ AppAvatarColor _avatarColor(ParentChildModel child) {
   return palette[child.id.abs() % palette.length];
 }
 
-String _compactSom(int v) {
-  if (v == 0) return '0';
-  if (v >= 1000000) {
-    return (v / 1000000).toStringAsFixed(v % 1000000 == 0 ? 0 : 1) + ' mln';
-  }
-  return (v / 1000).toStringAsFixed(0) + ' K';
-}

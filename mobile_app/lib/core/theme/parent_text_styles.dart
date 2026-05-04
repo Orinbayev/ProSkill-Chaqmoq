@@ -1,8 +1,9 @@
-import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Parent typography — Inter, weights 400–800, sizes 10–32px.
+/// Ranglar mavzuga moslashish uchun olib tashlangan — har bir Text widget
+/// kerakli ParentColors.text/textSoft rangini berishi kerak.
 class ParentTextStyles {
   const ParentTextStyles._();
 
@@ -10,7 +11,6 @@ class ParentTextStyles {
     fontSize: 26,
     height: 1.1,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.4,
   );
 
@@ -18,7 +18,6 @@ class ParentTextStyles {
     fontSize: 22,
     height: 1.15,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.3,
   );
 
@@ -26,7 +25,6 @@ class ParentTextStyles {
     fontSize: 19,
     height: 1.18,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.2,
   );
 
@@ -34,7 +32,6 @@ class ParentTextStyles {
     fontSize: 16,
     height: 1.18,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.2,
   );
 
@@ -42,35 +39,30 @@ class ParentTextStyles {
     fontSize: 13.5,
     height: 1.4,
     fontWeight: FontWeight.w500,
-    color: ParentColors.text,
   );
 
   static TextStyle get bodySoft => GoogleFonts.inter(
     fontSize: 13,
     height: 1.45,
     fontWeight: FontWeight.w500,
-    color: ParentColors.textSoft,
   );
 
   static TextStyle get bodyMuted => GoogleFonts.inter(
     fontSize: 12.5,
     height: 1.4,
     fontWeight: FontWeight.w500,
-    color: ParentColors.textMuted,
   );
 
   static TextStyle get bodySm => GoogleFonts.inter(
     fontSize: 11.5,
     height: 1.4,
     fontWeight: FontWeight.w600,
-    color: ParentColors.textMuted,
   );
 
   static TextStyle get label => GoogleFonts.inter(
     fontSize: 11,
     height: 1.2,
     fontWeight: FontWeight.w700,
-    color: ParentColors.textMuted,
     letterSpacing: 0.12,
   );
 
@@ -78,7 +70,6 @@ class ParentTextStyles {
     fontSize: 14,
     height: 1.2,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.1,
   );
 
@@ -86,7 +77,6 @@ class ParentTextStyles {
     fontSize: 18,
     height: 1.1,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.4,
   );
 
@@ -94,7 +84,6 @@ class ParentTextStyles {
     fontSize: 30,
     height: 1.05,
     fontWeight: FontWeight.w800,
-    color: ParentColors.text,
     letterSpacing: -0.6,
   );
 }

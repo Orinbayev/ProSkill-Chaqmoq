@@ -56,6 +56,7 @@ Future<void> main() async {
   final paymentsService = PaymentsService(apiClient);
   final notificationsService = NotificationsService(apiClient);
   final chaqmoqService = ChaqmoqService(apiClient);
+  final storeService = StoreService(apiClient);
   final parentDashboardService = ParentDashboardService(apiClient);
 
   final authProvider = AuthProvider(authRepository: authRepository);
@@ -74,6 +75,7 @@ Future<void> main() async {
       paymentsService: paymentsService,
       notificationsService: notificationsService,
       chaqmoqService: chaqmoqService,
+      storeService: storeService,
       parentDashboardService: parentDashboardService,
     ),
   );
@@ -93,6 +95,7 @@ class ChaqmoqApp extends StatelessWidget {
     required this.paymentsService,
     required this.notificationsService,
     required this.chaqmoqService,
+    required this.storeService,
     required this.parentDashboardService,
   });
 
@@ -107,6 +110,7 @@ class ChaqmoqApp extends StatelessWidget {
   final PaymentsService paymentsService;
   final NotificationsService notificationsService;
   final ChaqmoqService chaqmoqService;
+  final StoreService storeService;
   final ParentDashboardService parentDashboardService;
 
   @override
@@ -116,6 +120,7 @@ class ChaqmoqApp extends StatelessWidget {
         Provider<StorageService>.value(value: storageService),
         Provider<ParentDashboardService>.value(value: parentDashboardService),
         Provider<DashboardService>.value(value: dashboardService),
+        Provider<StoreService>.value(value: storeService),
         Provider<LocalNotificationService>.value(value: localNotificationService),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(
@@ -220,7 +225,7 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 520),
+      duration: const Duration(milliseconds: 240),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (Widget c, Animation<double> a) {

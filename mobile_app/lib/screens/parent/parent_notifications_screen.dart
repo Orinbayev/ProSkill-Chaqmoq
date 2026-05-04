@@ -2,6 +2,7 @@ import 'package:chaqmoq_mobile/core/theme/parent_colors.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
+import 'package:chaqmoq_mobile/screens/notifications/notification_presenter.dart';
 import 'package:chaqmoq_mobile/widgets/app_card.dart';
 import 'package:chaqmoq_mobile/widgets/app_parent_app_bar.dart';
 import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
@@ -63,7 +64,7 @@ class _ParentNotificationsScreenState extends State<ParentNotificationsScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.done_all_rounded,
+                              Icon(Icons.done_all_rounded,
                                   color: ParentColors.text, size: 18),
                               const SizedBox(width: 6),
                               Text('Hammasi',
@@ -135,13 +136,37 @@ class _Tile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unread = !item.isRead;
-    final iconBg = unread ? ParentColors.primaryTint : ParentColors.bgSoft;
-    final iconFg = unread ? ParentColors.primaryDeep : ParentColors.textMuted;
+    final kind = resolveNotificationKind(item);
+    final isAdded = kind == NotificationKind.rewardAdded;
+    final isRemoved = kind == NotificationKind.rewardRemoved;
+
+    final Color iconBg;
+    final Color iconFg;
+    final Color? cardBg;
+    final Color? cardBorder;
+
+    if (isAdded) {
+      iconBg = const Color(0xFFDCFCE7); // light green
+      iconFg = const Color(0xFF15803D); // green
+      cardBg = unread ? const Color(0xFFEAF8EF) : Colors.white;
+      cardBorder = unread ? const Color(0xFFA7F3C2) : const Color(0xFFD1F0DD);
+    } else if (isRemoved) {
+      iconBg = const Color(0xFFFEE2E2); // light red
+      iconFg = const Color(0xFFDC2626); // red
+      cardBg = unread ? const Color(0xFFFDECEC) : Colors.white;
+      cardBorder = unread ? const Color(0xFFFCA5A5) : const Color(0xFFF7C9C9);
+    } else {
+      iconBg = unread ? ParentColors.primaryTint : ParentColors.bgSoft;
+      iconFg = unread ? ParentColors.primaryDeep : ParentColors.textMuted;
+      cardBg = unread ? ParentColors.primaryTint : null;
+      cardBorder = unread ? const Color(0xFFBFDBFE) : null;
+    }
+
     return AppPCard(
       onTap: onTap,
       padding: const EdgeInsets.all(14),
-      borderColor: unread ? const Color(0xFFBFDBFE) : null,
-      background: unread ? ParentColors.primaryTint : null,
+      borderColor: cardBorder,
+      background: cardBg,
       child: Stack(
         children: [
           Row(
@@ -155,7 +180,13 @@ class _Tile extends StatelessWidget {
                   color: iconBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(_iconFor(item.type), size: 22, color: iconFg),
+                child: Icon(
+                  isAdded || isRemoved
+                      ? Icons.bolt_rounded
+                      : _iconFor(item.type),
+                  size: 22,
+                  color: iconFg,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

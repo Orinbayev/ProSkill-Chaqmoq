@@ -250,8 +250,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 26),
                       _AppTextField(
                         controller: _identifierController,
-                        label: 'Email yoki telefon',
-                        hintText: 'misol@chaqmoq.uz yoki +998 90 123 45 67',
+                        label: 'Login',
+                        hintText: 'Email yoki +998 90 123 45 67',
                         icon: Icons.alternate_email_rounded,
                         enabled: !isLoading,
                         keyboardType: TextInputType.emailAddress,
@@ -677,13 +677,28 @@ class _PrimaryButton extends StatelessWidget {
             ),
           ),
           child: isLoading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
-                    color: Colors.white,
-                  ),
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Tekshirilmoqda...',
+                      style: GoogleFonts.inter(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 )
               : Text(
                   text,
