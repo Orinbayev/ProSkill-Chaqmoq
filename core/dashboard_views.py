@@ -2294,6 +2294,84 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         teacher_salary_total = 0
 
+    # ── Oldingi davr KPI deltalari (har bir karta uchun %) ─────────
+    _pf, _pt = period["prev_from"], period["prev_to"]
+
+    # Sof foyda — oldingi davr
+    try:
+        prev_exp_qs = _expenses_for_center(center).filter(sana__date__range=(_pf, _pt))
+        prev_expenses_val = int(prev_exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
+    except Exception:
+        prev_expenses_val = 0
+    prev_net_profit = prev_rev - prev_expenses_val
+
+    # Aktiv o'quvchilar — oldingi davr oxiriga snapshot
+    try:
+        prev_active_students = students_qs.filter(date_joined__date__lte=_pt).count()
+    except Exception:
+        prev_active_students = 0
+
+    # Lidlar — oldingi davr
+    try:
+        prev_leads = Lead.objects.filter(
+            center=center,
+            qoshilgan_sana__date__range=(_pf, _pt),
+        ).count()
+    except Exception:
+        prev_leads = 0
+
+    # Qarzdorlar (snapshot) — oldingi davr oxirida
+    prev_total_debt = 0
+    try:
+        from django.db.models import OuterRef, Subquery
+        from django.db.models.functions import Coalesce
+        from education.models import TuitionMonth
+        prev_debt_month = _pt.replace(day=1)
+        fee_field2 = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
+        prev_fee_sub = TuitionMonth.objects.filter(
+            enrollment=OuterRef("pk"), month=prev_debt_month
+        ).values("enrollment").annotate(s=Sum(fee_field2)).values("s")
+        prev_paid_sub = PaymentAllocation.objects.filter(
+            tuition_month__enrollment=OuterRef("pk"),
+            tuition_month__month=prev_debt_month,
+        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+        prev_debt_qs = (
+            active_enroll
+            .annotate(_pfee=Coalesce(Subquery(prev_fee_sub), 0))
+            .annotate(_ppaid=Coalesce(Subquery(prev_paid_sub), 0))
+            .annotate(d=F("_pfee") - F("_ppaid"))
+            .filter(d__gt=0)
+        )
+        prev_total_debt = int(prev_debt_qs.aggregate(s=Sum("d"))["s"] or 0)
+    except Exception:
+        prev_total_debt = 0
+
+    # O'qituvchi maoshi — oldingi davr
+    prev_teacher_salary = 0
+    try:
+        from education.models import TeacherIncome
+        prev_ti_qs = TeacherIncome.objects.filter(
+            center=center, attendance__date__range=(_pf, _pt)
+        )
+        if branch:
+            prev_ti_qs = prev_ti_qs.filter(group__branch=branch)
+        prev_teacher_salary = int(prev_ti_qs.aggregate(s=Sum("amount"))["s"] or 0)
+    except Exception:
+        prev_teacher_salary = 0
+
+    # Hodimlar (oldingi davr boshigacha bo'lganlar — snapshot)
+    try:
+        prev_teachers_count = teachers_qs.filter(date_joined__date__lte=_pt).count()
+    except Exception:
+        prev_teachers_count = teachers_count
+    try:
+        prev_managers_count = User.objects.filter(
+            center=center, role="manager", is_archived=False,
+            date_joined__date__lte=_pt,
+        ).count()
+    except Exception:
+        prev_managers_count = managers_count
+
     # ── To'lov turlari (PaymentMethod taqsimoti) ───────────────────
     pay_method_labels = []
     pay_method_counts = []
@@ -2338,6 +2416,13 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "changes": {
                 "revenue": _pct_change(revenue, prev_rev),
                 "students": _pct_change(new_this_month, prev_students),
+                "net_profit": _pct_change(net_profit, prev_net_profit),
+                "active_students": _pct_change(active_students, prev_active_students),
+                "teachers": _pct_change(teachers_count, prev_teachers_count),
+                "managers": _pct_change(managers_count, prev_managers_count),
+                "leads": _pct_change(total_leads, prev_leads),
+                "total_debt": _pct_change(total_debt, prev_total_debt),
+                "teacher_salary": _pct_change(teacher_salary_total, prev_teacher_salary),
             },
         },
         "charts": {

@@ -1482,29 +1482,49 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 /* ══════════════════ KPI GRID ══════════════════ */
 .bq-kgrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0,1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 12px;
 }
-@media(max-width:1280px){ .bq-kgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:1280px){ .bq-kgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } }
 @media(max-width:720px) { .bq-kgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:460px) { .bq-kgrid{ grid-template-columns:1fr; } }
 
 .bq-kpi {
   position: relative; overflow: hidden;
-  padding: 14px; border-radius: 15px;
+  padding: 16px 16px 14px; border-radius: 16px;
   border: 1px solid var(--bq-br);
-  background: var(--bq-card);
-  backdrop-filter: blur(16px);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,.025) 0%, transparent 55%),
+    var(--bq-card);
+  backdrop-filter: blur(18px);
   display: flex; flex-direction: column; gap: 10px;
-  transition: transform .2s, border-color .2s, box-shadow .2s;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
   text-decoration: none; color: inherit;
   cursor: pointer;
+  isolation: isolate;
 }
-.bq-kpi:hover { transform: translateY(-3px); border-color: var(--bq-br2); box-shadow: 0 12px 30px rgba(0,0,0,.22); }
+.bq-kpi::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  border-radius: inherit;
+  background: radial-gradient(80% 60% at 100% 0%, var(--bq-kpi-glow, transparent) 0%, transparent 60%);
+  opacity:.55;
+  z-index:-1;
+}
+.bq-kpi:hover {
+  transform: translateY(-3px);
+  border-color: var(--bq-br2);
+  box-shadow: 0 18px 40px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.02) inset;
+}
 .bq-kpi::before {
   content:''; position:absolute; top:0; left:0; right:0; height:2px;
-  border-radius: 15px 15px 0 0; opacity:.75;
+  border-radius: 16px 16px 0 0; opacity:.85;
 }
+.bq-kpi--cyan   { --bq-kpi-glow: rgba(34,211,238,.08); }
+.bq-kpi--green  { --bq-kpi-glow: rgba(52,211,153,.08); }
+.bq-kpi--amber  { --bq-kpi-glow: rgba(251,191,36,.08); }
+.bq-kpi--rose   { --bq-kpi-glow: rgba(244,63,94,.08); }
+.bq-kpi--violet { --bq-kpi-glow: rgba(129,140,248,.08); }
+.bq-kpi--blue   { --bq-kpi-glow: rgba(96,165,250,.08); }
 .bq-kpi--cyan::before   { background:linear-gradient(90deg,var(--bq-cyan),transparent); }
 .bq-kpi--green::before  { background:linear-gradient(90deg,var(--bq-green),transparent); }
 .bq-kpi--amber::before  { background:linear-gradient(90deg,var(--bq-amber),transparent); }
@@ -1513,26 +1533,34 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-kpi--blue::before   { background:linear-gradient(90deg,var(--bq-blue),transparent); }
 
 .bq-kpi__head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
-.bq-kpi__icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; border:1px solid rgba(255,255,255,.07); }
-.bq-kpi--cyan   .bq-kpi__icon { background:rgba(34,211,238,.12);  color:var(--bq-cyan); }
-.bq-kpi--green  .bq-kpi__icon { background:rgba(52,211,153,.12);  color:var(--bq-green); }
-.bq-kpi--amber  .bq-kpi__icon { background:rgba(251,191,36,.12);  color:var(--bq-amber); }
-.bq-kpi--rose   .bq-kpi__icon { background:rgba(244,63,94,.12);   color:var(--bq-rose); }
-.bq-kpi--violet .bq-kpi__icon { background:rgba(129,140,248,.12); color:var(--bq-violet); }
-.bq-kpi--blue   .bq-kpi__icon { background:rgba(96,165,250,.12);  color:var(--bq-blue); }
+.bq-kpi__icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.bq-kpi--cyan   .bq-kpi__icon { background:linear-gradient(135deg, rgba(34,211,238,.18), rgba(34,211,238,.08));  color:var(--bq-cyan);   border-color:rgba(34,211,238,.18); }
+.bq-kpi--green  .bq-kpi__icon { background:linear-gradient(135deg, rgba(52,211,153,.18), rgba(52,211,153,.08));  color:var(--bq-green);  border-color:rgba(52,211,153,.18); }
+.bq-kpi--amber  .bq-kpi__icon { background:linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.08));  color:var(--bq-amber);  border-color:rgba(251,191,36,.18); }
+.bq-kpi--rose   .bq-kpi__icon { background:linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.08));    color:var(--bq-rose);   border-color:rgba(244,63,94,.18); }
+.bq-kpi--violet .bq-kpi__icon { background:linear-gradient(135deg, rgba(129,140,248,.18), rgba(129,140,248,.08));color:var(--bq-violet); border-color:rgba(129,140,248,.18); }
+.bq-kpi--blue   .bq-kpi__icon { background:linear-gradient(135deg, rgba(96,165,250,.18), rgba(96,165,250,.08));  color:var(--bq-blue);   border-color:rgba(96,165,250,.18); }
 
 .bq-badge {
-  display:inline-flex; align-items:center; gap:3px;
-  padding:2px 7px; border-radius:999px;
-  font-size:9.5px; font-weight:700; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:999px;
+  font-size:10px; font-weight:800; white-space:nowrap;
+  letter-spacing:.01em;
+  font-variant-numeric: tabular-nums;
 }
-.bq-badge--up   { color:#86efac; background:rgba(34,197,94,.12);  border:1px solid rgba(34,197,94,.2); }
-.bq-badge--down { color:#fda4af; background:rgba(244,63,94,.12);  border:1px solid rgba(244,63,94,.2); }
+.bq-badge--up   { color:#86efac; background:rgba(34,197,94,.14);  border:1px solid rgba(34,197,94,.24); }
+.bq-badge--down { color:#fda4af; background:rgba(244,63,94,.14);  border:1px solid rgba(244,63,94,.24); }
 .bq-badge--flat { color:var(--bq-muted); background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.14); }
 
-.bq-kpi__lbl  { font-size:9.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--bq-soft); }
-.bq-kpi__val  { font-size:clamp(1.15rem,1.8vw,1.6rem); font-weight:800; letter-spacing:-.05em; line-height:1; color:var(--bq-txt); margin-top:2px; }
-.bq-kpi__sub  { font-size:10.5px; color:var(--bq-muted); line-height:1.4; }
+.bq-kpi__lbl  { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--bq-soft); }
+.bq-kpi__val  { font-size:clamp(1.25rem,1.9vw,1.7rem); font-weight:800; letter-spacing:-.045em; line-height:1.05; color:var(--bq-txt); margin-top:2px; font-variant-numeric: tabular-nums; }
+.bq-kpi__sub  { font-size:11px; color:var(--bq-muted); line-height:1.4; font-weight:500; }
 
 /* ══════════════════ SECTION ══════════════════ */
 .bq-sec { display:flex; flex-direction:column; gap:10px; }
@@ -1838,10 +1866,11 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   min-height: 0;
   padding: 18px 24px;
   border-radius: 18px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 18px 40px rgba(15, 23, 42, .08);
-  color: #111827;
+  border: 1px solid var(--bq-br);
+  background: var(--bq-card);
+  backdrop-filter: blur(16px);
+  box-shadow: none;
+  color: var(--bq-txt);
 }
 .bq-student-card__head {
   display: flex;
@@ -1852,7 +1881,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-student-card__title {
   margin: 0;
-  color: #111827;
+  color: var(--bq-txt);
   font-size: 18px;
   line-height: 1.05;
   font-weight: 850;
@@ -1860,7 +1889,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-student-card__sub {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: var(--bq-muted);
   font-size: 12.5px;
   line-height: 1.2;
   font-weight: 500;
@@ -1878,7 +1907,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
-  color: #111827;
+  color: var(--bq-txt);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1890,8 +1919,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-student-toggle__btn:hover,
 .bq-student-toggle__btn.is-active {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: rgba(255,255,255,.035);
+  border-color: var(--bq-br2);
 }
 .bq-student-toggle__btn span {
   font-size: 12.5px;
@@ -1907,7 +1936,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #475569;
+  color: var(--bq-muted);
   font-size: 13px;
   font-weight: 650;
 }
@@ -1946,7 +1975,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   pointer-events: none;
 }
 .bq-attendance__center span {
-  color: #94a3b8;
+  color: var(--bq-muted);
   font-size: 11px;
   font-weight: 850;
   letter-spacing: .06em;
@@ -1954,7 +1983,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-attendance__center strong {
   margin-top: 5px;
-  color: #111827;
+  color: var(--bq-txt);
   font-size: 26px;
   line-height: 1;
   font-weight: 900;
@@ -1962,7 +1991,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-attendance__center small {
   margin-top: 6px;
-  color: #94a3b8;
+  color: var(--bq-muted);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1985,7 +2014,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-attendance__name {
   min-width: 0;
-  color: #475569;
+  color: var(--bq-muted);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -1993,13 +2022,13 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   text-overflow: ellipsis;
 }
 .bq-attendance__count {
-  color: #111827;
+  color: var(--bq-txt);
   font-size: 13px;
   font-weight: 850;
   text-align: right;
 }
 .bq-attendance__pct {
-  color: #94a3b8;
+  color: var(--bq-muted);
   font-size: 12.5px;
   font-weight: 600;
   text-align: right;
@@ -2016,6 +2045,35 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   font-size: 12.5px;
   font-weight: 850;
   white-space: nowrap;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-card {
+  border-color: #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 18px 40px rgba(15, 23, 42, .08);
+  color: #111827;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-card__title,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__center strong,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__count {
+  color: #111827;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-card__sub,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__center span,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__center small,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__pct {
+  color: #94a3b8;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-legend__item,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-attendance__name {
+  color: #475569;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-toggle__btn {
+  color: #111827;
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-toggle__btn:hover,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-student-toggle__btn.is-active {
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
 @media(max-width:1180px){
   .bq-student-insights { grid-template-columns: 1fr; }
@@ -2423,6 +2481,62 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-ch--md  { height:195px; }
 .bq-ch--sm  { height:175px; }
 .bq-ch--dn  { height:195px; display:flex; align-items:center; justify-content:center; }
+.bq-chart-tooltip {
+  position: fixed;
+  z-index: 12000;
+  min-width: 118px;
+  max-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(7,13,26,.96);
+  box-shadow: 0 16px 36px rgba(0,0,0,.38);
+  color: #e2e8f0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  transition: opacity .12s ease;
+}
+.bq-chart-tooltip__title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+.bq-chart-tooltip__body {
+  display: grid;
+  gap: 4px;
+  margin-top: 7px;
+}
+.bq-chart-tooltip__line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.bq-chart-tooltip__swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.28);
+}
+html[data-role-theme="light"] .bq-chart-tooltip {
+  border-color: rgba(148,163,184,.24);
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 18px 36px rgba(15,23,42,.16);
+  color: #0f172a;
+}
+html[data-role-theme="light"] .bq-chart-tooltip__title {
+  color: #0f172a;
+}
+html[data-role-theme="light"] .bq-chart-tooltip__line {
+  color: #334155;
+}
 
 /* ══════════════════ GRID ══════════════════ */
 .bq-g { display:grid; gap:12px; }
@@ -2883,28 +2997,98 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-gri__badge--lo   { background:rgba(244,63,94,.12);   color:var(--bq-rose); }
 
 /* ══════════════════ MOLIYAVIY KARTA ══════════════════ */
-.bq-card--finance { padding:0; overflow:hidden; }
+.bq-card--finance {
+  padding:0; overflow:hidden;
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgba(255,255,255,.025) 0%, transparent 60%),
+    var(--bq-card);
+}
 .bq-fin-stats {
-  display:grid; grid-template-columns:repeat(4,1fr);
+  display:grid; grid-template-columns:repeat(3,1fr);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
 .bq-fin-stat {
-  display:flex; align-items:center; gap:10px;
-  padding:14px 18px;
-  border-right:1px solid rgba(255,255,255,.05);
-  transition:background .2s;
+  position:relative;
+  display:flex; align-items:flex-start; gap:12px;
+  padding:16px 22px;
+  transition: background .2s ease;
 }
-.bq-fin-stat:last-child { border-right:none; }
-.bq-fin-stat:hover { background:rgba(255,255,255,.03); }
-.bq-fin-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.bq-fin-lbl { display:block; font-size:10px; color:var(--bq-soft); text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:2px; }
-.bq-fin-val { display:block; font-size:13px; font-weight:800; color:var(--bq-txt); white-space:nowrap; }
-.bq-fin-hint { display:block; font-size:9.5px; color:var(--bq-soft); margin-top:1px; font-weight:500; }
-.bq-card--finance .bq-ch { padding:16px; }
-.bq-fin-stats { grid-template-columns:repeat(3,1fr); }
+.bq-fin-stat + .bq-fin-stat::before {
+  content:'';
+  position:absolute; left:0; top:18%; bottom:18%;
+  width:1px;
+  background:linear-gradient(180deg, transparent, rgba(255,255,255,.08), transparent);
+}
+.bq-fin-stat:hover { background:rgba(255,255,255,.025); }
+.bq-fin-dot {
+  width:10px; height:10px; border-radius:3px;
+  flex-shrink:0; margin-top:6px;
+  box-shadow: 0 0 12px currentColor;
+}
+.bq-fin-lbl { display:block; font-size:10px; color:var(--bq-soft); text-transform:uppercase; letter-spacing:.1em; font-weight:800; margin-bottom:4px; }
+.bq-fin-val {
+  display:block; font-size:clamp(.95rem,1.3vw,1.15rem);
+  font-weight:800; color:var(--bq-txt);
+  letter-spacing:-.02em; white-space:nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height:1.1;
+}
+.bq-fin-hint { display:block; font-size:10.5px; color:var(--bq-soft); margin-top:3px; font-weight:500; }
+.bq-card--finance .bq-ch { padding:18px 16px 12px; }
 @media(max-width:700px){
-  .bq-fin-stats { grid-template-columns:repeat(2,1fr); }
-  .bq-fin-stat:nth-child(2) { border-right:none; }
+  .bq-fin-stats { grid-template-columns:1fr; }
+  .bq-fin-stat + .bq-fin-stat::before {
+    left:16px; right:16px; top:0; bottom:auto;
+    width:auto; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+  }
+}
+
+/* Dark mode cards must be visually identical across dashboard sections. */
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-card--finance,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-student-card,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-insight-card,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-card,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-card {
+  background: #0d1526 !important;
+  border-color: rgba(255,255,255,.07) !important;
+  box-shadow: none !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-student-card__title,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-insight-title,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-card__title,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-card__title,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-name strong,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-count,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-revenue,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-title {
+  color: var(--bq-txt) !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-student-card__sub,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-insight-sub,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-card__sub,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-card__sub,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-card__link,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-card__link,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-teacher,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-name small,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-fill__pct,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-meta {
+  color: var(--bq-muted) !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-table thead {
+  background: rgba(255,255,255,.035) !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-table td,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-list,
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-item {
+  border-color: rgba(255,255,255,.06) !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-best-fill__track {
+  background: rgba(148,163,184,.16) !important;
+}
+html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-item:hover {
+  background: rgba(255,255,255,.035) !important;
 }
 
 /* ══════════════════ XAVFLI O'QUVCHILAR ══════════════════ */
@@ -3090,8 +3274,12 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 .bq-chat__send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
 
 /* ── Yangi KPI ranglar (Qarzdorlar / Maosh) ── */
-.bq-kpi--orange { --bq-accent: #fb923c; }
-.bq-kpi--teal   { --bq-accent: #2dd4bf; }
+.bq-kpi--orange { --bq-accent: #fb923c; --bq-kpi-glow: rgba(251,146,60,.08); }
+.bq-kpi--teal   { --bq-accent: #2dd4bf; --bq-kpi-glow: rgba(45,212,191,.08); }
+.bq-kpi--orange::before { background:linear-gradient(90deg,#fb923c,transparent); opacity:.85; }
+.bq-kpi--teal::before   { background:linear-gradient(90deg,#2dd4bf,transparent); opacity:.85; }
+.bq-kpi--orange .bq-kpi__icon { background:linear-gradient(135deg, rgba(251,146,60,.18), rgba(251,146,60,.08)); color:#fb923c; border-color:rgba(251,146,60,.18); }
+.bq-kpi--teal   .bq-kpi__icon { background:linear-gradient(135deg, rgba(45,212,191,.18), rgba(45,212,191,.08)); color:#2dd4bf; border-color:rgba(45,212,191,.18); }
 .bq-kpi__val--orange { color: #fb923c; }
 .bq-kpi__val--teal   { color: #2dd4bf; }
 
@@ -3587,7 +3775,29 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
           <div class="bq-kpi__sub" id="k1s">Yuklanmoqda...</div>
         </a>
 
-        <!-- 2. Sof Foyda -->
+        <!-- 2. Qarzdorlar -->
+        <a class="bq-kpi bq-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k7d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Qarzdorlar</div>
+          <div class="bq-kpi__val bq-kpi__val--orange" id="k7v">—</div>
+          <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
+        </a>
+
+        <!-- 3. O'qituvchi maoshi -->
+        <div class="bq-kpi bq-kpi--teal">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k8d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
+          <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
+          <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
+        </div>
+
+        <!-- 4. Sof Foyda -->
         <div class="bq-kpi bq-kpi--cyan">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
@@ -3598,7 +3808,7 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
           <div class="bq-kpi__sub" id="k2s">—</div>
         </div>
 
-        <!-- 3. Faol O'quvchi -->
+        <!-- 5. Faol O'quvchi -->
         <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
@@ -3609,27 +3819,29 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
           <div class="bq-kpi__sub" id="k3s">—</div>
         </a>
 
-        <!-- 4. O'qituvchilar -->
+        <!-- 6. O'qituvchilar -->
         <a class="bq-kpi bq-kpi--violet" href="{% url 'core:teacher_list' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k4d">—</span>
           </div>
           <div class="bq-kpi__lbl">O'qituvchilar</div>
           <div class="bq-kpi__val" id="k4v" style="color:var(--bq-violet)">—</div>
           <div class="bq-kpi__sub" id="k4s">Faol o'qituvchilar</div>
         </a>
 
-        <!-- 5. Managerlar -->
+        <!-- 7. Managerlar -->
         <a class="bq-kpi bq-kpi--amber" href="{% url 'core:stat_managers' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-user-tie"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k5d">—</span>
           </div>
           <div class="bq-kpi__lbl">Managerlar</div>
           <div class="bq-kpi__val" id="k5v" style="color:var(--bq-amber)">—</div>
           <div class="bq-kpi__sub" id="k5s">Faol managerlar</div>
         </a>
 
-        <!-- 6. Lidlar -->
+        <!-- 8. Lidlar -->
         <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-phone-volume"></i></div>
@@ -3639,26 +3851,6 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
           <div class="bq-kpi__val" id="k6v" style="color:var(--bq-rose)">—</div>
           <div class="bq-kpi__sub" id="k6s">—</div>
         </a>
-
-        <!-- 7. Qarzdorlar -->
-        <a class="bq-kpi bq-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-          </div>
-          <div class="bq-kpi__lbl">Qarzdorlar</div>
-          <div class="bq-kpi__val bq-kpi__val--orange" id="k7v">—</div>
-          <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
-        </a>
-
-        <!-- 8. O'qituvchi maoshi -->
-        <div class="bq-kpi bq-kpi--teal">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
-          </div>
-          <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
-          <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
-          <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
-        </div>
 
       </div>
 
@@ -4428,12 +4620,66 @@ function renderGroupChart(labels,data){
   }});
 }
 
+function getChartTooltipElement(){
+  let el=document.getElementById('bqChartTooltip');
+  if(!el){
+    el=document.createElement('div');
+    el.id='bqChartTooltip';
+    el.className='bq-chart-tooltip';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function externalDonutTooltip(context){
+  const {chart, tooltip}=context;
+  const el=getChartTooltipElement();
+  if(!tooltip || tooltip.opacity===0){
+    el.style.opacity='0';
+    return;
+  }
+
+  const title=(tooltip.title||[]).map(escHtml).join(' ');
+  const bodyLines=(tooltip.body||[]).flatMap((body)=>body.lines||[]);
+  const colors=tooltip.labelColors||[];
+  const bodyHtml=bodyLines.map((line,i)=>{
+    const color=colors[i]?.backgroundColor || colors[0]?.backgroundColor || '#94a3b8';
+    return `<div class="bq-chart-tooltip__line">
+      <span class="bq-chart-tooltip__swatch" style="background:${color}"></span>
+      <span>${escHtml(line)}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`${title?`<div class="bq-chart-tooltip__title">${title}</div>`:''}<div class="bq-chart-tooltip__body">${bodyHtml}</div>`;
+  el.style.opacity='1';
+
+  const canvasRect=chart.canvas.getBoundingClientRect();
+  const tipRect=el.getBoundingClientRect();
+  const gap=12;
+  const viewportPad=10;
+  const rightLeft=canvasRect.right + gap;
+  const leftLeft=canvasRect.left - tipRect.width - gap;
+  const useRight=rightLeft + tipRect.width <= window.innerWidth - viewportPad || leftLeft < viewportPad;
+  const left=useRight ? rightLeft : Math.max(viewportPad, leftLeft);
+  const rawTop=canvasRect.top + tooltip.caretY - (tipRect.height / 2);
+  const top=Math.min(
+    Math.max(viewportPad, rawTop),
+    window.innerHeight - tipRect.height - viewportPad
+  );
+
+  el.style.left=`${Math.round(left)}px`;
+  el.style.top=`${Math.round(top)}px`;
+}
+
 function donut(id,labels,data,colors,tooltipOptions){
   kill(id);
   const ctx=document.getElementById(id);if(!ctx)return;
   charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,hoverOffset:8}]},options:{
     responsive:true,maintainAspectRatio:false,cutout:'68%',
-    plugins:{legend:{display:false},tooltip:tooltipConfig(tooltipOptions)}
+    plugins:{legend:{display:false},tooltip:tooltipConfig(Object.assign({
+      enabled:false,
+      external:externalDonutTooltip,
+    }, tooltipOptions || {}))}
   }});
 }
 
@@ -5622,51 +5868,60 @@ function render(d){
   const k=d.kpis, ch=d.charts;
   const theme = getChartTheme();
 
-  // KPI
-  document.getElementById('k1v').textContent=fmtM(k.revenue)+' so\'m';
-  document.getElementById('k1s').textContent=fmtN(k.pay_count)+' ta to\'lov';
-  badge(document.getElementById('k1d'),k.changes.revenue);
+  // KPI — barcha kartalarga oldingi davrga nisbatan o'zgarish foizi (badge)
+  const _ch = k.changes || {};
 
-  document.getElementById('k2v').textContent=fmtM(k.net_profit)+' so\'m';
-  document.getElementById('k2s').textContent='Xarajat: '+fmtM(k.expenses);
+  document.getElementById('k1v').textContent=fmtN(k.revenue)+' so\'m';
+  document.getElementById('k1s').textContent=fmtN(k.pay_count)+' ta to\'lov';
+  badge(document.getElementById('k1d'), _ch.revenue);
+
+  document.getElementById('k2v').textContent=fmtN(k.net_profit)+' so\'m';
+  document.getElementById('k2s').textContent='Xarajat: '+fmtN(k.expenses)+' so\'m';
+  badge(document.getElementById('k2d'), _ch.net_profit);
 
   document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';
   document.getElementById('k3s').textContent='Jami: '+fmtN(k.total_students)+' | Yangi: '+fmtN(k.new_this_month);
-  badge(document.getElementById('k3d'),k.changes.students);
+  badge(document.getElementById('k3d'), _ch.active_students != null ? _ch.active_students : _ch.students);
 
   document.getElementById('k4v').textContent=fmtN(k.teachers_count)+' ta';
   document.getElementById('k4s').textContent='Faol o\'qituvchilar';
+  badge(document.getElementById('k4d'), _ch.teachers);
 
   document.getElementById('k5v').textContent=fmtN(k.managers_count)+' ta';
   document.getElementById('k5s').textContent='Faol managerlar';
+  badge(document.getElementById('k5d'), _ch.managers);
 
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
+  badge(document.getElementById('k6d'), _ch.leads);
   const funnelSub = document.getElementById('leadFunnelSub');
   if(funnelSub) funnelSub.textContent = `Tanlangan davr · konversiya ${fmtP(k.conv_rate)}`;
 
   // 7. Qarzdorlar
   const _k7v = document.getElementById('k7v');
   const _k7s = document.getElementById('k7s');
-  if(_k7v) _k7v.textContent = fmtM(k.total_debt || 0)+' so\'m';
+  const _k7d = document.getElementById('k7d');
+  if(_k7v) _k7v.textContent = fmtN(k.total_debt || 0)+' so\'m';
   if(_k7s) _k7s.textContent = fmtN(k.total_debtors || 0)+' ta o\'quvchi';
+  if(_k7d) badge(_k7d, _ch.total_debt);
 
   // 8. O'qituvchi maoshi
   const _k8v = document.getElementById('k8v');
   const _k8s = document.getElementById('k8s');
-  if(_k8v) _k8v.textContent = fmtM(k.teacher_salary_total || 0)+' so\'m';
+  const _k8d = document.getElementById('k8d');
+  if(_k8v) _k8v.textContent = fmtN(k.teacher_salary_total || 0)+' so\'m';
   if(_k8s) _k8s.textContent = 'Tanlangan davr';
+  if(_k8d) badge(_k8d, _ch.teacher_salary);
 
   // Chart 1: Multi-line — Moliyaviy ko'rsatkichlar (3 chiziq)
   const turn = ch.monthly_turnover || [];
   const exp  = ch.monthly_expenses || [];
   const prof = ch.monthly_profit   || [];
 
-  // Mini-stat header larda yig'indi ko'rsatish
+  // Mini-stat header larda yig'indi ko'rsatish — to'liq raqam
   const _fv = (n)=>{
-    const abs=Math.abs(n);
-    const s=abs>=1e9?`${(abs/1e9).toFixed(1)} mlrd`:abs>=1e6?`${(abs/1e6).toFixed(1)} mln`:abs>=1e3?`${(abs/1e3).toFixed(0)} ming`:`${abs}`;
-    return (n<0?'−':'')+s+' so\'m';
+    const v = Math.round(Number(n||0));
+    return (v<0?'−':'')+Math.abs(v).toLocaleString('uz-UZ')+' so\'m';
   };
   const _el=(id)=>document.getElementById(id);
   const totalTurn = turn.reduce((a,b)=>a+b,0);
@@ -5679,6 +5934,11 @@ function render(d){
   kill('chRevenue');
   const rCtx = document.getElementById('chRevenue');
   if(rCtx){
+    const _rctx2d = rCtx.getContext('2d');
+    const _rh = rCtx.clientHeight || 250;
+    const amberGrad = _rctx2d.createLinearGradient(0,0,0,_rh);
+    amberGrad.addColorStop(0,'rgba(251,191,36,.28)');
+    amberGrad.addColorStop(1,'rgba(251,191,36,0)');
     charts['chRevenue'] = new Chart(rCtx, {
       type:'line',
       data:{
@@ -5688,7 +5948,7 @@ function render(d){
             label:"Umumiy Aylanma",
             data: turn,
             borderColor: C.amber,
-            backgroundColor: C.amber+'18',
+            backgroundColor: amberGrad,
             fill: true, tension:.4, borderWidth:2.5,
             pointRadius:3, pointHoverRadius:7,
             pointBackgroundColor:C.amber, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
@@ -5697,7 +5957,7 @@ function render(d){
             label:"Sof Foyda",
             data: prof,
             borderColor: C.green,
-            backgroundColor: C.green+'10',
+            backgroundColor: 'transparent',
             fill: false, tension:.4, borderWidth:2,
             pointRadius:3, pointHoverRadius:7,
             pointBackgroundColor:C.green, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
@@ -5706,7 +5966,7 @@ function render(d){
             label:"Xarajatlar (Chiqim)",
             data: exp,
             borderColor: C.rose,
-            backgroundColor: C.rose+'0d',
+            backgroundColor: 'transparent',
             fill: false, tension:.4, borderWidth:2, borderDash:[5,3],
             pointRadius:3, pointHoverRadius:7,
             pointBackgroundColor:C.rose, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
