@@ -754,10 +754,18 @@ def _student_monthly_attendance_summary(
     if group_id:
         enrollments = enrollments.filter(group_id=group_id)
 
+    # Rejalashtirilgan darslar soni — qarzdorlar sahifasida ishlatiladigan
+    # ``expected_lessons_in_period`` orqali (haqiqiy GroupSchedule asosida).
+    # Shu bilan May = 13 ta dars (haqiqiy jadval), Yanvar = 12 ta — degan
+    # aniq ko'rsatkich olamiz.
+    from education.services.tuition import expected_lessons_in_period
+    last_day = month_end - timezone.timedelta(days=1)
     planned = 0
     for enr in enrollments:
-        lessons = int(getattr(enr.group, "oy_dars_soni", 0) or 0) or 12
-        planned += lessons
+        try:
+            planned += int(expected_lessons_in_period(enr, month_start, last_day) or 0)
+        except Exception:  # pragma: no cover - fallback
+            planned += int(getattr(enr.group, "oy_dars_soni", 0) or 0) or 12
 
     att_qs = Attendance.objects.filter(
         student=student,
@@ -1377,6 +1385,11 @@ def _student_chaqmoq_stats(child: User, center, *, months: int = 6) -> dict:
 def _parent_dashboard_payload(request, child: User) -> dict:
     center = _request_center(request) or child.center
     attendance = _student_attendance_summary(child, center)
+    monthly_attendance = _student_monthly_attendance_summary(
+        child,
+        center,
+        timezone.localdate().replace(day=1),
+    )
     debt = _student_open_debt(child, center)
     average_score = _student_average_score(child, center)
     next_payment = _next_payment_date(child, center)
@@ -1413,7 +1426,9 @@ def _parent_dashboard_payload(request, child: User) -> dict:
         "selected_child": _serialize_child_profile(request, child, center),
         "children": children,
         "stats": {
-            "attendance_percent": int(round(attendance.get("recent_attendance_rate") or attendance.get("attendance_rate") or 0)),
+            "attendance_percent": int(monthly_attendance.get("attendance_percent") or 0),
+            "monthly_total_lessons": int(monthly_attendance.get("total_lessons") or 0),
+            "monthly_attended_lessons": int(monthly_attendance.get("attended_lessons") or 0),
             "debt_amount": debt,
             "debt_status": debt_status,
             "average_score": average_score,
