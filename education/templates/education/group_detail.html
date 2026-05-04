@@ -245,12 +245,19 @@
     font-weight: 600;
   }
 
-  .header-panel,
   .controls-panel,
   .exam-reminder-panel,
   .ranking-panel {
     position: relative;
     overflow: hidden;
+  }
+
+  /* Header panel hosts the "Qo'shimcha bo'limlar" dropdown — must not clip
+     it. Keep position:relative for the decorative ::before, but allow the
+     dropdown panel to overflow downward freely. */
+  .header-panel {
+    position: relative;
+    overflow: visible;
   }
 
   .header-panel > *,

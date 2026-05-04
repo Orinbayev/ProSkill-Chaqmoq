@@ -216,6 +216,8 @@ class BranchApiTests(TestCase):
         self.assertEqual(payload["kpis"]["total_groups"], 1)
         self.assertEqual(payload["kpis"]["active_students"], 1)
         self.assertEqual(payload["kpis"]["avg_attendance"], 100.0)
+        self.assertEqual(payload["charts"]["attendance_labels"], ["Kelgan", "Kelmagan", "Sababli"])
+        self.assertEqual(payload["charts"]["attendance_counts"], [1, 0, 0])
         self.assertEqual(payload["charts"]["group_names"], ["Matematika A"])
         self.assertEqual(len(payload["top_groups"]), 1)
 

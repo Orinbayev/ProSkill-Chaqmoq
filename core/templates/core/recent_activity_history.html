@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block body_class %}gas-page activity-history-page{% endblock %}
+
+{% block content %}
+<div class="ah-page">
+
+  <style>
+    body.activity-history-page,
+    body.activity-history-page .layout,
+    body.activity-history-page .app-shell,
+    body.activity-history-page .main-content,
+    body.activity-history-page .content-shell {
+      background: #f6f7fb !important;
+    }
+    body.activity-history-page .main-content { padding: 0 !important; }
+    body.activity-history-page .content-shell {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+      width: 100% !important;
+    }
+
+    .ah-page {
+      padding: 22px 28px 60px;
+      background: #f6f7fb;
+      min-height: 100vh;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .ah-crumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      color: #94a3b8;
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+    .ah-crumb a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .ah-crumb a:hover { color: #0f172a; }
+    .ah-crumb__sep { font-size: 10px; opacity: .55; }
+    .ah-crumb__cur { color: #0f172a; }
+
+    .ah-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .ah-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .ah-chip:hover { background: #f8fafc; color: #0f172a; }
+    .ah-chip i { font-size: 13px; }
+    .ah-chip__count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .ah-chip.is-active {
+      background: #ffffff;
+      border-color: #0f172a;
+      color: #0f172a;
+      box-shadow: 0 1px 2px rgba(15,23,42,.08);
+    }
+    .ah-chip--payment i { color: #059669; }
+    .ah-chip--lead    i { color: #2563eb; }
+    .ah-chip--absence i { color: #dc2626; }
+    .ah-chip--leave   i { color: #b91c1c; }
+    .ah-chip--demo    i { color: #7c3aed; }
+    .ah-chip--reward  i { color: #d97706; }
+
+    .ah-card {
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
+      overflow: hidden;
+    }
+    .ah-card + .ah-card { margin-top: 14px; }
+
+    .ah-group__head {
+      padding: 18px 22px 12px;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .ah-group__title {
+      margin: 0 0 4px;
+      color: #0f172a;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .ah-group__sub {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
+    .ah-list {}
+    .ah-item {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .ah-item:last-child { border-bottom: 0; }
+    .ah-item:hover { background: #fafbfd; }
+
+    .ah-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .ah-icon--payment { background: #d1fae5; color: #047857; }
+    .ah-icon--lead    { background: #dbeafe; color: #2563eb; }
+    .ah-icon--absence { background: #fee2e2; color: #dc2626; }
+    .ah-icon--leave   { background: #fee2e2; color: #b91c1c; }
+    .ah-icon--demo    { background: #ede9fe; color: #7c3aed; }
+    .ah-icon--reward  { background: #fef3c7; color: #d97706; }
+
+    .ah-info { min-width: 0; }
+    .ah-title {
+      color: #0f172a;
+      font-size: 14.5px;
+      font-weight: 700;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ah-title strong { font-weight: 800; }
+    .ah-meta {
+      margin-top: 4px;
+      color: #94a3b8;
+      font-size: 12.5px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ah-meta__sep { margin: 0 6px; opacity: .6; }
+
+    .ah-amount {
+      color: #047857;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .ah-amount--negative { color: #be123c; }
+
+    .ah-empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 13.5px;
+    }
+    .ah-empty i {
+      display: block;
+      margin: 0 auto 10px;
+      font-size: 28px;
+      color: #cbd5e1;
+    }
+
+    .ah-pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 20px;
+      margin-top: 14px;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+    .ah-pager__sum {
+      color: #94a3b8;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+    .ah-pager__nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ah-pager__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #475569;
+      font-size: 12.5px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .ah-pager__btn:hover { background: #f8fafc; color: #0f172a; }
+    .ah-pager__btn.is-active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+    .ah-pager__btn[aria-disabled="true"] {
+      opacity: .45;
+      pointer-events: none;
+    }
+
+    @media (max-width: 720px) {
+      .ah-page { padding: 16px; }
+      .ah-chips { padding: 8px; }
+      .ah-chip { padding: 0 10px; height: 32px; }
+      .ah-item { padding: 12px 14px; gap: 10px; grid-template-columns: 34px minmax(0, 1fr) auto; }
+      .ah-icon { width: 32px; height: 32px; font-size: 12.5px; }
+    }
+  </style>
+
+  <nav class="ah-crumb" aria-label="breadcrumb">
+    <a href="{% url 'core:director_boshqaruv' %}">Boshqaruv</a>
+    <i class="fa-solid fa-chevron-right ah-crumb__sep"></i>
+    <span class="ah-crumb__cur">Faollik tarixi</span>
+  </nav>
+
+  <nav class="ah-chips" aria-label="Faollik turlari">
+    <a class="ah-chip {% if type_filter == 'all' %}is-active{% endif %}" href="?">
+      <span>Hammasi</span>
+      <span class="ah-chip__count">{{ counts.all }}</span>
+    </a>
+    <a class="ah-chip ah-chip--payment {% if type_filter == 'payment' %}is-active{% endif %}" href="?type=payment">
+      <i class="fa-solid fa-wallet"></i><span>To'lovlar</span>
+      <span class="ah-chip__count">{{ counts.payment }}</span>
+    </a>
+    <a class="ah-chip ah-chip--lead {% if type_filter == 'lead' %}is-active{% endif %}" href="?type=lead">
+      <i class="fa-solid fa-user-plus"></i><span>Yangi a'zolar</span>
+      <span class="ah-chip__count">{{ counts.lead }}</span>
+    </a>
+    <a class="ah-chip ah-chip--absence {% if type_filter == 'absence' %}is-active{% endif %}" href="?type=absence">
+      <i class="fa-solid fa-circle-xmark"></i><span>Davomat</span>
+      <span class="ah-chip__count">{{ counts.absence }}</span>
+    </a>
+    <a class="ah-chip ah-chip--demo {% if type_filter == 'demo' %}is-active{% endif %}" href="?type=demo">
+      <i class="fa-solid fa-bullhorn"></i><span>Lidlar</span>
+      <span class="ah-chip__count">{{ counts.demo }}</span>
+    </a>
+    <a class="ah-chip ah-chip--leave {% if type_filter == 'leave' %}is-active{% endif %}" href="?type=leave">
+      <i class="fa-solid fa-right-from-bracket"></i><span>Chiqishlar</span>
+      <span class="ah-chip__count">{{ counts.leave }}</span>
+    </a>
+    <a class="ah-chip ah-chip--reward {% if type_filter == 'reward' %}is-active{% endif %}" href="?type=reward">
+      <i class="fa-solid fa-bolt"></i><span>Reyting</span>
+      <span class="ah-chip__count">{{ counts.reward }}</span>
+    </a>
+  </nav>
+
+  {% if grouped %}
+    {% for grp in grouped %}
+    <div class="ah-card">
+      <div class="ah-group__head">
+        <h2 class="ah-group__title">{{ grp.label }}</h2>
+        <p class="ah-group__sub">{{ grp.count }} ta hodisa</p>
+      </div>
+      <div class="ah-list">
+        {% for ev in grp.events %}
+        <div class="ah-item">
+          <span class="ah-icon ah-icon--{{ ev.type }}">
+            {% if ev.type == 'payment' %}<i class="fa-solid fa-wallet"></i>
+            {% elif ev.type == 'lead' %}<i class="fa-solid fa-user-plus"></i>
+            {% elif ev.type == 'absence' %}<i class="fa-solid fa-circle-xmark"></i>
+            {% elif ev.type == 'leave' %}<i class="fa-solid fa-right-from-bracket"></i>
+            {% elif ev.type == 'demo' %}<i class="fa-solid fa-bullhorn"></i>
+            {% elif ev.type == 'reward' %}<i class="fa-solid fa-bolt"></i>
+            {% else %}<i class="fa-regular fa-bell"></i>{% endif %}
+          </span>
+          <span class="ah-info">
+            <span class="ah-title">{{ ev.title }}</span>
+            <span class="ah-meta">{{ ev.subtitle }}<span class="ah-meta__sep">•</span>{{ ev.rel_time }}</span>
+          </span>
+          {% if ev.amount %}
+            <span class="ah-amount {% if ev.amount_negative %}ah-amount--negative{% endif %}">{% if ev.amount_negative %}−{% else %}+{% endif %}{{ ev.amount|intcomma }} so'm</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if paginator.num_pages > 1 %}
+    <div class="ah-pager">
+      <span class="ah-pager__sum">
+        Jami {{ total_events_in_filter|intcomma }} ta hodisa —
+        {{ page_obj.start_index }}–{{ page_obj.end_index }} ko'rsatilmoqda
+      </span>
+      <nav class="ah-pager__nav" aria-label="Sahifalar">
+        {% if page_obj.has_previous %}
+          <a class="ah-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Oldingi"><i class="fa-solid fa-chevron-left"></i></a>
+        {% else %}
+          <span class="ah-pager__btn" aria-disabled="true"><i class="fa-solid fa-chevron-left"></i></span>
+        {% endif %}
+
+        {% for n in paginator.page_range %}
+          {% if n == page_obj.number %}
+            <span class="ah-pager__btn is-active" aria-current="page">{{ n }}</span>
+          {% elif n == 1 or n == paginator.num_pages or n|add:"-2" <= page_obj.number and n|add:"2" >= page_obj.number %}
+            <a class="ah-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ n }}">{{ n }}</a>
+          {% elif n == page_obj.number|add:"-3" or n == page_obj.number|add:"3" %}
+            <span class="ah-pager__btn" aria-disabled="true">…</span>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <a class="ah-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Keyingi"><i class="fa-solid fa-chevron-right"></i></a>
+        {% else %}
+          <span class="ah-pager__btn" aria-disabled="true"><i class="fa-solid fa-chevron-right"></i></span>
+        {% endif %}
+      </nav>
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="ah-card">
+      <div class="ah-empty">
+        <i class="fa-regular fa-calendar"></i>
+        Tanlangan filter bo'yicha hodisalar topilmadi.
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

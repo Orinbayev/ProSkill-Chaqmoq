@@ -9,7 +9,7 @@ Har bir dashboard:
 
 import calendar
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
@@ -33,7 +33,7 @@ from education.models import (
     PaymentAllocation,
     StudentGroupHistory,
 )
-from store.models import Expense, Lead, Product, PurchaseRequest, Sale
+from store.models import Expense, Lead, LeadStatus, Product, PurchaseRequest, Sale
 
 
 # ─────────────────────────── Helpers ────────────────────────────
@@ -1789,6 +1789,8 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     att_total = att_qs.count()
     att_present = att_qs.filter(present_filter).count()
     avg_attendance = round(att_present / att_total * 100, 1) if att_total else 0
+    att_excused = att_qs.filter(status="absent_excused").exclude(present_filter).count()
+    att_absent = max(att_total - att_present - att_excused, 0)
 
     # ── O'qituvchilar va Managerlar ────────────────────────────
     teachers_qs = User.objects.filter(center=center, role="teacher", is_archived=False)
@@ -1878,29 +1880,57 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     grp_att_ranking.sort(key=lambda x: -x["rate"])
     grp_att_ranking = grp_att_ranking[:12]
 
-    # ── Chart 5: Lid voronkasi ─────────────────────────────────
-    # LeadStatus.code maydoni ishlatiladi (kod emas)
-    all_leads_center = Lead.objects.filter(center=center)
-    funnel_new        = all_leads_center.filter(status__code="new").count()
-    funnel_contacted  = all_leads_center.filter(status__code="contacted").count()
-    funnel_trial      = all_leads_center.filter(status__code="trial_scheduled").count()
-    funnel_registered = all_leads_center.filter(status__code="registered").count()
-    # Agar status kodlari boshqacha bo'lsa — jami lidlarni taqsimlaymiz
-    if funnel_new == 0 and funnel_contacted == 0:
-        total_all = all_leads_center.count()
-        converted_all = all_leads_center.filter(converted_filter).count()
-        funnel_new        = total_all
-        funnel_contacted  = int(total_all * 0.6)
-        funnel_trial      = int(total_all * 0.35)
-        funnel_registered = converted_all
+    # ── Chart 5: Lid bosqichlari ───────────────────────────────
+    # Bu blok marketing "hozirgi holat"ni ko'rsatadi: eski o'quvchiga aylangan
+    # leadlar ham manba va conversion bosqichida ko'rinishi kerak.
+    all_leads_scope = Lead.objects.filter(center=center)
+    converted_leads_qs = all_leads_scope.filter(converted_filter)
+    if branch:
+        converted_leads_qs = converted_leads_qs.filter(
+            converted_user__enrollments__group__branch=branch
+        ).distinct()
+
+    open_leads_scope = all_leads_scope.exclude(converted_filter)
+    lost_q = (
+        Q(status__code=LeadStatus.Code.LOST)
+        | Q(status__nom__icontains="bekor")
+        | Q(status__nom__icontains="yo'qot")
+        | Q(status__nom__icontains="yo‘qot")
+    )
+    trial_q = (
+        Q(status__code__in=[LeadStatus.Code.TRIAL_SCHEDULED, LeadStatus.Code.TRIAL_ATTENDED])
+        | Q(status__nom__icontains="trial")
+        | Q(status__nom__icontains="sinov")
+    )
+    contacted_q = (
+        Q(status__code__in=[LeadStatus.Code.CONTACTED, LeadStatus.Code.NO_ANSWER])
+        | Q(status__nom__icontains="bog'")
+        | Q(status__nom__icontains="bog‘")
+        | Q(status__nom__icontains="aloqa")
+        | Q(status__nom__icontains="javob")
+    )
+    confirmed_q = (
+        Q(is_confirmed=True)
+        | Q(status__code=LeadStatus.Code.REGISTERED)
+        | Q(status__nom__icontains="tasdiq")
+        | Q(status__nom__icontains="register")
+        | Q(status__nom__icontains="ro'yxat")
+        | Q(status__nom__icontains="ro‘yxat")
+    )
+    funnel_trial = open_leads_scope.filter(trial_q).exclude(lost_q).count()
+    funnel_contacted = open_leads_scope.filter(contacted_q).exclude(lost_q | trial_q).count()
+    funnel_confirmed = open_leads_scope.filter(confirmed_q).exclude(lost_q | trial_q | contacted_q).count()
+    funnel_new = open_leads_scope.exclude(lost_q | trial_q | contacted_q | confirmed_q).count()
+    funnel_converted = converted_leads_qs.count()
+    funnel_registered = funnel_confirmed + funnel_converted
 
     source_rows = list(
-        all_leads_center.filter(converted_filter)
+        converted_leads_qs
         .values("manba__nom")
-        .annotate(cnt=Count("id"))
+        .annotate(cnt=Count("id", distinct=True))
         .order_by("-cnt", "manba__nom")[:5]
     )
-    source_labels = [row["manba__nom"] or "Noma'lum" for row in source_rows]
+    source_labels = [row["manba__nom"] or "Manba ko'rsatilmagan" for row in source_rows]
     source_counts = [int(row["cnt"] or 0) for row in source_rows]
 
     # ── Chart 6: Kategoriya taqsimoti (1-donut uchun) ─────────
@@ -1925,9 +1955,9 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         cat_labels = ["IT", "Til kurslari"]
         cat_counts = [active_students // 2, active_students - active_students // 2]
 
-    # ── Chart 7: To'lov holati (2-donut + kategoriya breakdown) ─────────
-    # UI soddalashtirilgan ko'rinish uchun qisman to'lov ham "to'lamagan" safiga qo'shiladi.
-    pay_toliq = pay_tolamagan = 0
+    # ── Chart 7: To'lov holati (donut + kategoriya breakdown) ─────────
+    # To'liq, to'lanmagan va qisman to'lovlar alohida ko'rsatiladi.
+    pay_toliq = pay_tolamagan = pay_qisman = 0
     pay_category_map = {}
     enrollments_all = list(
         active_enroll.select_related("group", "group__category_obj", "student")
@@ -1968,11 +1998,15 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "total": 0,
             "paid": 0,
             "unpaid": 0,
+            "partial": 0,
         })
         bucket["total"] += 1
         if paid >= fee:
             pay_toliq += 1
             bucket["paid"] += 1
+        elif paid > 0:
+            pay_qisman += 1
+            bucket["partial"] += 1
         else:
             pay_tolamagan += 1
             bucket["unpaid"] += 1
@@ -1982,30 +2016,153 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         total = int(row["total"] or 0)
         paid = int(row["paid"] or 0)
         unpaid = int(row["unpaid"] or 0)
+        partial = int(row.get("partial") or 0)
         pay_category_breakdown.append({
             "name": row["name"],
             "total": total,
             "paid": paid,
             "unpaid": unpaid,
+            "partial": partial,
             "paid_percent": round(paid / total * 100, 1) if total else 0,
             "unpaid_percent": round(unpaid / total * 100, 1) if total else 0,
+            "partial_percent": round(partial / total * 100, 1) if total else 0,
         })
     pay_category_breakdown.sort(key=lambda x: (-x["total"], x["name"]))
 
+    def _display_name(user):
+        if not user:
+            return "—"
+        full_name = (
+            getattr(user, "get_full_name", lambda: "")()
+            or f"{getattr(user, 'ism', '')} {getattr(user, 'familya', '')}".strip()
+            or getattr(user, "email", "")
+            or getattr(user, "username", "")
+        )
+        return full_name.strip() or "—"
+
+    def _group_initials(name):
+        parts = [part for part in (name or "").replace("·", " ").split() if part]
+        if not parts:
+            return "G"
+        if len(parts) == 1:
+            return parts[0][:2].upper()
+        return (parts[0][0] + parts[1][0]).upper()
+
+    def _activity_dt(day, clock=None):
+        if not day:
+            return timezone.now()
+        try:
+            dt = datetime.combine(day, clock or time.min)
+            if timezone.is_naive(dt):
+                return timezone.make_aware(dt, timezone.get_current_timezone())
+            return dt
+        except Exception:
+            return timezone.now()
+
     # ── Top 5 guruh ────────────────────────────────────────────
     top_groups = []
-    for g in groups_qs.filter(is_closed=False).select_related("oqituvchi").order_by("-id")[:5]:
-        enrolled = Enrollment.objects.filter(group=g, is_active=True).count()
+    group_rows = groups_qs.filter(is_closed=False).select_related("oqituvchi", "category_obj")
+    for g in group_rows:
+        enrolled = Enrollment.objects.filter(
+            group=g,
+            is_active=True,
+            student__is_archived=False,
+        ).count()
+        raw_capacity = int(getattr(g, "max_students", 0) or 0)
+        capacity = max(raw_capacity, enrolled) if (raw_capacity or enrolled) else 0
+        fill_percent = round(enrolled / capacity * 100, 1) if capacity else 0
+        revenue_sum = int(pay_qs.filter(group=g).aggregate(s=Sum("summa"))["s"] or 0)
         g_att_tot = Attendance.objects.filter(group=g, date__range=(d_from, d_to)).count()
         g_att_pre = Attendance.objects.filter(
             group=g, date__range=(d_from, d_to)
         ).filter(present_filter).count()
+        if fill_percent >= 95:
+            status = "To'ldirilgan"
+        elif enrolled:
+            status = "Faol"
+        else:
+            status = "To'ldirilmoqda"
         top_groups.append({
+            "id": g.id,
             "name": g.nom,
-            "teacher": f"{g.oqituvchi.ism} {g.oqituvchi.familya}" if g.oqituvchi else "—",
+            "initials": _group_initials(g.nom),
+            "teacher": _display_name(g.oqituvchi),
+            "status": status,
             "enrolled": enrolled,
+            "capacity": capacity,
+            "fill_percent": fill_percent,
             "att_rate": round(g_att_pre / g_att_tot * 100, 1) if g_att_tot else 0,
+            "revenue": revenue_sum,
         })
+    top_groups.sort(key=lambda x: (-x["fill_percent"], -x["enrolled"], -x["revenue"], x["name"]))
+    top_groups = top_groups[:5]
+
+    # ── So'nggi faollik ────────────────────────────────────────
+    recent_activity = []
+    recent_payments = (
+        _payments_for_scope(center, branch)
+        .select_related("student", "group")
+        .order_by("-paid_date", "-paid_time", "-id")[:8]
+    )
+    for payment in recent_payments:
+        paid_at = _activity_dt(payment.paid_date, payment.paid_time)
+        recent_activity.append({
+            "type": "payment",
+            "title": f"{_display_name(payment.student)} to'lov qildi",
+            "subtitle": getattr(payment.group, "nom", "") or "Guruh",
+            "amount": int(payment.summa or 0),
+            "timestamp": paid_at.isoformat(),
+            "_sort": paid_at,
+        })
+
+    absent_filter = Q(status__in=["absent_excused", "absent_unexcused"]) | Q(present=False, forced=False)
+    recent_absences = (
+        Attendance.objects.filter(
+            group__center=center,
+            date__range=(d_from, d_to),
+            **({"group__branch": branch} if branch else {}),
+        )
+        .filter(absent_filter)
+        .select_related("student", "group")
+        .order_by("-date", "-id")[:8]
+    )
+    for attendance in recent_absences:
+        happened_at = _activity_dt(attendance.date, time(23, 59))
+        recent_activity.append({
+            "type": "absence",
+            "title": f"{_display_name(attendance.student)} darsga kelmadi",
+            "subtitle": getattr(attendance.group, "nom", "") or "Guruh",
+            "amount": None,
+            "timestamp": happened_at.isoformat(),
+            "_sort": happened_at,
+        })
+
+    recent_converted_leads = (
+        converted_leads_qs
+        .select_related("yonalish", "manba")
+        .order_by("-converted_at", "-qoshilgan_sana", "-id")[:8]
+    )
+    for lead in recent_converted_leads:
+        converted_at = lead.converted_at or lead.qoshilgan_sana or timezone.now()
+        subtitle = (
+            getattr(getattr(lead, "yonalish", None), "nom", "")
+            or getattr(getattr(lead, "manba", None), "nom", "")
+            or "CRM"
+        )
+        recent_activity.append({
+            "type": "lead",
+            "title": f"{lead.full_name or str(lead)} ro'yxatdan o'tdi",
+            "subtitle": subtitle,
+            "amount": None,
+            "timestamp": converted_at.isoformat(),
+            "_sort": converted_at,
+        })
+
+    recent_activity.sort(key=lambda x: x["_sort"], reverse=True)
+    recent_activity = [
+        {key: value for key, value in item.items() if key != "_sort"}
+        for item in recent_activity[:7]
+    ]
 
     # ── Top 5 o'quvchi ────────────────────────────────────────
     raw_att = list(
@@ -2193,14 +2350,26 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "group_names": [g["name"] for g in group_fill[:8]],
             "group_enrolled": [g["enrolled"] for g in group_fill[:8]],
             "grp_att_ranking": grp_att_ranking,
-            "funnel": [funnel_new, funnel_contacted, funnel_trial, funnel_registered],
-            "funnel_labels": ["Yangi", "Bog'langan", "Trial", "Ro'yxatda"],
+            "attendance_labels": ["Kelgan", "Kelmagan", "Sababli"],
+            "attendance_counts": [att_present, att_absent, att_excused],
+            "funnel": [
+                funnel_new,
+                funnel_contacted,
+                funnel_trial,
+                funnel_registered,
+            ],
+            "funnel_labels": [
+                "Yangi lid",
+                "Bog'langan",
+                "Trial darsda",
+                "Ro'yxatdan o'tdi",
+            ],
             "source_labels": source_labels,
             "source_counts": source_counts,
             "cat_labels": cat_labels,
             "cat_counts": cat_counts,
-            "pay_status_labels": ["To'lagan", "To'lamagan"],
-            "pay_status_counts": [pay_toliq, pay_tolamagan],
+            "pay_status_labels": ["To'lagan", "To'lamagan", "Qisman"],
+            "pay_status_counts": [pay_toliq, pay_tolamagan, pay_qisman],
             "pay_category_breakdown": pay_category_breakdown,
             "pay_method_labels": pay_method_labels,
             "pay_method_counts": pay_method_counts,
@@ -2208,6 +2377,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         },
         "group_fill_all": group_fill,
         "top_groups": top_groups,
+        "recent_activity": recent_activity,
         "top_students": top_students,
         "xavfli_students": xavfli_students,
         "period": {
@@ -2252,6 +2422,235 @@ def director_boshqaruv_api(request):
             branch = None
     data = _boshqaruv_payload(center, d_from, d_to, branch=branch)
     return JsonResponse(data)
+
+
+# ── Faollik tarixi ───────────────────────────────────────────────
+@login_required
+def director_activity_history(request):
+    """Boshqaruv → So'nggi faollik → Hammasi.
+
+    Oxirgi 30 kun ichidagi to'lov, davomat (yo'qlik), lid konvertatsiya va
+    guruhdan chiqish hodisalarini bir joyga to'playdi. Type filter va
+    sahifalash bilan ko'rsatadi.
+    """
+    from django.core.paginator import Paginator
+    from education.models import StudentGroupHistory as _SGH
+
+    center = _get_center(request)
+    if not center:
+        return redirect("core:home")
+    user_role = getattr(request.user, "role", None)
+    if user_role == "manager" and not request.user.is_superuser:
+        return redirect("core:home")
+
+    today_now = timezone.localdate()
+    range_from = today_now - timedelta(days=30)
+
+    type_filter = (request.GET.get("type") or "all").strip().lower()
+    valid_types = {"all", "payment", "lead", "absence", "leave", "demo", "reward"}
+    if type_filter not in valid_types:
+        type_filter = "all"
+
+    def _name(user):
+        if not user:
+            return "—"
+        full = f"{getattr(user, 'ism', '') or ''} {getattr(user, 'familya', '') or ''}".strip()
+        return full or getattr(user, "username", "—") or "—"
+
+    def _dt(d, t=None):
+        if not d:
+            return timezone.now()
+        try:
+            dt = datetime.combine(d, t or time.min)
+            if timezone.is_naive(dt):
+                return timezone.make_aware(dt, timezone.get_current_timezone())
+            return dt
+        except Exception:
+            return timezone.now()
+
+    events = []
+
+    # ── Payments ─────────────────────────────────────────────────
+    pay_qs = Payment.objects.filter(
+        center=center,
+        paid_date__gte=range_from,
+        paid_date__lte=today_now,
+    ).select_related("student", "group").order_by("-paid_date", "-paid_time", "-id")
+    for p in pay_qs[:300]:
+        amt = int(p.summa or 0)
+        is_partial = False
+        try:
+            full_fee = int(getattr(getattr(p, "tuition_month", None), "fee_amount", 0) or 0)
+            if full_fee and amt < full_fee:
+                is_partial = True
+        except Exception:
+            pass
+        title = f"{_name(p.student)} {'qisman ' if is_partial else ''}to'lov qildi"
+        events.append({
+            "type": "payment",
+            "title": title,
+            "subtitle": getattr(p.group, "nom", "") or "Guruh",
+            "amount": amt,
+            "amount_negative": False,
+            "ts": _dt(p.paid_date, p.paid_time),
+        })
+
+    # ── Absences ─────────────────────────────────────────────────
+    absent_q = Q(status__in=["absent_excused", "absent_unexcused"]) | Q(present=False, forced=False)
+    abs_qs = (
+        Attendance.objects.filter(
+            group__center=center,
+            date__gte=range_from,
+            date__lte=today_now,
+        )
+        .filter(absent_q)
+        .select_related("student", "group")
+        .order_by("-date", "-id")
+    )
+    for a in abs_qs[:300]:
+        events.append({
+            "type": "absence",
+            "title": f"{_name(a.student)} darsga kelmadi",
+            "subtitle": getattr(a.group, "nom", "") or "Guruh",
+            "amount": None,
+            "amount_negative": False,
+            "ts": _dt(a.date, time(23, 30)),
+        })
+
+    # ── Lead conversions ─────────────────────────────────────────
+    converted_filter = Q(converted_to_student=True) | Q(converted_user__isnull=False)
+    lead_qs = (
+        Lead.objects.filter(center=center)
+        .filter(converted_filter)
+        .filter(
+            Q(converted_at__date__gte=range_from)
+            | Q(qoshilgan_sana__gte=range_from)
+        )
+        .select_related("yonalish", "manba")
+        .order_by("-converted_at", "-qoshilgan_sana", "-id")
+    )
+    for l in lead_qs[:300]:
+        when = l.converted_at or l.qoshilgan_sana or timezone.now()
+        if hasattr(when, "tzinfo") and when.tzinfo is None:
+            when = timezone.make_aware(when, timezone.get_current_timezone())
+        if not hasattr(when, "tzinfo"):
+            when = _dt(when, time(12, 0))
+        sub = (
+            getattr(getattr(l, "yonalish", None), "nom", "")
+            or getattr(getattr(l, "manba", None), "nom", "")
+            or "CRM"
+        )
+        events.append({
+            "type": "lead",
+            "title": f"{l.full_name or str(l)} ro'yxatdan o'tdi",
+            "subtitle": sub,
+            "amount": None,
+            "amount_negative": False,
+            "ts": when,
+        })
+
+    # ── Group leaves ─────────────────────────────────────────────
+    leave_qs = (
+        _SGH.objects.filter(
+            center=center,
+            end_date__isnull=False,
+            end_date__gte=range_from,
+            end_date__lte=today_now,
+        )
+        .select_related("student", "group")
+        .order_by("-end_date", "-id")
+    )
+    for h in leave_qs[:300]:
+        events.append({
+            "type": "leave",
+            "title": f"{_name(h.student)} guruhdan chiqdi",
+            "subtitle": getattr(h.group, "nom", "") or "Guruh",
+            "amount": None,
+            "amount_negative": False,
+            "ts": _dt(h.end_date, time(18, 0)),
+        })
+
+    # ── Hammasini sana bo'yicha tartiblash ──
+    events.sort(key=lambda e: e["ts"], reverse=True)
+
+    # Type counts (for chip badges) — based on ALL events, not filtered.
+    counts = {"all": len(events), "payment": 0, "lead": 0, "absence": 0, "leave": 0, "demo": 0, "reward": 0}
+    for e in events:
+        if e["type"] in counts:
+            counts[e["type"]] += 1
+
+    # Apply type filter
+    if type_filter != "all":
+        events = [e for e in events if e["type"] == type_filter]
+
+    # Pagination: 10 per page
+    paginator = Paginator(events, 10)
+    page_num = request.GET.get("page") or 1
+    try:
+        page_obj = paginator.page(page_num)
+    except Exception:
+        page_obj = paginator.page(1)
+
+    # Group current page by date label (Bugun / Kecha / "DD MMM YYYY")
+    yest = today_now - timedelta(days=1)
+    UZ_MONTHS = {
+        1: "Yan", 2: "Fev", 3: "Mar", 4: "Apr", 5: "May", 6: "Iyn",
+        7: "Iyl", 8: "Avg", 9: "Sen", 10: "Okt", 11: "Noy", 12: "Dek",
+    }
+
+    def _date_label(d):
+        if d == today_now:
+            return "Bugun"
+        if d == yest:
+            return "Kecha"
+        return f"{d.day} {UZ_MONTHS.get(d.month, '')} {d.year}"
+
+    def _rel_time(ts):
+        if not ts:
+            return ""
+        delta = (timezone.now() - ts).total_seconds()
+        if delta < 60:
+            return "hozirgina"
+        if delta < 3600:
+            return f"{int(delta // 60)} daqiqa oldin"
+        if delta < 86400:
+            return f"{int(delta // 3600)} soat oldin"
+        if hasattr(ts, "strftime"):
+            return ts.strftime("%H:%M")
+        return ""
+
+    grouped = []
+    current_label = None
+    current_group = None
+    for ev in page_obj.object_list:
+        d_local = timezone.localtime(ev["ts"]).date() if hasattr(ev["ts"], "tzinfo") and ev["ts"].tzinfo else ev["ts"].date() if hasattr(ev["ts"], "date") else today_now
+        lbl = _date_label(d_local)
+        ev["rel_time"] = _rel_time(ev["ts"])
+        if lbl != current_label:
+            current_label = lbl
+            current_group = {"label": lbl, "events": []}
+            grouped.append(current_group)
+        current_group["events"].append(ev)
+
+    # Decorate each group with count
+    for g in grouped:
+        g["count"] = len(g["events"])
+
+    # Preserve qs for paginator
+    base_qs = request.GET.copy()
+    if "page" in base_qs:
+        base_qs.pop("page")
+    base_qs_str = base_qs.urlencode()
+
+    return render(request, "core/recent_activity_history.html", {
+        "type_filter": type_filter,
+        "counts": counts,
+        "grouped": grouped,
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "base_qs": base_qs_str,
+        "total_events_in_filter": paginator.count,
+    })
 
 
 # ── AI CHAT ──────────────────────────────────────────────────────

@@ -1,0 +1,30 @@
+{% load humanize %}
+<div class="ag-pager">
+  <span class="ag-pager__sum">
+    Jami {{ total_rows|intcomma }} ta guruh —
+    {{ page_obj.start_index }}–{{ page_obj.end_index }} ko'rsatilmoqda
+  </span>
+  <nav class="ag-pager__nav" aria-label="Sahifalar">
+    {% if page_obj.has_previous %}
+      <a class="ag-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Oldingi"><i class="fa-solid fa-chevron-left"></i></a>
+    {% else %}
+      <span class="ag-pager__btn" aria-disabled="true"><i class="fa-solid fa-chevron-left"></i></span>
+    {% endif %}
+
+    {% for n in paginator.page_range %}
+      {% if n == page_obj.number %}
+        <span class="ag-pager__btn is-active" aria-current="page">{{ n }}</span>
+      {% elif n == 1 or n == paginator.num_pages or n|add:"-2" <= page_obj.number and n|add:"2" >= page_obj.number %}
+        <a class="ag-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ n }}">{{ n }}</a>
+      {% elif n == page_obj.number|add:"-3" or n == page_obj.number|add:"3" %}
+        <span class="ag-pager__btn" aria-disabled="true">…</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <a class="ag-pager__btn" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Keyingi"><i class="fa-solid fa-chevron-right"></i></a>
+    {% else %}
+      <span class="ag-pager__btn" aria-disabled="true"><i class="fa-solid fa-chevron-right"></i></span>
+    {% endif %}
+  </nav>
+</div>

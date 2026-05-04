@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}gas-page group-archive-page{% endblock %}
+
+{% block content %}
+<div class="gas-shell">
+
+  {% include "education/_group_action_shell.html" with group=g active_tab="archive" page_title="Arxivga" %}
+
+  <style>
+    .ga-card {
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
+    }
+    .ga-card__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      color: #b91c1c;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .ga-card__head i { font-size: 18px; }
+    .ga-card__sub {
+      margin: 0 0 18px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .ga-warn {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+    .ga-warn i { color: #dc2626; margin-top: 2px; flex-shrink: 0; font-size: 14px; }
+    .ga-warn strong { color: #991b1b; }
+
+    .ga-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .ga-label {
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .ga-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 14.5px;
+      font-weight: 600;
+      box-sizing: border-box;
+      transition: border-color .15s, box-shadow .15s;
+      outline: 0;
+    }
+    .ga-input:focus {
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, .12);
+    }
+
+    .ga-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .ga-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 11px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s, transform .1s, opacity .15s;
+    }
+    .ga-btn:active { transform: translateY(1px); }
+    .ga-btn[disabled] {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .ga-btn--ghost {
+      background: #ffffff;
+      color: #475569;
+      border-color: #e5e7eb;
+    }
+    .ga-btn--ghost:hover { background: #f8fafc; color: #0f172a; }
+    .ga-btn--danger {
+      background: #dc2626;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(220, 38, 38, .22);
+    }
+    .ga-btn--danger:hover:not([disabled]) { background: #b91c1c; }
+    .ga-btn--success {
+      background: #059669;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(5, 150, 105, .22);
+    }
+    .ga-btn--success:hover { background: #047857; }
+
+    .ga-msgs { margin-bottom: 14px; }
+    .ga-msg {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .ga-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .ga-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .ga-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+  </style>
+
+  {% if messages %}
+  <div class="ga-msgs">
+    {% for m in messages %}
+      <div class="ga-msg ga-msg--{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}success{% else %}info{% endif %}">
+        <i class="fa-solid {% if m.tags == 'error' %}fa-circle-xmark{% elif m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="ga-card">
+    {% if g.is_archived %}
+      <div class="ga-card__head" style="color:#047857"><i class="fa-solid fa-box-open"></i><span>Arxivdan qaytarish</span></div>
+      <p class="ga-card__sub">Bu guruh hozirda arxivlangan. Qaytarsangiz faol ro'yxatga qayta tushadi.</p>
+      <form method="post" action="{% url 'education:group_toggle_archive' pk=g.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'education:group_detail' pk=g.id %}">
+        <div class="ga-actions">
+          <a class="ga-btn ga-btn--ghost" href="{% url 'education:all_groups' %}">Bekor qilish</a>
+          <button type="submit" class="ga-btn ga-btn--success"><i class="fa-solid fa-box-open"></i><span>Arxivdan qaytarish</span></button>
+        </div>
+      </form>
+    {% else %}
+      <div class="ga-card__head"><i class="fa-solid fa-box-archive"></i><span>Guruhni arxivga ko'chirish</span></div>
+      <p class="ga-card__sub">Bu amalni qaytarish mumkin (Arxiv bo'limidan).</p>
+
+      <div class="ga-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>
+          <strong>Diqqat:</strong> Guruh faol ro'yxatdan olib tashlanadi.
+          {% if enrolled_total %}<strong>{{ enrolled_total }} ta o'quvchi</strong> avtomatik ravishda guruhdan chiqariladi va ularning to'lovlari to'xtatiladi.{% endif %}
+        </span>
+      </div>
+
+      <form method="post" action="{% url 'education:group_toggle_archive' pk=g.id %}" id="gaForm" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'education:all_groups' %}">
+
+        <div class="ga-field">
+          <label class="ga-label" for="gaConfirm">Tasdiqlash uchun "{{ g.nom }}" deb yozing</label>
+          <input id="gaConfirm" type="text" name="confirm_name" class="ga-input" value="{{ confirm_value }}" autocomplete="off" required>
+        </div>
+
+        <div class="ga-actions">
+          <a class="ga-btn ga-btn--ghost" href="{% url 'education:group_detail' pk=g.id %}">Bekor qilish</a>
+          <button type="submit" class="ga-btn ga-btn--danger" id="gaSubmit" disabled><i class="fa-solid fa-box-archive"></i><span>Arxivga ko'chirish</span></button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  const inp = document.getElementById('gaConfirm');
+  const btn = document.getElementById('gaSubmit');
+  if(!inp || !btn) return;
+  const target = "{{ g.nom|escapejs }}";
+  function check(){
+    btn.disabled = inp.value.trim() !== target;
+  }
+  inp.addEventListener('input', check);
+  inp.addEventListener('change', check);
+  check();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}gas-page group-pause-page{% endblock %}
+
+{% block content %}
+<div class="gas-shell">
+
+  {% include "education/_group_action_shell.html" with group=g active_tab="pause" page_title="Vaqtinchalik to'xtatish" %}
+
+  <style>
+    .gp-card {
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
+    }
+    .gp-card__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      color: #b45309;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .gp-card__head i { font-size: 18px; }
+    .gp-card__sub {
+      margin: 0 0 18px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .gp-warn {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid #fde68a;
+      background: #fffbeb;
+      color: #b45309;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+    .gp-warn i { color: #d97706; margin-top: 2px; flex-shrink: 0; font-size: 14px; }
+    .gp-warn strong { color: #92400e; }
+
+    .gp-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 720px) { .gp-grid { grid-template-columns: 1fr; } }
+
+    .gp-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .gp-label {
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .gp-input,
+    .gp-select {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 14.5px;
+      font-weight: 600;
+      box-sizing: border-box;
+      transition: border-color .15s, box-shadow .15s;
+      outline: 0;
+    }
+    .gp-input:focus,
+    .gp-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+    }
+    .gp-select {
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%2394a3b8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 12px 12px;
+      padding-right: 38px;
+    }
+
+    .gp-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .gp-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 11px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s, transform .1s;
+    }
+    .gp-btn:active { transform: translateY(1px); }
+    .gp-btn--ghost {
+      background: #ffffff;
+      color: #475569;
+      border-color: #e5e7eb;
+    }
+    .gp-btn--ghost:hover { background: #f8fafc; color: #0f172a; }
+    .gp-btn--warn {
+      background: #d97706;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(217, 119, 6, .22);
+    }
+    .gp-btn--warn:hover { background: #b45309; }
+    .gp-btn--success {
+      background: #059669;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(5, 150, 105, .22);
+    }
+    .gp-btn--success:hover { background: #047857; }
+
+    .gp-msgs { margin-bottom: 14px; }
+    .gp-msg {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .gp-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .gp-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .gp-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+  </style>
+
+  {% if messages %}
+  <div class="gp-msgs">
+    {% for m in messages %}
+      <div class="gp-msg gp-msg--{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}success{% else %}info{% endif %}">
+        <i class="fa-solid {% if m.tags == 'error' %}fa-circle-xmark{% elif m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="gp-card">
+    {% if g.is_closed %}
+      <div class="gp-card__head" style="color:#047857"><i class="fa-regular fa-circle-play"></i><span>Qayta faollashtirish</span></div>
+      <p class="gp-card__sub">Guruh hozir to'xtatilgan. Qayta faollashtirsangiz darslar va to'lovlar tiklanadi.</p>
+      <div class="gp-warn" style="border-color:#a7f3d0;background:#ecfdf5;color:#047857">
+        <i class="fa-solid fa-circle-info"></i>
+        <span><strong>{{ enrolled_total }} ta o'quvchi</strong> ushbu guruhda. Faollashtirilgandan so'ng to'lovlar va davomat normal davom etadi.</span>
+      </div>
+      <form method="post" id="gpForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="resume">
+        <input type="hidden" name="next" value="{% url 'education:group_detail' pk=g.id %}">
+        <div class="gp-actions">
+          <a class="gp-btn gp-btn--ghost" href="{% url 'education:group_detail' pk=g.id %}">Bekor qilish</a>
+          <button type="submit" class="gp-btn gp-btn--success"><i class="fa-regular fa-circle-play"></i><span>Qayta faollashtirish</span></button>
+        </div>
+      </form>
+    {% else %}
+      <div class="gp-card__head"><i class="fa-regular fa-circle-pause"></i><span>Vaqtinchalik to'xtatish</span></div>
+      <p class="gp-card__sub">Guruhdagi darslar to'xtatiladi va o'quvchilarga xabar yuboriladi.</p>
+
+      <div class="gp-warn">
+        <i class="fa-solid fa-circle-info"></i>
+        <span><strong>{{ enrolled_total }} ta o'quvchi</strong> ushbu guruhda. To'xtatilgan davrda to'lov undirilmaydi.</span>
+      </div>
+
+      <form method="post" id="gpForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="pause">
+        <input type="hidden" name="next" value="{% url 'education:group_detail' pk=g.id %}">
+
+        <div class="gp-grid">
+          <div class="gp-field">
+            <label class="gp-label" for="gpFromDate">To'xtatish sanasi</label>
+            <input id="gpFromDate" type="date" name="pause_from" class="gp-input" value="{{ default_pause_date|date:'Y-m-d' }}" required>
+          </div>
+          <div class="gp-field">
+            <label class="gp-label" for="gpToDate">Qayta boshlash sanasi</label>
+            <input id="gpToDate" type="date" name="pause_to" class="gp-input" value="{{ default_resume_date|date:'Y-m-d' }}" required>
+          </div>
+        </div>
+
+        <div class="gp-field" style="margin-bottom:6px">
+          <label class="gp-label" for="gpReason">Sabab</label>
+          <select id="gpReason" name="reason" class="gp-select" required>
+            <option value="Bayram ta'tili">Bayram ta'tili</option>
+            <option value="Texnik sabab">Texnik sabab</option>
+            <option value="O'qituvchi yo'q">O'qituvchi yo'q</option>
+            <option value="Kasallik">Kasallik</option>
+            <option value="Boshqa">Boshqa</option>
+          </select>
+        </div>
+
+        <div class="gp-actions">
+          <a class="gp-btn gp-btn--ghost" href="{% url 'education:group_detail' pk=g.id %}">Bekor qilish</a>
+          <button type="submit" class="gp-btn gp-btn--warn" id="gpSubmit"><i class="fa-regular fa-circle-pause"></i><span>To'xtatish</span></button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById('gpForm');
+  const fromI = document.getElementById('gpFromDate');
+  const toI = document.getElementById('gpToDate');
+  if(form && fromI && toI){
+    form.addEventListener('submit', e => {
+      if(fromI.value && toI.value && toI.value <= fromI.value){
+        e.preventDefault();
+        alert("Qayta boshlash sanasi to'xtatish sanasidan keyin bo'lishi kerak.");
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

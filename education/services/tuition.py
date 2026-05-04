@@ -295,15 +295,23 @@ def scheduled_lessons_between(group, start: date, end: date) -> int:
     """
     GroupSchedule ga qarab [start, end] oralig'ida nechta rejalashtirilgan dars
     borligini sanaydi. Jadval bo'sh bo'lsa 0 qaytaradi (fallback yuqorida).
+
+    PERF: agar caller `preload_group_schedules([group_id, ...])` chaqirgan
+    bo'lsa, request-scope cache'dan o'qiydi (1 query vs N query).
     """
     from education.models import GroupSchedule
 
     if start > end:
         return 0
 
-    weekday_counts = Counter(
-        GroupSchedule.objects.filter(group=group).values_list("weekday", flat=True)
-    )
+    gid = getattr(group, "id", None)
+    weekday_counts = _get_cached_group_weekdays(gid)
+    if weekday_counts is None:
+        # Fallback: cache yo'q — har query
+        weekday_counts = Counter(
+            GroupSchedule.objects.filter(group=group).values_list("weekday", flat=True)
+        )
+
     if not weekday_counts:
         return 0
 
@@ -314,6 +322,54 @@ def scheduled_lessons_between(group, start: date, end: date) -> int:
         count += int(weekday_counts.get(cur.isoweekday(), 0) or 0)
         cur += timedelta(days=1)
     return count
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Request-scope cache for group schedules — performance optimisation.
+# Caller calls `preload_group_schedules([group_ids])` once before the loop;
+# `scheduled_lessons_between` reads from this cache.
+# ──────────────────────────────────────────────────────────────────────
+import threading as _threading
+
+_request_cache = _threading.local()
+
+
+def _get_cache_dict():
+    if not hasattr(_request_cache, "schedule_weekdays"):
+        _request_cache.schedule_weekdays = None
+    return _request_cache.schedule_weekdays
+
+
+def _get_cached_group_weekdays(group_id):
+    cache = _get_cache_dict()
+    if cache is None or group_id is None:
+        return None
+    return cache.get(group_id, Counter())  # bo'sh Counter — schedule yo'q
+
+
+def preload_group_schedules(group_ids) -> None:
+    """Berilgan guruhlar uchun GroupSchedule weekday_counts'larini bir
+    martalik query bilan yuklaydi va request-scope cache'ga saqlaydi.
+
+    Keyin `scheduled_lessons_between` har chaqirilganda DB'ga bormaydi.
+    """
+    from education.models import GroupSchedule
+
+    ids = [int(gid) for gid in group_ids if gid]
+    if not ids:
+        _request_cache.schedule_weekdays = {}
+        return
+
+    cache: dict[int, Counter] = {gid: Counter() for gid in set(ids)}
+    rows = GroupSchedule.objects.filter(group_id__in=ids).values_list("group_id", "weekday")
+    for gid, weekday in rows:
+        cache.setdefault(gid, Counter())[weekday] += 1
+    _request_cache.schedule_weekdays = cache
+
+
+def clear_group_schedule_cache() -> None:
+    """Request oxirida tozalash (xohlasangiz)."""
+    _request_cache.schedule_weekdays = None
 
 
 LESSON_PATTERN_GROUP = "group"

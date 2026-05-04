@@ -146,10 +146,14 @@ class CenterSubscription(models.Model):
         ordering = ("-plan__tier", "-expires_at") # Highest tier first, then latest expiry
         constraints = [
             models.UniqueConstraint(
-                fields=['center'], 
-                condition=models.Q(status='ACTIVE'), 
+                fields=['center'],
+                condition=models.Q(status='ACTIVE'),
                 name='unique_active_center_sub'
             )
+        ]
+        indexes = [
+            # Middleware har request'da `CenterSubscription.objects.filter(center=c, status='ACTIVE')` chaqiradi
+            models.Index(fields=['center', 'status'], name='cent_sub_status_idx'),
         ]
 
     @property

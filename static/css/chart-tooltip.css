@@ -1,0 +1,178 @@
+/* ChaqmoqApp — reusable donut/pie tooltip styles
+ * Tooltip lives inside the chart's parent container (position: absolute).
+ * Two layouts:
+ *   .chq-tt-corner-tl  — desktop default, sits in the top-left corner so
+ *                        the donut center ("JAMI") is never covered.
+ *   .chq-tt-mobile     — small containers, anchored to the top edge full-width.
+ */
+
+.chq-tooltip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  min-width: 152px;
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(7, 10, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45),
+              0 2px 6px rgba(0, 0, 0, 0.30);
+  color: #f8fafc;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 50;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.chq-tooltip.chq-tt-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chq-tooltip .chq-tt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chq-tooltip .chq-tt-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 10px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.chq-tooltip .chq-tt-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.chq-tooltip .chq-tt-value {
+  font-weight: 800;
+  font-size: 16px;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.chq-tooltip .chq-tt-pct {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.chq-tooltip .chq-tt-pct strong {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+/* ---- Layout variants --------------------------------------------------- */
+
+.chq-tooltip.chq-tt-corner-tl {
+  top: 10px;
+  left: 10px;
+  right: auto;
+  bottom: auto;
+}
+
+.chq-tooltip.chq-tt-mobile {
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  max-width: none;
+  min-width: 0;
+}
+
+/* ApexCharts wraps its custom tooltip — neutralize ONLY the wrapper that
+ * actually contains our custom tooltip (so other ApexCharts tooltips on the
+ * page keep their default styling). */
+.apexcharts-tooltip:has(> .chq-tt-apex) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.chq-tooltip.chq-tt-apex {
+  position: static;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* ---- Light theme ------------------------------------------------------- */
+
+[data-role-theme="light"] .chq-tooltip,
+[data-bs-theme="light"] .chq-tooltip,
+.theme-light .chq-tooltip {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(15, 23, 42, 0.10);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12),
+              0 2px 6px rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+[data-role-theme="light"] .chq-tooltip .chq-tt-row,
+[data-bs-theme="light"] .chq-tooltip .chq-tt-row,
+.theme-light .chq-tooltip .chq-tt-row {
+  color: #475569;
+}
+
+[data-role-theme="light"] .chq-tooltip .chq-tt-value,
+[data-bs-theme="light"] .chq-tooltip .chq-tt-value,
+.theme-light .chq-tooltip .chq-tt-value {
+  color: #0f172a;
+}
+
+[data-role-theme="light"] .chq-tooltip .chq-tt-pct,
+[data-bs-theme="light"] .chq-tooltip .chq-tt-pct,
+.theme-light .chq-tooltip .chq-tt-pct {
+  color: #64748b;
+}
+
+[data-role-theme="light"] .chq-tooltip .chq-tt-pct strong,
+[data-bs-theme="light"] .chq-tooltip .chq-tt-pct strong,
+.theme-light .chq-tooltip .chq-tt-pct strong {
+  color: #1e293b;
+}
+
+[data-role-theme="light"] .chq-tooltip .chq-tt-dot,
+[data-bs-theme="light"] .chq-tooltip .chq-tt-dot,
+.theme-light .chq-tooltip .chq-tt-dot {
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
+}
+
+/* ---- Responsive -------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .chq-tooltip {
+    font-size: 11px;
+    min-width: 0;
+    max-width: calc(100% - 16px);
+  }
+  .chq-tooltip .chq-tt-value {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chq-tooltip {
+    transition: none;
+  }
+}

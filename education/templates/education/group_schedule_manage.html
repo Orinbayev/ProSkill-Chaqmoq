@@ -1,243 +1,296 @@
 {% extends "base.html" %}
-{% load form_tags %}
+{% load humanize %}
+{% block body_class %}gas-page schedule-edit-page{% endblock %}
+
 {% block content %}
-{% include "education/partials/phase_theme.html" %}
-<style>
-  .schedule-days-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .schedule-day-card {
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(2, 6, 23, 0.42);
-  }
-  .schedule-day-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 15px;
-    font-weight: 800;
-    color: #f8fafc;
-  }
-  .schedule-slot {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.72);
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    margin-bottom: 8px;
-  }
-  .schedule-slot:last-child {
-    margin-bottom: 0;
-  }
-  .schedule-slot-meta {
-    display: grid;
-    gap: 4px;
-  }
-  .schedule-slot-time {
-    font-size: 14px;
-    font-weight: 800;
-    color: #f8fafc;
-  }
-  .schedule-slot-room {
-    font-size: 12px;
-    color: #cbd5e1;
-    font-weight: 700;
-  }
-  .schedule-slot-conflict {
-    margin-top: 6px;
-    font-size: 12px;
-    color: #facc15;
-    font-weight: 700;
-  }
-  .schedule-empty-day {
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.44);
-    color: #94a3b8;
-    font-weight: 700;
-    text-align: center;
-  }
-  .conflict-alert {
-    display: none;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(245, 158, 11, 0.28);
-    background: rgba(120, 53, 15, 0.22);
-    color: #fde68a;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .conflict-alert.show {
-    display: block;
-  }
-  @media (max-width: 900px) {
-    .schedule-days-grid {
-      grid-template-columns: 1fr;
+<div class="gas-shell">
+
+  {% include "education/_group_action_shell.html" with active_tab="schedule" page_title="Jadvalni o'zgartirish" schedule_text=current_schedule_text %}
+
+  <style>
+    .sch-card {
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
     }
-  }
-</style>
+    .sch-card + .sch-card { margin-top: 14px; }
+    .sch-card__title {
+      margin: 0 0 4px;
+      color: #0f172a;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .sch-card__sub {
+      margin: 0 0 18px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .sch-section-label {
+      display: block;
+      margin: 0 0 10px;
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
 
-<div class="ui-shell">
-  <div class="ui-panel ui-header glass">
-    <div>
-      <h3 class="ui-title">📅 {{ group.nom }} — Dars jadvali</h3>
-      <div class="ui-sub">Haftalik slotlar va xona bandligini boshqarish</div>
-    </div>
-    <div class="ui-actions">
-      {% if feature_weekly_schedule_ui %}
-        {% if request.user.role == 'manager' or request.user.role == 'director' or request.user.is_superuser %}
-          <a href="{% url 'education:weekly_schedule' %}" class="ui-btn ui-btn-secondary">Haftalik jadval</a>
-        {% endif %}
-      {% endif %}
-      <a href="{% url 'education:group_detail' group.id %}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
-    </div>
+    .sch-days {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .sch-day {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      height: 48px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, color .15s, transform .1s, box-shadow .15s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .sch-day:hover { background: #e2e8f0; color: #0f172a; }
+    .sch-day.is-selected {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, .25);
+    }
+    .sch-day input { display: none; }
+
+    .sch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .sch-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .sch-input {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 48px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .sch-input:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+    }
+    .sch-input input {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #0f172a;
+      font-size: 14.5px;
+      font-weight: 600;
+    }
+    .sch-input input::placeholder { color: #cbd5e1; }
+    .sch-input__suffix {
+      color: #94a3b8;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .sch-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .sch-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 11px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s, transform .1s;
+    }
+    .sch-btn:active { transform: translateY(1px); }
+    .sch-btn--ghost {
+      background: #ffffff;
+      color: #475569;
+      border-color: #e5e7eb;
+    }
+    .sch-btn--ghost:hover { background: #f8fafc; color: #0f172a; }
+    .sch-btn--primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, .22);
+    }
+    .sch-btn--primary:hover { background: #1d4ed8; }
+
+    .sch-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px dashed #e2e8f0;
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .sch-tip i {
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .sch-msgs { margin-bottom: 14px; }
+    .sch-msg {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .sch-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .sch-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .sch-msg--warning { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+    .sch-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+
+    @media (max-width: 720px) {
+      .sch-grid { grid-template-columns: 1fr; }
+      .sch-actions { flex-direction: column; align-items: stretch; }
+      .sch-btn { width: 100%; }
+    }
+  </style>
+
+  {% if messages %}
+  <div class="sch-msgs">
+    {% for m in messages %}
+      <div class="sch-msg sch-msg--{% if m.tags == 'error' %}error{% elif m.tags == 'warning' %}warning{% elif m.tags == 'success' %}success{% else %}info{% endif %}">
+        <i class="fa-solid {% if m.tags == 'error' %}fa-circle-xmark{% elif m.tags == 'warning' %}fa-triangle-exclamation{% elif m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
   </div>
+  {% endif %}
 
-  <div class="ui-panel ui-section glass">
-    <div class="ui-note mb-0">
-      Bu yerda kiritilgan slotlar "Haftalik Jadval" va Telegram botdagi jadval bo'limlarida ko'rinadi.
-      Xona bir xil kun va bir xil vaqtda boshqa guruhda band bo'lsa, saqlash bloklanadi.
-    </div>
-  </div>
+  <div class="sch-card">
+    <h2 class="sch-card__title">Dars jadvali</h2>
+    <p class="sch-card__sub">
+      {% if current_schedule_text %}Hozirgi: {{ current_schedule_text }}{% else %}Hozircha jadval kiritilmagan.{% endif %}
+    </p>
 
-  <div class="ui-panel ui-section glass">
-    <h4 class="ui-section-title">Hozirgi jadval</h4>
-    {% if schedules %}
-      <div class="schedule-days-grid">
-        {% for weekday, weekday_label in weekday_labels %}
-          <div class="schedule-day-card glass">
-            <div class="schedule-day-title">
-              <span>{{ weekday_label }}</span>
-            </div>
-            {% with day_items=schedule_map|get_item:weekday %}
-              {% if day_items %}
-                {% for schedule in day_items %}
-                  <div class="schedule-slot">
-                    <div class="schedule-slot-meta">
-                      <div class="schedule-slot-time">{{ schedule.time_range }}</div>
-                      <div class="schedule-slot-room">
-                        {% if schedule.room %}Xona: {{ schedule.room }}{% else %}Xona belgilanmagan{% endif %}
-                      </div>
-                      {% if schedule.conflict_groups %}
-                        <div class="schedule-slot-conflict">
-                          ⚠️ Bu vaqtda {{ schedule.conflict_groups|join:", " }} ham shu xonada
-                        </div>
-                      {% endif %}
-                    </div>
-                    <form method="post">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="schedule_id" value="{{ schedule.id }}">
-                      <button type="submit" class="ui-btn ui-btn-secondary">🗑 O'chirish</button>
-                    </form>
-                  </div>
-                {% endfor %}
-              {% else %}
-                <div class="schedule-empty-day">Jadval kiritilmagan</div>
-              {% endif %}
-            {% endwith %}
-          </div>
+    <form method="post" id="schForm" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_bulk">
+
+      <span class="sch-section-label">Dars kunlari</span>
+      <div class="sch-days" role="group" aria-label="Dars kunlari">
+        {% for n, sh, full in weekday_short %}
+          <label class="sch-day {% if n in selected_weekdays %}is-selected{% endif %}" data-weekday="{{ n }}" title="{{ full }}">
+            <input type="checkbox" name="weekdays" value="{{ n }}" {% if n in selected_weekdays %}checked{% endif %}>
+            <span>{{ sh }}</span>
+          </label>
         {% endfor %}
       </div>
-    {% else %}
-      <div class="ui-note ui-note-muted mb-0">Jadval kiritilmagan.</div>
-    {% endif %}
-  </div>
 
-  <div class="ui-panel ui-section glass">
-    <h4 class="ui-section-title">Yangi jadval qo'shish</h4>
-    <form method="post" class="ui-grid" id="schedule-form">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="add">
-      <div class="ui-col-3">
-        <label class="ui-label">Kun</label>
-        <select name="weekday" id="schedule-weekday" required>
-          <option value="">Kun tanlang</option>
-          {% for value, label in weekday_choices %}
-            <option value="{{ value }}">{{ label }}</option>
-          {% endfor %}
-        </select>
+      <div class="sch-grid">
+        <div class="sch-field">
+          <span class="sch-section-label">Boshlanish vaqti</span>
+          <div class="sch-input">
+            <input type="time" name="start_time" aria-label="Boshlanish vaqti" title="Boshlanish vaqti" value="{% if common_start %}{{ common_start|time:'H:i' }}{% endif %}" required>
+          </div>
+        </div>
+        <div class="sch-field">
+          <span class="sch-section-label">Davomiyligi</span>
+          <div class="sch-input">
+            <input type="number" name="duration" aria-label="Davomiyligi (daqiqa)" title="Davomiyligi (daqiqa)" min="15" max="480" step="5" value="{{ common_duration|default:90 }}" required>
+            <span class="sch-input__suffix">daqiqa</span>
+          </div>
+        </div>
+        <div class="sch-field">
+          <span class="sch-section-label">Xona</span>
+          <div class="sch-input">
+            <input type="text" name="room" value="{{ common_room|default_if_none:'' }}" placeholder="Masalan, 201-xona" maxlength="60">
+          </div>
+        </div>
       </div>
-      <div class="ui-col-3">
-        <label class="ui-label">Boshlanish</label>
-        <input type="time" name="start_time" id="schedule-start-time" required>
+
+      <div class="sch-tip">
+        <i class="fa-regular fa-lightbulb"></i>
+        <span>Saqlaganda mavjud jadval o'rniga tanlangan kunlar uchun yangi yozuvlar yaratiladi. Tugash vaqti boshlanish vaqti + davomiylik bo'yicha avtomatik hisoblanadi.</span>
       </div>
-      <div class="ui-col-3">
-        <label class="ui-label">Tugash</label>
-        <input type="time" name="end_time" id="schedule-end-time">
-      </div>
-      <div class="ui-col-3">
-        <label class="ui-label">Xona</label>
-        <input type="text" name="room" id="schedule-room" maxlength="60" placeholder="Masalan: 2-kabinet">
-      </div>
-      <div class="ui-col-12">
-        <div id="schedule-conflict-alert" class="conflict-alert"></div>
-      </div>
-      <div class="ui-col-12">
-        <button type="submit" class="ui-btn ui-btn-primary">➕ Qo'shish</button>
+
+      <div class="sch-actions">
+        <a class="sch-btn sch-btn--ghost" href="{% url 'education:group_detail' pk=group.id %}">Bekor qilish</a>
+        <button type="submit" class="sch-btn sch-btn--primary"><i class="fa-solid fa-check"></i><span>Saqlash</span></button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-  (function () {
-    const roomInput = document.getElementById("schedule-room");
-    const weekdayInput = document.getElementById("schedule-weekday");
-    const startTimeInput = document.getElementById("schedule-start-time");
-    const alertBox = document.getElementById("schedule-conflict-alert");
-    const endpoint = "{% url 'education:schedule_conflict_check' %}";
-
-    async function checkConflict() {
-      const room = roomInput.value.trim();
-      const weekday = weekdayInput.value;
-      const startTime = startTimeInput.value;
-
-      if (!room || !weekday || !startTime) {
-        alertBox.classList.remove("show");
-        alertBox.textContent = "";
-        return;
-      }
-
-      const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("room", room);
-      url.searchParams.set("weekday", weekday);
-      url.searchParams.set("start_time", startTime);
-      url.searchParams.set("exclude_group_id", "{{ group.id }}");
-
-      try {
-        const response = await fetch(url.toString(), {
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          credentials: "same-origin",
-        });
-        const data = await response.json();
-        if (data.conflict && data.groups && data.groups.length) {
-          alertBox.textContent = `⚠️ Bu vaqtda ${data.groups.join(", ")} ham shu xonada`;
-          alertBox.classList.add("show");
-        } else {
-          alertBox.classList.remove("show");
-          alertBox.textContent = "";
-        }
-      } catch (error) {
-        alertBox.classList.remove("show");
-        alertBox.textContent = "";
-      }
-    }
-
-    [roomInput, weekdayInput, startTimeInput].forEach((element) => {
-      element.addEventListener("input", checkConflict);
-      element.addEventListener("change", checkConflict);
+(function(){
+  'use strict';
+  const days = document.querySelectorAll('.sch-day');
+  days.forEach(label => {
+    const cb = label.querySelector('input[type="checkbox"]');
+    if(!cb) return;
+    label.addEventListener('click', e => {
+      // Native label-click toggles checkbox; sync class after the toggle.
+      requestAnimationFrame(() => {
+        label.classList.toggle('is-selected', cb.checked);
+      });
     });
-  })();
+    // Keyboard support: Enter / Space when focused
+    label.tabIndex = 0;
+    label.addEventListener('keydown', e => {
+      if(e.key === ' ' || e.key === 'Enter'){
+        e.preventDefault();
+        cb.checked = !cb.checked;
+        label.classList.toggle('is-selected', cb.checked);
+      }
+    });
+  });
+
+  // Validate at least one day selected before submit.
+  const form = document.getElementById('schForm');
+  if(form){
+    form.addEventListener('submit', e => {
+      const any = form.querySelectorAll('input[name="weekdays"]:checked').length > 0;
+      if(!any){
+        e.preventDefault();
+        alert('Kamida bitta dars kunini tanlang.');
+      }
+    });
+  }
+})();
 </script>
 {% endblock %}

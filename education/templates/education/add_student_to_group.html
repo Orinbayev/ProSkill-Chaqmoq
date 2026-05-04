@@ -1,25 +1,25 @@
 {% extends 'base.html' %}
 
-{% block body_class %}student-add-compact-page{% endblock %}
+{% block body_class %}gas-page student-add-compact-page{% endblock %}
 
 {% block extra_css %}
 <style>
   :root {
-    --sac-bg: #0b0f14;
-    --sac-panel: #11161d;
-    --sac-panel-soft: #151b23;
-    --sac-border: rgba(148, 163, 184, 0.14);
-    --sac-border-strong: rgba(148, 163, 184, 0.24);
-    --sac-text: #f3f5f7;
-    --sac-muted: #97a3b6;
-    --sac-accent: #4f8cff;
-    --sac-accent-soft: rgba(79, 140, 255, 0.14);
-    --sac-success: #23c16b;
-    --sac-success-soft: rgba(35, 193, 107, 0.14);
-    --sac-danger: #f05a7e;
-    --sac-danger-soft: rgba(240, 90, 126, 0.14);
-    --sac-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
-    --sac-radius: 12px;
+    --sac-bg: #f6f7fb;
+    --sac-panel: #ffffff;
+    --sac-panel-soft: #f8fafc;
+    --sac-border: #e5e7eb;
+    --sac-border-strong: #cbd5e1;
+    --sac-text: #0f172a;
+    --sac-muted: #94a3b8;
+    --sac-accent: #2563eb;
+    --sac-accent-soft: #dbeafe;
+    --sac-success: #059669;
+    --sac-success-soft: #d1fae5;
+    --sac-danger: #dc2626;
+    --sac-danger-soft: #fee2e2;
+    --sac-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 14px 32px rgba(15, 23, 42, .05);
+    --sac-radius: 14px;
   }
 
   body.student-add-compact-page {
@@ -28,73 +28,14 @@
   }
 
   .sac-page {
-    min-height: calc(100vh - 72px);
-    padding: 20px 16px 104px;
-    font-family: Inter, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 22px 28px 104px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
   .sac-shell {
-    width: min(960px, 100%);
-    margin: 0 auto;
-  }
-
-  .sac-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 18px;
-  }
-
-  .sac-back {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 38px;
-    padding: 0 12px;
-    border-radius: 10px;
-    border: 1px solid var(--sac-border);
-    background: var(--sac-panel);
-    color: var(--sac-text);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  .sac-back:hover {
-    border-color: var(--sac-border-strong);
-    color: #fff;
-  }
-
-  .sac-title {
-    margin: 14px 0 4px;
-    font-size: 30px;
-    line-height: 1.1;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-
-  .sac-subtitle {
+    width: 100%;
     margin: 0;
-    color: var(--sac-muted);
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  .sac-group-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    padding: 0 10px;
-    border-radius: 999px;
-    border: 1px solid var(--sac-border);
-    background: var(--sac-panel);
-    color: var(--sac-muted);
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
   }
 
   .sac-stack {
@@ -115,7 +56,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 14px 16px 12px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    border-bottom: 1px solid #eef2f7;
   }
 
   .sac-panel__title {
@@ -155,7 +96,7 @@
     display: none;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(148, 163, 184, 0.2);
+    border: 2px solid #e5e7eb;
     border-top-color: var(--sac-accent);
     border-radius: 999px;
     animation: sacSpin 700ms linear infinite;
@@ -180,8 +121,8 @@
   }
 
   .sac-input:focus {
-    border-color: rgba(79, 140, 255, 0.46);
-    box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 
   .sac-status {
@@ -201,21 +142,21 @@
   }
 
   .sac-status[data-type="success"] {
-    color: #d7ffe6;
+    color: #047857;
     background: var(--sac-success-soft);
-    border-color: rgba(35, 193, 107, 0.22);
+    border-color: #a7f3d0;
   }
 
   .sac-status[data-type="warning"] {
-    color: #ffe9a6;
-    background: rgba(245, 158, 11, 0.14);
-    border-color: rgba(245, 158, 11, 0.24);
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fde68a;
   }
 
   .sac-status[data-type="error"] {
-    color: #ffd8e2;
+    color: #b91c1c;
     background: var(--sac-danger-soft);
-    border-color: rgba(240, 90, 126, 0.24);
+    border-color: #fecaca;
   }
 
   .sac-list {
@@ -236,8 +177,9 @@
     gap: 12px;
     min-height: 68px;
     padding: 10px 16px;
-    border-top: 1px solid rgba(148, 163, 184, 0.08);
+    border-top: 1px solid #eef2f7;
   }
+  .sac-student:hover { background: #fafbfd; }
 
   .sac-student:first-child {
     border-top: 0;
@@ -253,8 +195,8 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: #1b2430;
-    color: #d9e2f2;
+    background: #dbeafe;
+    color: #2563eb;
     font-size: 13px;
     font-weight: 700;
     flex: 0 0 auto;
@@ -291,20 +233,20 @@
     min-height: 22px;
     padding: 0 8px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.08);
+    background: #f1f5f9;
     color: var(--sac-muted);
     font-size: 11px;
     font-weight: 700;
   }
 
   .sac-chip--warn {
-    color: #f7cc7a;
-    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    background: #fef3c7;
   }
 
   .sac-chip--info {
-    color: #b8c6ff;
-    background: rgba(79, 140, 255, 0.12);
+    color: #1d4ed8;
+    background: #dbeafe;
   }
 
   .sac-btn {
@@ -336,14 +278,17 @@
   .sac-btn--add {
     min-width: 98px;
     background: var(--sac-accent-soft);
-    border-color: rgba(79, 140, 255, 0.26);
-    color: #dfe9ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+  .sac-btn--add:hover {
+    background: #bfdbfe;
   }
 
   .sac-btn--add.is-selected {
     background: var(--sac-success-soft);
-    border-color: rgba(35, 193, 107, 0.24);
-    color: #d7ffe6;
+    border-color: #a7f3d0;
+    color: #047857;
   }
 
   .sac-btn--remove {
@@ -351,8 +296,13 @@
     min-height: 32px;
     min-width: 32px;
     padding: 0;
-    color: #ffb9c9;
+    color: #b91c1c;
     background: transparent;
+    border-color: transparent;
+  }
+  .sac-btn--remove:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
   }
 
   .sac-selection {
@@ -370,7 +320,7 @@
     gap: 10px;
     min-height: 60px;
     padding: 10px 16px;
-    border-top: 1px solid rgba(148, 163, 184, 0.08);
+    border-top: 1px solid #eef2f7;
   }
 
   .sac-selected-item:first-child {
@@ -401,7 +351,7 @@
     padding: 12px 14px;
     border: 1px solid var(--sac-border);
     border-radius: 14px;
-    background: rgba(17, 22, 29, 0.92);
+    background: rgba(255, 255, 255, 0.96);
     box-shadow: var(--sac-shadow);
     backdrop-filter: blur(10px);
   }
@@ -487,22 +437,10 @@
 {% endblock %}
 
 {% block content %}
-<main class="sac-page">
+<main class="sac-page gas-shell">
   <div class="sac-shell">
-    <header class="sac-header">
-      <div>
-        <a href="{% url 'education:group_detail' group.id %}" class="sac-back">
-          <i class="fa-solid fa-arrow-left"></i>
-          <span>Orqaga</span>
-        </a>
-        <h1 class="sac-title">Guruhga o'quvchi qo'shish</h1>
-        <p class="sac-subtitle">Qidirib tanlang va 2 klikda guruhga qo'shing.</p>
-      </div>
-      <div class="sac-group-chip">
-        <i class="fa-solid fa-users"></i>
-        <span>{{ group.nom }}</span>
-      </div>
-    </header>
+
+    {% include "education/_group_action_shell.html" with active_tab="add" page_title="O'quvchi qo'shish" %}
 
     <div class="sac-stack">
       <section class="sac-panel">

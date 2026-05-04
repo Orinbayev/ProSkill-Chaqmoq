@@ -2739,7 +2739,12 @@
                 position: 'right',
                 offsetY: 20,
                 labels: { colors: '#94a3b8' }
-            }
+            },
+            tooltip: (window.ChaqmoqDonutTooltip ? {
+                theme: 'dark',
+                fillSeriesColor: false,
+                custom: (args) => window.ChaqmoqDonutTooltip.apexCustom(args)
+            } : { theme: 'dark' })
         };
 
         if (saasPlanChartInstance) {

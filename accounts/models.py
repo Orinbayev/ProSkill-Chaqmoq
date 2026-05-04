@@ -598,6 +598,12 @@ class User(SoftDeleteMixin, AbstractUser):
     class Meta:
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
+        indexes = [
+            # teacher_salary_list / role-filterli queries
+            models.Index(fields=['center', 'role', 'is_archived'], name='user_center_role_idx'),
+            # Phone qidirish (login + lookup)
+            models.Index(fields=['phone_number'], name='user_phone_num_idx'),
+        ]
 
     def full_name(self) -> str:
         parts = []

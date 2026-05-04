@@ -1,0 +1,1022 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block body_class %}all-groups-page{% endblock %}
+
+{% block content %}
+<style>
+/* Hide any base layout chrome that bleeds onto the right of the sidebar */
+body.all-groups-page,
+body.all-groups-page .layout,
+body.all-groups-page .app-shell,
+body.all-groups-page .main-content,
+body.all-groups-page .content-shell {
+  background: #f6f7fb !important;
+}
+body.all-groups-page .main-content { padding: 0 !important; }
+body.all-groups-page .content-shell {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.ag-page {
+  --ag-bg: #f6f7fb;
+  --ag-card-bg: #ffffff;
+  --ag-border: #e5e7eb;
+  --ag-border-soft: #eef2f7;
+  --ag-ink: #0f172a;
+  --ag-mid: #475569;
+  --ag-mute: #94a3b8;
+  --ag-muted-bg: #f1f5f9;
+  background: var(--ag-bg);
+  min-height: 100vh;
+  padding: 22px 28px 60px;
+  color: var(--ag-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Breadcrumb */
+.ag-crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: var(--ag-mute);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ag-crumb a {
+  color: var(--ag-mute);
+  text-decoration: none;
+  transition: color .15s;
+}
+.ag-crumb a:hover { color: var(--ag-ink); }
+.ag-crumb__sep { opacity: .5; }
+.ag-crumb__cur { color: var(--ag-ink); }
+
+/* KPI cards */
+.ag-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.ag-kpi {
+  position: relative;
+  padding: 18px 20px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--ag-border);
+  background: var(--ag-card-bg);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 12px 28px rgba(15,23,42,.06);
+}
+.ag-kpi__ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.ag-kpi__ico--violet { background: #ede9fe; color: #7c3aed; }
+.ag-kpi__ico--blue   { background: #dbeafe; color: #2563eb; }
+.ag-kpi__ico--green  { background: #d1fae5; color: #059669; }
+.ag-kpi__ico--amber  { background: #fef3c7; color: #d97706; }
+.ag-kpi__lbl {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ag-mute);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ag-kpi__val {
+  display: block;
+  margin: 2px 0 6px;
+  color: var(--ag-ink);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  line-height: 1;
+}
+.ag-kpi__sub {
+  color: var(--ag-mute);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Filter bar */
+.ag-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border);
+  background: var(--ag-card-bg);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04);
+}
+.ag-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--ag-muted-bg);
+}
+.ag-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ag-mid);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.ag-tab:hover { color: var(--ag-ink); }
+.ag-tab.is-active {
+  background: #ffffff;
+  color: var(--ag-ink);
+  box-shadow: 0 1px 2px rgba(15,23,42,.08);
+}
+.ag-select-wrap {
+  position: relative;
+}
+.ag-select {
+  appearance: none;
+  height: 38px;
+  padding: 0 32px 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ag-border);
+  background: #ffffff;
+  color: var(--ag-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 180px;
+}
+.ag-select:focus { outline: 2px solid #c7d2fe; outline-offset: 1px; }
+.ag-select-wrap::after {
+  content: '\f078';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ag-mute);
+  font-size: 10px;
+  pointer-events: none;
+}
+.ag-search {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ag-border);
+  background: #ffffff;
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+.ag-search i { color: var(--ag-mute); margin-right: 8px; font-size: 13px; }
+.ag-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ag-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.ag-search input::placeholder { color: var(--ag-mute); }
+.ag-spacer { flex: 1; }
+.ag-view-toggle {
+  display: inline-flex;
+  border-radius: 10px;
+  border: 1px solid var(--ag-border);
+  background: #ffffff;
+  overflow: hidden;
+}
+.ag-view-btn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--ag-mute);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.ag-view-btn:hover { color: var(--ag-ink); }
+.ag-view-btn.is-active {
+  background: #f1f5f9;
+  color: var(--ag-ink);
+}
+.ag-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ag-border);
+  background: #ffffff;
+  color: var(--ag-mid);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.ag-export-btn i { font-size: 13px; }
+.ag-export-btn:hover {
+  background: #f8fafc;
+  color: var(--ag-ink);
+  border-color: #cbd5e1;
+}
+.ag-export-btn__lbl { color: inherit; }
+@media (max-width: 720px) {
+  .ag-export-btn__lbl { display: none; }
+  .ag-export-btn { padding: 0 11px; }
+}
+
+/* Table */
+.ag-table-card {
+  border-radius: 18px;
+  border: 1px solid var(--ag-border);
+  background: var(--ag-card-bg);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.06);
+  overflow: hidden;
+}
+.ag-table-wrap { overflow-x: auto; }
+.ag-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+.ag-table thead { background: #f8fafc; }
+.ag-table th {
+  height: 42px;
+  padding: 0 22px;
+  color: var(--ag-mute);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ag-table td {
+  height: 64px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--ag-border-soft);
+  color: var(--ag-mid);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.ag-table tr:last-child td { border-bottom: 0; }
+.ag-table tr:hover td { background: #fafbfd; }
+
+.ag-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ag-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+.ag-name {
+  min-width: 0;
+}
+.ag-name strong {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--ag-ink);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-name small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ag-mute);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.ag-teacher,
+.ag-schedule {
+  color: var(--ag-mid);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ag-students {
+  color: var(--ag-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ag-students__cap {
+  color: var(--ag-mute);
+  font-weight: 600;
+}
+.ag-fill {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 46px;
+  align-items: center;
+  gap: 12px;
+}
+.ag-fill__track {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.ag-fill__bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.ag-fill__pct {
+  color: var(--ag-mid);
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: right;
+}
+.ag-att {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ag-att--good   { background: #d1fae5; color: #047857; }
+.ag-att--mid    { background: #fef3c7; color: #b45309; }
+.ag-att--bad    { background: #fee2e2; color: #b91c1c; }
+.ag-att--none   { background: #f1f5f9; color: #94a3b8; }
+.ag-revenue {
+  color: var(--ag-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ag-actions-wrap {
+  position: relative;
+  display: inline-block;
+}
+.ag-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ag-mute);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.ag-actions:hover { background: #f1f5f9; color: var(--ag-ink); }
+.ag-actions[aria-expanded="true"] {
+  background: #f1f5f9;
+  color: var(--ag-ink);
+}
+
+.ag-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: 240px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--ag-border);
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .14), 0 1px 2px rgba(15, 23, 42, .06);
+  opacity: 0;
+  transform: translateY(-4px) scale(.98);
+  transform-origin: top right;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity .15s, transform .15s, visibility 0s linear .15s;
+  z-index: 1100;
+}
+.ag-menu.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity .15s, transform .15s, visibility 0s;
+}
+.ag-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ag-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.ag-menu__item i {
+  width: 16px;
+  text-align: center;
+  color: var(--ag-mute);
+  font-size: 13.5px;
+  transition: color .15s;
+}
+.ag-menu__item:hover {
+  background: #f8fafc;
+}
+.ag-menu__item:hover i { color: var(--ag-mid); }
+.ag-menu__item--danger { color: #b91c1c; }
+.ag-menu__item--danger i { color: #b91c1c; }
+.ag-menu__item--danger:hover { background: #fef2f2; }
+.ag-menu__sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--ag-border-soft);
+}
+.ag-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ag-mute);
+  font-size: 13.5px;
+}
+.ag-empty i {
+  display: block;
+  margin: 0 auto 10px;
+  font-size: 28px;
+  color: #cbd5e1;
+}
+
+/* Grid view */
+.ag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.ag-card {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border);
+  background: var(--ag-card-bg);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  transition: box-shadow .15s, transform .15s;
+}
+.ag-card:hover {
+  box-shadow: 0 1px 2px rgba(15,23,42,.06), 0 14px 28px rgba(15,23,42,.08);
+  transform: translateY(-1px);
+}
+.ag-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ag-card__name strong {
+  display: block;
+  color: var(--ag-ink);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.ag-card__name small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ag-mute);
+  font-size: 12px;
+  font-weight: 500;
+}
+.ag-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px dashed var(--ag-border-soft);
+  font-size: 12.5px;
+}
+.ag-card__row:first-of-type { border-top: 0; }
+.ag-card__row span:first-child {
+  color: var(--ag-mute);
+  font-weight: 500;
+}
+.ag-card__row span:last-child {
+  color: var(--ag-ink);
+  font-weight: 700;
+}
+.ag-card__bar {
+  margin-top: 12px;
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.ag-card__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.ag-card__pct {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--ag-mid);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ag-card__pct small { color: var(--ag-mute); font-weight: 500; }
+
+/* Pagination */
+.ag-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ag-border-soft);
+  background: #fafbfd;
+}
+.ag-pager__sum {
+  color: var(--ag-mute);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ag-pager__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ag-pager__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ag-mid);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.ag-pager__btn:hover { background: #f8fafc; color: var(--ag-ink); }
+.ag-pager__btn.is-active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+.ag-pager__btn[aria-disabled="true"] {
+  opacity: .45;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 1180px) {
+  .ag-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .ag-page { padding: 16px; }
+  .ag-kpis { grid-template-columns: 1fr; }
+  .ag-filters { padding: 10px; gap: 8px; }
+  .ag-tabs { flex-wrap: wrap; }
+  .ag-select { min-width: 0; flex: 1 1 auto; }
+  .ag-table { min-width: 820px; }
+}
+</style>
+
+<div class="ag-page">
+
+  <!-- Breadcrumb -->
+  <nav class="ag-crumb" aria-label="breadcrumb">
+    <a href="{% url 'core:director_boshqaruv' %}">Boshqaruv</a>
+    <i class="fa-solid fa-chevron-right ag-crumb__sep" style="font-size:10px"></i>
+    <span class="ag-crumb__cur">Guruhlar</span>
+  </nav>
+
+  <!-- KPI -->
+  <div class="ag-kpis">
+    <div class="ag-kpi">
+      <span class="ag-kpi__ico ag-kpi__ico--violet"><i class="fa-solid fa-briefcase"></i></span>
+      <span class="ag-kpi__lbl">Faol guruhlar</span>
+      <span class="ag-kpi__val">{{ kpi_active }}</span>
+      <span class="ag-kpi__sub">{{ kpi_total }} jami</span>
+    </div>
+    <div class="ag-kpi">
+      <span class="ag-kpi__ico ag-kpi__ico--blue"><i class="fa-solid fa-users"></i></span>
+      <span class="ag-kpi__lbl">O'quvchilar</span>
+      <span class="ag-kpi__val">{{ kpi_students|intcomma }}</span>
+      <span class="ag-kpi__sub">Filtrlangan ro'yxatda</span>
+    </div>
+    <div class="ag-kpi">
+      <span class="ag-kpi__ico ag-kpi__ico--green"><i class="fa-solid fa-chart-simple"></i></span>
+      <span class="ag-kpi__lbl">O'rtacha to'ldirilganlik</span>
+      <span class="ag-kpi__val">{{ kpi_avg_fill }}%</span>
+      <span class="ag-kpi__sub">Tanlangan guruhlar</span>
+    </div>
+    <div class="ag-kpi">
+      <span class="ag-kpi__ico ag-kpi__ico--amber"><i class="fa-solid fa-money-bill-wave"></i></span>
+      <span class="ag-kpi__lbl">Oylik tushum</span>
+      <span class="ag-kpi__val" id="agRevenueVal">{{ kpi_revenue|intcomma }}</span>
+      <span class="ag-kpi__sub">So'm</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form id="agFilterForm" method="get" class="ag-filters">
+    <div class="ag-tabs" role="tablist" aria-label="Holat">
+      <button type="button" role="tab" class="ag-tab {% if status == 'all' %}is-active{% endif %}" data-status="all">Hammasi</button>
+      <button type="button" role="tab" class="ag-tab {% if status == 'active' %}is-active{% endif %}" data-status="active">Faol</button>
+      <button type="button" role="tab" class="ag-tab {% if status == 'filling' %}is-active{% endif %}" data-status="filling">To'ldirilmoqda</button>
+      <button type="button" role="tab" class="ag-tab {% if status == 'full' %}is-active{% endif %}" data-status="full">To'ldirilgan</button>
+      <button type="button" role="tab" class="ag-tab {% if status == 'closed' %}is-active{% endif %}" data-status="closed">Yopiq</button>
+    </div>
+    <input type="hidden" name="status" id="agStatus" value="{{ status }}">
+
+    <div class="ag-select-wrap">
+      <select name="category" class="ag-select" id="agCategory" aria-label="Fan">
+        <option value="">Fan: Hammasi</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="ag-select-wrap">
+      <select name="teacher" class="ag-select" id="agTeacher" aria-label="O'qituvchi">
+        <option value="">O'qituvchi: Hammasi</option>
+        {% for t in teachers %}
+          <option value="{{ t.id }}" {% if teacher_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="ag-select-wrap">
+      <select name="sort" class="ag-select" id="agSort" aria-label="Saralash">
+        <option value="fill" {% if sort == 'fill' %}selected{% endif %}>Saralash: To'ldirilganlik</option>
+        <option value="name" {% if sort == 'name' %}selected{% endif %}>Saralash: Nom (A→Z)</option>
+        <option value="students" {% if sort == 'students' %}selected{% endif %}>Saralash: O'quvchilar soni</option>
+        <option value="revenue" {% if sort == 'revenue' %}selected{% endif %}>Saralash: Tushum</option>
+        <option value="att" {% if sort == 'att' %}selected{% endif %}>Saralash: Davomat</option>
+      </select>
+    </div>
+
+    <label class="ag-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" name="q" value="{{ q }}" placeholder="Guruh nomi, fan yoki o'qituvchi..." autocomplete="off" id="agSearch">
+    </label>
+
+    <div class="ag-spacer"></div>
+
+    <div class="ag-view-toggle" role="group" aria-label="Ko'rinish">
+      <button type="button" class="ag-view-btn {% if view_mode == 'list' %}is-active{% endif %}" data-view="list" aria-label="Ro'yxat"><i class="fa-solid fa-list"></i></button>
+      <button type="button" class="ag-view-btn {% if view_mode == 'grid' %}is-active{% endif %}" data-view="grid" aria-label="Kartochkalar"><i class="fa-solid fa-table-cells-large"></i></button>
+    </div>
+    <input type="hidden" name="view" id="agView" value="{{ view_mode }}">
+
+    <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}format=csv" class="ag-export-btn" id="agExport" title="CSV yuklab olish" aria-label="Eksport"><i class="fa-solid fa-download"></i><span class="ag-export-btn__lbl">Yuklab olish</span></a>
+  </form>
+
+  <!-- Content -->
+  {% if rows %}
+    {% if view_mode == 'list' %}
+    <div class="ag-table-card">
+      <div class="ag-table-wrap">
+        <table class="ag-table">
+          <thead>
+            <tr>
+              <th>Guruh</th>
+              <th>O'qituvchi</th>
+              <th>Jadval</th>
+              <th>O'quvchilar</th>
+              <th>To'ldirilganlik</th>
+              <th>Davomat</th>
+              <th>Tushum</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td>
+                <div class="ag-group">
+                  <span class="ag-avatar" style="background:{{ r.bg }};color:{{ r.color }}">{{ r.initials }}</span>
+                  <span class="ag-name">
+                    <strong title="{{ r.name }}">{{ r.name }}</strong>
+                    <small>{{ r.subtitle }}</small>
+                  </span>
+                </div>
+              </td>
+              <td><span class="ag-teacher">{{ r.teacher }}</span></td>
+              <td><span class="ag-schedule">{{ r.schedule }}</span></td>
+              <td><span class="ag-students">{{ r.enrolled }}<span class="ag-students__cap"> / {{ r.capacity }}</span></span></td>
+              <td>
+                <div class="ag-fill">
+                  <span class="ag-fill__track"><span class="ag-fill__bar" style="width:{% if r.fill_pct > 0 %}{{ r.fill_pct }}{% else %}2{% endif %}%;background:{{ r.color }}"></span></span>
+                  <span class="ag-fill__pct">{{ r.fill_pct }}%</span>
+                </div>
+              </td>
+              <td>
+                {% if r.att_rate >= 90 %}
+                  <span class="ag-att ag-att--good">{{ r.att_rate }} %</span>
+                {% elif r.att_rate >= 75 %}
+                  <span class="ag-att ag-att--mid">{{ r.att_rate }} %</span>
+                {% elif r.att_rate > 0 %}
+                  <span class="ag-att ag-att--bad">{{ r.att_rate }} %</span>
+                {% else %}
+                  <span class="ag-att ag-att--none">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.revenue %}
+                  <span class="ag-revenue">{{ r.revenue|intcomma }} so'm</span>
+                {% else %}
+                  <span class="ag-revenue" style="color:#94a3b8;font-weight:600">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="ag-actions-wrap">
+                  <button type="button" class="ag-actions js-ag-menu-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Amallar"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                  <div class="ag-menu" role="menu" aria-label="Guruh amallari">
+                    <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_detail' pk=r.id %}">
+                      <i class="fa-regular fa-eye"></i><span>Batafsil ko'rish</span>
+                    </a>
+                    <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_edit' pk=r.id %}">
+                      <i class="fa-regular fa-pen-to-square"></i><span>Tahrirlash</span>
+                    </a>
+                    <a class="ag-menu__item" role="menuitem" href="{% url 'education:add_student_to_group' pk=r.id %}">
+                      <i class="fa-solid fa-user-plus"></i><span>O'quvchi qo'shish</span>
+                    </a>
+                    <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_schedule_manage' group_id=r.id %}">
+                      <i class="fa-regular fa-calendar"></i><span>Jadvalni o'zgartirish</span>
+                    </a>
+                    <div class="ag-menu__sep" role="presentation"></div>
+                    <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_toggle_close' pk=r.id %}">
+                      <i class="fa-regular fa-circle-pause"></i><span>{% if r.is_active %}Vaqtinchalik to'xtatish{% else %}Qayta faollashtirish{% endif %}</span>
+                    </a>
+                    <a class="ag-menu__item ag-menu__item--danger" role="menuitem" href="{% url 'education:group_toggle_archive' pk=r.id %}">
+                      <i class="fa-solid fa-box-archive"></i><span>Arxivga</span>
+                    </a>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if paginator.num_pages > 1 %}
+        {% include "education/_all_groups_pager.html" %}
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="ag-grid">
+      {% for r in rows %}
+        <div class="ag-card">
+          <div class="ag-card__head">
+            <span class="ag-avatar" style="background:{{ r.bg }};color:{{ r.color }}">{{ r.initials }}</span>
+            <div class="ag-card__name">
+              <strong>{{ r.name }}</strong>
+              <small>{{ r.subtitle }} · {{ r.status_label }}</small>
+            </div>
+            <div class="ag-actions-wrap" style="margin-left:auto">
+              <button type="button" class="ag-actions js-ag-menu-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Amallar"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="ag-menu" role="menu" aria-label="Guruh amallari">
+                <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_detail' pk=r.id %}"><i class="fa-regular fa-eye"></i><span>Batafsil ko'rish</span></a>
+                <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_edit' pk=r.id %}"><i class="fa-regular fa-pen-to-square"></i><span>Tahrirlash</span></a>
+                <a class="ag-menu__item" role="menuitem" href="{% url 'education:add_student_to_group' pk=r.id %}"><i class="fa-solid fa-user-plus"></i><span>O'quvchi qo'shish</span></a>
+                <a class="ag-menu__item" role="menuitem" href="{% url 'education:group_schedule_manage' group_id=r.id %}"><i class="fa-regular fa-calendar"></i><span>Jadvalni o'zgartirish</span></a>
+                <div class="ag-menu__sep" role="presentation"></div>
+                <form method="post" action="{% url 'education:group_toggle_close' pk=r.id %}" class="js-ag-form" data-confirm="{% if r.is_active %}Guruhni vaqtinchalik to'xtatasizmi?{% else %}Guruhni qayta faollashtirasizmi?{% endif %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="ag-menu__item" role="menuitem"><i class="fa-regular fa-circle-pause"></i><span>{% if r.is_active %}Vaqtinchalik to'xtatish{% else %}Qayta faollashtirish{% endif %}</span></button>
+                </form>
+                <form method="post" action="{% url 'education:group_toggle_archive' pk=r.id %}" class="js-ag-form" data-confirm="Guruhni arxivga yuborasizmi?">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="ag-menu__item ag-menu__item--danger" role="menuitem"><i class="fa-solid fa-box-archive"></i><span>Arxivga</span></button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="ag-card__row"><span>O'qituvchi</span><span>{{ r.teacher }}</span></div>
+          <div class="ag-card__row"><span>Jadval</span><span>{{ r.schedule }}</span></div>
+          <div class="ag-card__row"><span>O'quvchilar</span><span>{{ r.enrolled }} / {{ r.capacity }}</span></div>
+          <div class="ag-card__row"><span>Davomat</span><span>{% if r.att_rate %}{{ r.att_rate }}%{% else %}—{% endif %}</span></div>
+          <div class="ag-card__row"><span>Tushum</span><span>{% if r.revenue %}{{ r.revenue|intcomma }} so'm{% else %}—{% endif %}</span></div>
+          <div class="ag-card__bar"><span style="width:{% if r.fill_pct > 0 %}{{ r.fill_pct }}{% else %}2{% endif %}%;background:{{ r.color }}"></span></div>
+          <div class="ag-card__pct"><small>To'ldirilganlik</small><span>{{ r.fill_pct }}%</span></div>
+        </div>
+      {% endfor %}
+    </div>
+      {% if paginator.num_pages > 1 %}
+        <div style="margin-top:14px">
+          {% include "education/_all_groups_pager.html" %}
+        </div>
+      {% endif %}
+    {% endif %}
+  {% else %}
+    <div class="ag-table-card">
+      <div class="ag-empty">
+        <i class="fa-solid fa-folder-open"></i>
+        Hech qanday guruh topilmadi. Qidiruv yoki filterlarni o'zgartirib ko'ring.
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const form = document.getElementById('agFilterForm');
+  if(!form) return;
+
+  let _searchTimer = null;
+
+  function submitForm(){
+    if(_searchTimer){ clearTimeout(_searchTimer); _searchTimer = null; }
+    form.submit();
+  }
+
+  // Tab clicks → set hidden status, submit
+  form.querySelectorAll('[data-status]').forEach(btn => {
+    btn.setAttribute('aria-selected', btn.classList.contains('is-active') ? 'true' : 'false');
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-status') || 'all';
+      const inp = document.getElementById('agStatus');
+      if(inp) inp.value = target;
+      submitForm();
+    });
+  });
+
+  // View toggle
+  form.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.getElementById('agView');
+      if(inp) inp.value = btn.getAttribute('data-view') || 'list';
+      submitForm();
+    });
+  });
+
+  // Selects
+  ['agCategory','agTeacher','agSort'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', submitForm);
+  });
+
+  // Search debounce
+  const search = document.getElementById('agSearch');
+  if(search){
+    search.addEventListener('input', () => {
+      if(_searchTimer) clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => form.submit(), 380);
+    });
+    // submit on Enter immediately
+    search.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); submitForm(); }
+    });
+  }
+
+  // Export keeps current filters via the link href (re-build on click)
+  const exportBtn = document.getElementById('agExport');
+  if(exportBtn){
+    exportBtn.addEventListener('click', e => {
+      e.preventDefault();
+      const data = new FormData(form);
+      data.set('format', 'csv');
+      const params = new URLSearchParams();
+      for(const [k, v] of data.entries()){
+        if(v !== '' && v !== null) params.set(k, v);
+      }
+      window.location.href = '?' + params.toString();
+    });
+  }
+
+  // ─── Row action dropdown ───
+  // Move every menu to <body> on first use so it isn't trapped inside an
+  // ancestor that creates a containing block for position:fixed (transformed
+  // ancestors, overflow clipping, etc.). Menus sit directly under <body> and
+  // are positioned via getBoundingClientRect() of the trigger.
+  let _openMenu = null;
+  let _openTrigger = null;
+
+  function ensurePortaled(menu){
+    if(menu.dataset.portaled === '1') return;
+    menu.dataset.portaled = '1';
+    document.body.appendChild(menu);
+  }
+
+  function closeMenu(){
+    if(_openMenu) _openMenu.classList.remove('is-open');
+    if(_openTrigger) _openTrigger.setAttribute('aria-expanded', 'false');
+    _openMenu = null;
+    _openTrigger = null;
+  }
+
+  function positionMenu(menu, trigger){
+    const rect = trigger.getBoundingClientRect();
+    // Force a layout pass so width/height are non-zero even on first paint.
+    const w = menu.offsetWidth || 240;
+    const h = menu.offsetHeight || 280;
+    const gap = 6;
+    let top = rect.bottom + gap;
+    let left = rect.right - w;
+    if(top + h > window.innerHeight - 8){
+      top = Math.max(8, rect.top - gap - h);
+    }
+    if(left < 8) left = 8;
+    if(left + w > window.innerWidth - 8){
+      left = window.innerWidth - w - 8;
+    }
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('.js-ag-menu-toggle');
+    if(trigger){
+      e.preventDefault();
+      e.stopPropagation();
+      const wrap = trigger.closest('.ag-actions-wrap');
+      const menu = wrap ? wrap.querySelector('.ag-menu') || wrap._agMenuRef : null;
+      // Once portaled, the menu is no longer a child of wrap, so cache the ref.
+      if(!menu){
+        // Maybe the menu was already moved; look it up via dataset link.
+        return;
+      }
+      if(!wrap._agMenuRef) wrap._agMenuRef = menu;
+      ensurePortaled(menu);
+      if(_openMenu === menu){
+        closeMenu();
+        return;
+      }
+      closeMenu();
+      menu.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      _openMenu = menu;
+      _openTrigger = trigger;
+      positionMenu(menu, trigger);
+      return;
+    }
+    if(e.target.closest('.ag-menu')) return;
+    if(_openMenu) closeMenu();
+  });
+
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && _openMenu) closeMenu();
+  });
+
+  window.addEventListener('resize', closeMenu);
+  window.addEventListener('scroll', () => {
+    if(_openMenu && _openTrigger) positionMenu(_openMenu, _openTrigger);
+  }, true);
+
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('.js-ag-form');
+    if(!f) return;
+    const msg = f.getAttribute('data-confirm');
+    if(msg && !window.confirm(msg)) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

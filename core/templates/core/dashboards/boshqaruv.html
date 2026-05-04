@@ -1608,6 +1608,814 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   color: #fecdd3;
 }
 
+/* ══════════════════ CRM SNAPSHOT CARDS ══════════════════ */
+.bq-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.bq-insight-card {
+  height: 320px;
+  min-height: 0;
+  padding: 18px 22px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 18px 40px rgba(15, 23, 42, .08);
+  color: #111827;
+}
+.bq-insight-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.bq-insight-title {
+  margin: 0;
+  color: #111827;
+  font-size: 17px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.bq-insight-sub {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.bq-insight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.bq-insight-pill--crm {
+  background: #fef3c7;
+  color: #b45309;
+}
+.bq-insight-pill--success {
+  background: #d1fae5;
+  color: #047857;
+}
+.bq-insight-card .bq-funnel {
+  padding: 4px 0 0;
+  gap: 14px;
+}
+.bq-insight-card .bq-funnel__row {
+  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) 42px;
+  gap: 12px;
+  min-height: 24px;
+}
+.bq-insight-card .bq-funnel__lbl {
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.bq-insight-card .bq-funnel__bar {
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #eef2f7;
+}
+.bq-insight-card .bq-funnel__fill {
+  border-radius: 999px;
+}
+.bq-insight-card .bq-funnel__val {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+}
+.bq-insight-card .bq-source {
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-height: 170px;
+}
+.bq-insight-card .bq-source__ring,
+.bq-insight-card .bq-source__ring canvas,
+.bq-insight-card .bq-pay__ring,
+.bq-insight-card .bq-pay__ring canvas {
+  width: 142px !important;
+  height: 142px !important;
+}
+.bq-insight-card .bq-source__center span,
+.bq-insight-card .bq-pay__center span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.bq-insight-card .bq-source__center strong,
+.bq-insight-card .bq-pay__center strong {
+  color: #111827;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+}
+.bq-insight-card .bq-source__center small,
+.bq-insight-card .bq-pay__center small {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.bq-insight-card .bq-source__list,
+.bq-insight-card .bq-pay__list {
+  gap: 10px;
+  max-height: 190px;
+  overflow: hidden;
+}
+.bq-insight-card .bq-source__item {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.bq-insight-card .bq-source__swatch,
+.bq-insight-card .bq-source__sw {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+.bq-insight-card .bq-source__name {
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.bq-insight-card .bq-source__pct {
+  color: #94a3b8;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.bq-insight-card .bq-pay,
+.bq-pay--insight {
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-height: 170px;
+}
+.bq-pay-status {
+  display: grid;
+  gap: 6px;
+}
+.bq-pay-status__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.bq-pay-status__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+.bq-pay-status__name {
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.bq-pay-status__count {
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+.bq-pay-status__bar {
+  height: 5px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.bq-pay-status__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width .35s ease;
+}
+@media(max-width:1320px){
+  .bq-insight-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .bq-insight-card .bq-source,
+  .bq-pay--insight { grid-template-columns: 1fr; justify-items: center; }
+  .bq-insight-card .bq-source__list,
+  .bq-insight-card .bq-pay__list { width: 100%; }
+}
+@media(max-width:980px){
+  .bq-insight-grid { grid-template-columns: 1fr; }
+}
+@media(max-width:720px){
+  .bq-insight-card { padding: 18px; }
+  .bq-insight-card .bq-source,
+  .bq-pay--insight { grid-template-columns: 1fr; justify-items: center; }
+  .bq-insight-card .bq-source__list,
+  .bq-insight-card .bq-pay__list { width: 100%; }
+  .bq-insight-card .bq-funnel__row { grid-template-columns: minmax(86px, 110px) minmax(0,1fr) 42px; }
+  .bq-insight-card .bq-funnel__lbl,
+  .bq-insight-card .bq-source__name,
+  .bq-insight-card .bq-source__pct,
+  .bq-pay-status__name,
+  .bq-pay-status__count { font-size: 14px; }
+}
+
+/* ══════════════════ STUDENT INSIGHT CARDS ══════════════════ */
+.bq-student-insights {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(330px, .85fr);
+  gap: 14px;
+}
+.bq-student-card {
+  height: 314px;
+  min-height: 0;
+  padding: 18px 24px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 18px 40px rgba(15, 23, 42, .08);
+  color: #111827;
+}
+.bq-student-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.bq-student-card__title {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+.bq-student-card__sub {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.bq-student-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.bq-student-toggle__btn {
+  height: 28px;
+  min-width: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.bq-student-toggle__btn:hover,
+.bq-student-toggle__btn.is-active {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.bq-student-toggle__btn span {
+  font-size: 12.5px;
+}
+.bq-student-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+.bq-student-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 650;
+}
+.bq-student-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.bq-ch--student-dynamics {
+  height: 184px;
+}
+.bq-attendance {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 184px;
+}
+.bq-attendance__ring {
+  position: relative;
+  width: 134px;
+  height: 134px;
+}
+.bq-attendance__ring canvas {
+  width: 134px !important;
+  height: 134px !important;
+}
+.bq-attendance__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.bq-attendance__center span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.bq-attendance__center strong {
+  margin-top: 5px;
+  color: #111827;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+.bq-attendance__center small {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+.bq-attendance__list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.bq-attendance__item {
+  display: grid;
+  grid-template-columns: auto minmax(76px, 1fr) minmax(28px, auto) minmax(34px, auto);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.bq-attendance__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.bq-attendance__name {
+  min-width: 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-attendance__count {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: right;
+}
+.bq-attendance__pct {
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: right;
+}
+.bq-attendance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #047857;
+  font-size: 12.5px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+@media(max-width:1180px){
+  .bq-student-insights { grid-template-columns: 1fr; }
+  .bq-student-card { height: auto; }
+  .bq-attendance { grid-template-columns: 154px minmax(0, 1fr); }
+}
+@media(max-width:720px){
+  .bq-student-card { padding: 18px; }
+  .bq-student-card__head { flex-direction: column; }
+  .bq-ch--student-dynamics { height: 190px; }
+  .bq-attendance { grid-template-columns: 1fr; justify-items: center; }
+  .bq-attendance__list { width: 100%; }
+  .bq-attendance__item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .bq-attendance__pct { display: none; }
+}
+
+/* ══════════════════ BEST GROUPS + ACTIVITY ══════════════════ */
+.bq-groups-activity-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.05fr) minmax(360px, 1fr);
+  gap: 14px;
+}
+.bq-best-card,
+.bq-activity-card {
+  min-height: 340px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 18px 40px rgba(15, 23, 42, .08);
+  color: #111827;
+  overflow: hidden;
+}
+.bq-best-card__head,
+.bq-activity-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px 14px;
+}
+.bq-best-card__title,
+.bq-activity-card__title {
+  margin: 0;
+  color: #111827;
+  font-size: 17px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.bq-best-card__sub,
+.bq-activity-card__sub {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.bq-best-card__link,
+.bq-activity-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bq-best-card__link:hover,
+.bq-activity-card__link:hover {
+  color: #2563eb;
+}
+.bq-best-table-wrap {
+  overflow-x: auto;
+}
+.bq-best-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+.bq-best-table thead {
+  background: #f1f5f9;
+}
+.bq-best-table th {
+  height: 38px;
+  padding: 0 22px;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bq-best-table th:nth-child(3) {
+  text-align: center;
+}
+.bq-best-table td {
+  height: 54px;
+  padding: 0 22px;
+  border-bottom: 1px solid #eef2f7;
+  color: #475569;
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.bq-best-table tr:last-child td {
+  border-bottom: 0;
+}
+.bq-best-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.bq-best-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+.bq-best-name {
+  min-width: 0;
+}
+.bq-best-name strong {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bq-best-name small {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.bq-best-teacher {
+  max-width: 180px;
+  overflow: hidden;
+  color: #475569;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bq-best-count,
+.bq-best-revenue {
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.bq-best-count {
+  text-align: center;
+}
+.bq-best-fill {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 46px;
+  align-items: center;
+  gap: 12px;
+}
+.bq-best-fill__track {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.bq-best-fill__bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width .35s ease;
+}
+.bq-best-fill__pct {
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: right;
+}
+.bq-best-more {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.bq-best-more:hover,
+.bq-best-more.is-open {
+  background: rgba(148, 163, 184, .14);
+  color: #0f172a;
+}
+[data-role-theme="light"] .bq-best-more:hover,
+[data-role-theme="light"] .bq-best-more.is-open {
+  background: rgba(148, 163, 184, .18);
+  color: #0f172a;
+}
+
+/* Best-groups row dropdown — rendered fixed-positioned over the page so it
+   never gets clipped by the table container or its overflow. */
+.bq-best-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 220px;
+  max-width: 260px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .18),
+              0 2px 8px rgba(15, 23, 42, .08);
+  opacity: 0;
+  transform: translateY(-4px) scale(.98);
+  pointer-events: none;
+  transition: opacity .14s ease, transform .14s ease;
+}
+.bq-best-menu.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.bq-best-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.bq-best-menu__item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  text-decoration: none;
+}
+.bq-best-menu__item i {
+  width: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+.bq-best-menu__divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: #e5e7eb;
+}
+[data-role-theme="dark"] .bq-best-menu,
+:root:not([data-role-theme="light"]) .bq-best-menu {
+  background: rgba(15, 23, 42, .98);
+  border-color: rgba(255, 255, 255, .08);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .55),
+              0 2px 8px rgba(0, 0, 0, .35);
+}
+[data-role-theme="dark"] .bq-best-menu__item,
+:root:not([data-role-theme="light"]) .bq-best-menu__item {
+  color: #e2e8f0;
+}
+[data-role-theme="dark"] .bq-best-menu__item:hover,
+:root:not([data-role-theme="light"]) .bq-best-menu__item:hover {
+  background: rgba(59, 130, 246, .16);
+  color: #ffffff;
+}
+[data-role-theme="dark"] .bq-best-menu__item i,
+:root:not([data-role-theme="light"]) .bq-best-menu__item i {
+  color: #94a3b8;
+}
+[data-role-theme="dark"] .bq-best-menu__divider,
+:root:not([data-role-theme="light"]) .bq-best-menu__divider {
+  background: rgba(255, 255, 255, .08);
+}
+.bq-best-empty,
+.bq-activity-empty {
+  height: 150px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.bq-activity-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border-top: 1px solid #eef2f7;
+}
+.bq-activity-list::-webkit-scrollbar {
+  width: 7px;
+}
+.bq-activity-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+.bq-activity-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 9px 18px 9px 22px;
+  border-bottom: 1px solid #eef2f7;
+}
+.bq-activity-item:last-child {
+  border-bottom: 0;
+}
+.bq-activity-item:hover {
+  background: #f8fafc;
+}
+.bq-activity-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+}
+.bq-activity-icon--payment {
+  background: #d1fae5;
+  color: #047857;
+}
+.bq-activity-icon--lead {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.bq-activity-icon--absence {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+.bq-activity-icon--demo {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+.bq-activity-icon--leave {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.bq-activity-icon--reward {
+  background: #fef3c7;
+  color: #d97706;
+}
+.bq-activity-info {
+  min-width: 0;
+}
+.bq-activity-title {
+  overflow: hidden;
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bq-activity-meta {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bq-activity-amount {
+  color: #047857;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.bq-activity-amount--negative {
+  color: #be123c;
+}
+@media(max-width:1180px){
+  .bq-groups-activity-grid { grid-template-columns: 1fr; }
+  .bq-activity-list { max-height: 340px; }
+}
+@media(max-width:720px){
+  .bq-best-card__head,
+  .bq-activity-card__head { padding: 16px; }
+  .bq-best-card__title,
+  .bq-activity-card__title { font-size: 16px; }
+  .bq-best-card__link,
+  .bq-activity-card__link { font-size: 12.5px; }
+  .bq-activity-item { padding: 10px 14px; grid-template-columns: 34px minmax(0, 1fr); }
+  .bq-activity-amount { grid-column: 2; justify-self: start; margin-top: -4px; }
+}
+
 /* ══════════════════ CHART ══════════════════ */
 .bq-ch { position:relative; }
 .bq-ch--xl  { height:250px; }
@@ -1721,13 +2529,6 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   font-size: 10.5px;
   font-weight: 700;
   color: var(--bq-soft);
-}
-.bq-source__count {
-  min-width: 28px;
-  text-align: right;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--bq-txt);
 }
 .bq-source__empty {
   padding: 12px;
@@ -2340,7 +3141,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   50% { opacity: 0.4; }
 }
 
-/* ── Lid voronkasi (Funnel) ── */
+/* ── Lid bosqichlari ── */
 .bq-funnel {
   display: flex;
   flex-direction: column;
@@ -2376,8 +3177,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
 }
 .bq-funnel__row[data-stage="0"] .bq-funnel__fill { background: linear-gradient(90deg,#60a5fa,#818cf8); }
 .bq-funnel__row[data-stage="1"] .bq-funnel__fill { background: linear-gradient(90deg,#818cf8,#a78bfa); }
-.bq-funnel__row[data-stage="2"] .bq-funnel__fill { background: linear-gradient(90deg,#a78bfa,#c084fc); }
-.bq-funnel__row[data-stage="3"] .bq-funnel__fill { background: linear-gradient(90deg,#c084fc,#f472b6); }
+.bq-funnel__row[data-stage="2"] .bq-funnel__fill { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.bq-funnel__row[data-stage="3"] .bq-funnel__fill { background: linear-gradient(90deg,#10b981,#34d399); }
 .bq-funnel__val {
   font-size: 13px;
   font-weight: 700;
@@ -2904,71 +3705,130 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
 
       <!-- ── O'QUVCHILAR bo'limi ── -->
       <div class="bq-sec">
-        <div class="bq-sec__hd">
-          <div class="bq-sec__ico" style="background:rgba(96,165,250,.12);color:var(--bq-blue);border-color:rgba(96,165,250,.18)"><i class="fa-solid fa-user-graduate"></i></div>
-          <div>
-            <h3 class="bq-sec__title">O'quvchilar Statistikasi</h3>
-            <p class="bq-sec__sub">O'sish trendi va to'lov holati</p>
-          </div>
-        </div>
-        <div class="bq-g bq-g--13">
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--blue"></span>
-              <span class="bq-card__lbl">O'quvchilar O'sishi</span>
-              <span class="bq-tag">Area · 12 oy</span>
+        <div class="bq-student-insights">
+          <div class="bq-student-card">
+            <div class="bq-student-card__head">
+              <div>
+                <h3 class="bq-student-card__title">O'quvchilar dinamikasi</h3>
+                <p class="bq-student-card__sub">So'nggi 12 oy · kelganlar va tark etganlar</p>
+              </div>
+              <div class="bq-student-toggle" aria-label="Grafik turi">
+                <button class="bq-student-toggle__btn is-active" type="button" data-student-chart-mode="line" title="Chiziq grafik">
+                  <i class="fa-solid fa-chart-line"></i>
+                  <span>Chiziq</span>
+                </button>
+                <button class="bq-student-toggle__btn" type="button" data-student-chart-mode="bar" title="Ustun grafik">
+                  <i class="fa-solid fa-chart-column"></i>
+                </button>
+              </div>
             </div>
-            <div class="bq-ch bq-ch--md"><canvas id="chStudents"></canvas></div>
-          </div>
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--green"></span>
-              <span class="bq-card__lbl">To'lov Holati</span>
-              <span class="bq-tag">Donut</span>
+            <div class="bq-student-legend">
+              <span class="bq-student-legend__item">
+                <span class="bq-student-legend__dot" style="background:#10b981"></span>
+                Kelganlar
+              </span>
+              <span class="bq-student-legend__item">
+                <span class="bq-student-legend__dot" style="background:#f43f5e"></span>
+                Tark etganlar
+              </span>
             </div>
-            <div class="bq-pay">
-              <div class="bq-pay__ring">
-                <canvas id="chCat2" style="max-width:170px;max-height:170px"></canvas>
-                <div class="bq-pay__center">
+            <div class="bq-ch bq-ch--student-dynamics"><canvas id="chStudents"></canvas></div>
+          </div>
+
+          <div class="bq-student-card">
+            <div class="bq-student-card__head">
+              <div>
+                <h3 class="bq-student-card__title">Davomat taqsimoti</h3>
+                <p class="bq-student-card__sub" id="attendanceSub">Tanlangan davr · 0 ta dars-kun</p>
+              </div>
+              <span class="bq-attendance-badge" id="attendanceBadge"><i class="fa-solid fa-arrow-up"></i> 0%</span>
+            </div>
+            <div class="bq-attendance">
+              <div class="bq-attendance__ring">
+                <canvas id="chAttendance"></canvas>
+                <div class="bq-attendance__center">
                   <span>Jami</span>
-                  <strong id="payTotalCount">0</strong>
-                  <small id="payPaidRate">0% to'lagan</small>
+                  <strong id="attendanceTotal">0</strong>
+                  <small>dars-kun</small>
                 </div>
               </div>
-              <div class="bq-pay__list" id="payCategoryList"></div>
+              <div class="bq-attendance__list" id="attendanceList"></div>
             </div>
-            <div class="bq-legend" id="lgCat2"></div>
           </div>
         </div>
       </div>
 
-      <!-- ── GURUHLAR + VORONKA ── -->
+      <!-- ── ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK ── -->
       <div class="bq-sec">
-        <div class="bq-sec__hd">
-          <div class="bq-sec__ico" style="background:rgba(251,191,36,.12);color:var(--bq-amber);border-color:rgba(251,191,36,.18)"><i class="fa-solid fa-layer-group"></i></div>
-          <div>
-            <h3 class="bq-sec__title">Guruhlar va Marketing</h3>
-            <p class="bq-sec__sub">Guruh to'ldirilganligi va o'quvchi kelish manbalari</p>
+        <div class="bq-groups-activity-grid">
+          <div class="bq-best-card">
+            <div class="bq-best-card__head">
+              <div>
+                <h3 class="bq-best-card__title">Eng yaxshi guruhlar</h3>
+                <p class="bq-best-card__sub">To'ldirilganligi bo'yicha tartiblangan</p>
+              </div>
+              <a class="bq-best-card__link" href="{% url 'education:all_groups' %}">
+                Hammasini ko'rish
+                <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+            <div class="bq-best-table-wrap">
+              <table class="bq-best-table">
+                <thead>
+                  <tr>
+                    <th>Guruh</th>
+                    <th>O'qituvchi</th>
+                    <th>O'quvchilar</th>
+                    <th>To'ldirilganlik</th>
+                    <th>Tushum</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="bestGroupsTable">
+                  <tr><td colspan="6" class="bq-best-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bq-activity-card">
+            <div class="bq-activity-card__head">
+              <div>
+                <h3 class="bq-activity-card__title">So'nggi faollik</h3>
+                <p class="bq-activity-card__sub">Real vaqtda — to'lovlar va davomat</p>
+              </div>
+              <a class="bq-activity-card__link" href="{% url 'core:activity_history' %}">
+                Hammasi
+                <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+            <div class="bq-activity-list" id="recentActivityList">
+              <div class="bq-activity-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+            </div>
           </div>
         </div>
-        <div class="bq-g bq-g--2">
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--amber"></span>
-              <span class="bq-card__lbl">Guruh To'ldirilganligi</span>
-              <button class="bq-mini-btn" id="bqGroupsDetailOpen" type="button">
-                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
-                Batafsil
-              </button>
-              <span class="bq-tag">Horizontal Bar</span>
+      </div>
+
+      <!-- ── CRM SNAPSHOT ── -->
+      <div class="bq-sec">
+        <div class="bq-insight-grid">
+          <div class="bq-insight-card">
+            <div class="bq-insight-head">
+              <div>
+                <h3 class="bq-insight-title">Lid voronkasi</h3>
+                <p class="bq-insight-sub" id="leadFunnelSub">Tanlangan davr · konversiya 0%</p>
+              </div>
+              <span class="bq-insight-pill bq-insight-pill--crm"><i class="fa-solid fa-bullhorn"></i> CRM</span>
             </div>
-            <div class="bq-ch bq-ch--lg"><canvas id="chGroups"></canvas></div>
+            <div class="bq-funnel" id="leadFunnel"></div>
           </div>
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--rose"></span>
-              <span class="bq-card__lbl">O'quvchi Kelish Manbalari</span>
-              <span class="bq-tag">Donut</span>
+
+          <div class="bq-insight-card">
+            <div class="bq-insight-head">
+              <div>
+                <h3 class="bq-insight-title">Lid manbalari</h3>
+                <p class="bq-insight-sub">Yangi lidlar qayerdan keldi</p>
+              </div>
             </div>
             <div class="bq-source" id="leadSources">
               <div class="bq-source__ring">
@@ -2976,6 +3836,7 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
                 <div class="bq-source__center">
                   <span>Jami</span>
                   <strong id="leadSourcesTotal">0</strong>
+                  <small>lid</small>
                 </div>
               </div>
               <div class="bq-source__list" id="lgLeadSources">
@@ -2983,65 +3844,25 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ── TO'LOV TURLARI + LID VORONKA ── -->
-      <div class="bq-sec">
-        <div class="bq-sec__hd">
-          <div class="bq-sec__ico bq-sec__ico--violet"><i class="fa-solid fa-credit-card"></i></div>
-          <div>
-            <h3 class="bq-sec__title">To'lov turlari va Lid voronkasi</h3>
-            <p class="bq-sec__sub">Tanlangan davrda to'lov usullari taqsimoti va lid bosqichlari</p>
-          </div>
-        </div>
-        <div class="bq-g bq-g--2">
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--violet"></span>
-              <span class="bq-card__lbl">To'lov Turlari</span>
-              <span class="bq-tag">Donut</span>
+          <div class="bq-insight-card">
+            <div class="bq-insight-head">
+              <div>
+                <h3 class="bq-insight-title">To'lov holati</h3>
+                <p class="bq-insight-sub" id="payStatusSub">Tanlangan davr · 0 ta kutilgan to'lov</p>
+              </div>
+              <span class="bq-insight-pill bq-insight-pill--success" id="payStatusBadge">0% BAJARILGAN</span>
             </div>
-            <div class="bq-source" id="payMethodWrap">
-              <div class="bq-source__ring">
-                <canvas id="chPayMethods"></canvas>
-                <div class="bq-source__center">
+            <div class="bq-pay bq-pay--insight">
+              <div class="bq-pay__ring">
+                <canvas id="chCat2"></canvas>
+                <div class="bq-pay__center">
                   <span>Jami</span>
-                  <strong id="payMethodsTotal">0</strong>
+                  <strong id="payTotalCount">0</strong>
+                  <small>to'lov</small>
                 </div>
               </div>
-              <div class="bq-source__list" id="lgPayMethods">
-                <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
-              </div>
-            </div>
-          </div>
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--rose"></span>
-              <span class="bq-card__lbl">Lid Voronkasi</span>
-              <span class="bq-tag">Funnel</span>
-            </div>
-            <div class="bq-funnel" id="leadFunnel">
-              <div class="bq-funnel__row" data-stage="0">
-                <span class="bq-funnel__lbl">Yangi</span>
-                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
-                <span class="bq-funnel__val">0</span>
-              </div>
-              <div class="bq-funnel__row" data-stage="1">
-                <span class="bq-funnel__lbl">Bog'langan</span>
-                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
-                <span class="bq-funnel__val">0</span>
-              </div>
-              <div class="bq-funnel__row" data-stage="2">
-                <span class="bq-funnel__lbl">Trial</span>
-                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
-                <span class="bq-funnel__val">0</span>
-              </div>
-              <div class="bq-funnel__row" data-stage="3">
-                <span class="bq-funnel__lbl">Ro'yxatda</span>
-                <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
-                <span class="bq-funnel__val">0</span>
-              </div>
+              <div class="bq-pay__list" id="payCategoryList"></div>
             </div>
           </div>
         </div>
@@ -3406,6 +4227,26 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
     </div>
   </div>
 </div>
+
+<!-- "Eng yaxshi guruhlar" satrlari uchun ko'proq menyu (3 nuqta tugma) -->
+<div id="bestGroupsMenu" class="bq-best-menu" role="menu" aria-hidden="true">
+  <a href="#" class="bq-best-menu__item" data-action="open" role="menuitem"><i class="fa-solid fa-arrow-up-right-from-square"></i> Guruhga kirish</a>
+  <a href="#" class="bq-best-menu__item" data-action="schedule" role="menuitem"><i class="fa-regular fa-calendar"></i> Jadval</a>
+  <a href="#" class="bq-best-menu__item" data-action="add-student" role="menuitem"><i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish</a>
+  <div class="bq-best-menu__divider"></div>
+  <a href="#" class="bq-best-menu__item" data-action="edit" role="menuitem"><i class="fa-solid fa-pen-to-square"></i> Tahrirlash</a>
+</div>
+
+<script>
+  // Group action URL templates — built via Django reverse with a sentinel
+  // ID, then the placeholder is swapped at click time.
+  window.__BQ_GROUP_URLS = {
+    open:        "{% url 'education:group_detail'         pk=999999 %}",
+    edit:        "{% url 'education:group_edit'           pk=999999 %}",
+    'add-student': "{% url 'education:add_student_to_group' pk=999999 %}",
+    schedule:    "{% url 'education:group_schedule_manage' group_id=999999 %}",
+  };
+</script>
 {% endblock %}
 
 {% block extra_js %}
@@ -3483,6 +4324,7 @@ let _activeBranchId = null;
 let _activeBranchName = null;
 let _lastDashboardData = null;
 let _activeBqTheme = getThemeMode();
+let _studentChartMode = 'line';
 
 /* ── Format ── */
 function fmtM(n){
@@ -3586,12 +4428,12 @@ function renderGroupChart(labels,data){
   }});
 }
 
-function donut(id,labels,data,colors){
+function donut(id,labels,data,colors,tooltipOptions){
   kill(id);
   const ctx=document.getElementById(id);if(!ctx)return;
   charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,hoverOffset:8}]},options:{
     responsive:true,maintainAspectRatio:false,cutout:'68%',
-    plugins:{legend:{display:false},tooltip:tooltipConfig()}
+    plugins:{legend:{display:false},tooltip:tooltipConfig(tooltipOptions)}
   }});
 }
 
@@ -3604,7 +4446,7 @@ function legend(id,labels,colors){
 function renderLeadSources(labels,counts){
   const totalEl=document.getElementById('leadSourcesTotal');
   const listEl=document.getElementById('lgLeadSources');
-  const palette=[C.cyan,C.blue,C.violet,C.green,C.amber,C.orange];
+  const palette=[C.amber,C.violet,C.blue,C.green,C.rose,C.orange];
   const total=(counts||[]).reduce((sum,n)=>sum+Number(n||0),0);
 
   if(totalEl) totalEl.textContent=fmtN(total);
@@ -3623,11 +4465,10 @@ function renderLeadSources(labels,counts){
     listEl.innerHTML=labels.map((label,i)=>{
       const value=Number(counts[i]||0);
       const pct=total?Math.round((value/total)*100):0;
-      return `<div class="bq-source__item">
+      return `<div class="bq-source__item" title="${escHtml(label)}: ${fmtN(value)} ta">
         <span class="bq-source__swatch" style="background:${colors[i]}"></span>
-        <span class="bq-source__name">${label}</span>
+        <span class="bq-source__name">${escHtml(label)}</span>
         <span class="bq-source__pct">${pct}%</span>
-        <span class="bq-source__count">${value}</span>
       </div>`;
     }).join('');
   }
@@ -3654,55 +4495,314 @@ function renderGroupDetails(rows){
   }).join('');
 }
 
-function renderPaymentCategories(rows){
+function formatMoneySigned(amount){
+  if(amount==null || amount==='') return '';
+  const value=Number(amount||0);
+  const sign=value<0?'−':'+';
+  return `${sign}${fmtM(Math.abs(value))} so'm`;
+}
+
+function formatActivityTime(iso){
+  if(!iso) return '';
+  const dt=new Date(iso);
+  if(Number.isNaN(dt.getTime())) return '';
+  const now=new Date();
+  const diffMs=now.getTime()-dt.getTime();
+  const minute=60*1000;
+  const hour=60*minute;
+  const day=24*hour;
+  if(diffMs>=0 && diffMs<minute) return 'hozir';
+  if(diffMs>=0 && diffMs<hour) return `${Math.max(1,Math.round(diffMs/minute))} daqiqa oldin`;
+  if(diffMs>=0 && diffMs<day) return `${Math.round(diffMs/hour)} soat oldin`;
+  const sameYear=dt.getFullYear()===now.getFullYear();
+  const datePart=dt.toLocaleDateString('uz-UZ',{day:'2-digit',month:'2-digit',...(sameYear?{}:{year:'numeric'})});
+  return datePart;
+}
+
+function renderBestGroups(rows){
+  const el=document.getElementById('bestGroupsTable');if(!el)return;
+  const data=rows||[];
+  if(!data.length){
+    el.innerHTML='<tr><td colspan="6" class="bq-best-empty">Guruhlar topilmadi</td></tr>';
+    return;
+  }
+  const colors=[C.blue,C.violet,C.green,C.amber,C.rose];
+  el.innerHTML=data.map((row,i)=>{
+    const color=colors[i%colors.length];
+    const pctRaw=Number(row.fill_percent||0);
+    const pct=Math.max(0,Math.min(100,pctRaw));
+    const pctLabel=Number.isInteger(pctRaw)?pctRaw:pctRaw.toFixed(1);
+    const initials=escHtml(row.initials||String(row.name||'G').slice(0,2).toUpperCase());
+    const status=escHtml(row.status||'Faol');
+    const revenue=Number(row.revenue||0);
+    const revenueLabel=revenue?`${fmtM(revenue)} so'm`:'—';
+    return `<tr>
+      <td>
+        <div class="bq-best-group">
+          <span class="bq-best-avatar" style="background:${color}18;color:${color}">${initials}</span>
+          <span class="bq-best-name">
+            <strong title="${escHtml(row.name||'Guruh')}">${escHtml(row.name||'Guruh')}</strong>
+            <small>${status}</small>
+          </span>
+        </div>
+      </td>
+      <td><span class="bq-best-teacher" title="${escHtml(row.teacher||'—')}">${escHtml(row.teacher||'—')}</span></td>
+      <td class="bq-best-count">${fmtN(row.enrolled||0)}</td>
+      <td>
+        <div class="bq-best-fill" title="${pctLabel}%">
+          <span class="bq-best-fill__track"><span class="bq-best-fill__bar" style="width:${Math.max(2,pct)}%;background:${color}"></span></span>
+          <span class="bq-best-fill__pct">${pctLabel}%</span>
+        </div>
+      </td>
+      <td class="bq-best-revenue">${revenueLabel}</td>
+      <td><button class="bq-best-more" type="button" aria-label="Ko'proq" aria-haspopup="menu" data-group-id="${row.id||''}" data-group-name="${escHtml(row.name||'Guruh')}"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* "Eng yaxshi guruhlar" jadvalidagi 3-nuqta menyusi — har bir satrda
+ * "Guruhga kirish / Jadval / O'quvchi qo'shish / Tahrirlash" amallarini
+ * ochadi. Menyu fixed-positioned, jadval overflowidan tashqarida render
+ * bo'ladi (clip bo'lmaydi). */
+(function initBestGroupsMenu(){
+  const menu = document.getElementById('bestGroupsMenu');
+  const tbody = document.getElementById('bestGroupsTable');
+  if(!menu || !tbody) return;
+  const URL_TEMPLATES = window.__BQ_GROUP_URLS || {};
+  let activeBtn = null;
+
+  function buildUrl(action, groupId){
+    const tmpl = URL_TEMPLATES[action];
+    if(!tmpl || !groupId) return '#';
+    return tmpl.replace(/999999/, String(groupId));
+  }
+
+  function closeMenu(){
+    if(!menu.classList.contains('is-open')) return;
+    menu.classList.remove('is-open');
+    menu.setAttribute('aria-hidden','true');
+    if(activeBtn){ activeBtn.classList.remove('is-open'); activeBtn.setAttribute('aria-expanded','false'); }
+    activeBtn = null;
+  }
+
+  function positionMenu(btn){
+    const r = btn.getBoundingClientRect();
+    // Render hidden first to measure menu size
+    menu.style.left = '-9999px';
+    menu.style.top = '0';
+    menu.classList.add('is-open');
+    const mw = menu.offsetWidth || 220;
+    const mh = menu.offsetHeight || 180;
+    const margin = 8;
+    let left = r.right - mw;          // align right edge of menu to button
+    let top = r.bottom + 6;
+    if(left < margin) left = margin;
+    if(left + mw > window.innerWidth - margin) left = window.innerWidth - mw - margin;
+    if(top + mh > window.innerHeight - margin){
+      top = r.top - mh - 6;            // flip above
+      if(top < margin) top = margin;
+    }
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top  = `${Math.round(top)}px`;
+  }
+
+  function openMenu(btn){
+    const groupId = btn.getAttribute('data-group-id') || '';
+    if(!groupId){ return; }
+    // Wire action links to this group's URLs
+    menu.querySelectorAll('[data-action]').forEach(a=>{
+      const act = a.getAttribute('data-action');
+      a.setAttribute('href', buildUrl(act, groupId));
+    });
+    activeBtn = btn;
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded','true');
+    menu.setAttribute('aria-hidden','false');
+    positionMenu(btn);
+  }
+
+  // Delegated click on the more buttons (rows are re-rendered on each load).
+  tbody.addEventListener('click', function(ev){
+    const btn = ev.target.closest('.bq-best-more');
+    if(!btn || !tbody.contains(btn)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if(activeBtn === btn){ closeMenu(); return; }
+    closeMenu();
+    openMenu(btn);
+  });
+
+  document.addEventListener('click', function(ev){
+    if(!menu.classList.contains('is-open')) return;
+    if(menu.contains(ev.target)) return;          // clicked inside menu — let link work
+    if(ev.target.closest('.bq-best-more')) return; // handled above
+    closeMenu();
+  });
+  document.addEventListener('keydown', function(ev){
+    if(ev.key === 'Escape') closeMenu();
+  });
+  window.addEventListener('resize', closeMenu);
+  window.addEventListener('scroll', closeMenu, true);
+})();
+
+function renderRecentActivity(rows){
+  const el=document.getElementById('recentActivityList');if(!el)return;
+  const data=rows||[];
+  if(!data.length){
+    el.innerHTML='<div class="bq-activity-empty">So\'nggi faollik topilmadi</div>';
+    return;
+  }
+  const iconMap={
+    payment:'fa-wallet',
+    lead:'fa-user-plus',
+    absence:'fa-circle-xmark',
+    demo:'fa-bullhorn',
+    leave:'fa-right-from-bracket',
+    reward:'fa-bolt',
+  };
+  el.innerHTML=data.map((row)=>{
+    const type=Object.prototype.hasOwnProperty.call(iconMap,row.type)?row.type:'lead';
+    const icon=iconMap[type]||'fa-bolt';
+    const title=escHtml(row.title||'Faollik');
+    const subtitle=escHtml(row.subtitle||'');
+    const timeText=formatActivityTime(row.timestamp);
+    const meta=[subtitle,timeText].filter(Boolean).join(' · ');
+    const amountText=formatMoneySigned(row.amount);
+    const amountClass=Number(row.amount||0)<0?' bq-activity-amount--negative':'';
+    return `<div class="bq-activity-item">
+      <span class="bq-activity-icon bq-activity-icon--${type}"><i class="fa-solid ${icon}"></i></span>
+      <span class="bq-activity-info">
+        <span class="bq-activity-title" title="${title}">${title}</span>
+        <span class="bq-activity-meta">${escHtml(meta)}</span>
+      </span>
+      ${amountText?`<span class="bq-activity-amount${amountClass}">${amountText}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderPaymentStatus(labels, counts, colors){
   const listEl=document.getElementById('payCategoryList');
   const totalEl=document.getElementById('payTotalCount');
-  const rateEl=document.getElementById('payPaidRate');
-  const allRows=rows||[];
-  const summary=allRows.reduce((acc,row)=>{
-    acc.total += Number(row.total||0);
-    acc.paid += Number(row.paid||0);
-    acc.unpaid += Number(row.unpaid||0);
-    return acc;
-  },{total:0,paid:0,unpaid:0});
+  const badgeEl=document.getElementById('payStatusBadge');
+  const subEl=document.getElementById('payStatusSub');
+  const safeLabels=labels&&labels.length?labels:["To'lagan","To'lamagan","Qisman"];
+  const safeCounts=(counts||[]).map((value)=>Number(value||0));
+  const safeColors=colors&&colors.length?colors:[C.green,C.rose,C.amber];
+  const total=safeCounts.reduce((sum,value)=>sum+value,0);
+  const paid=safeCounts[0]||0;
+  const paidPct=total?Math.round((paid/total)*100):0;
 
-  if(totalEl) totalEl.textContent=fmtN(summary.total);
-  if(rateEl){
-    rateEl.textContent = summary.total
-      ? `${Math.round((summary.paid / summary.total) * 100)}% to'lagan`
-      : 'Ma\'lumot yo\'q';
-  }
+  if(totalEl) totalEl.textContent=fmtN(total);
+  if(badgeEl) badgeEl.textContent=`${paidPct}% BAJARILGAN`;
+  if(subEl) subEl.textContent=`Tanlangan davr · ${fmtN(total)} ta kutilgan to'lov`;
   if(!listEl) return;
-  if(!allRows.length){
-    listEl.innerHTML='<div class="bq-source__empty">Kategoriya bo\'yicha ma\'lumot yo\'q</div>';
+  if(!total){
+    listEl.innerHTML='<div class="bq-source__empty">To\'lov holati bo\'yicha ma\'lumot yo\'q</div>';
     return;
   }
 
-  listEl.innerHTML=allRows.map((row)=>{
-    const total=Number(row.total||0);
-    const paid=Number(row.paid||0);
-    const unpaid=Number(row.unpaid||0);
-    const paidPct=Number(row.paid_percent||0);
-    const unpaidPct=Number(row.unpaid_percent||0);
-    return `<div class="bq-paycat">
-      <div class="bq-paycat__head">
-        <span class="bq-paycat__name">${row.name}</span>
-        <span class="bq-paycat__total">${fmtN(total)} ta</span>
+  listEl.innerHTML=safeLabels.map((label,i)=>{
+    const value=safeCounts[i]||0;
+    const pct=total?Math.round((value/total)*100):0;
+    const color=safeColors[i%safeColors.length];
+    return `<div class="bq-pay-status" title="${escHtml(label)}: ${fmtN(value)} ta · ${pct}%">
+      <div class="bq-pay-status__head">
+        <span class="bq-pay-status__dot" style="background:${color}"></span>
+        <span class="bq-pay-status__name">${escHtml(label)}</span>
+        <span class="bq-pay-status__count">${fmtN(value)}</span>
       </div>
-      <div class="bq-paycat__bar">
-        <span class="bq-paycat__seg bq-paycat__seg--paid" style="width:${paidPct}%"></span>
-        <span class="bq-paycat__seg bq-paycat__seg--unpaid" style="width:${unpaidPct}%"></span>
+      <div class="bq-pay-status__bar">
+        <span class="bq-pay-status__fill" style="width:${pct}%;background:${color}"></span>
       </div>
-      <div class="bq-paycat__stats">
-        <span class="bq-paycat__stat bq-paycat__stat--paid">
-          <span class="bq-paycat__dot bq-paycat__dot--paid"></span>
-          ${fmtN(paid)} ta · ${fmtP(paidPct)}
-        </span>
-        <span class="bq-paycat__stat bq-paycat__stat--unpaid">
-          <span class="bq-paycat__dot bq-paycat__dot--unpaid"></span>
-          ${fmtN(unpaid)} ta · ${fmtP(unpaidPct)}
-        </span>
-      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStudentDynamics(labels, incoming, outgoing){
+  kill('chStudents');
+  const ctx=document.getElementById('chStudents');if(!ctx)return;
+  const axisColor='#94a3b8';
+  const gridColor='rgba(148,163,184,.18)';
+  const green='#10b981';
+  const rose='#f43f5e';
+  const safeLabels=labels&&labels.length?labels:[];
+  const inData=(incoming||[]).map((value)=>Number(value||0));
+  const outData=(outgoing||[]).map((value)=>Number(value||0));
+  document.querySelectorAll('[data-student-chart-mode]').forEach((btn)=>{
+    btn.classList.toggle('is-active', btn.dataset.studentChartMode === _studentChartMode);
+  });
+
+  const baseOptions={
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    layout:{padding:{top:4,right:8,bottom:12,left:2}},
+    plugins:{legend:{display:false},tooltip:tooltipConfig()},
+    scales:{
+      x:{grid:{color:'transparent'},ticks:{color:axisColor,font:{size:10.5},padding:2}},
+      y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:axisColor,font:{size:10},precision:0}}
+    }
+  };
+
+  if(_studentChartMode === 'bar'){
+    charts.chStudents=new Chart(ctx,{type:'bar',data:{labels:safeLabels,datasets:[
+      {label:'Kelganlar',data:inData,backgroundColor:green+'cc',borderRadius:5,borderSkipped:false,categoryPercentage:.56,barPercentage:.78},
+      {label:'Tark etganlar',data:outData,backgroundColor:rose+'cc',borderRadius:5,borderSkipped:false,categoryPercentage:.56,barPercentage:.78}
+    ]},options:baseOptions});
+    return;
+  }
+
+  const chartCtx=ctx.getContext('2d');
+  const chartHeight=ctx.clientHeight||184;
+  const greenGrad=chartCtx.createLinearGradient(0,0,0,chartHeight);
+  greenGrad.addColorStop(0,'rgba(16,185,129,.24)');
+  greenGrad.addColorStop(1,'rgba(16,185,129,0)');
+  const roseGrad=chartCtx.createLinearGradient(0,0,0,chartHeight);
+  roseGrad.addColorStop(0,'rgba(244,63,94,.16)');
+  roseGrad.addColorStop(1,'rgba(244,63,94,0)');
+
+  charts.chStudents=new Chart(ctx,{type:'line',data:{labels:safeLabels,datasets:[
+    {label:'Kelganlar',data:inData,borderColor:green,backgroundColor:greenGrad,fill:true,tension:.42,borderWidth:2.2,pointRadius:0,pointHoverRadius:4,pointBackgroundColor:green},
+    {label:'Tark etganlar',data:outData,borderColor:rose,backgroundColor:roseGrad,fill:true,tension:.42,borderWidth:2.2,pointRadius:0,pointHoverRadius:4,pointBackgroundColor:rose}
+  ]},options:baseOptions});
+}
+
+function renderAttendanceDistribution(labels, counts){
+  const totalEl=document.getElementById('attendanceTotal');
+  const listEl=document.getElementById('attendanceList');
+  const subEl=document.getElementById('attendanceSub');
+  const badgeEl=document.getElementById('attendanceBadge');
+  const safeLabels=labels&&labels.length?labels:['Kelgan','Kelmagan','Sababli'];
+  const safeCounts=safeLabels.map((_,i)=>Number((counts||[])[i]||0));
+  const colors=[C.green,C.rose,C.violet];
+  const total=safeCounts.reduce((sum,value)=>sum+value,0);
+  const present=safeCounts[0]||0;
+  const rate=total?Math.round((present/total)*100):0;
+
+  if(totalEl) totalEl.textContent=fmtN(total);
+  if(subEl) subEl.textContent=`Tanlangan davr · ${fmtN(total)} ta dars-kun`;
+  if(badgeEl) badgeEl.innerHTML=`<i class="fa-solid fa-arrow-up"></i> ${rate}%`;
+
+  if(total){
+    donut('chAttendance',safeLabels,safeCounts,colors);
+  } else {
+    donut('chAttendance',['Ma\'lumot yo\'q'],[1],[getChartTheme().emptyDonut]);
+  }
+
+  if(!listEl) return;
+  if(!total){
+    listEl.innerHTML='<div class="bq-source__empty">Davomat bo\'yicha ma\'lumot yo\'q</div>';
+    return;
+  }
+  listEl.innerHTML=safeLabels.map((label,i)=>{
+    const value=safeCounts[i]||0;
+    const pct=total?Math.round((value/total)*100):0;
+    const color=colors[i%colors.length];
+    return `<div class="bq-attendance__item" title="${escHtml(label)}: ${fmtN(value)} ta · ${pct}%">
+      <span class="bq-attendance__dot" style="background:${color}"></span>
+      <span class="bq-attendance__name">${escHtml(label)}</span>
+      <span class="bq-attendance__count">${fmtN(value)}</span>
+      <span class="bq-attendance__pct">${pct}%</span>
     </div>`;
   }).join('');
 }
@@ -4542,6 +5642,8 @@ function render(d){
 
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
+  const funnelSub = document.getElementById('leadFunnelSub');
+  if(funnelSub) funnelSub.textContent = `Tanlangan davr · konversiya ${fmtP(k.conv_rate)}`;
 
   // 7. Qarzdorlar
   const _k7v = document.getElementById('k7v');
@@ -4641,45 +5743,24 @@ function render(d){
     });
   }
 
-  // Chart 3: O'quvchilar kirimi / chiqimi
-  line('chStudents',ch.monthly_labels,[
-    {
-      label:"Kelganlar",
-      data:ch.monthly_students || [],
-      borderColor:C.blue,
-      backgroundColor:C.blue+'20',
-      fill:true,
-      tension:.4,
-      borderWidth:2,
-      pointRadius:3,
-      pointHoverRadius:6,
-      pointBackgroundColor:C.blue
-    },
-    {
-      label:"Tark etganlar",
-      data:ch.monthly_left || [],
-      borderColor:C.rose,
-      backgroundColor:'transparent',
-      fill:false,
-      tension:.4,
-      borderWidth:2,
-      borderDash:[6,4],
-      pointRadius:3,
-      pointHoverRadius:6,
-      pointBackgroundColor:C.rose
-    }
-  ]);
+  // Chart 3: O'quvchilar dinamikasi
+  renderStudentDynamics(ch.monthly_labels || [], ch.monthly_students || [], ch.monthly_left || []);
+  renderAttendanceDistribution(ch.attendance_labels || [], ch.attendance_counts || []);
 
   // Chart 4: Donut — to'lov holati
-  const payColors=[C.green,C.rose];
-  const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'lagan","To'lamagan"];
-  const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0];
-  donut('chCat2',payLabels,payCounts.some(v=>v>0)?payCounts:[1,1],payColors);
-  legend('lgCat2',payLabels,payColors);
-  renderPaymentCategories(ch.pay_category_breakdown || []);
+  const payColors=[C.green,C.rose,C.amber];
+  const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'lagan","To'lamagan","Qisman"];
+  const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0,0];
+  if(payCounts.some(v=>v>0)){
+    donut('chCat2',payLabels,payCounts,payColors);
+  } else {
+    donut('chCat2',['Ma\'lumot yo\'q'],[1],[theme.emptyDonut]);
+  }
+  renderPaymentStatus(payLabels,payCounts,payColors);
 
-  // Chart 5: Horizontal Bar — guruhlar
-  renderGroupChart(ch.group_names || [], ch.group_enrolled || []);
+  // Eng yaxshi guruhlar va so'nggi faollik
+  renderBestGroups(d.top_groups || []);
+  renderRecentActivity(d.recent_activity || []);
 
   // Lead sources
   renderLeadSources(ch.source_labels || [], ch.source_counts || []);
@@ -4690,59 +5771,37 @@ function render(d){
   // Jadvallar (Top guruh va Top o'quvchi DOM'da yo'q — guard'lar ishlaydi)
   renderXavfli(d.xavfli_students || []);
 
-  // To'lov turlari (Donut)
-  renderPayMethods(ch.pay_method_labels || [], ch.pay_method_counts || [], ch.pay_method_amounts || []);
-
-  // Lid voronkasi (Funnel)
-  renderLeadFunnel(ch.funnel || [0,0,0,0]);
+  // Lid bosqichlari
+  renderLeadFunnel(ch.funnel || [0,0,0,0], ch.funnel_labels || []);
 
   // Last-sync indikator (yangilangan vaqt)
   setLastSync(d.generated_at);
 }
 
-/* ── To'lov turlari donut ── */
-function renderPayMethods(labels, counts, amounts){
-  const palette = ['#8B5CF6','#3B82F6','#10B981','#F59E0B','#EF4444','#EC4899','#14B8A6','#6366F1'];
-  const wrap = document.getElementById('lgPayMethods');
-  const totalEl = document.getElementById('payMethodsTotal');
-  kill('chPayMethods');
-  const totalCount = (counts||[]).reduce((a,b)=>a+b,0);
-  if(totalEl) totalEl.textContent = fmtN(totalCount);
-
-  if(!labels || !labels.length){
-    if(wrap) wrap.innerHTML = '<div class="bq-source__empty">Ma\'lumot yo\'q</div>';
-    const el = document.getElementById('chPayMethods');
-    if(el) donut('chPayMethods', ['Bo\'sh'], [1], ['rgba(148,163,184,.2)']);
-    return;
-  }
-  const colors = labels.map((_,i)=>palette[i % palette.length]);
-  donut('chPayMethods', labels, counts, colors);
-  if(wrap){
-    const total = totalCount || 1;
-    wrap.innerHTML = labels.map((lbl,i)=>{
-      const cnt = counts[i] || 0;
-      const amt = amounts && amounts[i] ? amounts[i] : 0;
-      const pct = total ? Math.round(cnt/total*100) : 0;
-      return `<div class="bq-source__item">
-        <span class="bq-source__sw" style="background:${colors[i]}"></span>
-        <span class="bq-source__name">${lbl}</span>
-        <span class="bq-source__cnt">${fmtN(cnt)} ta · ${pct}%</span>
-      </div>`;
-    }).join('');
-  }
-}
-
-/* ── Lid voronkasi ── */
-function renderLeadFunnel(values){
+/* ── Lid bosqichlari ── */
+function renderLeadFunnel(values, labels){
   const wrap = document.getElementById('leadFunnel');
   if(!wrap) return;
-  const max = Math.max(...values, 1);
+  const safeValues = (values && values.length ? values : [0, 0, 0, 0]).map((value)=>Number(value || 0));
+  const safeLabels = (labels && labels.length)
+    ? labels
+    : ["Yangi", "Bog'langan", "Sinov darsi", "O'quvchiga aylangan"];
+  const rowCount = Math.max(safeLabels.length, safeValues.length);
+  wrap.innerHTML = Array.from({ length: rowCount }, (_, i)=>{
+    const label = safeLabels[i] || `Bosqich ${i + 1}`;
+    return `<div class="bq-funnel__row" data-stage="${i}">
+      <span class="bq-funnel__lbl">${escHtml(label)}</span>
+      <div class="bq-funnel__bar"><span class="bq-funnel__fill"></span></div>
+      <span class="bq-funnel__val">0</span>
+    </div>`;
+  }).join('');
+  const max = Math.max(...safeValues, 1);
   const rows = wrap.querySelectorAll('.bq-funnel__row');
   rows.forEach((row, i)=>{
-    const v = Number(values[i] || 0);
+    const v = Number(safeValues[i] || 0);
     const fill = row.querySelector('.bq-funnel__fill');
     const valEl = row.querySelector('.bq-funnel__val');
-    const pct = max ? Math.max(2, Math.round(v/max*100)) : 0;
+    const pct = v > 0 && max ? Math.max(2, Math.round(v/max*100)) : 0;
     if(fill) fill.style.width = pct + '%';
     if(valEl) valEl.textContent = fmtN(v);
   });
@@ -4870,6 +5929,18 @@ window.cancelEdit = cancelEdit;
 window.startEditBranch = startEditBranch;
 window.deleteBranch = deleteBranch;
 window.filterXavfli = filterXavfli;
+
+document.querySelectorAll('[data-student-chart-mode]').forEach((btn)=>{
+  btn.addEventListener('click',()=>{
+    const mode = btn.dataset.studentChartMode || 'line';
+    if(mode === _studentChartMode) return;
+    _studentChartMode = mode;
+    if(_lastDashboardData){
+      const ch = _lastDashboardData.charts || {};
+      renderStudentDynamics(ch.monthly_labels || [], ch.monthly_students || [], ch.monthly_left || []);
+    }
+  });
+});
 
 fromI.addEventListener('change',()=>{
   queueDashboardLoad();
@@ -5349,12 +6420,14 @@ function closeGroupsDetail(){
   groupsDetailModal.classList.remove('open');
 }
 
-groupsDetailOpen.addEventListener('click',openGroupsDetail);
-groupsDetailClose.addEventListener('click',closeGroupsDetail);
-groupsDetailOverlay.addEventListener('click',closeGroupsDetail);
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape' && groupsDetailModal.classList.contains('open')) closeGroupsDetail();
-});
+if(groupsDetailOpen && groupsDetailClose && groupsDetailOverlay && groupsDetailModal){
+  groupsDetailOpen.addEventListener('click',openGroupsDetail);
+  groupsDetailClose.addEventListener('click',closeGroupsDetail);
+  groupsDetailOverlay.addEventListener('click',closeGroupsDetail);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape' && groupsDetailModal.classList.contains('open')) closeGroupsDetail();
+  });
+}
 
 /* ══════════════════ AI CHAT ══════════════════ */
 const chatPanel   = document.getElementById('chatPanel');

@@ -240,7 +240,11 @@ function renderPaymentTypeChart(rows) {
     colors,
     legend: { position: 'bottom', labels: { colors: '#cbd5e1' } },
     dataLabels: { enabled: false },
-    tooltip: { theme: 'dark', y: { formatter: (value) => fmtMoney(value) } },
+    tooltip: (window.ChaqmoqDonutTooltip ? {
+      theme: 'dark',
+      fillSeriesColor: false,
+      custom: (args) => window.ChaqmoqDonutTooltip.apexCustom(Object.assign({ unit: "so'm" }, args)),
+    } : { theme: 'dark', y: { formatter: (value) => fmtMoney(value) } }),
   };
   if (paymentTypeChart) paymentTypeChart.destroy();
   paymentTypeChart = new ApexCharts(document.querySelector('#paymentTypeChart'), options);

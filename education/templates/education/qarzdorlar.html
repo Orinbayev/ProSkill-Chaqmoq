@@ -817,11 +817,61 @@
             });
             const filterForm = document.getElementById('filterForm');
             if (filterForm) {
-                filterForm.querySelectorAll('select, input[type="date"]').forEach(el => el.addEventListener('change', () => filterForm.submit()));
+                // PERF: double-submit himoyasi — sahifa yuklanayotganda yangi submit'ni bloklamaydi
+                let isSubmitting = false;
+                let abortPrev = null;
+
+                function safeSubmit() {
+                    if (isSubmitting) return;
+                    isSubmitting = true;
+                    showLoadingState(true);
+                    // Eski request hali pending bo'lsa — bekor qilamiz
+                    if (abortPrev) { try { abortPrev.abort(); } catch (e) {} }
+                    filterForm.submit();
+                }
+
+                function showLoadingState(on) {
+                    const inp = filterForm.querySelector('input[name="q"]');
+                    if (!inp) return;
+                    if (on) {
+                        inp.style.opacity = '0.6';
+                        inp.setAttribute('readonly', 'readonly');
+                        const ic = filterForm.querySelector('.filter-search__icon');
+                        if (ic) {
+                            ic.classList.remove('fa-magnifying-glass');
+                            ic.classList.add('fa-spinner', 'fa-spin');
+                        }
+                    }
+                }
+
+                filterForm.querySelectorAll('select, input[type="date"]').forEach(el => {
+                    el.addEventListener('change', () => safeSubmit());
+                });
+
                 let timeout = null;
-                filterForm.querySelector('input[name="q"]').addEventListener('input', () => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => filterForm.submit(), 800);
+                const qInput = filterForm.querySelector('input[name="q"]');
+                if (qInput) {
+                    qInput.addEventListener('input', () => {
+                        clearTimeout(timeout);
+                        // Debounce 800ms — foydalanuvchi yozib bo'lsa yuboramiz
+                        timeout = setTimeout(() => safeSubmit(), 800);
+                    });
+                    // Enter bossa darrov yuborish (debounce'ni yengamiz)
+                    qInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            clearTimeout(timeout);
+                            safeSubmit();
+                        }
+                    });
+                }
+
+                // Sahifa "back/forward" cache'dan kelganda — loading state'ni reset qilish
+                window.addEventListener('pageshow', (e) => {
+                    if (e.persisted) {
+                        isSubmitting = false;
+                        showLoadingState(false);
+                    }
                 });
             }
         });

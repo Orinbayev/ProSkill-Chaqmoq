@@ -38,6 +38,7 @@ urlpatterns = [
     path("tolovlar/student/<int:student_id>/groups/", views.student_groups_api, name="student_groups_api"),
     # 🔹 Guruhlar kategoriyasi bo‘yicha
     path("guruhlar/", views.groups_home, name="groups_home"),
+    path("guruhlar/hammasi/", views.all_groups_overview, name="all_groups"),
     path("guruhlar/add/", views.add_category, name="add_category"),
     path("guruhlar/tillar/", views.groups_by_category, {"category": Group.LANG}, name="groups_lang"),
     path("guruhlar/it/", views.groups_by_category, {"category": Group.IT}, name="groups_it"),
@@ -60,6 +61,7 @@ urlpatterns = [
     path('category/<int:id>/delete/', views.delete_category, name='delete_category'),
     path('guruh/<int:id>/delete/', views.group_delete_confirm, name='group_delete_confirm'),
     path('guruh/<int:pk>/archive/', views.group_toggle_archive, name='group_toggle_archive'),
+    path('guruh/<int:pk>/pause/', views.group_toggle_close, name='group_toggle_close'),
     path("groups/", views.group_list, name="groups"),
     path("groups/add/", views.group_add, name="group_add"),
     path("groups/<int:pk>/edit/", views.group_edit, name="group_edit"),

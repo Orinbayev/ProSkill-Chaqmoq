@@ -112,6 +112,14 @@ class Group(SoftDeleteMixin, models.Model):
     class Meta:
         verbose_name = "Guruh"
         verbose_name_plural = "Guruhlar"
+        indexes = [
+            # Tenant filter — `Group.objects.filter(center=c, is_archived=False)` universal
+            models.Index(fields=['center', 'is_archived'], name='group_center_arch_idx'),
+            # Asosiy o'qituvchi groups query (HistoricalFinanceService)
+            models.Index(fields=['oqituvchi', 'is_archived'], name='group_oqit_arch_idx'),
+            # Support teacher groups
+            models.Index(fields=['support_teacher', 'is_archived'], name='group_sup_arch_idx'),
+        ]
 
     def __str__(self):
         return self.nom
@@ -662,6 +670,13 @@ class Attendance(models.Model):
         verbose_name = "Davomat"
         verbose_name_plural = "Davomatlar"
         unique_together = ('group', 'student', 'date')  # 🔥 Har bir guruh uchun alohida davomat
+        indexes = [
+            # group_month_attendance va salary calc — date filter universal
+            models.Index(fields=['group', 'date'], name='att_group_date_idx'),
+            models.Index(fields=['center', 'date'], name='att_center_date_idx'),
+            # status='present' filter (billable attendance)
+            models.Index(fields=['status'], name='att_status_idx'),
+        ]
         ordering = ['-date']
 
     def __str__(self):
@@ -690,6 +705,17 @@ class Attendance(models.Model):
             self.teacher = self.group.oqituvchi
 
         super().save(*args, **kwargs)
+
+        # PERF: Salary summary/list cache'larini bekor qilamiz
+        # (har attendance o'zgarishida — center bo'yicha versioning).
+        try:
+            from core.perf_cache import invalidate_center
+            cid = self.center_id or (self.group and self.group.center_id)
+            if cid:
+                invalidate_center(cid, prefix="salary_sum")
+                invalidate_center(cid, prefix="salary_list")
+        except Exception:
+            pass
 
 
 class AttendanceHistory(models.Model):

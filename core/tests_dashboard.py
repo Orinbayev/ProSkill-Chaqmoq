@@ -403,16 +403,54 @@ class CenterAnalyticsServiceTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         charts = response.json()["charts"]
-        self.assertEqual(charts["pay_status_labels"], ["To'lagan", "To'lamagan"])
+        self.assertEqual(charts["pay_status_labels"], ["To'lagan", "To'lamagan", "Qisman"])
         self.assertEqual(sum(charts["pay_status_counts"]), 4)
 
         breakdown = {row["name"]: row for row in charts["pay_category_breakdown"]}
         self.assertEqual(breakdown["Matematika"]["total"], 3)
         self.assertEqual(breakdown["Matematika"]["paid"], 1)
-        self.assertEqual(breakdown["Matematika"]["unpaid"], 2)
+        self.assertEqual(breakdown["Matematika"]["unpaid"], 1)
+        self.assertEqual(breakdown["Matematika"]["partial"], 1)
         self.assertEqual(breakdown["Language"]["total"], 1)
         self.assertEqual(breakdown["Language"]["paid"], 0)
         self.assertEqual(breakdown["Language"]["unpaid"], 1)
+        self.assertEqual(breakdown["Language"]["partial"], 0)
+
+    def test_boshqaruv_api_reports_converted_lead_sources_and_payment_amounts(self):
+        extra_student = self._student("student.extra.source@test.com", "Dilshod", "Source")
+        Lead.objects.create(
+            center=self.center,
+            ism="LeadC",
+            familya="Gamma",
+            telefon1="+998903333333",
+            yosh=20,
+            manba=self.source_telegram,
+            yonalish=self.direction_maths,
+            status=self.lead_registered,
+            assigned_manager=self.manager,
+            converted_user=extra_student,
+            converted_to_student=True,
+            converted_at=timezone.now(),
+            converted_by=self.director,
+            created_by=self.director,
+        )
+
+        response = self.client.get(reverse("core:director_boshqaruv_api"))
+
+        self.assertEqual(response.status_code, 200)
+        charts = response.json()["charts"]
+        self.assertEqual(
+            charts["funnel_labels"],
+            ["Yangi lid", "Bog'langan", "Trial darsda", "Ro'yxatdan o'tdi"],
+        )
+        self.assertEqual(charts["funnel"][3], 3)
+        self.assertEqual(charts["source_labels"][0], "Telegram")
+        self.assertEqual(charts["source_counts"][0], 2)
+
+        payment_amounts = dict(zip(charts["pay_method_labels"], charts["pay_method_amounts"]))
+        payment_counts = dict(zip(charts["pay_method_labels"], charts["pay_method_counts"]))
+        self.assertEqual(payment_counts["Naqd"], 2)
+        self.assertEqual(payment_amounts["Naqd"], 1_500_000)
 
     def test_boshqaruv_api_uses_monthly_snapshot_when_live_month_is_empty(self):
         history_month = (self.today.replace(day=1) - timedelta(days=150)).replace(day=1)

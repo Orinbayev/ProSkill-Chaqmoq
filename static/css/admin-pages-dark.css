@@ -1,0 +1,639 @@
+/* ─────────────────────────────────────────────────────────────────
+   Dark-mode overrides for the new admin pages:
+   - all_groups (.ag-*)               — Hamma guruhlar
+   - _group_action_shell (.gas-*)     — Guruh action shell + tabs
+   - group_detail (.gd-*)             — Batafsil
+   - group_form (.gf-*)               — Yangi/Tahrirlash
+   - group_schedule_manage (.sch-*)   — Jadval
+   - group_pause (.gp-*)              — To'xtatish
+   - group_archive (.ga-*)            — Arxivga
+   - add_student_to_group (.sac-*)    — O'quvchi qo'shish
+   - recent_activity_history (.ah-*)  — Faollik tarixi
+   ────────────────────────────────────────────────────────────────── */
+
+html[data-role-theme="dark"] {
+  /* Shared palette */
+  --d-bg:        #0b0f14;
+  --d-surface:   #11161d;
+  --d-surface-2: #151b23;
+  --d-border:    rgba(148, 163, 184, 0.16);
+  --d-border-2:  rgba(148, 163, 184, 0.10);
+  --d-ink:       #f1f5f9;
+  --d-mid:       #cbd5e1;
+  --d-mute:      #94a3b8;
+  --d-mute-2:    #64748b;
+  --d-blue:      #60a5fa;
+  --d-blue-2:    #3b82f6;
+  --d-green:     #34d399;
+  --d-amber:     #fbbf24;
+  --d-violet:    #a78bfa;
+  --d-rose:      #f87171;
+}
+
+/* Page bodies — make all GAS pages adopt dark surface */
+html[data-role-theme="dark"] body.gas-page,
+html[data-role-theme="dark"] body.gas-page .layout,
+html[data-role-theme="dark"] body.gas-page .app-shell,
+html[data-role-theme="dark"] body.gas-page .main-content,
+html[data-role-theme="dark"] body.gas-page .content-shell,
+html[data-role-theme="dark"] body.all-groups-page,
+html[data-role-theme="dark"] body.all-groups-page .layout,
+html[data-role-theme="dark"] body.all-groups-page .app-shell,
+html[data-role-theme="dark"] body.all-groups-page .main-content,
+html[data-role-theme="dark"] body.all-groups-page .content-shell,
+html[data-role-theme="dark"] body.activity-history-page,
+html[data-role-theme="dark"] body.activity-history-page .layout,
+html[data-role-theme="dark"] body.activity-history-page .app-shell,
+html[data-role-theme="dark"] body.activity-history-page .main-content,
+html[data-role-theme="dark"] body.activity-history-page .content-shell {
+  background: var(--d-bg) !important;
+  color: var(--d-ink);
+}
+
+/* ══════════════════ ALL_GROUPS (.ag-*) ══════════════════ */
+html[data-role-theme="dark"] .ag-page {
+  --ag-bg:          var(--d-bg);
+  --ag-card-bg:     var(--d-surface);
+  --ag-border:      var(--d-border);
+  --ag-border-soft: var(--d-border-2);
+  --ag-ink:         var(--d-ink);
+  --ag-mid:         var(--d-mid);
+  --ag-mute:        var(--d-mute);
+  --ag-muted-bg:    var(--d-surface-2);
+}
+html[data-role-theme="dark"] .ag-kpi {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] .ag-kpi__val,
+html[data-role-theme="dark"] .ag-name strong,
+html[data-role-theme="dark"] .ag-students,
+html[data-role-theme="dark"] .ag-revenue { color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-students__cap,
+html[data-role-theme="dark"] .ag-fill__pct { color: var(--d-mid); }
+html[data-role-theme="dark"] .ag-filters,
+html[data-role-theme="dark"] .ag-table-card,
+html[data-role-theme="dark"] .ag-pager {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .ag-tabs { background: var(--d-surface-2); }
+html[data-role-theme="dark"] .ag-tab { color: var(--d-mid); }
+html[data-role-theme="dark"] .ag-tab.is-active {
+  background: var(--d-bg);
+  color: var(--d-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+html[data-role-theme="dark"] .ag-select,
+html[data-role-theme="dark"] .ag-search,
+html[data-role-theme="dark"] .ag-export-btn,
+html[data-role-theme="dark"] .ag-view-toggle {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+}
+html[data-role-theme="dark"] .ag-search input { color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-search input::placeholder { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-search i,
+html[data-role-theme="dark"] .ag-export-btn { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-export-btn:hover { background: rgba(255,255,255,.04); color: var(--d-ink); border-color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-view-btn { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-view-btn:hover { color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-view-btn.is-active { background: var(--d-bg); color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-table thead { background: var(--d-surface-2); }
+html[data-role-theme="dark"] .ag-table th,
+html[data-role-theme="dark"] .ag-table td { border-color: var(--d-border-2); color: var(--d-mid); }
+html[data-role-theme="dark"] .ag-table th { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-table tr:hover td { background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] .ag-fill__track { background: rgba(148,163,184,.12); }
+html[data-role-theme="dark"] .ag-att--good   { background: rgba(16,185,129,.15);  color: #6ee7b7; }
+html[data-role-theme="dark"] .ag-att--mid    { background: rgba(245,158,11,.15);  color: #fcd34d; }
+html[data-role-theme="dark"] .ag-att--bad    { background: rgba(239,68,68,.18);   color: #fca5a5; }
+html[data-role-theme="dark"] .ag-att--none   { background: rgba(148,163,184,.10); color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-empty,
+html[data-role-theme="dark"] .ag-empty i { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-pager__sum { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-pager__btn {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .ag-pager__btn:hover { background: rgba(255,255,255,.05); color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-pager__btn.is-active { background: var(--d-blue-2); border-color: var(--d-blue-2); color: #fff; }
+html[data-role-theme="dark"] .ag-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .ag-card__name strong { color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-card__name small,
+html[data-role-theme="dark"] .ag-card__row span:first-child { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-card__row { border-color: var(--d-border-2); }
+html[data-role-theme="dark"] .ag-card__row span:last-child,
+html[data-role-theme="dark"] .ag-card__pct { color: var(--d-mid); }
+html[data-role-theme="dark"] .ag-card__bar { background: rgba(148,163,184,.12); }
+
+/* Action dropdown menu */
+html[data-role-theme="dark"] .ag-menu {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 12px 28px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.4);
+}
+html[data-role-theme="dark"] .ag-menu__item { color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-menu__item i { color: var(--d-mute); }
+html[data-role-theme="dark"] .ag-menu__item:hover { background: rgba(255,255,255,.04); }
+html[data-role-theme="dark"] .ag-menu__item:hover i { color: var(--d-mid); }
+html[data-role-theme="dark"] .ag-menu__sep { background: var(--d-border-2); }
+html[data-role-theme="dark"] .ag-menu__item--danger { color: #fca5a5; }
+html[data-role-theme="dark"] .ag-menu__item--danger i { color: #fca5a5; }
+html[data-role-theme="dark"] .ag-menu__item--danger:hover { background: rgba(239,68,68,.1); }
+html[data-role-theme="dark"] .ag-actions:hover { background: rgba(255,255,255,.05); color: var(--d-ink); }
+html[data-role-theme="dark"] .ag-actions[aria-expanded="true"] { background: rgba(255,255,255,.06); color: var(--d-ink); }
+
+/* ══════════════════ GAS SHELL (.gas-*) ══════════════════ */
+html[data-role-theme="dark"] .gas-shell {
+  --gas-bg:     var(--d-bg);
+  --gas-card:   var(--d-surface);
+  --gas-border: var(--d-border);
+  --gas-soft:   var(--d-border-2);
+  --gas-ink:    var(--d-ink);
+  --gas-mid:    var(--d-mid);
+  --gas-mute:   var(--d-mute);
+  background: var(--d-bg);
+}
+html[data-role-theme="dark"] .gas-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 14px 32px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] .gas-head__name { color: var(--d-ink); }
+html[data-role-theme="dark"] .gas-head__meta { color: var(--d-mute); }
+html[data-role-theme="dark"] .gas-tabs { border-color: var(--d-border-2); }
+html[data-role-theme="dark"] .gas-tab { color: var(--d-mid); }
+html[data-role-theme="dark"] .gas-tab:hover { color: var(--d-ink); background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] .gas-tab.is-active { color: var(--d-ink); }
+html[data-role-theme="dark"] .gas-tab--danger { color: #fca5a5; }
+html[data-role-theme="dark"] .gas-tab--danger:hover { background: rgba(239,68,68,.08); color: #fecaca; }
+html[data-role-theme="dark"] .gas-status--active   { background: rgba(16,185,129,.15); color: #6ee7b7; }
+html[data-role-theme="dark"] .gas-status--closed   { background: rgba(245,158,11,.15); color: #fcd34d; }
+html[data-role-theme="dark"] .gas-status--archived { background: rgba(239,68,68,.18);  color: #fca5a5; }
+html[data-role-theme="dark"] .gas-status--full     { background: rgba(59,130,246,.18); color: #93c5fd; }
+
+html[data-role-theme="dark"] .gas-crumb,
+html[data-role-theme="dark"] .gas-crumb a { color: var(--d-mute); }
+html[data-role-theme="dark"] .gas-crumb a:hover,
+html[data-role-theme="dark"] .gas-crumb__cur { color: var(--d-ink); }
+
+/* ══════════════════ GROUP DETAIL (.gd-*) ══════════════════ */
+html[data-role-theme="dark"] .gd-kpi,
+html[data-role-theme="dark"] .gd-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 14px 32px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] .gd-kpi__val,
+html[data-role-theme="dark"] .gd-card__title,
+html[data-role-theme="dark"] .gd-st__name { color: var(--d-ink); }
+html[data-role-theme="dark"] .gd-kpi__val small,
+html[data-role-theme="dark"] .gd-kpi__sub,
+html[data-role-theme="dark"] .gd-kpi__lbl,
+html[data-role-theme="dark"] .gd-card__sub { color: var(--d-mute); }
+html[data-role-theme="dark"] .gd-table thead { background: var(--d-surface-2); }
+html[data-role-theme="dark"] .gd-table th,
+html[data-role-theme="dark"] .gd-table td { border-color: var(--d-border-2); color: var(--d-mid); }
+html[data-role-theme="dark"] .gd-table th { color: var(--d-mute); }
+html[data-role-theme="dark"] .gd-table tr:hover td { background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] .gd-att--good   { background: rgba(16,185,129,.15);  color: #6ee7b7; }
+html[data-role-theme="dark"] .gd-att--mid    { background: rgba(245,158,11,.15);  color: #fcd34d; }
+html[data-role-theme="dark"] .gd-att--bad    { background: rgba(239,68,68,.18);   color: #fca5a5; }
+html[data-role-theme="dark"] .gd-att--none   { background: rgba(148,163,184,.10); color: var(--d-mute); }
+html[data-role-theme="dark"] .gd-pay--paid    { background: rgba(16,185,129,.15);  color: #6ee7b7; }
+html[data-role-theme="dark"] .gd-pay--partial { background: rgba(245,158,11,.15);  color: #fcd34d; }
+html[data-role-theme="dark"] .gd-pay--unpaid  { background: rgba(239,68,68,.18);   color: #fca5a5; }
+html[data-role-theme="dark"] .gd-pay--none    { background: rgba(148,163,184,.10); color: var(--d-mute); }
+html[data-role-theme="dark"] .gd-row-actions:hover { background: rgba(255,255,255,.05); color: var(--d-ink); }
+html[data-role-theme="dark"] .gd-empty { color: var(--d-mute); }
+
+/* KPI icon chip backgrounds — slight desaturation in dark */
+html[data-role-theme="dark"] .gd-kpi__ico--blue,
+html[data-role-theme="dark"] .ag-kpi__ico--blue,
+html[data-role-theme="dark"] .ah-icon--lead     { background: rgba(59,130,246,.18); color: #93c5fd; }
+html[data-role-theme="dark"] .gd-kpi__ico--green,
+html[data-role-theme="dark"] .ah-icon--payment  { background: rgba(16,185,129,.18); color: #6ee7b7; }
+html[data-role-theme="dark"] .gd-kpi__ico--amber,
+html[data-role-theme="dark"] .ag-kpi__ico--amber { background: rgba(245,158,11,.16); color: #fcd34d; }
+html[data-role-theme="dark"] .gd-kpi__ico--violet,
+html[data-role-theme="dark"] .ag-kpi__ico--violet { background: rgba(167,139,250,.18); color: #c4b5fd; }
+html[data-role-theme="dark"] .ag-kpi__ico--green { background: rgba(16,185,129,.18); color: #6ee7b7; }
+
+/* ══════════════════ GROUP FORM (.gf-*) ══════════════════ */
+html[data-role-theme="dark"] .gf-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .gf-section-title { color: var(--d-ink); }
+html[data-role-theme="dark"] .gf-section-sub,
+html[data-role-theme="dark"] .gf-label,
+html[data-role-theme="dark"] .gf-help { color: var(--d-mute); }
+html[data-role-theme="dark"] .gf-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-role-theme="dark"] .gf-card select,
+html[data-role-theme="dark"] .gf-card textarea {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  color-scheme: dark;
+}
+html[data-role-theme="dark"] .gf-card input[readonly] {
+  background: rgba(15,23,42,.6);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .gf-card select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%23cbd5e1' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+html[data-role-theme="dark"] .gf-summary-card {
+  background: var(--d-surface-2);
+  border-color: var(--d-border-2);
+}
+html[data-role-theme="dark"] .gf-summary-card__lbl { color: var(--d-mute); }
+html[data-role-theme="dark"] .gf-summary-card__val { color: var(--d-ink); }
+html[data-role-theme="dark"] .gf-tip {
+  background: rgba(59,130,246,.10);
+  border-color: rgba(59,130,246,.28);
+  color: #bfdbfe;
+}
+html[data-role-theme="dark"] .gf-support {
+  background: rgba(59,130,246,.08);
+  border-color: rgba(59,130,246,.26);
+}
+html[data-role-theme="dark"] .gf-support__head { color: #bfdbfe; }
+html[data-role-theme="dark"] .gf-btn--ghost {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .gf-btn--ghost:hover { background: rgba(255,255,255,.04); color: var(--d-ink); }
+
+/* ══════════════════ SCHEDULE (.sch-*) ══════════════════ */
+html[data-role-theme="dark"] .sch-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .sch-card__title { color: var(--d-ink); }
+html[data-role-theme="dark"] .sch-card__sub,
+html[data-role-theme="dark"] .sch-section-label { color: var(--d-mute); }
+html[data-role-theme="dark"] .sch-day {
+  background: var(--d-surface-2);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .sch-day:hover { background: rgba(255,255,255,.06); color: var(--d-ink); }
+html[data-role-theme="dark"] .sch-day.is-selected {
+  background: var(--d-blue-2);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(59,130,246,.35);
+}
+html[data-role-theme="dark"] .sch-input {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .sch-input input {
+  color: var(--d-ink);
+  color-scheme: dark;
+}
+html[data-role-theme="dark"] .sch-input input::placeholder { color: var(--d-mute-2); }
+html[data-role-theme="dark"] .sch-input__suffix { color: var(--d-mute); }
+html[data-role-theme="dark"] .sch-btn--ghost {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .sch-btn--ghost:hover { background: rgba(255,255,255,.04); color: var(--d-ink); }
+html[data-role-theme="dark"] .sch-tip {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .sch-tip i { color: var(--d-mute); }
+
+/* Messages (sch/ga/gp common) */
+html[data-role-theme="dark"] .sch-msg--success,
+html[data-role-theme="dark"] .gp-msg--success,
+html[data-role-theme="dark"] .ga-msg--success,
+html[data-role-theme="dark"] .gf-msg--success { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.30); color: #6ee7b7; }
+html[data-role-theme="dark"] .sch-msg--warning,
+html[data-role-theme="dark"] .gp-msg--warning,
+html[data-role-theme="dark"] .gf-msg--warning { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.30); color: #fcd34d; }
+html[data-role-theme="dark"] .sch-msg--error,
+html[data-role-theme="dark"] .gp-msg--error,
+html[data-role-theme="dark"] .ga-msg--error,
+html[data-role-theme="dark"] .gf-msg--error { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.30); color: #fca5a5; }
+html[data-role-theme="dark"] .sch-msg--info,
+html[data-role-theme="dark"] .gp-msg--info,
+html[data-role-theme="dark"] .ga-msg--info,
+html[data-role-theme="dark"] .gf-msg--info { background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.30); color: #93c5fd; }
+
+/* ══════════════════ PAUSE (.gp-*) ══════════════════ */
+html[data-role-theme="dark"] .gp-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .gp-card__sub,
+html[data-role-theme="dark"] .gp-label { color: var(--d-mute); }
+html[data-role-theme="dark"] .gp-warn {
+  background: rgba(245,158,11,.10);
+  border-color: rgba(245,158,11,.30);
+  color: #fcd34d;
+}
+html[data-role-theme="dark"] .gp-warn i { color: var(--d-amber); }
+html[data-role-theme="dark"] .gp-warn strong { color: #fde68a; }
+html[data-role-theme="dark"] .gp-input,
+html[data-role-theme="dark"] .gp-select {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  color-scheme: dark;
+}
+html[data-role-theme="dark"] .gp-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%23cbd5e1' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+html[data-role-theme="dark"] .gp-btn--ghost {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .gp-btn--ghost:hover { background: rgba(255,255,255,.04); color: var(--d-ink); }
+
+/* ══════════════════ ARCHIVE (.ga-*) ══════════════════ */
+html[data-role-theme="dark"] .ga-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+html[data-role-theme="dark"] .ga-card__sub,
+html[data-role-theme="dark"] .ga-label { color: var(--d-mute); }
+html[data-role-theme="dark"] .ga-warn {
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.32);
+  color: #fca5a5;
+}
+html[data-role-theme="dark"] .ga-warn i { color: #f87171; }
+html[data-role-theme="dark"] .ga-warn strong { color: #fecaca; }
+html[data-role-theme="dark"] .ga-input {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  color-scheme: dark;
+}
+html[data-role-theme="dark"] .ga-btn--ghost {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .ga-btn--ghost:hover { background: rgba(255,255,255,.04); color: var(--d-ink); }
+
+/* ══════════════════ ADD STUDENT (.sac-*) ══════════════════ */
+html[data-role-theme="dark"] body.student-add-compact-page {
+  --sac-bg:           var(--d-bg);
+  --sac-panel:        var(--d-surface);
+  --sac-panel-soft:   var(--d-surface-2);
+  --sac-border:       var(--d-border);
+  --sac-border-strong: rgba(148,163,184,.28);
+  --sac-text:         var(--d-ink);
+  --sac-muted:        var(--d-mute);
+  --sac-accent:       var(--d-blue-2);
+  --sac-accent-soft:  rgba(59,130,246,.16);
+  --sac-success:      #34d399;
+  --sac-success-soft: rgba(16,185,129,.16);
+  --sac-danger:       #f87171;
+  --sac-danger-soft:  rgba(239,68,68,.16);
+  background: var(--d-bg);
+  color: var(--d-ink);
+}
+html[data-role-theme="dark"] .sac-page { background: var(--d-bg); }
+html[data-role-theme="dark"] .sac-panel {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 32px rgba(0,0,0,.4);
+}
+html[data-role-theme="dark"] .sac-panel__head { border-bottom-color: var(--d-border-2); }
+html[data-role-theme="dark"] .sac-input {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+}
+html[data-role-theme="dark"] .sac-input:focus {
+  border-color: var(--d-blue-2);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+}
+html[data-role-theme="dark"] .sac-student,
+html[data-role-theme="dark"] .sac-selected-item { border-color: var(--d-border-2); }
+html[data-role-theme="dark"] .sac-student:hover { background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] .sac-avatar { background: rgba(59,130,246,.18); color: #93c5fd; }
+html[data-role-theme="dark"] .sac-chip { background: rgba(148,163,184,.10); color: var(--d-mute); }
+html[data-role-theme="dark"] .sac-chip--warn { background: rgba(245,158,11,.14); color: #fcd34d; }
+html[data-role-theme="dark"] .sac-chip--info { background: rgba(59,130,246,.14); color: #93c5fd; }
+html[data-role-theme="dark"] .sac-btn {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .sac-btn:hover { border-color: var(--d-border-strong); color: var(--d-ink); }
+html[data-role-theme="dark"] .sac-btn--add { background: rgba(59,130,246,.16); border-color: rgba(59,130,246,.32); color: #bfdbfe; }
+html[data-role-theme="dark"] .sac-btn--add:hover { background: rgba(59,130,246,.24); }
+html[data-role-theme="dark"] .sac-btn--add.is-selected { background: rgba(16,185,129,.16); border-color: rgba(16,185,129,.32); color: #6ee7b7; }
+html[data-role-theme="dark"] .sac-btn--remove { color: #fca5a5; background: transparent; border-color: transparent; }
+html[data-role-theme="dark"] .sac-btn--remove:hover { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.28); }
+html[data-role-theme="dark"] .sac-footer {
+  background: rgba(17,22,29,.92);
+  border-color: var(--d-border);
+}
+
+/* ══════════════════ ACTIVITY HISTORY (.ah-*) ══════════════════ */
+html[data-role-theme="dark"] .ah-page { background: var(--d-bg); color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-crumb,
+html[data-role-theme="dark"] .ah-crumb a { color: var(--d-mute); }
+html[data-role-theme="dark"] .ah-crumb a:hover,
+html[data-role-theme="dark"] .ah-crumb__cur { color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-chips,
+html[data-role-theme="dark"] .ah-card,
+html[data-role-theme="dark"] .ah-pager {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+html[data-role-theme="dark"] .ah-chip { color: var(--d-mid); }
+html[data-role-theme="dark"] .ah-chip:hover { background: rgba(255,255,255,.04); color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-chip__count { background: var(--d-surface-2); color: var(--d-mid); }
+html[data-role-theme="dark"] .ah-chip.is-active {
+  background: var(--d-surface-2);
+  border-color: var(--d-mute);
+  color: var(--d-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+html[data-role-theme="dark"] .ah-group__head { border-bottom-color: var(--d-border-2); }
+html[data-role-theme="dark"] .ah-group__title { color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-group__sub,
+html[data-role-theme="dark"] .ah-meta { color: var(--d-mute); }
+html[data-role-theme="dark"] .ah-item { border-bottom-color: var(--d-border-2); }
+html[data-role-theme="dark"] .ah-item:hover { background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] .ah-title { color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-icon--payment  { background: rgba(16,185,129,.18); color: #6ee7b7; }
+html[data-role-theme="dark"] .ah-icon--lead     { background: rgba(59,130,246,.18); color: #93c5fd; }
+html[data-role-theme="dark"] .ah-icon--absence  { background: rgba(239,68,68,.18); color: #fca5a5; }
+html[data-role-theme="dark"] .ah-icon--leave    { background: rgba(239,68,68,.18); color: #fca5a5; }
+html[data-role-theme="dark"] .ah-icon--demo     { background: rgba(167,139,250,.18); color: #c4b5fd; }
+html[data-role-theme="dark"] .ah-icon--reward   { background: rgba(245,158,11,.18); color: #fcd34d; }
+html[data-role-theme="dark"] .ah-amount         { color: #6ee7b7; }
+html[data-role-theme="dark"] .ah-amount--negative { color: #fca5a5; }
+html[data-role-theme="dark"] .ah-empty,
+html[data-role-theme="dark"] .ah-empty i { color: var(--d-mute); }
+html[data-role-theme="dark"] .ah-pager__sum { color: var(--d-mute); }
+html[data-role-theme="dark"] .ah-pager__btn {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] .ah-pager__btn:hover { background: rgba(255,255,255,.05); color: var(--d-ink); }
+html[data-role-theme="dark"] .ah-pager__btn.is-active { background: var(--d-blue-2); border-color: var(--d-blue-2); color: #fff; }
+
+/* ══════════════════ Boshqaruv dashboard diagrammalari ══════════════════
+   Boshqaruv `dark by default`, lekin men ixchamlashtirgan kartlarda
+   light ranglarni default qilib qo'yganman — bu yerda dark variantni
+   qaytaradi. Faqat dashboard sahifasida (body.director-boshqaruv-page)
+   ishlaydi. */
+
+/* ── Eng yaxshi guruhlar + So'nggi faollik kartlari ── */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-card,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 18px 40px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-card__title,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-card__title { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-card__sub,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-card__sub { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-card__link,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-card__link { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-card__link:hover,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-card__link:hover { color: #93c5fd; }
+
+/* Eng yaxshi guruhlar jadvali */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-table thead { background: var(--d-surface-2); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-table th { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-table td {
+  border-bottom-color: var(--d-border-2);
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-name strong { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-name small { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-teacher { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-count,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-revenue { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-fill__track { background: rgba(148,163,184,.14); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-fill__pct { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-more:hover { background: rgba(255,255,255,.05); color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-best-empty,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-empty { color: var(--d-mute); }
+
+/* Activity card */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-list { border-top-color: var(--d-border-2); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-list::-webkit-scrollbar-thumb { background: rgba(148,163,184,.32); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-item { border-bottom-color: var(--d-border-2); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-item:hover { background: rgba(255,255,255,.03); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-title { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-meta { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-amount { color: #6ee7b7; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-amount--negative { color: #fca5a5; }
+/* Activity ikonlari — qorong'i fonda yorug'roq pastel variantlar */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--payment { background: rgba(16,185,129,.18); color: #6ee7b7; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--lead    { background: rgba(59,130,246,.18); color: #93c5fd; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--absence { background: rgba(239,68,68,.18); color: #fca5a5; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--demo    { background: rgba(167,139,250,.18); color: #c4b5fd; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--leave   { background: rgba(239,68,68,.18); color: #fca5a5; }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-activity-icon--reward  { background: rgba(245,158,11,.18); color: #fcd34d; }
+
+/* ── Lid voronkasi · Lid manbalari · To'lov holati (insight cards) ── */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-insight-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 18px 40px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-insight-title { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-insight-sub { color: var(--d-mute); }
+
+/* Pillar (CRM, BAJARILGAN) */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-insight-pill--crm {
+  background: rgba(245,158,11,.18); color: #fcd34d;
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-insight-pill--success {
+  background: rgba(16,185,129,.18); color: #6ee7b7;
+}
+
+/* Funnel chart (Lid voronkasi) */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-funnel__lbl { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-funnel__bar { background: rgba(148,163,184,.14); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-funnel__val { color: var(--d-ink); }
+
+/* Donut center (Lid manbalari + To'lov holati) */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__center span,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay__center span { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__center strong,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay__center strong { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__center small,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay__center small { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__name { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__pct  { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-source__empty { color: var(--d-mute); }
+
+/* Pay status rows */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay-status__name  { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay-status__count { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-pay-status__bar   { background: rgba(148,163,184,.14); }
+
+/* O'quvchi davomati halqasi (attendance) — agar bu shu yerda bo'lsa */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__center span { color: var(--d-mute); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__center strong { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__center small { color: var(--d-mute); }
+
+/* ── O'quvchilar dinamikasi + Davomat taqsimoti kartlari ── */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-card {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 18px 40px rgba(0,0,0,.45);
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-card__title { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-card__sub { color: var(--d-mute); }
+
+/* Chart turi tanlash tugmalari (Chiziq / Ustun) */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-toggle__btn {
+  color: var(--d-mid);
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-toggle__btn:hover,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-toggle__btn.is-active {
+  background: var(--d-surface-2);
+  border-color: var(--d-border);
+  color: var(--d-ink);
+}
+
+/* Legenda (Kelganlar/Tark etganlar) */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-student-legend__item {
+  color: var(--d-mid);
+}
+
+/* Davomat taqsimoti — ro'yxat */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__name { color: var(--d-mid); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__count { color: var(--d-ink); }
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance__pct { color: var(--d-mute); }
+
+/* Davomat badge (yashil yoki qizil pill) — yorqin emas, pastel */
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance-badge {
+  background: rgba(16,185,129,.18);
+  color: #6ee7b7;
+}
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance-badge.is-down,
+html[data-role-theme="dark"] body.director-boshqaruv-page .bq-attendance-badge[data-trend="down"] {
+  background: rgba(239,68,68,.18);
+  color: #fca5a5;
+}

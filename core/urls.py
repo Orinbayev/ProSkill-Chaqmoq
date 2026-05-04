@@ -74,6 +74,7 @@ urlpatterns = [
     path('api/boshqaruv/',                dashboard_views.director_boshqaruv_api,           name='director_boshqaruv_api'),
     path('api/boshqaruv/chat/',           dashboard_views.director_boshqaruv_chat,          name='director_boshqaruv_chat'),
     path('boshqaruv/export/',             dashboard_views.director_boshqaruv_export,        name='director_boshqaruv_export'),
+    path('boshqaruv/faollik-tarixi/',     dashboard_views.director_activity_history,        name='activity_history'),
     # Branch CRUD
     path('api/branches/',                 views.branch_list_api,                            name='branch_list_api'),
     path('api/branches/create/',          views.branch_create,                              name='branch_create'),

@@ -493,8 +493,11 @@
   {% if request.user.is_superuser or request.user.role %}
   <link rel="stylesheet" href="{% static 'css/role-theme.css' %}?v=20260415-role-theme-rebuild-4">
   <link rel="stylesheet" href="{% static 'css/light-mode-fixes.css' %}?v=20260501-light-fixes-2">
+  <link rel="stylesheet" href="{% static 'css/admin-pages-dark.css' %}?v=20260504-admin-dark-1">
   {% endif %}
   {% endif %}
+  <link rel="stylesheet" href="{% static 'css/chart-tooltip.css' %}?v=20260504-chart-tooltip-1">
+  <script defer src="{% static 'js/chart-tooltip.js' %}?v=20260504-chart-tooltip-1"></script>
 </head>
 
 <body

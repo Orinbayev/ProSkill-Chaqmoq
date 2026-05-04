@@ -129,6 +129,9 @@ JAZZMIN_SETTINGS = {
 
 # ===== Middleware =====
 MIDDLEWARE = [
+    # PERF: birinchi bo'lib o'rnatamiz — barcha keyingi middleware'lar
+    # vaqti ham hisoblanadi.
+    "core.middleware_perf.SlowRequestLoggingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -142,6 +145,10 @@ MIDDLEWARE = [
     "core.middleware.TenantMiddleware",          # ✅ Custom Tenant Middleware
     "core.middleware_rbac.RoleBasedAccessMiddleware",  # ✅ RBAC kirish nazorati
 ]
+
+# PERF: Slow request log threshold (ms). Override via env var.
+SLOW_REQUEST_MS = int(os.environ.get("SLOW_REQUEST_MS", "500"))
+SLOW_REQUEST_LOG_QUERIES = os.environ.get("SLOW_REQUEST_LOG_QUERIES", "1") == "1"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -273,8 +280,28 @@ SPECTACULAR_SETTINGS = {
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "formatters": {
+        "perf": {
+            "format": "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        "perf_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "perf",
+        },
+    },
     "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        # Slow request middleware logger — chiqishi WARNING+
+        "perf.slow_request": {
+            "handlers": ["perf_console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
 }
 
 # ==================== CLICK PAYMENT ====================

@@ -113,6 +113,19 @@ if "DATABASE_URL" in os.environ:
             conn_health_checks=True,
         )
     }
+    # PERF: Postgres-specific timeouts
+    # - statement_timeout: bitta query 30 sekunddan oshsa to'xtaymiz
+    #   (hung query Render dyno'ni RAMni egallab qo'ymasin).
+    # - lock_timeout: 5 sekund row-lock kutsa exception qaytadi.
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"].update({
+        "connect_timeout": int(os.getenv("DJANGO_DB_CONNECT_TIMEOUT", "10")),
+        # Postgres options string (key=val key=val format)
+        "options": (
+            f"-c statement_timeout={int(os.getenv('DJANGO_DB_STATEMENT_TIMEOUT_MS', '30000'))} "
+            f"-c lock_timeout={int(os.getenv('DJANGO_DB_LOCK_TIMEOUT_MS', '5000'))}"
+        ),
+    })
 else:
     # Productionda DATABASE_URL bo'lmasa sqlitega tushib qolish ma'lumot yo'qolishiga olib keladi.
     if is_production_runtime:

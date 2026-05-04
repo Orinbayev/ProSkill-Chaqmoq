@@ -1,0 +1,248 @@
+{% comment %}
+Shared header shell for group action pages (schedule, edit, detail, etc.)
+Required context vars:
+  group         — Group instance
+  active_tab    — one of: detail | edit | add | schedule | pause | archive
+  page_title    — string shown in the breadcrumb tail
+  status_label  — "Faol" / "Yopiq" / "Arxivlangan" / "To'ldirilgan" (optional)
+  status_kind   — active | closed | archived | full (optional, default active)
+  group_initials, group_avatar_color, group_avatar_bg (optional, computed from name if missing)
+  schedule_text (optional, e.g. "Du · Ch · Ju · 14:00")
+{% endcomment %}
+{% load humanize %}
+
+<style>
+.gas-shell {
+  --gas-bg: #f6f7fb;
+  --gas-card: #ffffff;
+  --gas-border: #e5e7eb;
+  --gas-soft: #eef2f7;
+  --gas-ink: #0f172a;
+  --gas-mid: #475569;
+  --gas-mute: #94a3b8;
+  --gas-blue: #2563eb;
+  --gas-amber: #d97706;
+  background: var(--gas-bg);
+  min-height: 100vh;
+  padding: 22px 28px 60px;
+  color: var(--gas-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body.gas-page,
+body.gas-page .layout,
+body.gas-page .app-shell,
+body.gas-page .main-content,
+body.gas-page .content-shell {
+  background: #f6f7fb !important;
+}
+body.gas-page .main-content { padding: 0 !important; }
+body.gas-page .content-shell {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.gas-crumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: var(--gas-mute);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.gas-crumb a {
+  color: var(--gas-mute);
+  text-decoration: none;
+  transition: color .15s;
+}
+.gas-crumb a:hover { color: var(--gas-ink); }
+.gas-crumb__sep { font-size: 10px; opacity: .55; }
+.gas-crumb__cur { color: var(--gas-ink); }
+
+.gas-card {
+  border-radius: 18px;
+  border: 1px solid var(--gas-border);
+  background: var(--gas-card);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.gas-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+}
+.gas-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+.gas-head__main { min-width: 0; flex: 1; }
+.gas-head__name {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 22px;
+  font-weight: 850;
+  color: var(--gas-ink);
+  letter-spacing: -.01em;
+  line-height: 1.15;
+}
+.gas-head__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--gas-mute);
+  font-size: 13px;
+  font-weight: 500;
+}
+.gas-head__meta i { font-size: 12px; opacity: .85; margin-right: 4px; }
+.gas-head__meta .gas-meta-sep { color: #cbd5e1; }
+.gas-status {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.gas-status--active   { background: #d1fae5; color: #047857; }
+.gas-status--closed   { background: #fef3c7; color: #b45309; }
+.gas-status--archived { background: #fee2e2; color: #b91c1c; }
+.gas-status--full     { background: #dbeafe; color: #2563eb; }
+
+.gas-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--gas-soft);
+}
+.gas-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--gas-mid);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+  white-space: nowrap;
+}
+.gas-tab i { font-size: 13.5px; }
+.gas-tab:hover { color: var(--gas-ink); }
+.gas-tab.is-active {
+  color: var(--gas-ink);
+}
+.gas-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -9px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gas-amber);
+}
+.gas-tab--danger { color: #b91c1c; }
+.gas-tab--danger:hover { color: #991b1b; background: #fef2f2; }
+
+.gas-form-inline { display: contents; }
+
+@media (max-width: 720px) {
+  .gas-shell { padding: 16px; }
+  .gas-head { flex-direction: column; align-items: flex-start; gap: 14px; padding: 18px; }
+  .gas-tabs { padding: 6px 8px; }
+  .gas-tab { padding: 0 10px; }
+  .gas-tab.is-active::after { left: 10px; right: 10px; }
+}
+</style>
+
+{% with kind=status_kind|default:"active" %}
+<nav class="gas-crumb" aria-label="breadcrumb">
+  <a href="{% url 'core:director_boshqaruv' %}">Boshqaruv</a>
+  <i class="fa-solid fa-chevron-right gas-crumb__sep"></i>
+  <a href="{% url 'education:all_groups' %}">Guruhlar</a>
+  <i class="fa-solid fa-chevron-right gas-crumb__sep"></i>
+  <a href="{% url 'education:group_detail' pk=group.id %}">{{ group.nom }}</a>
+  <i class="fa-solid fa-chevron-right gas-crumb__sep"></i>
+  <span class="gas-crumb__cur">{{ page_title }}</span>
+</nav>
+
+<div class="gas-card">
+  <div class="gas-head">
+    <span class="gas-avatar" style="background:{{ group_avatar_bg|default:'#dbeafe' }};color:{{ group_avatar_color|default:'#2563eb' }}">{{ group_initials|default:group.nom|slice:':1'|upper }}</span>
+    <div class="gas-head__main">
+      <h1 class="gas-head__name">{{ group.nom }}</h1>
+      <div class="gas-head__meta">
+        {% if group.category_obj %}<span><i class="fa-solid fa-folder-open"></i>{{ group.category_obj.name }}</span>{% endif %}
+        {% if group.oqituvchi %}<span class="gas-meta-sep">·</span><span><i class="fa-regular fa-user"></i>{{ group.oqituvchi.ism }} {{ group.oqituvchi.familya }}</span>{% endif %}
+        {% if schedule_text %}<span class="gas-meta-sep">·</span><span><i class="fa-regular fa-calendar"></i>{{ schedule_text }}</span>{% endif %}
+      </div>
+    </div>
+    {% if group.is_archived %}
+      <span class="gas-status gas-status--archived">Arxivlangan</span>
+    {% elif group.is_closed %}
+      <span class="gas-status gas-status--closed">Yopiq</span>
+    {% else %}
+      <span class="gas-status gas-status--active">Faol</span>
+    {% endif %}
+  </div>
+
+  <nav class="gas-tabs" aria-label="Guruh amallari">
+    <a class="gas-tab {% if active_tab == 'detail' %}is-active{% endif %}" href="{% url 'education:group_detail' pk=group.id %}">
+      <i class="fa-regular fa-eye"></i><span>Batafsil</span>
+    </a>
+    <a class="gas-tab {% if active_tab == 'edit' %}is-active{% endif %}" href="{% url 'education:group_edit' pk=group.id %}">
+      <i class="fa-regular fa-pen-to-square"></i><span>Tahrirlash</span>
+    </a>
+    <a class="gas-tab {% if active_tab == 'add' %}is-active{% endif %}" href="{% url 'education:add_student_to_group' pk=group.id %}">
+      <i class="fa-solid fa-user-plus"></i><span>O'quvchi qo'shish</span>
+    </a>
+    <a class="gas-tab {% if active_tab == 'schedule' %}is-active{% endif %}" href="{% url 'education:group_schedule_manage' group_id=group.id %}">
+      <i class="fa-regular fa-calendar"></i><span>Jadval</span>
+    </a>
+    <a class="gas-tab {% if active_tab == 'pause' %}is-active{% endif %}" href="{% url 'education:group_toggle_close' pk=group.id %}">
+      <i class="fa-regular fa-circle-pause"></i><span>{% if group.is_closed %}Faollashtirish{% else %}To'xtatish{% endif %}</span>
+    </a>
+    <a class="gas-tab gas-tab--danger {% if active_tab == 'archive' %}is-active{% endif %}" href="{% url 'education:group_toggle_archive' pk=group.id %}">
+      <i class="fa-solid fa-box-archive"></i><span>Arxivga</span>
+    </a>
+  </nav>
+</div>
+{% endwith %}
+
+<script>
+(function(){
+  // Confirm prompts on inline action forms inside the shell.
+  document.addEventListener('submit', function(e){
+    const f = e.target.closest('.gas-form-inline');
+    if(!f) return;
+    const msg = f.getAttribute('data-confirm');
+    if(msg && !window.confirm(msg)){ e.preventDefault(); }
+  });
+})();
+</script>

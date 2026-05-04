@@ -2458,6 +2458,19 @@ def qarzdorlar_home(request):
     if group_id:
         enrs_base = enrs_base.filter(group_id=group_id)
 
+    # PERF: Qidiruv DB darajasida (avval Python loop'da edi — har student uchun
+    # alohida qidirardi). Endi student bo'yicha indekslangan filter:
+    if q:
+        from django.db.models import Q as _Q
+        ql_terms = q.split()
+        for term in ql_terms:
+            enrs_base = enrs_base.filter(
+                _Q(student__ism__icontains=term)
+                | _Q(student__familya__icontains=term)
+                | _Q(student__telefon1__icontains=term)
+                | _Q(student__telefon2__icontains=term)
+            )
+
     enrollment_list = list(
         enrs_base.order_by(
             "student__familya",
@@ -2467,9 +2480,14 @@ def qarzdorlar_home(request):
             "id",
         )
     )
-    # Bulk-load StudentGroupHistory once so per-enrollment start-date
-    # lookups in the snapshot loop hit memory instead of the DB.
+
+    # PERF: Pre-load (a) StudentGroupHistory start dates, (b) GroupSchedule
+    # weekday counts. Bu N+1 muammoning ASOSIY manbasi — har enrollment uchun
+    # alohida `GroupSchedule.objects.filter(group=...)` chaqiruvi qilinmaydi.
     preload_enrollment_history_starts(enrollment_list)
+    from education.services.tuition import preload_group_schedules
+    preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
+
     debt_snapshots = calculate_enrollment_debt_snapshots(enrollment_list, period_months)
 
     # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
@@ -2600,17 +2618,10 @@ def qarzdorlar_home(request):
         debt_enrollment_ids = r.get("debt_enrollment_ids") or []
         r["payment_enrollment_id"] = debt_enrollment_ids[0] if len(debt_enrollment_ids) == 1 else None
 
-    # ─── QIDIRUV: ism/familya/telefon bo'yicha ───────────────────────────────
+    # ─── QIDIRUV: DB darajasida qilinadi (yuqorida `enrs_base.filter(...)`)
+    # Bu yerda Python loop kerak emas — student_map allaqachon faqat mos
+    # keluvchi enrollment'lardan tuzilgan.
     all_rows = list(student_map.values())
-    if q:
-        ql = q.lower()
-        all_rows = [
-            r for r in all_rows
-            if ql in (r["student"].ism or "").lower()
-            or ql in (r["student"].familya or "").lower()
-            or ql in (r["student"].telefon1 or "").lower()
-            or ql in (r["student"].telefon2 or "").lower()
-        ]
 
     def _matches_lesson_pattern_filter(row):
         if not lesson_pattern_filter:
@@ -4433,8 +4444,119 @@ def group_detail(request, pk: int):
             logger.exception("Failed to calculate group closure state")
             closure_state = None
 
+    # ── Yangi clean Batafsil sahifasi uchun KPI va o'quvchilar ro'yxati ──
+    from education.models import GroupSchedule as _GS
+    today_now = localdate()
+    month_start_now = today_now.replace(day=1)
+    enrolled_total = len(student_enrollments) or enrollments.count()
+    capacity = int(getattr(g, "max_students", 0) or 0)
+    fill_pct = round(enrolled_total * 100 / capacity, 1) if capacity else 0
+
+    # Davomat (oxirgi 30 kun)
+    att_from = today_now - timedelta(days=30)
+    att_qs_g = Attendance.objects.filter(group=g, date__gte=att_from, date__lte=today_now)
+    att_total_g = att_qs_g.count()
+    att_present_g = att_qs_g.filter(Q(status="present") | Q(present=True) | Q(forced=True)).count()
+    att_rate_g = round(att_present_g * 100 / att_total_g, 1) if att_total_g else 0
+
+    # Oylik tushum
+    monthly_rev = int(
+        Payment.objects.filter(
+            group=g,
+            paid_date__gte=month_start_now,
+            paid_date__lte=today_now,
+        ).aggregate(s=Sum("summa"))["s"] or 0
+    )
+
+    # Jadval matni
+    sched_rows = list(_GS.objects.filter(group=g).order_by("weekday", "start_time"))
+    _wd_map = {1: "Du", 2: "Se", 3: "Ch", 4: "Pa", 5: "Ju", 6: "Sh", 7: "Ya"}
+    _days_seen = []
+    _start_time = None
+    _room = ""
+    for s in sched_rows:
+        sh = _wd_map.get(s.weekday)
+        if sh and sh not in _days_seen:
+            _days_seen.append(sh)
+        if not _start_time and s.start_time:
+            _start_time = s.start_time
+        if not _room and (s.room or "").strip():
+            _room = (s.room or "").strip()
+    schedule_days_text = "·".join(_days_seen) if _days_seen else "—"
+    schedule_time_text = _start_time.strftime("%H:%M") if _start_time else ""
+    schedule_room_text = _room
+
+    # Avatar palitra
+    _avatar_palette = [
+        ("#2563eb", "#dbeafe"), ("#7c3aed", "#ede9fe"),
+        ("#10b981", "#d1fae5"), ("#d97706", "#fef3c7"),
+        ("#dc2626", "#fee2e2"), ("#0ea5e9", "#e0f2fe"),
+        ("#db2777", "#fce7f3"), ("#0d9488", "#ccfbf1"),
+    ]
+
+    def _student_avatar(name):
+        safe = (name or "?").strip() or "?"
+        idx = sum(ord(c) for c in safe) % len(_avatar_palette)
+        col, bg = _avatar_palette[idx]
+        return safe[:2].upper(), col, bg
+
+    # Per-student davomat (oxirgi 30 kun)
+    att_per_student_total = dict(
+        Attendance.objects.filter(group=g, date__gte=att_from, date__lte=today_now)
+        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
+    )
+    att_per_student_pres = dict(
+        Attendance.objects.filter(
+            group=g, date__gte=att_from, date__lte=today_now,
+        ).filter(Q(status="present") | Q(present=True) | Q(forced=True))
+        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
+    )
+
+    student_rows = []
+    paid_count = 0
+    for enr in enrollments:
+        student = enr.student
+        sname = f"{student.ism or ''} {student.familya or ''}".strip() or student.username
+        initials, col, bg = _student_avatar(sname)
+        joined_at = getattr(enr, "created_at", None) or getattr(enr, "tuzilgan", None)
+        atot = int(att_per_student_total.get(student.id) or 0)
+        apre = int(att_per_student_pres.get(student.id) or 0)
+        s_att = round(apre * 100 / atot, 1) if atot else 0
+        fee = int(student_total_fee_map.get(student.id) or 0)
+        paid = int(student_total_paid_map.get(student.id) or 0)
+        if fee <= 0:
+            pay_label, pay_kind = ("—", "none")
+        elif paid >= fee:
+            pay_label, pay_kind = ("To'lagan", "paid")
+            paid_count += 1
+        elif paid > 0:
+            pay_label, pay_kind = ("Qisman", "partial")
+        else:
+            pay_label, pay_kind = ("To'lamagan", "unpaid")
+        student_rows.append({
+            "id": student.id,
+            "enrollment_id": enr.id,
+            "name": sname,
+            "initials": initials,
+            "color": col,
+            "bg": bg,
+            "joined": joined_at,
+            "att_rate": s_att,
+            "pay_label": pay_label,
+            "pay_kind": pay_kind,
+        })
+
+    # Avg per-student monthly fee for KPI subtitle
+    avg_per_oy = 0
+    if enrolled_total:
+        try:
+            avg_per_oy = int(round((monthly_rev or 0) / enrolled_total))
+        except Exception:
+            avg_per_oy = 0
+
     ctx = {
         "g": g,
+        "group": g,
         "enrollments": enrollments,
         "rules_plus": rules_qs.filter(tur=Rule.PLUS).order_by("nom"),
         "rules_minus": rules_qs.filter(tur=Rule.MINUS).order_by("nom"),
@@ -4448,6 +4570,18 @@ def group_detail(request, pk: int):
         "can_view_internal_ranking": can_view_internal_ranking,
         "closure_state": closure_state,
         "can_transfer_student": user_can_transfer_student(request.user),
+        # New clean detail context
+        "kpi_enrolled": enrolled_total,
+        "kpi_capacity": capacity,
+        "kpi_fill_pct": fill_pct,
+        "kpi_att_rate": att_rate_g,
+        "kpi_monthly_rev": monthly_rev,
+        "kpi_avg_per_oy": avg_per_oy,
+        "schedule_days_text": schedule_days_text,
+        "schedule_time_text": schedule_time_text,
+        "schedule_room_text": schedule_room_text,
+        "student_rows": student_rows,
+        "students_paid_count": paid_count,
     }
     return render(request, "education/group_detail.html", ctx)
 
@@ -4502,6 +4636,74 @@ def group_schedule_manage(request, group_id: int):
 
         if request.method == "POST":
             action = (request.POST.get("action") or "").strip().lower()
+
+            if action == "save_bulk":
+                weekdays_raw = request.POST.getlist("weekdays")
+                start_time_value = (request.POST.get("start_time") or "").strip()
+                duration_min = _get_int(request.POST, "duration", 0)
+                room = (request.POST.get("room") or "").strip()
+                start_time_obj = parse_time(start_time_value) if start_time_value else None
+                weekdays = []
+                for wd in weekdays_raw:
+                    try:
+                        n = int(wd)
+                        if 1 <= n <= 7:
+                            weekdays.append(n)
+                    except (TypeError, ValueError):
+                        continue
+                weekdays = sorted(set(weekdays))
+
+                if not weekdays:
+                    messages.error(request, "Kamida bitta dars kunini tanlang.")
+                elif not start_time_obj:
+                    messages.error(request, "Boshlanish vaqtini ko'rsating.")
+                elif duration_min <= 0:
+                    messages.error(request, "Davomiylikni daqiqalarda kiriting.")
+                else:
+                    end_minutes = (start_time_obj.hour * 60 + start_time_obj.minute) + duration_min
+                    end_minutes = min(end_minutes, 23 * 60 + 59)
+                    end_time_obj = (datetime.min.replace(
+                        hour=end_minutes // 60, minute=end_minutes % 60
+                    )).time()
+
+                    room_clashes = []
+                    if room:
+                        for wd in weekdays:
+                            clashes = list(
+                                GroupSchedule.objects.filter(
+                                    center=center,
+                                    weekday=wd,
+                                    start_time=start_time_obj,
+                                    room__iexact=room,
+                                )
+                                .exclude(group=group)
+                                .select_related("group")
+                                .values_list("group__nom", flat=True)
+                                .distinct()
+                            )
+                            for nom in clashes:
+                                if nom not in room_clashes:
+                                    room_clashes.append(nom)
+
+                    if room_clashes:
+                        messages.warning(
+                            request,
+                            f"⚠️ Bu vaqtda {', '.join(room_clashes)} ham shu xonadan foydalanadi.",
+                        )
+
+                    with transaction.atomic():
+                        GroupSchedule.objects.filter(group=group, center=center).delete()
+                        for wd in weekdays:
+                            GroupSchedule.objects.create(
+                                center=center,
+                                group=group,
+                                weekday=wd,
+                                start_time=start_time_obj,
+                                end_time=end_time_obj,
+                                room=room,
+                            )
+                    messages.success(request, "✅ Jadval saqlandi.")
+                    return redirect("education:group_schedule_manage", group_id=group_id)
 
             if action == "add":
                 weekday = _get_int(request.POST, "weekday", 0)
@@ -4588,6 +4790,47 @@ def group_schedule_manage(request, group_id: int):
             schedule.conflict_groups = conflict_map.get(key, [])
             schedule_map.setdefault(schedule.weekday, []).append(schedule)
 
+        # Form pre-fill: pick the dominant slot to seed the editor.
+        selected_weekdays = sorted({s.weekday for s in schedules})
+        common_start = None
+        common_duration = 0
+        common_room = ""
+        if schedules:
+            from collections import Counter
+            start_counter = Counter(s.start_time for s in schedules if s.start_time)
+            if start_counter:
+                common_start = start_counter.most_common(1)[0][0]
+            room_counter = Counter((s.room or "").strip() for s in schedules)
+            non_empty = [(r, c) for r, c in room_counter.items() if r]
+            if non_empty:
+                non_empty.sort(key=lambda kv: -kv[1])
+                common_room = non_empty[0][0]
+            duration_counter = Counter()
+            for s in schedules:
+                if s.start_time and s.end_time:
+                    sm = s.start_time.hour * 60 + s.start_time.minute
+                    em = s.end_time.hour * 60 + s.end_time.minute
+                    if em > sm:
+                        duration_counter[em - sm] += 1
+            if duration_counter:
+                common_duration = duration_counter.most_common(1)[0][0]
+        if common_duration == 0:
+            common_duration = 90
+
+        weekday_short = [
+            (1, "Du", "Dushanba"), (2, "Se", "Seshanba"), (3, "Ch", "Chorshanba"),
+            (4, "Pa", "Payshanba"), (5, "Ju", "Juma"), (6, "Sh", "Shanba"),
+            (7, "Ya", "Yakshanba"),
+        ]
+        _wd_short_map = {n: sh for n, sh, _full in weekday_short}
+        sched_days_short = [_wd_short_map[n] for n in selected_weekdays if n in _wd_short_map]
+        if sched_days_short:
+            current_schedule_text = " · ".join(sched_days_short)
+            if common_start:
+                current_schedule_text = f"{current_schedule_text} · {common_start.strftime('%H:%M')}"
+        else:
+            current_schedule_text = ""
+
         return render(
             request,
             "education/group_schedule_manage.html",
@@ -4598,6 +4841,12 @@ def group_schedule_manage(request, group_id: int):
                 "weekday_choices": GroupSchedule.WEEKDAY_CHOICES,
                 "weekday_labels": _schedule_weekday_labels(),
                 "conflict_map": conflict_map,
+                "selected_weekdays": selected_weekdays,
+                "common_start": common_start,
+                "common_duration": common_duration,
+                "common_room": common_room,
+                "weekday_short": weekday_short,
+                "current_schedule_text": current_schedule_text,
             },
         )
     except Http404:
@@ -5323,6 +5572,7 @@ def category_detail(request, category_id):
 
 @login_required
 def group_toggle_archive(request, pk):
+    """Guruhni arxivga ko'chirish: GET → tasdiqlash sahifasi, POST → amal."""
     from core.tenant import get_request_center
     center = get_request_center(request)
     qs = Group.objects.all()
@@ -5330,17 +5580,103 @@ def group_toggle_archive(request, pk):
         qs = qs.filter(center=center)
     group = get_object_or_404(qs, pk=pk)
 
+    next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
+
+    def _redirect_to(fallback):
+        if next_url and next_url.startswith("/"):
+            return redirect(next_url)
+        return fallback
+
     if not _can_manage(request.user):
-         messages.error(request, "Ruxsat yo'q.")
-         return redirect("education:category_detail", category_id=group.category_obj.id)
-         
+        messages.error(request, "Ruxsat yo'q.")
+        return _redirect_to(redirect("education:all_groups"))
+
     if request.method == "POST":
-        group.is_archived = not group.is_archived
-        group.save()
-        status_msg = "arxivlandi" if group.is_archived else "faollashtirildi"
-        messages.success(request, f"Guruh muvaffaqiyatli {status_msg} ✅")
-        
-    return redirect("education:category_detail", category_id=group.category_obj.id)
+        # Restoration mode skips confirmation entry.
+        if group.is_archived:
+            group.is_archived = False
+            group.save(update_fields=["is_archived"])
+            messages.success(request, "Guruh arxivdan qaytarildi ✅")
+            return _redirect_to(redirect("education:group_detail", pk=group.id))
+
+        confirm_text = (request.POST.get("confirm_name") or "").strip()
+        if confirm_text != group.nom:
+            messages.error(
+                request,
+                "Tasdiqlash uchun guruh nomini aynan to'g'ri yozing.",
+            )
+            enrolled_total = Enrollment.objects.filter(
+                group=group, is_active=True, is_deleted=False,
+            ).count()
+            return render(request, "education/group_archive.html", {
+                "group": group, "g": group,
+                "enrolled_total": enrolled_total,
+                "confirm_value": confirm_text,
+            })
+
+        group.is_archived = True
+        group.save(update_fields=["is_archived"])
+        messages.success(request, "Guruh arxivga ko'chirildi ✅")
+        return _redirect_to(redirect("education:all_groups"))
+
+    enrolled_total = Enrollment.objects.filter(
+        group=group, is_active=True, is_deleted=False,
+    ).count()
+    return render(request, "education/group_archive.html", {
+        "group": group, "g": group,
+        "enrolled_total": enrolled_total,
+        "confirm_value": "",
+    })
+
+
+@login_required
+def group_toggle_close(request, pk):
+    """Guruhni vaqtinchalik to'xtatish formasi (GET) yoki amal (POST)."""
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=pk)
+
+    next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
+
+    def _redirect_back():
+        if next_url and next_url.startswith("/"):
+            return redirect(next_url)
+        return redirect("education:all_groups")
+
+    if not _can_manage(request.user):
+        messages.error(request, "Ruxsat yo'q.")
+        return _redirect_back()
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "pause").strip().lower()
+        if action == "resume" or group.is_closed:
+            group.is_closed = False
+            group.closed_at = None
+            group.closed_by = None
+            group.save(update_fields=["is_closed", "closed_at", "closed_by"])
+            messages.success(request, "Guruh qayta faollashtirildi ✅")
+        else:
+            group.is_closed = True
+            group.closed_at = timezone.now()
+            group.closed_by = request.user
+            group.save(update_fields=["is_closed", "closed_at", "closed_by"])
+            messages.success(request, "Guruh vaqtinchalik to'xtatildi ✅")
+        return _redirect_back()
+
+    enrolled_total = Enrollment.objects.filter(
+        group=group, is_active=True, is_deleted=False,
+    ).count()
+    today_now = timezone.localdate()
+    return render(request, "education/group_pause.html", {
+        "group": group,
+        "g": group,
+        "enrolled_total": enrolled_total,
+        "default_pause_date": today_now,
+        "default_resume_date": today_now + timedelta(days=14),
+    })
 
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
@@ -5519,6 +5855,314 @@ def groups_home(request):
     return render(request, "education/groups_home.html", {
         "categories": categories,
         "categories_count": len(categories),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hamma guruhlar — boshqaruv dashboardidan "Hammasini ko'rish" tugmasi.
+# KPI'lar, status/fan/o'qituvchi/saralash filterlari, qidiruv, list/grid
+# ko'rinish, CSV eksport va pagination.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_ALL_GROUPS_PAGE_SIZE = 20
+
+_WEEKDAY_SHORT = {1: "Du", 2: "Se", 3: "Ch", 4: "Pa", 5: "Ju", 6: "Sh", 7: "Ya"}
+
+
+def _all_groups_avatar(name: str):
+    """Return (initials, color) for a group avatar based on its name."""
+    palette = [
+        ("#2563eb", "#dbeafe"),
+        ("#7c3aed", "#ede9fe"),
+        ("#10b981", "#d1fae5"),
+        ("#d97706", "#fef3c7"),
+        ("#dc2626", "#fee2e2"),
+        ("#0ea5e9", "#e0f2fe"),
+        ("#db2777", "#fce7f3"),
+        ("#0d9488", "#ccfbf1"),
+    ]
+    safe = (name or "G").strip()
+    if not safe:
+        safe = "G"
+    initials = safe[:2].upper()
+    idx = sum(ord(ch) for ch in safe) % len(palette)
+    color, bg = palette[idx]
+    return initials, color, bg
+
+
+def _all_groups_schedule_text(group_id: int, schedule_map: dict) -> str:
+    rows = schedule_map.get(group_id) or []
+    if not rows:
+        return "—"
+    days = []
+    seen = set()
+    time_text = ""
+    for row in rows:
+        wd = row["weekday"]
+        if wd in seen:
+            continue
+        seen.add(wd)
+        days.append(_WEEKDAY_SHORT.get(wd, str(wd)))
+        if not time_text and row.get("start_time"):
+            time_text = row["start_time"].strftime("%H:%M")
+    base = " · ".join(days) if days else "—"
+    if time_text:
+        return f"{base} · {time_text}"
+    return base
+
+
+@login_required
+def all_groups_overview(request):
+    """Boshqaruv → Hammasini ko'rish: barcha guruhlar ko'rinishi."""
+    from core.tenant import get_request_center
+    from education.models import GroupSchedule
+
+    center = get_request_center(request) or get_active_center(request)
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    qs = Group.objects.filter(is_archived=False, is_deleted=False)
+    if center:
+        qs = qs.filter(center=center)
+
+    # ── Filter qiymatlari ──
+    q_text = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "all").strip().lower()
+    cat_id = (request.GET.get("category") or "").strip()
+    teacher_id = (request.GET.get("teacher") or "").strip()
+    sort_key = (request.GET.get("sort") or "fill").strip().lower()
+    view_mode = (request.GET.get("view") or "list").strip().lower()
+    if view_mode not in ("list", "grid"):
+        view_mode = "list"
+    fmt = (request.GET.get("format") or "").strip().lower()
+
+    if q_text:
+        qs = qs.filter(Q(nom__icontains=q_text) |
+                       Q(category_obj__name__icontains=q_text) |
+                       Q(oqituvchi__ism__icontains=q_text) |
+                       Q(oqituvchi__familya__icontains=q_text))
+
+    if cat_id.isdigit():
+        qs = qs.filter(category_obj_id=int(cat_id))
+
+    if teacher_id.isdigit():
+        qs = qs.filter(oqituvchi_id=int(teacher_id))
+
+    # ── Filter dropdown manbalari ──
+    cat_choices = list(
+        Category.objects
+        .filter(groups__in=qs)
+        .distinct()
+        .order_by("name")
+        .values("id", "name")
+    )
+    teacher_choices = list(
+        User.objects
+        .filter(role="teacher", id__in=qs.values("oqituvchi_id"))
+        .order_by("ism", "familya")
+        .values("id", "ism", "familya")
+    )
+    teacher_choices = [
+        {"id": t["id"], "name": f"{t['ism']} {t['familya']}".strip() or "—"}
+        for t in teacher_choices
+    ]
+
+    groups_for_filter = list(qs.select_related("oqituvchi", "category_obj"))
+    group_ids = [g.id for g in groups_for_filter]
+
+    # ── Sig'im / band o'rinlar / fill_pct ──
+    enroll_map = dict(
+        Enrollment.objects.filter(
+            group_id__in=group_ids,
+            is_active=True,
+            is_deleted=False,
+        )
+        .values("group_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group_id", "cnt")
+    )
+
+    # ── Bu oygi tushum ──
+    rev_map = dict(
+        Payment.objects.filter(
+            group_id__in=group_ids,
+            paid_date__gte=month_start,
+            paid_date__lte=today,
+        )
+        .values("group_id")
+        .annotate(s=Sum("summa"))
+        .values_list("group_id", "s")
+    )
+
+    # ── Davomat (oxirgi 30 kun) ──
+    att_from = today - timedelta(days=30)
+    att_qs = Attendance.objects.filter(group_id__in=group_ids, date__gte=att_from, date__lte=today)
+    att_total_map = dict(
+        att_qs.values("group_id").annotate(c=Count("id")).values_list("group_id", "c")
+    )
+    present_q = Q(status="present") | Q(present=True) | Q(forced=True)
+    att_present_map = dict(
+        att_qs.filter(present_q).values("group_id").annotate(c=Count("id")).values_list("group_id", "c")
+    )
+
+    # ── Schedule (Du · Ch · Ju · 14:00) ──
+    schedule_map = {}
+    for row in GroupSchedule.objects.filter(group_id__in=group_ids).values(
+        "group_id", "weekday", "start_time"
+    ).order_by("group_id", "weekday", "start_time"):
+        schedule_map.setdefault(row["group_id"], []).append(row)
+
+    rows = []
+    total_capacity = 0
+    total_enrolled = 0
+    total_revenue = 0
+    active_count = 0
+    fill_pcts = []
+    for g in groups_for_filter:
+        enrolled = int(enroll_map.get(g.id) or 0)
+        capacity = int(getattr(g, "max_students", 0) or 0)
+        fill_pct = round(enrolled * 100 / capacity, 1) if capacity else 0
+        revenue = int(rev_map.get(g.id) or 0)
+        att_total = int(att_total_map.get(g.id) or 0)
+        att_present = int(att_present_map.get(g.id) or 0)
+        att_rate = round(att_present * 100 / att_total, 1) if att_total else 0
+        is_full = capacity and enrolled >= capacity
+        is_active = not g.is_closed
+        if is_active:
+            active_count += 1
+        if is_full:
+            status_label = "To'ldirilgan"
+            status_kind = "full"
+        elif is_active:
+            status_label = "Faol"
+            status_kind = "active"
+        else:
+            status_label = "Yopiq"
+            status_kind = "closed"
+        if 0 < fill_pct < 100:
+            status_label = "To'ldirilmoqda" if not is_full and is_active else status_label
+            if not is_full and is_active:
+                status_kind = "filling"
+        teacher_name = (
+            f"{g.oqituvchi.ism} {g.oqituvchi.familya}".strip()
+            if g.oqituvchi else "—"
+        )
+        cat_name = g.category_obj.name if g.category_obj else (g.get_category_display() if hasattr(g, "get_category_display") else "—")
+        sub_label = cat_name
+        # Status filter
+        if status == "active" and not (is_active and not is_full):
+            continue
+        if status == "filling" and not (is_active and 0 < fill_pct < 100 and not is_full):
+            continue
+        if status == "full" and not is_full:
+            continue
+        if status == "closed" and is_active:
+            continue
+        initials, color, bg = _all_groups_avatar(g.nom)
+        rows.append({
+            "id": g.id,
+            "name": g.nom,
+            "subtitle": sub_label,
+            "category_id": g.category_obj_id,
+            "teacher_id": g.oqituvchi_id,
+            "teacher": teacher_name,
+            "schedule": _all_groups_schedule_text(g.id, schedule_map),
+            "enrolled": enrolled,
+            "capacity": capacity,
+            "fill_pct": fill_pct,
+            "revenue": revenue,
+            "att_rate": att_rate,
+            "status_label": status_label,
+            "status_kind": status_kind,
+            "initials": initials,
+            "color": color,
+            "bg": bg,
+            "is_active": is_active,
+        })
+        total_capacity += capacity
+        total_enrolled += enrolled
+        total_revenue += revenue
+        if capacity:
+            fill_pcts.append(fill_pct)
+
+    # ── Saralash ──
+    if sort_key == "name":
+        rows.sort(key=lambda r: r["name"].lower())
+    elif sort_key == "students":
+        rows.sort(key=lambda r: -r["enrolled"])
+    elif sort_key == "revenue":
+        rows.sort(key=lambda r: -r["revenue"])
+    elif sort_key == "att":
+        rows.sort(key=lambda r: -r["att_rate"])
+    else:  # fill
+        rows.sort(key=lambda r: (-r["fill_pct"], -r["revenue"], r["name"].lower()))
+
+    avg_fill = round(sum(fill_pcts) / len(fill_pcts), 1) if fill_pcts else 0
+
+    # ── CSV eksport ──
+    if fmt == "csv":
+        import csv
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="guruhlar-{today.isoformat()}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Guruh", "Bo'lim", "O'qituvchi", "Jadval",
+            "O'quvchilar", "Sig'im", "To'ldirilganlik %",
+            "Davomat %", "Tushum (so'm)", "Holat",
+        ])
+        for r in rows:
+            writer.writerow([
+                r["name"], r["subtitle"], r["teacher"], r["schedule"],
+                r["enrolled"], r["capacity"], r["fill_pct"],
+                r["att_rate"], r["revenue"], r["status_label"],
+            ])
+        return response
+
+    # ── JSON (AJAX qayta yuklash) ──
+    if fmt == "json":
+        return JsonResponse({
+            "kpis": {
+                "active_groups": active_count,
+                "total_groups": len(groups_for_filter),
+                "students": total_enrolled,
+                "avg_fill": avg_fill,
+                "monthly_revenue": total_revenue,
+            },
+            "rows": rows,
+        })
+
+    # ── Pagination ──
+    paginator = Paginator(rows, _ALL_GROUPS_PAGE_SIZE)
+    page_num = request.GET.get("page") or 1
+    try:
+        page_obj = paginator.page(page_num)
+    except Exception:
+        page_obj = paginator.page(1)
+
+    base_qs = request.GET.copy()
+    if "page" in base_qs:
+        base_qs.pop("page")
+    base_qs_str = base_qs.urlencode()
+
+    return render(request, "education/all_groups.html", {
+        "rows": page_obj.object_list,
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "total_rows": len(rows),
+        "kpi_active": active_count,
+        "kpi_total": len(groups_for_filter),
+        "kpi_students": total_enrolled,
+        "kpi_avg_fill": avg_fill,
+        "kpi_revenue": total_revenue,
+        "q": q_text,
+        "status": status,
+        "category_id": cat_id,
+        "teacher_id": teacher_id,
+        "sort": sort_key,
+        "view_mode": view_mode,
+        "categories": cat_choices,
+        "teachers": teacher_choices,
+        "base_qs": base_qs_str,
     })
 
 
@@ -5853,43 +6497,74 @@ def teacher_salary_list(request):
     month_name = month_names_uz[month - 1]
 
     from core.tenant import get_request_center
+    from core.perf_cache import TTL_LONG, perf_cache_get_or_set, versioned_cache_key
     center = get_request_center(request)
 
+    from education.services.support_teacher import is_support_enabled
+    support_feature_on = is_support_enabled(center)
+
+    # PERF: og'ir hisoblash 15 daqiqa cache (per markaz + yil + oy).
+    _cache_key = versioned_cache_key(
+        "salary_list", getattr(center, 'id', None), year, month
+    )
+
+    def _compute():
+        return _compute_teacher_salary_list_payload(year, month, center, support_feature_on)
+
+    payload = perf_cache_get_or_set(_cache_key, _compute, ttl=TTL_LONG)
+
+    # `teachers` payload'da serializable obyekt — User instance'larini qayta yuklaymiz
+    # (Cache'da User instance saqlash xatarli — id-list orqali fetch qilamiz).
+    teacher_id_list = payload['teacher_id_list']
+    user_index = {u.id: u for u in User.objects.filter(id__in=teacher_id_list)}
+    teachers_resolved = []
+    for row in payload['teacher_rows']:
+        u = user_index.get(row['teacher_id'])
+        if not u:
+            continue
+        teachers_resolved.append({**row, 'teacher': u})
+
+    return render(request, "education/teacher_salary_list.html", {
+        "teachers": teachers_resolved,
+        "year": year,
+        "month": month,
+        "month_name": month_name,
+        "total_all": payload['total_all'],
+        "is_closed": payload['is_closed'],
+        "support_feature_on": support_feature_on,
+    })
+
+
+def _compute_teacher_salary_list_payload(year, month, center, support_feature_on):
+    """teacher_salary_list — og'ir hisoblash qismi cache'lanadi."""
     from education.services.support_teacher import (
-        is_support_enabled,
         list_support_user_ids,
         calculate_support_salary,
     )
-    support_feature_on = is_support_enabled(center)
+    from education.models import FinancialMonth
+    from education.services.historical_finance_service import HistoricalFinanceService
 
-    # Asosiy o'qituvchilar
     teacher_qs = User.objects.filter(role="teacher")
     if center:
         teacher_qs = teacher_qs.filter(center=center)
     teacher_ids = set(teacher_qs.values_list("id", flat=True))
 
-    # Agar support feature yoqilgan bo'lsa, support bo'lib biriktirilgan
-    # boshqa rolli xodimlarni ham qo'shamiz (manager va boshqalar).
     extra_user_ids = set()
     if support_feature_on:
         extra_user_ids = list_support_user_ids(center=center) - teacher_ids
 
     all_ids = teacher_ids | extra_user_ids
     users_qs = User.objects.filter(id__in=all_ids).order_by("ism", "familya")
-
     support_user_ids_set = list_support_user_ids(center=center) if support_feature_on else set()
 
-    teacher_rows = []
-    total_all = 0
-
-    from education.models import FinancialMonth
     fin_month = FinancialMonth.objects.filter(year=year, month=month, center=center).first()
     is_closed = fin_month.is_closed if fin_month else False
 
-    from education.services.historical_finance_service import HistoricalFinanceService
+    teacher_rows = []
+    total_all = 0
+    teacher_id_list = []
 
     for t in users_qs:
-        # Asosiy o'qituvchi sifatida oylik
         teacher_salary = 0
         teacher_groups = 0
         if t.id in teacher_ids:
@@ -5897,7 +6572,6 @@ def teacher_salary_list(request):
             teacher_salary = salary_data['salary']
             teacher_groups = len(salary_data['details'])
 
-        # Support sifatida oylik (agar feature yoqilgan bo'lsa)
         support_salary = 0
         support_groups = 0
         is_support = False
@@ -5912,8 +6586,9 @@ def teacher_salary_list(request):
             continue
 
         total_all += combined
+        teacher_id_list.append(t.id)
         teacher_rows.append({
-            "teacher": t,
+            "teacher_id": t.id,
             "month_salary": combined,
             "teacher_salary": teacher_salary,
             "support_salary": support_salary,
@@ -5922,15 +6597,12 @@ def teacher_salary_list(request):
             "is_main_teacher": t.id in teacher_ids,
         })
 
-    return render(request, "education/teacher_salary_list.html", {
-        "teachers": teacher_rows,
-        "year": year,
-        "month": month,
-        "month_name": month_name,
-        "total_all": total_all,
-        "is_closed": is_closed,
-        "support_feature_on": support_feature_on,
-    })
+    return {
+        'teacher_rows': teacher_rows,
+        'teacher_id_list': teacher_id_list,
+        'total_all': total_all,
+        'is_closed': is_closed,
+    }
 
 # 🔹 Excel Export — O'qituvchi oyligi hisoboti
 @login_required
@@ -6486,6 +7158,9 @@ def teacher_salary_summary(request):
     # 2) O'qituvchilar va ularning hisob-kitobi (Yagona To'g'ri Manba)
     # ================================
     from core.tenant import get_request_center
+    from core.perf_cache import (
+        TTL_LONG, perf_cache_get_or_set, versioned_cache_key,
+    )
     from education.services.support_teacher import (
         is_support_enabled,
         list_support_user_ids,
@@ -6494,6 +7169,62 @@ def teacher_salary_summary(request):
     center = get_request_center(request)
     support_feature_on = is_support_enabled(center)
 
+    # ── PERF: Og'ir hisoblash 15 daqiqa cache (per markaz + yil + oy).
+    # Cache key versiyali — attendance/payment o'zgarsa, invalidate orqali
+    # bekor qilinadi (signals'da qo'shilishi mumkin).
+    _cache_key = versioned_cache_key(
+        "salary_sum", getattr(center, 'id', None), selected_year, selected_month
+    )
+
+    def _compute_salary_summary():
+        return _compute_teacher_salary_summary_payload(
+            request, center, support_feature_on, selected_year, selected_month,
+            list_support_user_ids, calculate_support_salary,
+        )
+
+    payload = perf_cache_get_or_set(_cache_key, _compute_salary_summary, ttl=TTL_LONG)
+    teacher_data = payload['teacher_data']
+    chart_teacher_income = payload['chart_teacher_income']
+    chart_center_income = payload['chart_center_income']
+    chart_total_turnover = payload['chart_total_turnover']
+
+    # ── /PERF cache ──
+
+    # AJAX javob — keshlangan ma'lumotdan
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "year": int(selected_year),
+            "month": int(selected_month),
+            "teacher_data": teacher_data,
+            "chart_labels": chart_labels,
+            "chart_teacher_income": [float(x) for x in chart_teacher_income],
+            "chart_center_income": [float(x) for x in chart_center_income],
+            "chart_total_turnover": [float(x) for x in chart_total_turnover],
+        })
+
+    return render(request, "education/teacher_salary_summary.html", {
+        "years": list(range(2024, 2036)),
+        "months": months,
+        "selected_year": int(selected_year),
+        "selected_month": int(selected_month),
+        "teacher_data": teacher_data,
+        "chart_labels": chart_labels,
+        "chart_teacher_income": chart_teacher_income,
+        "chart_center_income": chart_center_income,
+        "chart_total_turnover": chart_total_turnover,
+        "teacher_data_json": json.dumps(teacher_data),
+        "chart_labels_json": json.dumps(chart_labels),
+        "chart_teacher_income_json": json.dumps([float(x) for x in chart_teacher_income]),
+        "chart_center_income_json": json.dumps([float(x) for x in chart_center_income]),
+        "chart_total_turnover_json": json.dumps([float(x) for x in chart_total_turnover]),
+    })
+
+
+def _compute_teacher_salary_summary_payload(
+    request, center, support_feature_on, selected_year, selected_month,
+    list_support_user_ids, calculate_support_salary,
+):
+    """teacher_salary_summary'ning og'ir hisoblash qismi — cache'lanadi."""
     # Asosiy o'qituvchilar
     teacher_user_qs = User.objects.filter(role="teacher", is_archived=False)
     if center:
@@ -6508,6 +7239,28 @@ def teacher_salary_summary(request):
     all_ids = teacher_ids | extra_user_ids
     users_qs = User.objects.filter(id__in=all_ids, is_archived=False).order_by("ism", "familya", "id")
     support_user_ids_set = list_support_user_ids(center=center) if support_feature_on else set()
+
+    # ── N+1 yo'q qilish: har teacher uchun group_set.count() o'rniga
+    # bir martalik aggregate query bilan barcha teacher'larning guruh sonini olamiz.
+    from django.db.models import Count, Q as _Q
+    main_groups_count_map = dict(
+        Group.objects.filter(oqituvchi_id__in=teacher_ids, is_archived=False)
+        .values('oqituvchi_id')
+        .annotate(c=Count('id'))
+        .values_list('oqituvchi_id', 'c')
+    )
+    support_groups_count_map = {}
+    if support_feature_on and support_user_ids_set:
+        support_groups_count_map = dict(
+            Group.objects.filter(
+                support_teacher_id__in=support_user_ids_set,
+                is_archived=False,
+                support_foiz__gt=0,
+            )
+            .values('support_teacher_id')
+            .annotate(c=Count('id'))
+            .values_list('support_teacher_id', 'c')
+        )
 
     # ================================
     # Grafik uchun bo'sh massivlar (12 oy)
@@ -6555,10 +7308,10 @@ def teacher_salary_summary(request):
             # — chunki bu jami xodim daromadlari bo'yicha umumiy ko'rsatkich.
             chart_teacher_income[selected_month - 1] += salary_support_year
 
-        groups_count = teacher.group_set.filter(is_archived=False).count() if teacher.id in teacher_ids else 0
+        # N+1 fix: aggregate'dan o'qiymiz, har teacher uchun query yo'q
+        groups_count = main_groups_count_map.get(teacher.id, 0)
         if is_support:
-            from education.services.support_teacher import get_support_groups_for_user
-            groups_count += len(get_support_groups_for_user(teacher, center=center))
+            groups_count += support_groups_count_map.get(teacher.id, 0)
 
         combined = salary_main_year + salary_support_year
         if combined == 0 and teacher.id not in teacher_ids and not is_support:
@@ -6577,169 +7330,15 @@ def teacher_salary_summary(request):
             "support_income": int(salary_support_year),
         })
 
-    # ================================
-    # 4) AJAX JSON Response (year/month select o'zgarganda)
-    # ================================
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return JsonResponse({
-            "year": int(selected_year),
-            "month": int(selected_month),
-            "teacher_data": teacher_data,
-            "chart_labels": chart_labels,
-            "chart_teacher_income": [float(x) for x in chart_teacher_income],
-            "chart_center_income": [float(x) for x in chart_center_income],
-            "chart_total_turnover": [float(x) for x in chart_total_turnover],
-        })
-
-    # ================================
-    # 5) HTML render
-    # ================================
-    return render(request, "education/teacher_salary_summary.html", {
-        "years": list(range(2024, 2036)),
-        "months": months,
-        "selected_year": int(selected_year),
-        "selected_month": int(selected_month),
+    # PERF: keshga saqlash uchun qaytaramiz (asosiy view o'qib render qiladi)
+    return {
         "teacher_data": teacher_data,
-        "chart_labels": chart_labels,
         "chart_teacher_income": chart_teacher_income,
         "chart_center_income": chart_center_income,
         "chart_total_turnover": chart_total_turnover,
-        # Safely pass data as JSON strings
-        "teacher_data_json": json.dumps(teacher_data),
-        "chart_labels_json": json.dumps(chart_labels),
-        "chart_teacher_income_json": json.dumps([float(x) for x in chart_teacher_income]),
-        "chart_center_income_json": json.dumps([float(x) for x in chart_center_income]),
-        "chart_total_turnover_json": json.dumps([float(x) for x in chart_total_turnover]),
-    })
+    }
 
-    # Tanlangan yil / oy
-    # selected_year = int(request.GET.get("year", date.today().year))
-    # selected_month = int(request.GET.get("month", localdate().month))
 
-    # # Oylar nomlari
-    # months = [
-    #     (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
-    #     (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
-    #     (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
-    # ]
-    # chart_labels = [m[1] for m in months]
-
-    # # ---------------------------------------------
-    # #  1) Attendance ni to'g'ri olish (DateTimeField fix)
-    # # ---------------------------------------------
-    # attendance = (
-    #     Attendance.objects
-    #     .annotate(
-    #         y=ExtractYear("date"),
-    #         m=ExtractMonth("date")
-    #     )
-    #     .filter(y=selected_year)
-    #     .values("group_id", "student_id", "m")
-    #     .annotate(les=Count("id"))
-    # )
-
-    # attendance_map = {
-    #     (a["group_id"], a["student_id"], a["m"]): a["les"]
-    #     for a in attendance
-    # }
-
-    # # ---------------------------------------------
-    # #  2) Teachers + groups + enrollments
-    # # ---------------------------------------------
-    # teachers = User.objects.filter(role="teacher").prefetch_related(
-    #     Prefetch(
-    #         "group_set",
-    #         queryset=Group.objects.prefetch_related(
-    #             Prefetch("enrollments", queryset=Enrollment.objects.select_related("student"))
-    #         )
-    #     )
-    # )
-
-    # # Grafiklar uchun 12 oy bo'yicha bo'sh massiv
-    # chart_teacher_income = [0] * 12
-    # chart_center_income = [0] * 12
-    # chart_total_turnover = [0] * 12
-
-    # teacher_data = []
-
-    # # ---------------------------------------------
-    # #  3) HISOB-KITOB
-    # # ---------------------------------------------
-    # for teacher in teachers:
-
-    #     total_lessons = 0
-    #     total_teacher_income = 0
-    #     total_center_profit = 0
-    #     total_turnover = 0
-
-    #     for month_num, _ in months:
-
-    #         m_lessons = 0
-    #         m_teacher_income = 0
-    #         m_center_profit = 0
-    #         m_turnover = 0
-
-    #         for group in teacher.group_set.all():
-
-    #             for enr in group.enrollments.all():
-    #                 kurs = enr.kurs_narhi or 0
-    #                 foiz = (enr.oqituvchi_foiz or 0) / 100
-
-    #                 # Agar dars bo'lmasa → daromad bo'lmaydi
-    #                 les = attendance_map.get((group.id, enr.student.id, month_num), 0)
-
-    #                 if les > 0:
-    #                     teacher_part = kurs * foiz / 12
-    #                     center_part = kurs * (1 - foiz) / 12
-    #                     turnover_part = kurs / 12
-
-    #                     m_lessons += les
-    #                     m_teacher_income += teacher_part * les
-    #                     m_center_profit += center_part * les
-    #                     m_turnover += turnover_part * les
-
-    #         # Grafik to'ldirish
-    #         idx = month_num - 1
-    #         chart_teacher_income[idx] += m_teacher_income
-    #         chart_center_income[idx] += m_center_profit
-    #         chart_total_turnover[idx] += m_turnover
-
-    #         total_lessons += m_lessons
-    #         total_teacher_income += m_teacher_income
-    #         total_center_profit += m_center_profit
-    #         total_turnover += m_turnover
-
-    #     teacher_data.append({
-    #         "teacher": teacher.get_full_name() or teacher.username,
-    #         "groups": teacher.group_set.count(),
-    #         "lessons": total_lessons,
-    #         "teacher_income": round(total_teacher_income),
-    #         "center_profit": round(total_center_profit),
-    #         "total_turnover": round(total_turnover),
-    #     })
-
-    # # AJAX so'rovi (fetch)
-    # if request.headers.get("x-requested-with") == "XMLHttpRequest":
-    #     return JsonResponse({
-    #         "year": selected_year,
-    #         "month": selected_month,
-    #         "teacher_data": teacher_data,
-    #         "chart_teacher_income": chart_teacher_income,
-    #         "chart_center_income": chart_center_income,
-    #         "chart_total_turnover": chart_total_turnover,
-    #     })
-
-    # return render(request, "education/teacher_salary_summary.html", {
-    #     "years": list(range(2024, 2036)),
-    #     "months": months,
-    #     "selected_year": selected_year,
-    #     "selected_month": selected_month,
-    #     "teacher_data": teacher_data,
-    #     "chart_labels": chart_labels,
-    #     "chart_teacher_income": chart_teacher_income,
-    #     "chart_center_income": chart_center_income,
-    #     "chart_total_turnover": chart_total_turnover,
-    # })
 
 @login_required
 def force_absent_attendance(request):
