@@ -382,15 +382,47 @@
 .filter-input,
 .filter-select {
     width: 100%;
+    height: 40px;
     min-height: 40px;
-    padding: 8px 12px;
+    padding: 0 12px;
+    box-sizing: border-box;
     background: rgba(0, 0, 0, 0.22);
     border: 1px solid var(--m-border);
     border-radius: var(--m-r-input);
     color: var(--m-text);
     font-size: 13px;
+    line-height: 1.2;
+    font-family: inherit;
     outline: none;
     transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+/* Native browser arrows on number inputs make them look shorter — hide them */
+.filter-input[type="number"]::-webkit-outer-spin-button,
+.filter-input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.filter-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+/* Date inputs: kalendar ikonkasi pastga turtib qo'yardi — bir xil baland qilamiz */
+.filter-input[type="date"] {
+    color-scheme: dark;
+}
+.filter-input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: .8;
+}
+/* Select uchun custom strelka — native arrow yo'q deganidan keyin */
+.filter-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 12px;
+    padding-right: 32px;
 }
 
 .filter-input::placeholder { color: var(--m-text-faint); }
@@ -1213,6 +1245,13 @@ html[data-role-theme="light"] {
 html[data-role-theme="light"] .moliya-header {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.92));
     box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+html[data-role-theme="light"] .moliya-header__icon {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.04));
+    border-color: rgba(37, 99, 235, 0.22);
+    color: #2563EB;
+    box-shadow: inset 0 0 18px rgba(37, 99, 235, 0.06);
 }
 
 html[data-role-theme="light"] .moliya-tabs {

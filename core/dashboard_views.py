@@ -2854,16 +2854,23 @@ _AI_CHAT_HISTORY_LIMIT = 30
 _AI_CHAT_QUESTION_MAX = 2000
 
 
-_AI_CHAT_ALLOWED_ROLES = {"director", "manager"}
+_AI_CHAT_ALLOWED_ROLES = {"director", "manager", "teacher", "student", "parent"}
+_AI_CHAT_TITLES = {
+    "director": "Direktor AI chat",
+    "manager": "Manager AI chat",
+    "teacher": "Ustoz AI chat",
+    "student": "O'quvchi AI chat",
+    "parent": "Ota-ona AI chat",
+}
 
 
 def _ai_chat_session(request):
-    """Return (center, session) for director/manager AI chat or None if unauthorized.
+    """Return (center, session) for any allowed role or None if unauthorized.
 
-    Note: model name `DirectorAIChatSession` is historic — it's keyed by
-    (center, user) so director and manager sessions are isolated automatically.
-    PII masking for non-director viewers is enforced inside ai_insights via
-    `can_view_private_details(viewer)`.
+    Model `DirectorAIChatSession` is historic naming — keyed by (center, user)
+    so har bir foydalanuvchi alohida sessiya oladi (rollar aralashmaydi).
+    Director va manager center-wide ma'lumotni ko'radi (ai_insights orqali);
+    teacher/student/parent esa faqat o'z scope ini ko'radi (role_scoped_ai orqali).
     """
     user = request.user
     if not user.is_authenticated:
@@ -2875,7 +2882,7 @@ def _ai_chat_session(request):
     if not center:
         return None, None
     from core.models import DirectorAIChatSession
-    title = "Manager AI chat" if role == "manager" else "Direktor AI chat"
+    title = _AI_CHAT_TITLES.get(role, "AI chat")
     session, _ = DirectorAIChatSession.objects.get_or_create(
         center=center,
         user=user,
@@ -2926,22 +2933,35 @@ def director_boshqaruv_chat(request):
         content=question,
     )
 
-    # 3) Stats va Gemini chaqiruvi
-    today = timezone.localdate()
-    d_from = today.replace(day=1)
-    stats = _boshqaruv_payload(center, d_from, today)
-
-    try:
-        from core.services.ai_insights import answer_question_structured_bundle
-        answer, source, _ = answer_question_structured_bundle(
-            center=center,
-            question=question,
-            stats=stats,
-            history=history,
-            viewer=request.user,
-        )
-    except Exception as e:
-        answer = f"Hozircha AI javob bera olmayapti. Xato: {str(e)[:120]}"
+    # 3) Rol bo'yicha mos AI funksiyasini chaqirish
+    user_role = getattr(request.user, "role", None)
+    if user_role in {"teacher", "student", "parent"}:
+        try:
+            from core.services.role_scoped_ai import answer_role_scoped_question
+            answer, source = answer_role_scoped_question(
+                viewer=request.user,
+                question=question,
+                history=history,
+            )
+        except Exception as e:
+            answer = f"Hozircha AI javob bera olmayapti. Xato: {str(e)[:120]}"
+            source = "error"
+    else:
+        # director / manager / superuser — markaz darajasidagi to'liq kontekst
+        today = timezone.localdate()
+        d_from = today.replace(day=1)
+        stats = _boshqaruv_payload(center, d_from, today)
+        try:
+            from core.services.ai_insights import answer_question_structured_bundle
+            answer, source, _ = answer_question_structured_bundle(
+                center=center,
+                question=question,
+                stats=stats,
+                history=history,
+                viewer=request.user,
+            )
+        except Exception as e:
+            answer = f"Hozircha AI javob bera olmayapti. Xato: {str(e)[:120]}"
         source = "error"
 
     # 4) AI javobini saqlaymiz (xato bo'lsa ham — tarix uchun)

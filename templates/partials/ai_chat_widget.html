@@ -1,0 +1,304 @@
+{% comment %}
+Floating AI chat widget — har bir rol dashboardiga {% include %} qilinadi.
+Backend: /api/boshqaruv/chat/ va /api/boshqaruv/chat/history/ (rol bo'yicha
+director_boshqaruv_chat view ichida dispatch qilinadi).
+{% endcomment %}
+
+<style>
+.aiw-fab {
+  position: fixed; right: 20px; bottom: 24px; z-index: 9000;
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; color: #fff; font-size: 22px;
+  background: linear-gradient(135deg, #818cf8, #f43f5e);
+  box-shadow: 0 12px 28px rgba(129,140,248,.45);
+  transition: transform .2s, box-shadow .2s;
+}
+.aiw-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(129,140,248,.55); }
+.aiw-fab__dot {
+  position: absolute; top: 8px; right: 8px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #34d399; box-shadow: 0 0 8px #34d399;
+  animation: aiw-pulse 1.6s ease-in-out infinite;
+}
+@keyframes aiw-pulse {
+  0%, 100% { opacity: .5; transform: scale(.8); }
+  50%      { opacity: 1; transform: scale(1.1); }
+}
+
+.aiw-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  backdrop-filter: blur(2px); z-index: 9001;
+  opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s;
+}
+.aiw-overlay.open { opacity: 1; visibility: visible; }
+
+.aiw-panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(420px, 96vw);
+  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
+  border-left: 1px solid rgba(255,255,255,.13);
+  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .25s ease;
+  z-index: 9002; color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+}
+.aiw-panel.open { transform: translateX(0); }
+
+.aiw-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.aiw-head__icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(129,140,248,.2), rgba(244,63,94,.1));
+  border: 1px solid rgba(129,140,248,.25); color: #c4b5fd;
+}
+.aiw-head__title { font-size: 13.5px; font-weight: 800; flex: 1; }
+.aiw-head__sub   { font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.aiw-head__close {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: transparent; border: 1px solid rgba(255,255,255,.07);
+  color: #94a3b8; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.aiw-head__close:hover { background: rgba(255,255,255,.06); color: #e2e8f0; }
+
+.aiw-msgs {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.aiw-msgs::-webkit-scrollbar { width: 4px; }
+.aiw-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+
+.aiw-msg { display: flex; gap: 8px; align-items: flex-start; }
+.aiw-msg--user { flex-direction: row-reverse; }
+.aiw-msg__ava {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 800;
+  background: rgba(129,140,248,.16); color: #c4b5fd;
+  border: 1px solid rgba(129,140,248,.22);
+}
+.aiw-msg--user .aiw-msg__ava {
+  background: rgba(34,211,238,.16); color: #67e8f9; border-color: rgba(34,211,238,.22);
+}
+.aiw-msg__bub {
+  padding: 9px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  font-size: 12.5px; line-height: 1.55;
+  max-width: calc(100% - 36px); word-wrap: break-word;
+}
+.aiw-msg--user .aiw-msg__bub {
+  background: rgba(34,211,238,.10); border-color: rgba(34,211,238,.20);
+}
+.aiw-typing { display: inline-flex; gap: 3px; padding: 4px 0; }
+.aiw-typing span {
+  width: 5px; height: 5px; border-radius: 50%; background: #94a3b8;
+  animation: aiw-bounce 1.2s ease-in-out infinite;
+}
+.aiw-typing span:nth-child(2) { animation-delay: .15s; }
+.aiw-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes aiw-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+  30%           { transform: translateY(-3px); opacity: 1; }
+}
+
+.aiw-prompts {
+  display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.aiw-prompt {
+  padding: 6px 10px; border-radius: 9px;
+  background: rgba(129,140,248,.08); border: 1px solid rgba(129,140,248,.18);
+  color: #e2e8f0; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.aiw-prompt:hover { background: rgba(129,140,248,.14); }
+
+.aiw-foot { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.07); }
+.aiw-row  { display: flex; gap: 8px; align-items: flex-end; }
+.aiw-input {
+  flex: 1; min-height: 40px; max-height: 120px; padding: 10px 12px;
+  border-radius: 11px; resize: none; outline: none;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.04); color: #e2e8f0;
+  font-family: inherit; font-size: 13px; line-height: 1.4;
+  transition: border-color .15s, box-shadow .15s;
+}
+.aiw-input::placeholder { color: #475569; }
+.aiw-input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.08); }
+.aiw-send {
+  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; color: #fff;
+  background: linear-gradient(135deg, #818cf8, #f43f5e);
+  transition: transform .15s;
+}
+.aiw-send:hover { transform: scale(1.05); }
+.aiw-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+</style>
+
+<button type="button" class="aiw-fab" id="aiwFab" title="AI Yordamchi">
+  <span class="aiw-fab__dot"></span>
+  <i class="fa-solid fa-robot"></i>
+</button>
+<div class="aiw-overlay" id="aiwOverlay"></div>
+<div class="aiw-panel" id="aiwPanel">
+  <div class="aiw-head">
+    <div class="aiw-head__icon"><i class="fa-solid fa-robot"></i></div>
+    <div style="flex:1; min-width:0;">
+      <div class="aiw-head__title">AI Yordamchi</div>
+      <div class="aiw-head__sub">{{ ai_widget_subtitle|default:"Sizning ma'lumotingiz bo'yicha javob beradi" }}</div>
+    </div>
+    <button class="aiw-head__close" id="aiwClose" type="button"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="aiw-msgs" id="aiwMsgs">
+    <div class="aiw-msg">
+      <div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div>
+      <div class="aiw-msg__bub">
+        Salom! 👋 Men sizga {{ ai_widget_greet|default:"shaxsiy ma'lumotlaringiz" }} bo'yicha yordam beraman.
+        Qisqa, aniq savol bering — javob beraman.
+      </div>
+    </div>
+  </div>
+
+  <div class="aiw-prompts">
+    {% if aiw_prompt_1 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_1 }}">{{ aiw_prompt_1 }}</button>{% endif %}
+    {% if aiw_prompt_2 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_2 }}">{{ aiw_prompt_2 }}</button>{% endif %}
+    {% if aiw_prompt_3 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_3 }}">{{ aiw_prompt_3 }}</button>{% endif %}
+    {% if aiw_prompt_4 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_4 }}">{{ aiw_prompt_4 }}</button>{% endif %}
+  </div>
+
+  <div class="aiw-foot">
+    <div class="aiw-row">
+      <textarea class="aiw-input" id="aiwInput" placeholder="Savol yozing... (Enter yuboradi)" rows="1"></textarea>
+      <button class="aiw-send" id="aiwSend" type="button"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const CHAT_API         = "{% url 'core:director_boshqaruv_chat' %}";
+  const CHAT_HISTORY_API = "{% url 'core:director_boshqaruv_chat_history' %}";
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{ csrf_token }}";
+
+  const fab     = document.getElementById('aiwFab');
+  const overlay = document.getElementById('aiwOverlay');
+  const panel   = document.getElementById('aiwPanel');
+  const msgs    = document.getElementById('aiwMsgs');
+  const input   = document.getElementById('aiwInput');
+  const send    = document.getElementById('aiwSend');
+  const closeB  = document.getElementById('aiwClose');
+  if(!fab || !panel) return;
+
+  const USER_AVA = "{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}";
+  let loading = false, historyLoaded = false;
+
+  function escHTML(s){
+    return String(s||"").replace(/[&<>"']/g, c => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+    ));
+  }
+  function renderText(s){
+    return escHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  }
+  function addMsg(role, text){
+    const isUser = role === 'user';
+    const ava = isUser
+      ? `<div class="aiw-msg__ava">${escHTML(USER_AVA)}</div>`
+      : `<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
+    const div = document.createElement('div');
+    div.className = `aiw-msg ${isUser ? 'aiw-msg--user' : ''}`;
+    div.innerHTML = `${ava}<div class="aiw-msg__bub">${renderText(text)}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  function addTyping(){
+    const div = document.createElement('div');
+    div.className = 'aiw-msg';
+    div.id = 'aiwTyping';
+    div.innerHTML = `<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub"><div class="aiw-typing"><span></span><span></span><span></span></div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  function removeTyping(){ const el = document.getElementById('aiwTyping'); if(el) el.remove(); }
+
+  function open(){
+    panel.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    loadHistory();
+    setTimeout(() => input.focus(), 250);
+  }
+  function close(){
+    panel.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  async function loadHistory(){
+    if(historyLoaded) return;
+    historyLoaded = true;
+    try{
+      const res = await fetch(CHAT_HISTORY_API, {credentials:'same-origin'});
+      if(!res.ok) return;
+      const data = await res.json();
+      const items = Array.isArray(data.messages) ? data.messages : [];
+      if(items.length === 0) return;
+      msgs.innerHTML = '';
+      items.forEach(m => addMsg(m.role === 'assistant' ? 'ai' : 'user', m.content));
+    }catch(e){}
+  }
+
+  async function sendMsg(q){
+    if(!q || loading) return;
+    loading = true; send.disabled = true;
+    input.value = ''; input.style.height = 'auto';
+    addMsg('user', q);
+    addTyping();
+    try{
+      const res = await fetch(CHAT_API, {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+        body: JSON.stringify({question:q})
+      });
+      const data = await res.json();
+      removeTyping();
+      addMsg('ai', data.answer || 'Javob olishda xatolik yuz berdi.');
+    }catch(e){
+      removeTyping();
+      addMsg('ai', 'Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');
+    }finally{
+      loading = false; send.disabled = false; input.focus();
+    }
+  }
+
+  fab.addEventListener('click', open);
+  closeB.addEventListener('click', close);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && panel.classList.contains('open')) close();
+  });
+  send.addEventListener('click', () => sendMsg(input.value.trim()));
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(input.value.trim()); }
+  });
+  input.addEventListener('input', function(){
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+  document.querySelectorAll('.aiw-prompt').forEach(b => {
+    b.addEventListener('click', function(){
+      if(!panel.classList.contains('open')) open();
+      sendMsg(this.dataset.q);
+    });
+  });
+})();
+</script>
