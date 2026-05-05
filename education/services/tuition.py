@@ -1334,29 +1334,78 @@ def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, tot
 
 def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount: int, start_month: date) -> None:
     """
-    ✅ [FIX] Faqat START_MONTH (joriy oy) uchun to'lovni yozamiz.
-    Ortiqcha pul bo'lsa ham kelajak oylarga tarqatilmaydi - hammasi shu oyga yoziladi.
-    Bu 'APREL 2026, MAY 2026' kabi ko'p oylar muammosini hal qiladi.
+    To'lovni `start_month` dan boshlab MAVJUD TuitionMonth'lar bo'ylab oldinga
+    taqsimlaydi.
+
+    Qoidalar:
+      • Har oyga `min(qolgan_summa, owed=fee-paid)` yoziladi — oydagi qarzdan
+        ko'p yozilmaydi.
+      • Iteratsiya FAQAT mavjud TuitionMonth (`is_deleted=False`)'lar bo'ylab
+        boradi; kelajak oylar AVTOMATIK yaratilmaydi.
+        Bu "APREL 2026 / MAY 2026 kabi xayoliy oylar paydo bo'ldi" eski
+        muammosini qayta yuzaga keltirmaydi.
+      • Agar hamma mavjud oylar yopilgandan keyin pul ortib qolsa — qolgan
+        qism oxirgi to'langan oyga (yoki yagona oy bo'lsa, start_month'ga)
+        "credit" sifatida yoziladi.
+
+    Stsenariy: o'tgan oy 500 000 + joriy oy 500 000 qarz, 1 000 000 to'lansa,
+    o'tgan oyga 500 000 va joriy oyga 500 000 yoziladi (xato-emas).
     """
     amount = int(amount or 0)
     if amount <= 0:
         return
 
     cur = month_first_day(start_month)
+    fee_field = tuition_month_fee_field()
+    payment_center = getattr(payment, "center", None) or getattr(enrollment, "center", None)
+    remaining = amount
 
-    # Faqat joriy oy uchun TuitionMonth olamiz (yaratmaymiz agar yo'q bo'lsa)
-    tm = TuitionMonth.objects.filter(enrollment=enrollment, month=cur).first()
-    if tm is None:
-        # Agar joriy oy uchun TuitionMonth yo'q bo'lsa, yangi yaratamiz
-        tm = ensure_tuition_month(enrollment, cur)
+    # start_month TuitionMonth'i mavjudligi kafolatlanadi (forward iteratsiya
+    # uchun anchor). Boshqa kelajak oylar yaratilmaydi.
+    ensure_tuition_month(enrollment, cur)
 
-    # Hammasini shu oyga yozamiz (ortiqcha bo'lsa ham)
-    if amount > 0:
+    months_qs = (
+        TuitionMonth.objects
+        .filter(enrollment=enrollment, month__gte=cur, is_deleted=False)
+        .order_by("month")
+    )
+    months_list = list(months_qs)
+    last_allocated_tm = None
+
+    for tm in months_list:
+        if remaining <= 0:
+            break
+        fee = int(getattr(tm, fee_field, 0) or 0)
+        if fee <= 0:
+            continue
+        paid_now = int(
+            tm.allocations.filter(is_deleted=False)
+            .aggregate(s=Sum("amount"))["s"] or 0
+        )
+        owed = max(0, fee - paid_now)
+        if owed <= 0:
+            continue
+        portion = min(remaining, owed)
         PaymentAllocation.objects.create(
-            center=getattr(payment, "center", None) or getattr(enrollment, "center", None),
+            center=payment_center,
             payment=payment,
             tuition_month=tm,
-            amount=amount,
+            amount=portion,
+        )
+        remaining -= portion
+        last_allocated_tm = tm
+
+    # Hamma oylar yopilgandan keyin pul qolsa — credit sifatida oxirgi
+    # taqsimlangan oyga (yoki anchor start_month'ga) yoziladi.
+    if remaining > 0:
+        anchor_tm = last_allocated_tm or (months_list[0] if months_list else None)
+        if anchor_tm is None:
+            anchor_tm = ensure_tuition_month(enrollment, cur)
+        PaymentAllocation.objects.create(
+            center=payment_center,
+            payment=payment,
+            tuition_month=anchor_tm,
+            amount=remaining,
         )
 
 

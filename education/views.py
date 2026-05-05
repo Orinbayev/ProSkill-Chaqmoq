@@ -2391,6 +2391,14 @@ def qarzdorlar_home(request):
     date_from_raw = (request.GET.get("date_from") or "").strip()
     date_to_raw = (request.GET.get("date_to") or request.GET.get("end_date") or "").strip()
 
+    # Status filter (template'dagi <select name="status">):
+    #   active   — faqat faol qarzdorlar (is_deferred=False) [default]
+    #   deferred — faqat kechiktirilgan
+    #   all      — ikkalasi
+    selected_status = (request.GET.get("status") or "active").strip().lower()
+    if selected_status not in {"active", "deferred", "all"}:
+        selected_status = "active"
+
     allowed_page_sizes = (10, 20, 50, 100)
     per_page_raw = (request.GET.get("per_page") or "10").strip()
     try:
@@ -2628,6 +2636,18 @@ def qarzdorlar_home(request):
             return True
         return lesson_pattern_filter in (row.get("lesson_pattern_values") or [])
 
+    def _matches_status_filter(row):
+        """Status select bo'yicha filtrlash: active / deferred / all."""
+        if selected_status == "all":
+            return True
+        is_deferred = bool(row.get("is_deferred"))
+        if selected_status == "deferred":
+            return is_deferred
+        # active (default) — kechiktirilmagan qarzdorlar
+        return not is_deferred
+
+    # Bazaviy qarzdor satrlar — barcha qarz/min/max/status filterlari qo'llangan,
+    # lesson_pattern HALI qo'llanmagan (lesson_pattern badge sonlari uchun kerak).
     debt_filter_base_rows = []
     for row in all_rows:
         if not row["group_names"]:
@@ -2637,6 +2657,8 @@ def qarzdorlar_home(request):
         if min_debt and row["debt"] < min_debt:
             continue
         if max_debt and row["debt"] > max_debt:
+            continue
+        if not _matches_status_filter(row):
             continue
         debt_filter_base_rows.append(row)
 
@@ -2654,29 +2676,21 @@ def qarzdorlar_home(request):
     }
 
     # ─── STATISTIKA ──────────────────────────────────────────────────────────
-    debtors_count  = 0
-    paid_count     = 0
-    no_group_count = 0
-    debtor_rows    = []
+    # debt_filter_base_rows allaqachon qarz/min/max/status bo'yicha filtrlangan —
+    # uning ustiga faqat lesson_pattern_filter qolgan.
+    debtor_rows = [row for row in debt_filter_base_rows if _matches_lesson_pattern_filter(row)]
+    debtors_count = len(debtor_rows)
 
+    # paid / no_group statistikasi (badge'lar uchun) — full set'dan hisoblanadi
+    paid_count = 0
+    no_group_count = 0
     for r in all_rows:
         if not _matches_lesson_pattern_filter(r):
             continue
         if not r["group_names"]:
             no_group_count += 1
-            continue
-        if r["debt"] > 0:
-            # Min/Max qarz filterlari
-            if min_debt and r["debt"] < min_debt:
-                continue
-            if max_debt and r["debt"] > max_debt:
-                continue
-            debtors_count += 1
-            debtor_rows.append(r)
-        else:
+        elif r["debt"] <= 0:
             paid_count += 1
-            # To'lov qilganlar → qarzdorlar ro'yxatiga kirmaydi
-            # Ular "To'lovlar" bo'limida ko'rinadi
 
     display_rows = debtor_rows
 
@@ -2736,6 +2750,7 @@ def qarzdorlar_home(request):
         "lesson_pattern_filter_counts": lesson_pattern_filter_counts,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
+        "selected_status": selected_status,
         "date_from":      selected_from.isoformat(),
         "date_to":        selected_to.isoformat(),
         "pay_month":      str(pay_month_int) if pay_month_int else "",

@@ -74,7 +74,7 @@
                 <div class="filter-field">
                     <label class="filter-label">Status</label>
                     <select name="status" class="filter-select" aria-label="Status">
-                        {% with current_status=request.GET.status|default:"active" %}
+                        {% with current_status=selected_status|default:"active" %}
                         <option value="active" {% if current_status == "active" %}selected{% endif %}>Faol qarzdorlar</option>
                         <option value="all" {% if current_status == "all" %}selected{% endif %}>Barchasi</option>
                         <option value="deferred" {% if current_status == "deferred" %}selected{% endif %}>Kechiktirilgan</option>
