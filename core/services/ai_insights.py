@@ -137,14 +137,27 @@ METRIC_GLOSSARY = [
 ]
 
 STRICT_SYSTEM_PROMPT = """
-SEN PROFESSIONAL AI YORDAMCHISAN.
-QOIDALAR:
-- Faqat berilgan CONTEXT asosida javob ber.
-- Hech qachon tashqaridan ma'lumot o'ylab topma.
-- Tizim multi-tenant: faqat joriy center ma'lumotidan foydalan.
-- Boshqa markaz ma'lumotlarini aralashtirma va aytma.
-- Ma'lumot yetarli bo'lmasa: "Ma'lumot yetarli emas" deb yoz.
-- Javobni 100% o'zbek tilida, aniq, qisqa va professional yoz.
+SEN O'QUV MARKAZINING DO'STONA AI YORDAMCHISISAN.
+
+JAVOB STILI (juda muhim):
+- QISQA bo'l. Maksimal 3-4 jumla. Foydalanuvchi keyingi savol berib aniqlashtira oladi.
+- Sodda, kundalik o'zbek tilida yoz. "Hisoblanadi", "qayd etilgan", "tashkil etmoqda" kabi rasmiy
+  iboralarni ishlatma. O'rniga: "bor", "yetakchi", "edi", "ko'ryapman".
+- Mos joyda emojidan foydalan: 💰 daromad, 👨‍🏫 ustoz, 👥 guruh, 📊 davomat, ⚠️ ogohlantirish,
+  ✅ yaxshi, 🔴 yomon, 📞 telefon, 📚 kurs, 🎯 reja. Ortiqcha emoji qo'yma — javobiga 1-3 ta yetadi.
+- Markdown va ro'yxat ishlatma (* yoki - belgilarisiz). Oddiy matn yoki "1) 2)" raqamli ro'yxat ok.
+- Agar profil ma'lumoti so'ralsa (telefon, qarz, davomat) — barcha kerakli ma'lumotni 2-3 jumlada
+  jamlab ber, kerak bo'lmagan tafsilotni qo'shma.
+
+MA'LUMOT QOIDALARI:
+- Faqat CONTEXT asosida javob ber. Tashqi ma'lumot o'ylab topma.
+- Multi-tenant: faqat joriy markaz ma'lumotidan foydalan, boshqa markazlarni aralashtirma.
+- Taqqoslash savollari ("eng yaxshi ustoz/guruh") uchun CONTEXT dagi raqamlardan foydalanib sortla
+  va aniq nom + 1-2 ta asosiy raqamni ber.
+- Agar CONTEXT da QIDIRILGAN PROFIL bo'limi bo'lsa, foydalanuvchi shu odam haqida so'rayapti —
+  unga aynan shu odam haqida zich javob ber (ism, telefon, kurs, ustoz, qarz, davomat, holat).
+- "Yopilishi kerak guruhlar" — kam o'quvchili / 0 daromadli guruhlardan top 3-5 tasini ayt, izoh berma.
+- Faqat hech qanday tegishli ma'lumot bo'lmasagina: "Bu haqida ma'lumot topilmadi" deb qisqa ayt.
 """.strip()
 
 
@@ -341,6 +354,14 @@ def _prompt_text(prompt: str, *, default: str, cache_key: str | None = None, ttl
         return text, "gemini"
     except Exception as exc:
         logger.warning("Gemini answer request failed: %s", exc)
+        # Quota / rate limit holatlarida foydalanuvchiga aniq xabar
+        msg = str(exc)
+        if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
+            return (
+                "⏳ AI hozirda band (kunlik so'rov limiti tugagan). "
+                "Bir necha daqiqadan keyin qayta urinib ko'ring yoki Gemini bilingini yoqing.",
+                "rate-limited",
+            )
         return default, "fallback"
 
 
@@ -761,46 +782,9 @@ def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
     if not search_requested:
         return None
 
-    student_info = get_student_full_info(center.id, search_query, viewer=viewer)
-    teacher_info = get_teacher_full_info(center.id, search_query, viewer=viewer)
-    student_items = student_info.get("items") or []
-    teacher_items = teacher_info.get("items") or []
-
-    if _question_has(q, "ustoz", "o'qituvchi", "oqituvchi", "teacher") and teacher_items:
-        return {
-            "answer": _format_teacher_answer(teacher_items[0]),
-            "data": {"type": "teacher_search", **teacher_info},
-        }
-
-    if _question_has(q, "o'quvchi", "oquvchi", "student") and student_items:
-        return {
-            "answer": _format_student_answer(student_items[0]),
-            "data": {"type": "student_search", **student_info},
-        }
-
-    if student_items:
-        return {
-            "answer": _format_student_answer(student_items[0]),
-            "data": {"type": "student_search", **student_info},
-        }
-
-    if teacher_items:
-        return {
-            "answer": _format_teacher_answer(teacher_items[0]),
-            "data": {"type": "teacher_search", **teacher_info},
-        }
-
-    if search_query:
-        return {
-            "answer": "Ma'lumot yetarli emas",
-            "data": {
-                "type": "search",
-                "query": search_query,
-                "students": student_items,
-                "teachers": teacher_items,
-            },
-        }
-
+    # Eslatma: ism qidiruvi natijalari endi Gemini ga `_profile_lookup_block`
+    # orqali yuboriladi. Bu yerda rule-based formatdan voz kechib, har doim
+    # Gemini'ga o'tkazamiz — natijada javob qisqa va tabiiy bo'ladi.
     return None
 
 
@@ -1178,6 +1162,89 @@ def _period_phrase(question: str, period: dict) -> str:
     return "Tanlangan davrda"
 
 
+def _profile_lookup_block(center: Center, question: str, *, viewer=None) -> str:
+    """
+    Savolda biror ism/familiya uchrasa — shu o'quvchi yoki ustozning to'liq
+    profilini prompt uchun matn shaklida qaytaradi. Hech narsa topilmasa "" qaytadi.
+    """
+    search_query = _extract_search_query(question)
+    if not search_query:
+        return ""
+
+    # Ism qidiruvini faqat 2-3 ta so'zli, raqamsiz so'rovlarda yoqamiz.
+    # "guruhlar yopilishi kerak" kabi savollarni o'tkazib yuboramiz.
+    q_norm = _normalize_question(question)
+    if any(token in q_norm for token in ("nechta", "qancha", "jami", "soni", "yopilish", "eng yaxshi", "eng kuchli")):
+        return ""
+
+    try:
+        student_info = get_student_full_info(center.id, search_query, viewer=viewer, limit=3)
+        teacher_info = get_teacher_full_info(center.id, search_query, viewer=viewer, limit=3)
+    except Exception:  # pragma: no cover
+        return ""
+
+    students = (student_info.get("items") or [])[:3]
+    teachers = (teacher_info.get("items") or [])[:3]
+    if not students and not teachers:
+        return ""
+
+    lines: list[str] = []
+
+    NA = "yo'q"
+
+    if students:
+        lines.append(
+            f"QIDIRILGAN O'QUVCHI PROFIL(LARI) — so'rov: {search_query!r}, topildi: {len(students)} ta"
+        )
+        for s in students:
+            att = s.get("attendance") or {}
+            phone = s.get("phone") or NA
+            course = s.get("course") or NA
+            teacher = s.get("teacher_name") or NA
+            status = s.get("status_label") or "—"
+            full_name = s.get("full_name") or "—"
+            fields = [
+                f"Ism: {full_name}",
+                f"📞 Telefon: {phone}",
+                f"📚 Kurs(lar): {course}",
+                f"👨‍🏫 Ustoz(lar): {teacher}",
+                f"Faol guruhlar: {int(s.get('groups_count') or 0)} ta",
+                f"💰 Jami to'lov: {_compact_money(s.get('total_payment') or 0)}",
+                f"Davr to'lovi: {_compact_money(s.get('paid_in_period') or 0)}",
+                f"⚠️ Qarz: {_compact_money(s.get('debt') or 0)}",
+                f"O'tib ketgan oylar: {int(s.get('overdue_months') or 0)}",
+                f"Oylik narx: {_compact_money(s.get('monthly_fee') or 0)}",
+                f"Holat: {status}",
+                f"📊 Davomat: {att.get('rate') or 0}% ({att.get('present') or 0} kelgan / {att.get('absent') or 0} kelmagan)",
+                f"⚡ Chaqmoq ballari: {int(s.get('chaqmoq') or 0)}",
+            ]
+            lines.append("  • " + ", ".join(fields))
+
+    if teachers:
+        lines.append(
+            f"\nQIDIRILGAN USTOZ PROFIL(LARI) — so'rov: {search_query!r}, topildi: {len(teachers)} ta"
+        )
+        for t in teachers:
+            phone = t.get("phone") or NA
+            tname = t.get("teacher_name") or "—"
+            status = t.get("status_label") or "—"
+            group_names = t.get("group_names") or []
+            groups_str = ", ".join(group_names[:6]) or NA
+            fields = [
+                f"Ism: {tname}",
+                f"📞 Telefon: {phone}",
+                f"O'quvchi: {int(t.get('students_count') or 0)} ta",
+                f"Faol guruh: {int(t.get('active_groups') or t.get('groups_count') or 0)} ta",
+                f"Guruhlar: {groups_str}",
+                f"💰 Daromad: {_compact_money(t.get('total_income') or 0)}",
+                f"Ustoz ulushi: {_compact_money(t.get('teacher_payout') or 0)} ({int(t.get('share_percent') or 0)}%)",
+                f"Holat: {status}",
+            ]
+            lines.append("  • " + ", ".join(fields))
+
+    return "\n".join(lines)
+
+
 def _full_center_context(center: Center, stats: dict, question: str, *, viewer=None, limit: int = 12) -> tuple[dict, str]:
     compact = _compact_context(stats)
     period = compact.get("period") or {}
@@ -1213,6 +1280,17 @@ def _full_center_context(center: Center, stats: dict, question: str, *, viewer=N
         logger.warning("Center AI context build failed: %s", exc)
         context = {}
         prompt_context = ""
+
+    # Savolda ism uchragan bo'lsa — shu o'quvchi/ustozning to'liq profilini
+    # prompt ga qo'shamiz. Shunda Gemini "Abdulla qaysi guruhda?" kabi savollarga
+    # to'liq profil asosida tabiiy javob bera oladi.
+    try:
+        profile_block = _profile_lookup_block(center, question, viewer=viewer)
+        if profile_block:
+            prompt_context = (prompt_context or "") + "\n\n" + profile_block
+            context["profile_match"] = True
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Profile lookup failed: %s", exc)
 
     cache.set(
         cache_key,

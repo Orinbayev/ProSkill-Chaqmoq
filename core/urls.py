@@ -57,6 +57,7 @@ urlpatterns = [
     # ✅ Skeleton-first home uchun deferred yuklash endpointlari
     path('api/dashboard/low-activity/', api_views.dashboard_low_activity_api, name='dashboard_low_activity_api'),
     path('api/dashboard/student-init/', api_views.dashboard_student_init_api, name='dashboard_student_init_api'),
+    path('api/dashboard/manager/', api_views.manager_dashboard_api, name='manager_dashboard_api'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('dashboard/students/dangerous/', views.dangerous_students, name='dangerous_students'),
     path('dashboard/students/churn-notify/<int:pk>/', views.churn_notify_student, name='churn_notify'),
@@ -73,6 +74,8 @@ urlpatterns = [
     path('boshqaruv/',                    dashboard_views.director_boshqaruv,               name='director_boshqaruv'),
     path('api/boshqaruv/',                dashboard_views.director_boshqaruv_api,           name='director_boshqaruv_api'),
     path('api/boshqaruv/chat/',           dashboard_views.director_boshqaruv_chat,          name='director_boshqaruv_chat'),
+    path('api/boshqaruv/chat/history/',   dashboard_views.director_boshqaruv_chat_history,  name='director_boshqaruv_chat_history'),
+    path('api/boshqaruv/chat/clear/',     dashboard_views.director_boshqaruv_chat_clear,    name='director_boshqaruv_chat_clear'),
     path('boshqaruv/export/',             dashboard_views.director_boshqaruv_export,        name='director_boshqaruv_export'),
     path('boshqaruv/faollik-tarixi/',     dashboard_views.director_activity_history,        name='activity_history'),
     # Branch CRUD

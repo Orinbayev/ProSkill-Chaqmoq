@@ -962,7 +962,7 @@ def get_category_revenue_context(center: Center, date_from=None, date_to=None) -
     # Guruh bo'yicha daromad
     group_revenue = list(
         Payment.objects.filter(center=center, paid_date__range=(start, end))
-        .values("group_id", "group__nom", "group__kategoriya__nom")
+        .values("group_id", "group__nom", "group__category_obj__name")
         .annotate(revenue=Sum("summa"), payments_count=Count("id"))
         .order_by("-revenue")
     )
@@ -980,7 +980,7 @@ def get_category_revenue_context(center: Center, date_from=None, date_to=None) -
     # Category bo'yicha yig'ish
     category_map: dict[str, dict] = defaultdict(lambda: {"revenue": 0, "groups": [], "students": 0, "payments_count": 0})
     for row in group_revenue:
-        cat_name = row.get("group__kategoriya__nom") or "Bo'limsiz"
+        cat_name = row.get("group__category_obj__name") or "Bo'limsiz"
         grp_name = row.get("group__nom") or "Noma'lum guruh"
         grp_id = row.get("group_id")
         rev = int(row.get("revenue") or 0)
@@ -1016,7 +1016,7 @@ def get_category_revenue_context(center: Center, date_from=None, date_to=None) -
         [
             {
                 "name": row.get("group__nom") or "Noma'lum",
-                "category": row.get("group__kategoriya__nom") or "Bo'limsiz",
+                "category": row.get("group__category_obj__name") or "Bo'limsiz",
                 "revenue": int(row.get("revenue") or 0),
                 "students": student_counts.get(row.get("group_id"), 0),
             }
@@ -1289,35 +1289,77 @@ def build_center_ai_prompt_context(
     monthly = ctx["analytics"]["monthly_stats"]
     alerts = ctx["alerts"][:3]
     top_students = ctx["analytics"]["top_students"][:3]
-    risky_students = ctx["analytics"]["risky_students"][:3]
-    teacher_performance = ctx["analytics"]["teacher_performance"][:3]
+    risky_students = ctx["analytics"]["risky_students"][:5]
+    teacher_items = (ctx["teachers"].get("items") or [])[:8]
+    group_items = (ctx["groups"].get("items") or [])[:10]
 
-    return "\n".join(
-        [
-            f"Markaz: {ctx['center']['name']} ({ctx['center']['slug']})",
-            f"Center ID: {ctx['center']['id']}",
-            f"Maxfiylik rejimi: {ctx['privacy_mode']}",
-            f"Savol: {ctx['question'] or '—'}",
-            f"Davr: {ctx['period']['date_from']} dan {ctx['period']['date_to']} gacha",
-            f"Daromad: {finance['revenue']} so'm",
-            f"Xarajat: {finance['expenses']} so'm",
-            f"Ustoz ulushi: {finance['teacher_payout']} so'm",
-            f"Foyda: {finance['profit']} so'm",
-            f"Jami o'quvchi: {students['total_students']}",
-            f"Faol o'quvchi: {students['active_students']}",
-            f"Jami ustoz: {teachers['total_teachers']}",
-            f"Jami guruh: {groups['total_groups']}",
-            f"Jami lead: {leads['total_leads']}",
-            f"Bu davr leadi: {leads['period_leads']}",
-            f"Mahsulotlar: {store['products_count']}",
-            f"Sotuvlar: {store['sales_count']}",
-            f"So'rovlar: {store['requests_count']}",
-            f"Bu oy yangi o'quvchi: {monthly['this_month_students']}",
-            f"O'tgan oy yangi o'quvchi: {monthly['last_month_students']}",
-            f"O'sish foizi: {monthly['growth_percentage']}",
-            f"Top o'quvchilar: {', '.join(item['full_name'] for item in top_students) or 'yo‘q'}",
-            f"Qarzdor o'quvchilar: {', '.join(item['full_name'] for item in risky_students) or 'yo‘q'}",
-            f"Teacher performance: {', '.join(item['teacher_name'] for item in teacher_performance) or 'yo‘q'}",
-            f"Alertlar: {' | '.join(alert['message'] for alert in alerts) or 'yo‘q'}",
-        ]
-    )
+    def _fmt_money(v):
+        v = int(v or 0)
+        if v >= 1_000_000:
+            return f"{v/1_000_000:.1f} mln"
+        if v >= 1_000:
+            return f"{v/1_000:.0f} ming"
+        return str(v)
+
+    teacher_lines = []
+    for t in teacher_items:
+        teacher_lines.append(
+            f"  - {t.get('teacher_name', '—')}: "
+            f"{int(t.get('students_count') or 0)} o'quvchi, "
+            f"{int(t.get('active_groups') or t.get('groups_count') or 0)} faol guruh, "
+            f"daromad {_fmt_money(t.get('total_income'))} so'm, "
+            f"ustoz ulushi {_fmt_money(t.get('teacher_payout'))} so'm "
+            f"({int(t.get('share_percent') or 0)}%)"
+        )
+
+    group_lines = []
+    for g in group_items:
+        group_lines.append(
+            f"  - {g.get('name', '—')} (ustoz: {g.get('teacher') or '—'}): "
+            f"{int(g.get('students') or 0)} o'quvchi, "
+            f"daromad {_fmt_money(g.get('revenue_in_period'))} so'm, "
+            f"davr darslari {int(g.get('attended_lessons_in_period') or 0)} ta, "
+            f"holat: {g.get('status') or '—'}"
+        )
+
+    risky_lines = []
+    for r in risky_students:
+        debt = r.get('total_debt') or r.get('debt') or 0
+        risky_lines.append(
+            f"  - {r.get('full_name', '—')}: qarz {_fmt_money(debt)} so'm"
+        )
+
+    parts = [
+        f"Markaz: {ctx['center']['name']} ({ctx['center']['slug']})",
+        f"Center ID: {ctx['center']['id']}",
+        f"Maxfiylik rejimi: {ctx['privacy_mode']}",
+        f"Savol: {ctx['question'] or '—'}",
+        f"Davr: {ctx['period']['date_from']} dan {ctx['period']['date_to']} gacha",
+        "",
+        "MOLIYA:",
+        f"  Daromad: {finance['revenue']} so'm",
+        f"  Xarajat: {finance['expenses']} so'm",
+        f"  Ustoz ulushi: {finance['teacher_payout']} so'm",
+        f"  Sof foyda: {finance['profit']} so'm",
+        "",
+        "UMUMIY KO'RSATKICHLAR:",
+        f"  Jami o'quvchi: {students['total_students']} (faol: {students['active_students']})",
+        f"  Jami ustoz: {teachers['total_teachers']}",
+        f"  Jami guruh: {groups['total_groups']}",
+        f"  Jami lead: {leads['total_leads']} (davr: {leads['period_leads']})",
+        f"  Mahsulotlar: {store['products_count']}, sotuvlar: {store['sales_count']}, so'rovlar: {store['requests_count']}",
+        f"  Bu oy yangi o'quvchi: {monthly['this_month_students']} (o'tgan oy: {monthly['last_month_students']}, o'sish: {monthly['growth_percentage']}%)",
+        "",
+        f"USTOZLAR ({len(teacher_items)} ta ko'rsatildi):",
+        "\n".join(teacher_lines) if teacher_lines else "  (yo'q)",
+        "",
+        f"GURUHLAR ({len(group_items)} ta ko'rsatildi):",
+        "\n".join(group_lines) if group_lines else "  (yo'q)",
+        "",
+        f"QARZDOR O'QUVCHILAR ({len(risky_students)} ta):",
+        "\n".join(risky_lines) if risky_lines else "  (yo'q)",
+        "",
+        f"TOP O'QUVCHILAR: {', '.join(item['full_name'] for item in top_students) or 'yo‘q'}",
+        f"OGOHLANTIRISHLAR: {' | '.join(alert['message'] for alert in alerts) or 'yo‘q'}",
+    ]
+    return "\n".join(parts)

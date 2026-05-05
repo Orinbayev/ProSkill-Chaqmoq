@@ -4450,6 +4450,8 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
 /* ── URLS ── */
 const API     = '{% url "core:director_boshqaruv_api" %}';
 const CHAT_API = '{% url "core:director_boshqaruv_chat" %}';
+const CHAT_HISTORY_API = '{% url "core:director_boshqaruv_chat_history" %}';
+const CHAT_CLEAR_API = '{% url "core:director_boshqaruv_chat_clear" %}';
 const CSRF    = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
 const CAN_MANAGE_BRANCHES = {% if request.user.is_superuser or request.user.role == 'director' %}true{% else %}false{% endif %};
 const BRANCH_API = {
@@ -6695,13 +6697,16 @@ const chatOverlay = document.getElementById('chatOverlay');
 const chatMsgs    = document.getElementById('chatMessages');
 const chatInput   = document.getElementById('chatInput');
 const chatSend    = document.getElementById('chatSend');
-let chatHistory   = [];
 let chatLoading   = false;
+let chatHistoryLoaded = false;
+
+const USER_AVA_LETTER = `{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}`;
 
 function openChat(){
   chatPanel.classList.add('open');
   chatOverlay.classList.add('open');
   document.body.style.overflow='hidden';
+  loadChatHistory();
   setTimeout(()=>chatInput.focus(),300);
 }
 function closeChat(){
@@ -6715,14 +6720,24 @@ document.getElementById('chatClose').addEventListener('click',closeChat);
 chatOverlay.addEventListener('click',closeChat);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&chatPanel.classList.contains('open'))closeChat();});
 
+// HTML escape + minimal markdown (yangi qator + **bold**)
+function escapeHTML(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function renderMsgText(s){
+  return escapeHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+}
+
 function addMsg(role,text){
   const isUser=role==='user';
   const avatarHTML=isUser
-    ?`<div class="bq-msg__ava">{{ request.user.ism|first|upper|default:request.user.email|first|upper }}</div>`
+    ?`<div class="bq-msg__ava">${escapeHTML(USER_AVA_LETTER)}</div>`
     :`<div class="bq-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
   const div=document.createElement('div');
   div.className=`bq-msg bq-msg--${isUser?'user':'ai'}`;
-  div.innerHTML=`${avatarHTML}<div class="bq-msg__bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  div.innerHTML=`${avatarHTML}<div class="bq-msg__bubble">${renderMsgText(text)}</div>`;
   chatMsgs.appendChild(div);
   chatMsgs.scrollTop=chatMsgs.scrollHeight;
   return div;
@@ -6738,25 +6753,44 @@ function addTyping(){
 }
 function removeTyping(){const el=document.getElementById('typingEl');if(el)el.remove();}
 
+// Saqlangan tarixni serverdan yuklab, render qilish
+async function loadChatHistory(){
+  if(chatHistoryLoaded) return;
+  chatHistoryLoaded = true;
+  try{
+    const res = await fetch(CHAT_HISTORY_API, {credentials:'same-origin'});
+    if(!res.ok) return;
+    const data = await res.json();
+    const msgs = Array.isArray(data.messages) ? data.messages : [];
+    if(msgs.length === 0) return;
+    // Boshlang'ich salomlashuv xabarini olib tashlaymiz — DB tarixi bor
+    chatMsgs.innerHTML = '';
+    msgs.forEach(m => addMsg(m.role === 'assistant' ? 'ai' : 'user', m.content));
+  }catch(e){
+    // Tarix yuklanmasa, salomlashuv xabari qoladi — muammo emas
+  }
+}
+
 async function sendMsg(q){
   if(!q||chatLoading)return;
   chatLoading=true;
   chatSend.disabled=true;
   chatInput.value='';
+  chatInput.style.height='auto';
   addMsg('user',q);
   addTyping();
 
   try{
     const res=await fetch(CHAT_API,{
       method:'POST',
+      credentials:'same-origin',
       headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
-      body:JSON.stringify({question:q,history:chatHistory.slice(-8)})
+      body:JSON.stringify({question:q})
     });
     const data=await res.json();
     removeTyping();
     const answer=data.answer||'Javob olishda xatolik yuz berdi.';
     addMsg('ai',answer);
-    chatHistory.push({role:'user',content:q},{role:'assistant',content:answer});
   }catch(e){
     removeTyping();
     addMsg('ai','Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');

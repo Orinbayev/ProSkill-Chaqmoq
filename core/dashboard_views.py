@@ -2524,9 +2524,6 @@ def director_activity_history(request):
     center = _get_center(request)
     if not center:
         return redirect("core:home")
-    user_role = getattr(request.user, "role", None)
-    if user_role == "manager" and not request.user.is_superuser:
-        return redirect("core:home")
 
     today_now = timezone.localdate()
     range_from = today_now - timedelta(days=30)
@@ -2853,33 +2850,87 @@ def director_boshqaruv_export(request):
     return response
 
 
+_AI_CHAT_HISTORY_LIMIT = 30
+_AI_CHAT_QUESTION_MAX = 2000
+
+
+_AI_CHAT_ALLOWED_ROLES = {"director", "manager"}
+
+
+def _ai_chat_session(request):
+    """Return (center, session) for director/manager AI chat or None if unauthorized.
+
+    Note: model name `DirectorAIChatSession` is historic — it's keyed by
+    (center, user) so director and manager sessions are isolated automatically.
+    PII masking for non-director viewers is enforced inside ai_insights via
+    `can_view_private_details(viewer)`.
+    """
+    user = request.user
+    if not user.is_authenticated:
+        return None, None
+    role = getattr(user, "role", None)
+    if not (user.is_superuser or role in _AI_CHAT_ALLOWED_ROLES):
+        return None, None
+    center = getattr(request, "center", None) or getattr(user, "center", None)
+    if not center:
+        return None, None
+    from core.models import DirectorAIChatSession
+    title = "Manager AI chat" if role == "manager" else "Direktor AI chat"
+    session, _ = DirectorAIChatSession.objects.get_or_create(
+        center=center,
+        user=user,
+        defaults={"title": title},
+    )
+    return center, session
+
+
 @login_required
 def director_boshqaruv_chat(request):
-    """AI chat endpoint — POST {question, history[]}"""
+    """AI chat endpoint — POST {question} → saves to DB, replays history from DB."""
     if request.method != "POST":
         return JsonResponse({"error": "Faqat POST"}, status=405)
 
-    center = _get_center(request)
-    if not center:
+    center, session = _ai_chat_session(request)
+    if not center or not session:
         return _403()
 
+    import json as _json
     try:
-        body = _json.loads(request.body)
+        body = _json.loads(request.body or b"{}")
     except Exception:
         return JsonResponse({"error": "JSON xato"}, status=400)
 
     question = (body.get("question") or "").strip()
     if not question:
         return JsonResponse({"error": "Savol bo'sh"}, status=400)
+    if len(question) > _AI_CHAT_QUESTION_MAX:
+        question = question[:_AI_CHAT_QUESTION_MAX]
 
-    history = body.get("history") or []
+    from core.models import DirectorAIChatMessage
 
-    # Oddiy stats ni olish (har doim fresh)
+    # 1) Saqlangan tarixni DB dan olish (oxirgi N ta — modeldan oldin yozilgan)
+    prev_qs = (
+        DirectorAIChatMessage.objects
+        .filter(session=session)
+        .order_by("-created_at", "-id")[:_AI_CHAT_HISTORY_LIMIT]
+    )
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in reversed(list(prev_qs))
+    ]
+
+    # 2) Foydalanuvchi savolini darhol saqlaymiz
+    DirectorAIChatMessage.objects.create(
+        session=session,
+        role=DirectorAIChatMessage.ROLE_USER,
+        content=question,
+    )
+
+    # 3) Stats va Gemini chaqiruvi
     today = timezone.localdate()
     d_from = today.replace(day=1)
     stats = _boshqaruv_payload(center, d_from, today)
 
-    # Gemini ga yuborish
     try:
         from core.services.ai_insights import answer_question_structured_bundle
         answer, source, _ = answer_question_structured_bundle(
@@ -2893,4 +2944,58 @@ def director_boshqaruv_chat(request):
         answer = f"Hozircha AI javob bera olmayapti. Xato: {str(e)[:120]}"
         source = "error"
 
+    # 4) AI javobini saqlaymiz (xato bo'lsa ham — tarix uchun)
+    DirectorAIChatMessage.objects.create(
+        session=session,
+        role=DirectorAIChatMessage.ROLE_ASSISTANT,
+        content=answer,
+        source=source or "",
+    )
+
+    # session.updated_at ni yangilash uchun save() (auto_now ishlashi uchun)
+    session.save(update_fields=["updated_at"])
+
     return JsonResponse({"answer": answer, "source": source})
+
+
+@login_required
+def director_boshqaruv_chat_history(request):
+    """AI chat tarixi — GET → oxirgi xabarlar ro'yxati."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Faqat GET"}, status=405)
+
+    center, session = _ai_chat_session(request)
+    if not center or not session:
+        return _403()
+
+    from core.models import DirectorAIChatMessage
+
+    qs = (
+        DirectorAIChatMessage.objects
+        .filter(session=session)
+        .order_by("created_at", "id")[:200]
+    )
+    messages = [
+        {
+            "role": m.role,
+            "content": m.content,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in qs
+    ]
+    return JsonResponse({"messages": messages})
+
+
+@login_required
+def director_boshqaruv_chat_clear(request):
+    """AI chat tarixini tozalash — POST."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Faqat POST"}, status=405)
+
+    center, session = _ai_chat_session(request)
+    if not center or not session:
+        return _403()
+
+    from core.models import DirectorAIChatMessage
+    DirectorAIChatMessage.objects.filter(session=session).delete()
+    return JsonResponse({"ok": True})

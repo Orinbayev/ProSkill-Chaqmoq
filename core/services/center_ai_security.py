@@ -72,16 +72,35 @@ def detect_cross_center_probe(center: Center, question: str) -> str:
         "test",
         "demo",
     }
+
+    # Bir so'zli oddiy "yaxshi", "tmp", "amirxon" kabi sluglar tasodifan
+    # boshqa savollarda (mas. "eng yaxshi o'qituvchi kim?") triggerlanishini
+    # oldini olish uchun: kamida 2 ta mazmunli token bo'lishi shart, yoki
+    # 1 ta token bo'lsa ham juda uzun (>=10) va so'rovda "boshqa/barcha/hamma"
+    # signali bor bo'lsa.
+    has_explicit_other = any(p in q for p in ("boshqa ", "barcha ", "hamma "))
+
+    def _is_specific_match(tokens: list[str]) -> bool:
+        if not tokens:
+            return False
+        if not all(token in q for token in tokens):
+            return False
+        if len(tokens) >= 2:
+            return True
+        # bitta token — faqat juda uzun (10+ harfli) yoki "boshqa" signali bor bo'lsa
+        single = tokens[0]
+        return len(single) >= 10 or has_explicit_other
+
     other_centers = Center.objects.exclude(id=center.id).filter(is_deleted=False).only("id", "name", "slug")
     for other_center in other_centers:
         slug_value = _normalize_text(other_center.slug or "").replace("-", " ")
         slug_tokens = [token for token in slug_value.split() if token and token not in generic_center_tokens and len(token) >= 3]
-        if slug_tokens and all(token in q for token in slug_tokens):
+        if _is_specific_match(slug_tokens):
             return other_center.name
 
         name_value = _normalize_text(other_center.name or "")
         name_tokens = [token for token in name_value.split() if token and token not in generic_center_tokens and len(token) >= 3]
-        if name_tokens and all(token in q for token in name_tokens):
+        if _is_specific_match(name_tokens):
             return other_center.name
     return ""
 

@@ -2,729 +2,1686 @@
 {% load static humanize %}
 {% block body_class %}manager-dashboard-page{% endblock %}
 
-{% block title %}💼 Manager Paneli — ChaqmoqApp{% endblock %}
+{% block title %}Manager Paneli — ChaqmoqApp{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 <style>
-  :root {
-    --bg-deep: #070a13;
-    --card-bg: rgba(15, 23, 42, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.05);
-    --accent: #FACC15;
-    --blue-glow: #38bdf8;
-    --green-glow: #22d3ee;
-    --red-glow: #ef4444;
-    --gold-glow: #fbbf24;
-    --slate-500: #64748b;
-  }
+:root {
+  --mg-bg:        #070d1a;
+  --mg-surf:      #0d1526;
+  --mg-card:      rgba(13,21,38,.88);
+  --mg-br:        rgba(255,255,255,.07);
+  --mg-br2:       rgba(255,255,255,.13);
+  --mg-txt:       #e2e8f0;
+  --mg-muted:     #94a3b8;
+  --mg-soft:      #475569;
+  --mg-cyan:      #22d3ee;
+  --mg-green:     #34d399;
+  --mg-amber:     #fbbf24;
+  --mg-rose:      #f43f5e;
+  --mg-violet:    #818cf8;
+  --mg-blue:      #60a5fa;
+  --mg-orange:    #fb923c;
+  --mg-teal:      #2dd4bf;
+}
 
-  body {
-    background-color: var(--bg-deep) !important;
-    color: #f1f5f9;
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  }
+body.manager-dashboard-page { background: var(--mg-bg); }
 
-  .stat-container {
-    padding: 16px 20px;
-    max-width: 1600px;
-    margin: 0 auto;
-  }
+.mg {
+  margin-left: 0;
+  min-height: 100vh;
+  padding: 0 clamp(14px, 1.35vw, 22px) 80px;
+  background:
+    radial-gradient(ellipse 60% 35% at 8% 0%,  rgba(34,211,238,.07) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 30% at 92% 5%, rgba(129,140,248,.08) 0%, transparent 50%),
+    linear-gradient(180deg, #070d1a 0%, #0d1526 100%);
+  color: var(--mg-txt);
+  font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+}
+.mg-shell { max-width: 1400px; margin: 0 auto; padding-top: 18px; display: flex; flex-direction: column; gap: 18px; }
 
-  /* PREMIUM HEADER */
-  .dashboard-header {
-    background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%);
-    border-radius: 16px;
-    padding: 12px 20px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    position: relative;
-    z-index: 100;
-  }
+/* ── HEADER ─────────────────────────────────────────────────────── */
+.mg-header {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 18px; border-radius:16px;
+  border:1px solid var(--mg-br);
+  background: linear-gradient(135deg, rgba(7,13,26,.96), rgba(13,21,38,.9));
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  box-shadow: 0 14px 36px rgba(0,0,0,.28);
+}
+.mg-brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.mg-brand__icon {
+  width:44px; height:44px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,146,60,.18));
+  border: 1px solid rgba(251,191,36,.22);
+  color: var(--mg-amber);
+  font-size: 17px;
+}
+.mg-brand__kicker { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--mg-amber); }
+.mg-brand__title  { font-size:15.5px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
+.mg-header__sync  {
+  margin-left:auto; display:flex; align-items:center; gap:6px;
+  font-size:11.5px; color:var(--mg-muted); font-weight:600;
+}
+.mg-header__sync .dot { width:7px; height:7px; border-radius:50%; background:var(--mg-green); box-shadow:0 0 8px var(--mg-green); }
+.mg-header__refresh {
+  height:38px; min-width:38px; padding:0 10px; border-radius:11px;
+  display:inline-flex; align-items:center; gap:7px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.04); color: var(--mg-txt);
+  font-size:12.5px; font-weight:700; cursor:pointer;
+  transition: transform .18s, border-color .2s, background .2s;
+}
+.mg-header__refresh:hover { transform: translateY(-1px); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
 
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
+/* ── KPI GRID ───────────────────────────────────────────────────── */
+.mg-kgrid {
+  display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap:12px;
+}
+@media(max-width:1100px){ .mg-kgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:460px) { .mg-kgrid{ grid-template-columns:1fr; } }
 
-  .header-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: rgba(250, 204, 21, 0.1);
-    border: 1px solid rgba(250, 204, 21, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: var(--accent);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
+/* ── SANA FILTERI ─────────────────────────────────────────────── */
+.mg-filter {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:12px 16px; border-radius:14px;
+  border:1px solid var(--mg-br);
+  background: linear-gradient(135deg, rgba(7,13,26,.96), rgba(13,21,38,.9));
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.mg-field {
+  position:relative;
+  display:flex; flex-direction:column; gap:3px;
+  min-width:160px;
+}
+.mg-field__lbl {
+  font-size:9.5px; font-weight:800; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--mg-soft);
+}
+.mg-field input[type="date"] {
+  height:38px; padding:0 12px;
+  border-radius:10px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.04);
+  color: var(--mg-txt); font-size:13px; font-weight:600;
+  font-family:inherit;
+  outline:none; cursor:pointer;
+  transition:border-color .2s, background .2s, box-shadow .2s;
+  color-scheme: dark;
+}
+.mg-field input[type="date"]:hover {
+  border-color: var(--mg-br2); background: rgba(255,255,255,.06);
+}
+.mg-field input[type="date"]:focus {
+  border-color: var(--mg-cyan);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.10);
+}
+.mg-presets { display:flex; gap:6px; flex-wrap:wrap; }
+.mg-preset {
+  height:34px; padding:0 12px;
+  border-radius:999px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.03);
+  color: var(--mg-muted); font-size:11.5px; font-weight:700;
+  cursor:pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.mg-preset:hover { color: var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
+.mg-preset.is-active {
+  color: var(--mg-cyan); border-color: rgba(34,211,238,.35);
+  background: rgba(34,211,238,.10);
+}
+.mg-filter__spacer { flex:1; }
+.mg-filter__reset {
+  height:34px; padding:0 12px; border-radius:10px;
+  border:1px solid var(--mg-br); background: rgba(255,255,255,.03);
+  color: var(--mg-muted); font-size:12px; font-weight:700;
+  cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.mg-filter__reset:hover { color: var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
 
-  .header-text h1 {
-    font-size: 18px;
-    font-weight: 900;
-    margin: 0;
-    color: #fff;
-    letter-spacing: -0.5px;
-  }
+.mg-kpi {
+  position:relative; overflow:hidden;
+  padding: 16px 16px 14px; border-radius:16px;
+  border: 1px solid var(--mg-br);
+  background: var(--mg-card);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  display:flex; flex-direction:column; gap:10px;
+  transition: transform .22s, border-color .22s, box-shadow .22s;
+  text-decoration:none; color:inherit; cursor:pointer;
+}
+.mg-kpi:hover { transform: translateY(-3px); border-color: var(--mg-br2); box-shadow: 0 18px 40px rgba(0,0,0,.32); }
+.mg-kpi::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  border-radius: 16px 16px 0 0; opacity:.85;
+}
+.mg-kpi--blue::before   { background:linear-gradient(90deg,var(--mg-blue),transparent); }
+.mg-kpi--green::before  { background:linear-gradient(90deg,var(--mg-green),transparent); }
+.mg-kpi--cyan::before   { background:linear-gradient(90deg,var(--mg-cyan),transparent); }
+.mg-kpi--amber::before  { background:linear-gradient(90deg,var(--mg-amber),transparent); }
+.mg-kpi--rose::before   { background:linear-gradient(90deg,var(--mg-rose),transparent); }
+.mg-kpi--violet::before { background:linear-gradient(90deg,var(--mg-violet),transparent); }
+.mg-kpi--orange::before { background:linear-gradient(90deg,var(--mg-orange),transparent); }
+.mg-kpi--teal::before   { background:linear-gradient(90deg,var(--mg-teal),transparent); }
 
-  .header-text p {
-    margin: 0;
-    color: var(--slate-500);
-    font-size: 11.5px;
-    font-weight: 600;
-  }
+.mg-kpi__head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.mg-kpi__icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+  border:1px solid rgba(255,255,255,.07);
+}
+.mg-kpi--blue   .mg-kpi__icon { background:linear-gradient(135deg, rgba(96,165,250,.18), rgba(96,165,250,.08));  color:var(--mg-blue);   border-color:rgba(96,165,250,.18); }
+.mg-kpi--green  .mg-kpi__icon { background:linear-gradient(135deg, rgba(52,211,153,.18), rgba(52,211,153,.08));  color:var(--mg-green);  border-color:rgba(52,211,153,.18); }
+.mg-kpi--cyan   .mg-kpi__icon { background:linear-gradient(135deg, rgba(34,211,238,.18), rgba(34,211,238,.08));  color:var(--mg-cyan);   border-color:rgba(34,211,238,.18); }
+.mg-kpi--amber  .mg-kpi__icon { background:linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.08));  color:var(--mg-amber);  border-color:rgba(251,191,36,.18); }
+.mg-kpi--rose   .mg-kpi__icon { background:linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.08));    color:var(--mg-rose);   border-color:rgba(244,63,94,.18); }
+.mg-kpi--violet .mg-kpi__icon { background:linear-gradient(135deg, rgba(129,140,248,.18), rgba(129,140,248,.08));color:var(--mg-violet); border-color:rgba(129,140,248,.18); }
+.mg-kpi--orange .mg-kpi__icon { background:linear-gradient(135deg, rgba(251,146,60,.18), rgba(251,146,60,.08));  color:var(--mg-orange); border-color:rgba(251,146,60,.18); }
+.mg-kpi--teal   .mg-kpi__icon { background:linear-gradient(135deg, rgba(45,212,191,.18), rgba(45,212,191,.08));  color:var(--mg-teal);   border-color:rgba(45,212,191,.18); }
 
-  /* SEARCH BAR IN HEADER */
-  .search-wrapper {
-    flex-grow: 1;
-    max-width: 450px;
-    margin: 0 40px;
-    position: relative;
-  }
+.mg-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:999px;
+  font-size:10px; font-weight:800; white-space:nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mg-badge--up   { color:#86efac; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.24); }
+.mg-badge--down { color:#fda4af; background:rgba(244,63,94,.14); border:1px solid rgba(244,63,94,.24); }
+.mg-badge--flat { color:var(--mg-muted); background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.14); }
 
-  .search-input-group {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s;
-  }
+.mg-kpi__lbl { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--mg-soft); }
+.mg-kpi__val { font-size:clamp(1.25rem,1.9vw,1.7rem); font-weight:800; letter-spacing:-.045em; line-height:1.05; color:var(--mg-txt); margin-top:2px; font-variant-numeric: tabular-nums; }
+.mg-kpi__sub { font-size:11px; color:var(--mg-muted); line-height:1.4; font-weight:500; }
 
-  .search-input-group:focus-within {
-    border-color: var(--accent);
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 20px rgba(250, 204, 21, 0.1);
-  }
+/* ── SECTION ────────────────────────────────────────────────────── */
+.mg-sec { display:flex; flex-direction:column; gap:10px; }
+.mg-sec__hd { display:flex; align-items:center; gap:10px; }
+.mg-sec__ico {
+  width:32px; height:32px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0;
+  border:1px solid rgba(255,255,255,.07);
+}
+.mg-sec__title { margin:0; font-size:clamp(.95rem,1.35vw,1.1rem); font-weight:800; letter-spacing:-.03em; }
+.mg-sec__sub { margin:2px 0 0; font-size:11px; color:var(--mg-soft); }
+.mg-sec__link {
+  margin-left:auto; padding:7px 12px; border-radius:999px;
+  font-size:11.5px; font-weight:700; color:var(--mg-muted);
+  border:1px solid var(--mg-br); background: rgba(255,255,255,.03);
+  text-decoration:none;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.mg-sec__link:hover { color:var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
+.mg-sec__ico--cyan   { background:rgba(34,211,238,.12);  color:var(--mg-cyan);   border-color:rgba(34,211,238,.18); }
+.mg-sec__ico--green  { background:rgba(52,211,153,.12);  color:var(--mg-green);  border-color:rgba(52,211,153,.18); }
+.mg-sec__ico--rose   { background:rgba(244,63,94,.12);   color:var(--mg-rose);   border-color:rgba(244,63,94,.18); }
+.mg-sec__ico--violet { background:rgba(129,140,248,.12); color:var(--mg-violet); border-color:rgba(129,140,248,.18); }
+.mg-sec__ico--amber  { background:rgba(251,191,36,.12);  color:var(--mg-amber);  border-color:rgba(251,191,36,.18); }
+.mg-skel--row    { width:100%; height:42px; }
+.mg-skel--row + .mg-skel--row { margin-top:8px; }
+.mg-skel--card   { width:100%; height:60px; }
+.mg-skel--card + .mg-skel--card { margin-top:8px; }
+.mg-skel--group  { width:100%; height:48px; }
+.mg-skel--group + .mg-skel--group { margin-top:8px; }
+.mg-skel--feed   { width:100%; height:54px; }
+.mg-skel--feed + .mg-skel--feed { margin-top:8px; }
 
-  .search-input-group input {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    outline: none;
-    width: 100%;
-  }
+/* ── CARD ───────────────────────────────────────────────────────── */
+.mg-card {
+  padding:16px; border-radius:16px;
+  border:1px solid var(--mg-br);
+  background: var(--mg-card);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
 
-  .search-input-group i {
-    color: var(--slate-500);
-    font-size: 16px;
-  }
+/* ── GRID HELPERS ───────────────────────────────────────────────── */
+.mg-g { display:grid; gap:14px; }
+.mg-g--2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.mg-g--3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+@media(max-width:1100px){ .mg-g--2, .mg-g--3 { grid-template-columns:1fr; } }
 
-  /* TOP PROFILE & NOTIFS */
-  .top-meta {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+/* ── CHART ──────────────────────────────────────────────────────── */
+.mg-ch { position:relative; height:230px; }
+.mg-ch--sm { height:180px; }
 
-  .meta-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: #fff;
-    cursor: pointer;
-    transition: 0.2s;
-    text-decoration: none;
-  }
+/* ── BUGUNGI DARSLAR LIST ───────────────────────────────────────── */
+.mg-list { display:flex; flex-direction:column; gap:8px; max-height: 380px; overflow-y:auto; }
+.mg-list::-webkit-scrollbar { width:6px; }
+.mg-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:3px; }
 
-  .meta-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--accent);
-    transform: translateY(-2px);
-  }
+.mg-row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:12px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.025);
+  transition: background .2s, border-color .2s, transform .15s;
+  text-decoration:none; color:inherit;
+}
+.mg-row:hover { background: rgba(255,255,255,.05); border-color: var(--mg-br2); transform: translateX(2px); }
 
-  /* KPI CARDS - DIRECTOR STYLE */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
+.mg-row__time {
+  width:48px; flex-shrink:0;
+  font-size:12.5px; font-weight:800; color:var(--mg-cyan);
+  letter-spacing:-.02em;
+  font-variant-numeric: tabular-nums;
+}
+.mg-row__main { flex:1; min-width:0; }
+.mg-row__title { font-size:13px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mg-row__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; }
+.mg-row__status {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 9px; border-radius:999px;
+  font-size:10px; font-weight:800; white-space:nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mg-row__status--ok    { color:#86efac; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.24); }
+.mg-row__status--wait  { color:#fcd34d; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.24); }
 
-  .kpi-card-premium {
-    background: rgba(15, 23, 42, 0.45);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 16px;
-    position: relative;
-    overflow: hidden;
-    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    text-decoration: none !important;
-  }
+/* ── ATTENTION (faolligi past) ──────────────────────────────────── */
+.mg-attn-row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px; border-radius:12px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.025);
+  transition: background .2s, border-color .2s;
+  text-decoration:none; color:inherit;
+}
+.mg-attn-row + .mg-attn-row { margin-top:8px; }
+.mg-attn-row:hover { background: rgba(255,255,255,.05); border-color: var(--mg-br2); }
+.mg-attn__avatar {
+  width:40px; height:40px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg, rgba(96,165,250,.22), rgba(129,140,248,.18));
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800; color:var(--mg-blue);
+  border:1px solid rgba(96,165,250,.22);
+  text-transform:uppercase;
+  background-size:cover; background-position:center;
+}
+.mg-attn__main { flex:1; min-width:0; }
+.mg-attn__name { font-size:13px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mg-attn__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; }
+.mg-attn__rate {
+  font-size:12.5px; font-weight:800; padding:5px 10px; border-radius:999px;
+  background: rgba(244,63,94,.14); color:#fda4af; border:1px solid rgba(244,63,94,.24);
+  font-variant-numeric: tabular-nums; flex-shrink:0;
+}
 
-  .kpi-card-premium:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  }
+/* ── ACTIVITY FEED ──────────────────────────────────────────────── */
+.mg-feed { display:flex; flex-direction:column; gap:8px; max-height: 420px; overflow-y:auto; }
+.mg-feed::-webkit-scrollbar { width:6px; }
+.mg-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:3px; }
 
-  .kpi-card-premium::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 100px;
-    height: 100px;
-    filter: blur(60px);
-    opacity: 0.15;
-    z-index: 0;
-    border-radius: 50%;
-  }
+.mg-feed__row {
+  display:flex; align-items:flex-start; gap:11px;
+  padding:10px 11px; border-radius:11px;
+  background: rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.04);
+}
+.mg-feed__icon {
+  width:32px; height:32px; flex-shrink:0;
+  border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px;
+}
+.mg-feed__row[data-tone="green"]  .mg-feed__icon { background: rgba(52,211,153,.14); color: var(--mg-green); }
+.mg-feed__row[data-tone="rose"]   .mg-feed__icon { background: rgba(244,63,94,.14);  color: var(--mg-rose); }
+.mg-feed__row[data-tone="blue"]   .mg-feed__icon { background: rgba(96,165,250,.14); color: var(--mg-blue); }
+.mg-feed__row[data-tone="violet"] .mg-feed__icon { background: rgba(129,140,248,.14); color: var(--mg-violet); }
+.mg-feed__main { flex:1; min-width:0; }
+.mg-feed__title { font-size:12.5px; font-weight:700; color:var(--mg-txt); }
+.mg-feed__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mg-feed__time { font-size:10.5px; color:var(--mg-soft); white-space:nowrap; flex-shrink:0; padding-top:3px; }
 
-  .kpi-blue::before {
-    background: #38bdf8;
-  }
+/* ── FUNNEL ─────────────────────────────────────────────────────── */
+.mg-funnel { display:flex; flex-direction:column; gap:9px; }
+.mg-funnel__row {
+  display:flex; align-items:center; gap:10px;
+}
+.mg-funnel__lbl { width:130px; flex-shrink:0; font-size:12px; font-weight:700; color:var(--mg-txt); }
+.mg-funnel__bar { flex:1; position:relative; height:26px; border-radius:8px; background: rgba(255,255,255,.04); overflow:hidden; }
+.mg-funnel__fill {
+  position:absolute; inset:0;
+  border-radius:8px;
+  transition: width .6s cubic-bezier(.16,.84,.36,1);
+}
+.mg-funnel__row[data-stage="0"] .mg-funnel__fill { background: linear-gradient(90deg,#60a5fa,#818cf8); }
+.mg-funnel__row[data-stage="1"] .mg-funnel__fill { background: linear-gradient(90deg,#818cf8,#a78bfa); }
+.mg-funnel__row[data-stage="2"] .mg-funnel__fill { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.mg-funnel__row[data-stage="3"] .mg-funnel__fill { background: linear-gradient(90deg,#10b981,#34d399); }
+.mg-funnel__val {
+  width:55px; flex-shrink:0; text-align:right;
+  font-size:13px; font-weight:800; color:var(--mg-txt);
+  font-variant-numeric: tabular-nums;
+}
 
-  .kpi-green::before {
-    background: #10b981;
-  }
+/* ── TOP GROUPS ─────────────────────────────────────────────────── */
+.mg-grp { display:flex; flex-direction:column; gap:8px; }
+.mg-grp__row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:12px;
+  border:1px solid var(--mg-br);
+  background: rgba(255,255,255,.025);
+}
+.mg-grp__main { flex:1; min-width:0; }
+.mg-grp__name { font-size:12.5px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mg-grp__teacher { font-size:10.5px; color:var(--mg-muted); margin-top:2px; }
+.mg-grp__meter {
+  flex:1.5; height:7px; border-radius:5px;
+  background: rgba(255,255,255,.05); overflow:hidden;
+}
+.mg-grp__meter > span {
+  display:block; height:100%;
+  background: linear-gradient(90deg,#22d3ee,#34d399);
+  border-radius:5px;
+}
+.mg-grp__pct {
+  width:60px; text-align:right;
+  font-size:12px; font-weight:800; color:var(--mg-cyan);
+  font-variant-numeric: tabular-nums;
+}
 
-  .kpi-gold::before {
-    background: #fbbf24;
-  }
+/* ── QUICK ACTIONS ──────────────────────────────────────────────── */
+.mg-qa-grid { display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:10px; }
+@media(max-width:1100px){ .mg-qa-grid { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width:560px) { .mg-qa-grid { grid-template-columns: repeat(2, 1fr); } }
 
-  .kpi-red::before {
-    background: #ef4444;
-  }
+.mg-qa {
+  display:flex; align-items:center; gap:11px;
+  padding:13px; border-radius:14px;
+  border:1px solid var(--mg-br);
+  background: var(--mg-card);
+  text-decoration:none; color:inherit;
+  transition: transform .2s, border-color .2s, background .2s, box-shadow .2s;
+}
+.mg-qa:hover { transform: translateY(-2px); border-color: var(--mg-br2); box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+.mg-qa__icon {
+  width:38px; height:38px; flex-shrink:0;
+  border-radius:11px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px;
+  border:1px solid rgba(255,255,255,.07);
+}
+.mg-qa--blue   .mg-qa__icon { background: linear-gradient(135deg, rgba(96,165,250,.2), rgba(96,165,250,.08));  color:var(--mg-blue);   border-color:rgba(96,165,250,.2); }
+.mg-qa--green  .mg-qa__icon { background: linear-gradient(135deg, rgba(52,211,153,.2), rgba(52,211,153,.08));  color:var(--mg-green);  border-color:rgba(52,211,153,.2); }
+.mg-qa--amber  .mg-qa__icon { background: linear-gradient(135deg, rgba(251,191,36,.2), rgba(251,191,36,.08));  color:var(--mg-amber);  border-color:rgba(251,191,36,.2); }
+.mg-qa--violet .mg-qa__icon { background: linear-gradient(135deg, rgba(129,140,248,.2), rgba(129,140,248,.08));color:var(--mg-violet); border-color:rgba(129,140,248,.2); }
+.mg-qa--rose   .mg-qa__icon { background: linear-gradient(135deg, rgba(244,63,94,.2), rgba(244,63,94,.08));    color:var(--mg-rose);   border-color:rgba(244,63,94,.2); }
+.mg-qa__txt { min-width:0; }
+.mg-qa__title { font-size:12.5px; font-weight:800; color:var(--mg-txt); }
+.mg-qa__sub { font-size:10.5px; color:var(--mg-muted); margin-top:2px; }
 
-  .kpi-icon-premium {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    margin-bottom: 16px;
-    position: relative;
-    z-index: 1;
-  }
+/* ── LOADING STATE ──────────────────────────────────────────────── */
+.mg-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.03) 100%);
+  background-size: 200% 100%;
+  animation: mgShimmer 1.4s infinite;
+  border-radius: 8px;
+  height: 14px; width: 80%;
+}
+@keyframes mgShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  .glass-blue {
-    background: rgba(56, 189, 248, 0.1);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.2);
-  }
+.mg-empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding: 36px 16px; gap: 10px; color: var(--mg-muted); text-align:center;
+}
+.mg-empty i { font-size: 28px; color: var(--mg-soft); opacity:.6; }
+.mg-empty p { margin:0; font-size: 12.5px; }
 
-  .glass-green {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-  }
+/* ══════════════════ ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK ══════════
+ * Director "boshqaruv" panelidagi ikki sectionning 1:1 nusxasi,
+ * faqat manager uchun dark variantida sozlangan. */
+.mg-groups-activity-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.05fr) minmax(360px, 1fr);
+  gap: 14px;
+}
+.mg-best-card,
+.mg-activity-card {
+  min-height: 340px;
+  border-radius: 18px;
+  border: 1px solid var(--mg-br);
+  background: var(--mg-card);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  color: var(--mg-txt);
+  overflow: hidden;
+}
+.mg-best-card__head,
+.mg-activity-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px 14px;
+}
+.mg-best-card__title,
+.mg-activity-card__title {
+  margin: 0;
+  color: var(--mg-txt);
+  font-size: 17px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.mg-best-card__sub,
+.mg-activity-card__sub {
+  margin: 6px 0 0;
+  color: var(--mg-soft);
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.mg-best-card__link,
+.mg-activity-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mg-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mg-br);
+  background: rgba(255,255,255,.03);
+  transition: color .2s, border-color .2s, background .2s;
+}
+.mg-best-card__link:hover,
+.mg-activity-card__link:hover {
+  color: var(--mg-cyan);
+  border-color: var(--mg-br2);
+  background: rgba(34,211,238,.08);
+}
+.mg-best-table-wrap { overflow-x: auto; }
+.mg-best-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+.mg-best-table thead { background: rgba(255,255,255,.03); }
+.mg-best-table th {
+  height: 38px;
+  padding: 0 22px;
+  color: var(--mg-soft);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mg-best-table th:nth-child(3) { text-align: center; }
+.mg-best-table td {
+  height: 54px;
+  padding: 0 22px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  color: var(--mg-muted);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.mg-best-table tr:last-child td { border-bottom: 0; }
+.mg-best-table tbody tr { transition: background .15s ease; }
+.mg-best-table tbody tr:hover { background: rgba(255,255,255,.025); }
 
-  .glass-gold {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.2);
-  }
+.mg-best-group {
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+}
+.mg-best-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 14px; font-weight: 800;
+}
+.mg-best-name { min-width: 0; }
+.mg-best-name strong {
+  display: block; max-width: 220px; overflow: hidden;
+  color: var(--mg-txt); font-size: 13.5px; font-weight: 800; line-height: 1.2;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mg-best-name small {
+  display: block; margin-top: 2px;
+  color: var(--mg-soft); font-size: 11.5px; font-weight: 500;
+}
+.mg-best-teacher {
+  display: inline-block; max-width: 180px; overflow: hidden;
+  color: var(--mg-muted); font-weight: 600;
+  text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+}
+.mg-best-count,
+.mg-best-revenue {
+  color: var(--mg-txt); font-size: 13.5px; font-weight: 800;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.mg-best-count { text-align: center; }
+.mg-best-fill {
+  display: grid; grid-template-columns: minmax(120px, 1fr) 46px;
+  align-items: center; gap: 12px;
+}
+.mg-best-fill__track {
+  height: 6px; border-radius: 999px;
+  background: rgba(255,255,255,.06); overflow: hidden;
+}
+.mg-best-fill__bar {
+  display: block; height: 100%; border-radius: inherit;
+  transition: width .35s ease;
+}
+.mg-best-fill__pct {
+  color: var(--mg-muted); font-size: 12.5px; font-weight: 800; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mg-best-empty,
+.mg-activity-empty {
+  height: 150px;
+  color: var(--mg-soft); font-size: 13px; font-weight: 600;
+  text-align: center;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
 
-  .glass-red {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-  }
+.mg-activity-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+.mg-activity-list::-webkit-scrollbar { width: 7px; }
+.mg-activity-list::-webkit-scrollbar-thumb {
+  border-radius: 999px; background: rgba(255,255,255,.10);
+}
+.mg-activity-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center; gap: 12px;
+  min-height: 56px;
+  padding: 9px 18px 9px 22px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .15s ease;
+}
+.mg-activity-item:last-child { border-bottom: 0; }
+.mg-activity-item:hover { background: rgba(255,255,255,.025); }
+.mg-activity-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13.5px;
+}
+.mg-activity-icon--payment { background: rgba(52,211,153,.16);  color: #6ee7b7; }
+.mg-activity-icon--lead    { background: rgba(96,165,250,.16);  color: #93c5fd; }
+.mg-activity-icon--absence { background: rgba(244,63,94,.16);   color: #fda4af; }
+.mg-activity-icon--demo    { background: rgba(124,58,237,.18);  color: #c4b5fd; }
+.mg-activity-icon--leave   { background: rgba(220,38,38,.18);   color: #fca5a5; }
+.mg-activity-icon--reward  { background: rgba(217,119,6,.18);   color: #fcd34d; }
+.mg-activity-info { min-width: 0; }
+.mg-activity-title {
+  overflow: hidden; color: var(--mg-txt);
+  font-size: 13.5px; font-weight: 700; line-height: 1.25;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mg-activity-meta {
+  margin-top: 3px; overflow: hidden;
+  color: var(--mg-soft); font-size: 12px; font-weight: 500;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mg-activity-amount {
+  color: #6ee7b7; font-size: 13px; font-weight: 800; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mg-activity-amount--negative { color: #fda4af; }
 
-  .kpi-label {
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--slate-500);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-  }
+/* ── 3-nuqta menyu (director 1:1 nusxasi) ───────────────────────── */
+.mg-best-more {
+  width: 28px; height: 28px;
+  border: 0; border-radius: 8px;
+  background: transparent; color: var(--mg-soft);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.mg-best-more:hover,
+.mg-best-more.is-open {
+  background: rgba(255,255,255,.06);
+  color: var(--mg-txt);
+}
+.mg-best-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 220px;
+  max-width: 260px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .98);
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
+  opacity: 0;
+  transform: translateY(-4px) scale(.98);
+  pointer-events: none;
+  transition: opacity .14s ease, transform .14s ease;
+}
+.mg-best-menu.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.mg-best-menu__item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 12px;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px; font-weight: 600;
+  text-decoration: none;
+  background: transparent; border: 0;
+  text-align: left; cursor: pointer;
+}
+.mg-best-menu__item:hover {
+  background: rgba(59, 130, 246, .16);
+  color: #ffffff;
+  text-decoration: none;
+}
+.mg-best-menu__item i {
+  width: 16px; font-size: 13px; color: var(--mg-muted);
+}
+.mg-best-menu__divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, .08);
+}
 
-  .kpi-value {
-    font-size: 28px;
-    font-weight: 950;
-    color: #fff;
-    line-height: 1;
-  }
+@media(max-width:1180px){
+  .mg-groups-activity-grid { grid-template-columns: 1fr; }
+  .mg-activity-list { max-height: 340px; }
+}
+@media(max-width:720px){
+  .mg-best-card__head,
+  .mg-activity-card__head { padding: 16px; }
+  .mg-best-card__title,
+  .mg-activity-card__title { font-size: 16px; }
+  .mg-best-card__link,
+  .mg-activity-card__link { font-size: 12.5px; }
+  .mg-activity-item { padding: 10px 14px; grid-template-columns: 34px minmax(0, 1fr); }
+  .mg-activity-amount { grid-column: 2; justify-self: start; margin-top: -4px; }
+}
 
-  /* SECTION CARDS */
-  .section-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-  }
+/* ══════════════════ AI CHAT (manager) ══════════════════ */
+.mg-ai-btn {
+  height: 38px; padding: 0 14px; border-radius: 11px;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(129,140,248,.32);
+  background: linear-gradient(135deg, rgba(129,140,248,.18), rgba(244,63,94,.10));
+  color: #c4b5fd; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  transition: transform .18s, box-shadow .2s;
+}
+.mg-ai-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(129,140,248,.18); }
+.mg-ai-btn__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #34d399; box-shadow: 0 0 8px #34d399;
+  animation: mg-ai-pulse 1.6s ease-in-out infinite;
+}
+@keyframes mg-ai-pulse {
+  0%, 100% { opacity: .5; transform: scale(.8); }
+  50%      { opacity: 1;  transform: scale(1.1); }
+}
 
-  .card-premium-glass {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid var(--glass-border);
-    border-radius: 36px;
-    padding: 32px;
-    backdrop-filter: blur(30px);
-  }
+.mg-chat-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  backdrop-filter: blur(2px); z-index: 998;
+  opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s;
+}
+.mg-chat-overlay.open { opacity: 1; visibility: visible; }
 
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
+.mg-chat {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(420px, 96vw);
+  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
+  border-left: 1px solid var(--mg-br2);
+  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .25s ease;
+  z-index: 999;
+}
+.mg-chat.open { transform: translateX(0); }
 
-  .section-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+.mg-chat__header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--mg-br);
+}
+.mg-chat__hicon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(129,140,248,.18), rgba(244,63,94,.10));
+  border: 1px solid rgba(129,140,248,.22); color: #c4b5fd;
+}
+.mg-chat__htitle { font-size: 13.5px; font-weight: 800; color: var(--mg-txt); flex:1; }
+.mg-chat__hsub   { font-size: 10.5px; color: var(--mg-muted); margin-top: 2px; }
+.mg-chat__close  {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: transparent; border: 1px solid var(--mg-br); color: var(--mg-muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.mg-chat__close:hover { background: rgba(255,255,255,.06); color: var(--mg-txt); }
 
-  .section-title i {
-    color: var(--accent);
-  }
+.mg-chat__messages {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.mg-chat__messages::-webkit-scrollbar { width: 4px; }
+.mg-chat__messages::-webkit-scrollbar-track { background: transparent; }
+.mg-chat__messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
 
-  /* LOW ACTIVITY LIST */
-  .student-list-mini {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+.mg-msg { display: flex; gap: 8px; align-items: flex-start; max-width: 100%; }
+.mg-msg--user { flex-direction: row-reverse; }
+.mg-msg__ava {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 800; flex-shrink: 0;
+  background: rgba(129,140,248,.16); color: #c4b5fd;
+  border: 1px solid rgba(129,140,248,.22);
+}
+.mg-msg--user .mg-msg__ava { background: rgba(34,211,238,.16); color: #67e8f9; border-color: rgba(34,211,238,.22); }
+.mg-msg__bubble {
+  padding: 9px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--mg-br);
+  color: var(--mg-txt); font-size: 12.5px; line-height: 1.55;
+  max-width: calc(100% - 36px); word-wrap: break-word;
+}
+.mg-msg--user .mg-msg__bubble { background: rgba(34,211,238,.10); border-color: rgba(34,211,238,.20); }
+.mg-msg__typing { display: inline-flex; gap: 3px; padding: 4px 0; }
+.mg-msg__typing span {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--mg-muted);
+  animation: mg-typing-bounce 1.2s ease-in-out infinite;
+}
+.mg-msg__typing span:nth-child(2) { animation-delay: .15s; }
+.mg-msg__typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes mg-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+  30%           { transform: translateY(-3px); opacity: 1; }
+}
 
-  .student-item-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid transparent;
-    border-radius: 20px;
-    transition: 0.3s;
-    text-decoration: none !important;
-  }
+.mg-chat__prompts {
+  display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap;
+  border-top: 1px solid var(--mg-br);
+}
+.mg-chat__prompt {
+  padding: 6px 10px; border-radius: 9px;
+  background: rgba(129,140,248,.08); border: 1px solid rgba(129,140,248,.18);
+  color: var(--mg-txt); font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.mg-chat__prompt:hover { background: rgba(129,140,248,.14); }
 
-  .student-item-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: translateX(8px);
-  }
-
-  .student-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .student-info {
-    flex-grow: 1;
-  }
-
-  .student-info .name {
-    font-size: 15px;
-    font-weight: 800;
-    color: #fff;
-    display: block;
-  }
-
-  .student-info .course {
-    font-size: 11px;
-    color: var(--slate-500);
-    font-weight: 600;
-  }
-
-  .activity-status-box {
-    text-align: right;
-  }
-
-  .activity-status-box .pct {
-    font-size: 16px;
-    font-weight: 900;
-    color: var(--red-glow);
-  }
-
-  .activity-status-box .label {
-    font-size: 9px;
-    color: var(--slate-500);
-    text-transform: uppercase;
-    font-weight: 700;
-  }
-
-  /* QUICK ACTIONS BOX */
-  .action-box-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .quick-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    text-decoration: none !important;
-    transition: 0.3s;
-  }
-
-  .quick-action-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: scale(1.02);
-  }
-
-  .action-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-  }
-
-  .action-text .title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    display: block;
-  }
-
-  .action-text .sub {
-    font-size: 12px;
-    color: var(--slate-500);
-  }
-
-  .quick-action-btn {
-    padding: 12px 14px;
-  }
-
-  /* RESPONSIVE */
-  @media (max-width: 1200px) {
-    .section-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 991px) {
-    .dashboard-header {
-      flex-direction: column;
-      gap: 20px;
-      align-items: stretch;
-      text-align: center;
-    }
-
-    .header-content {
-      flex-direction: column;
-    }
-
-    .search-wrapper {
-      margin: 0;
-      max-width: 100%;
-    }
-  }
+.mg-chat__footer { padding: 12px 14px; border-top: 1px solid var(--mg-br); }
+.mg-chat__inputrow { display: flex; gap: 8px; align-items: flex-end; }
+.mg-chat__input {
+  flex: 1; min-height: 40px; max-height: 120px; padding: 10px 12px;
+  border-radius: 11px; border: 1px solid var(--mg-br); resize: none;
+  background: rgba(255,255,255,.04); color: var(--mg-txt);
+  font-family: inherit; font-size: 13px; line-height: 1.4;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.mg-chat__input::placeholder { color: var(--mg-soft); }
+.mg-chat__input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.07); }
+.mg-chat__send {
+  width: 40px; height: 40px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; flex-shrink: 0;
+  background: linear-gradient(135deg, #818cf8, #f43f5e);
+  color: white; transition: transform .15s;
+}
+.mg-chat__send:hover { transform: scale(1.05); }
+.mg-chat__send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="stat-container">
+<div class="mg">
+  <div class="mg-shell">
 
-  <!-- PREMIUM HEADER WITH SEARCH -->
-  <header class="dashboard-header animate__animated animate__fadeInDown">
-    <div class="header-content">
-      <div class="header-icon">
-        <i class="fa-solid fa-bolt-lightning text-amber"></i>
-      </div>
-      <div class="header-text">
-        <h1>Manager Paneli</h1>
-        <p>Markaz faoliyati va boshqaruvi</p>
-      </div>
-    </div>
-
-    <!-- STUDENT SEARCH -->
-    <div class="search-wrapper">
-      <form action="{% url 'core:stat_students' %}" method="get">
-        <div class="search-input-group">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" name="q" placeholder="Foydalanuvchini ism yoki telefon bo'yicha qidiring..."
-            autocomplete="off">
-          <button type="submit" style="display: none;"></button>
+    <!-- HEADER -->
+    <header class="mg-header">
+      <div class="mg-brand">
+        <div class="mg-brand__icon"><i class="fa-solid fa-bolt-lightning"></i></div>
+        <div>
+          <div class="mg-brand__kicker">Manager paneli</div>
+          <div class="mg-brand__title">{{ center.name|default:"Markaz" }}</div>
         </div>
-      </form>
+      </div>
+      <div class="mg-header__sync">
+        <span class="dot"></span>
+        <span>Yangilandi <span id="mgSyncTime">—</span></span>
+      </div>
+      <button type="button" class="mg-ai-btn" id="mgAiOpen">
+        <span class="mg-ai-btn__dot"></span>
+        <i class="fa-solid fa-robot"></i>
+        AI Chat
+      </button>
+      <button type="button" class="mg-header__refresh" id="mgRefreshBtn">
+        <i class="fa-solid fa-arrows-rotate"></i> Yangilash
+      </button>
+    </header>
+
+    <!-- SANA FILTERI -->
+    <div class="mg-filter">
+      <div class="mg-field">
+        <label class="mg-field__lbl" for="mgFrom">Sanadan</label>
+        <input type="date" id="mgFrom" aria-label="Sanadan" title="Sanadan">
+      </div>
+      <div class="mg-field">
+        <label class="mg-field__lbl" for="mgTo">Sanagacha</label>
+        <input type="date" id="mgTo" aria-label="Sanagacha" title="Sanagacha">
+      </div>
+      <div class="mg-presets">
+        <button type="button" class="mg-preset" data-range="today">Bugun</button>
+        <button type="button" class="mg-preset" data-range="7">7 kun</button>
+        <button type="button" class="mg-preset is-active" data-range="month">Joriy oy</button>
+        <button type="button" class="mg-preset" data-range="30">30 kun</button>
+        <button type="button" class="mg-preset" data-range="90">90 kun</button>
+      </div>
+      <div class="mg-filter__spacer"></div>
+      <button type="button" class="mg-filter__reset" id="mgFilterReset">
+        <i class="fa-solid fa-rotate-left"></i> Tiklash
+      </button>
     </div>
 
-    <div class="top-meta">
-      <div class="meta-btn position-relative" onclick="toggleNotificationSidebar()" title="Bildirishnomalar">
-        <i class="fa-regular fa-bell"></i>
-        {% if unread_notifications_count > 0 %}
-        <span class="position-absolute translate-middle p-1 bg-danger rounded-circle"
-          style="top: 12px; right: 8px; width: 10px; height: 10px; border: 2px solid var(--bg-deep);"></span>
-        {% endif %}
+    <!-- KPI GRID — 4 ta asosiy ko'rsatkich (sana filteri bilan) -->
+    <div class="mg-kgrid">
+      <a class="mg-kpi mg-kpi--blue" href="{% url 'core:stat_students' %}">
+        <div class="mg-kpi__head">
+          <div class="mg-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
+          <span class="mg-badge mg-badge--flat" id="mgK1d">—</span>
+        </div>
+        <div class="mg-kpi__lbl">Faol O'quvchilar</div>
+        <div class="mg-kpi__val" id="mgK1v">—</div>
+        <div class="mg-kpi__sub" id="mgK1s">—</div>
+      </a>
+
+      <div class="mg-kpi mg-kpi--green">
+        <div class="mg-kpi__head">
+          <div class="mg-kpi__icon"><i class="fa-solid fa-clipboard-user"></i></div>
+          <span class="mg-badge mg-badge--flat" id="mgK2d">—</span>
+        </div>
+        <div class="mg-kpi__lbl">Davomat</div>
+        <div class="mg-kpi__val" id="mgK2v">—</div>
+        <div class="mg-kpi__sub" id="mgK2s">—</div>
       </div>
 
-      {% include "components/profile_dropdown.html" %}
+      <a class="mg-kpi mg-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
+        <div class="mg-kpi__head">
+          <div class="mg-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <span class="mg-badge mg-badge--flat" id="mgK3d">—</span>
+        </div>
+        <div class="mg-kpi__lbl">Qarzdorlar</div>
+        <div class="mg-kpi__val" id="mgK3v">—</div>
+        <div class="mg-kpi__sub" id="mgK3s">Davr oxiriga snapshot</div>
+      </a>
+
+      <a class="mg-kpi mg-kpi--cyan" href="{% url 'education:tolovlar_home' %}">
+        <div class="mg-kpi__head">
+          <div class="mg-kpi__icon"><i class="fa-solid fa-receipt"></i></div>
+          <span class="mg-badge mg-badge--flat" id="mgK6d">—</span>
+        </div>
+        <div class="mg-kpi__lbl">To'lovlar</div>
+        <div class="mg-kpi__val" id="mgK6v">—</div>
+        <div class="mg-kpi__sub">Tanlangan davr · soni</div>
+      </a>
     </div>
-  </header>
 
-  <!-- MAIN KPI GRID -->
-  <div class="kpi-grid">
-    <!-- Students -->
-    <a href="{% url 'core:stat_students' %}" class="kpi-card-premium kpi-green animate__animated animate__zoomIn">
-      <div class="kpi-icon-premium glass-green">
-        <i class="fa-solid fa-graduation-cap"></i>
-      </div>
-      <div class="kpi-label">O'quvchilar</div>
-      <div class="kpi-value counter" data-kpi="students">{{ stats.students|default:0 }}</div>
-    </a>
+    <!-- ── ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK (director 1:1) ── -->
+    <div class="mg-sec">
+      <div class="mg-groups-activity-grid">
+        <div class="mg-best-card">
+          <div class="mg-best-card__head">
+            <div>
+              <h3 class="mg-best-card__title">Eng yaxshi guruhlar</h3>
+              <p class="mg-best-card__sub">To'ldirilganligi bo'yicha tartiblangan</p>
+            </div>
+            <a class="mg-best-card__link" href="{% url 'education:all_groups' %}">
+              Hammasini ko'rish
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+          <div class="mg-best-table-wrap">
+            <table class="mg-best-table">
+              <thead>
+                <tr>
+                  <th>Guruh</th>
+                  <th>O'qituvchi</th>
+                  <th>O'quvchilar</th>
+                  <th>To'ldirilganlik</th>
+                  <th>Tushum</th>
+                  <th aria-label="Amallar"></th>
+                </tr>
+              </thead>
+              <tbody id="mgBestGroupsTable">
+                <tr><td colspan="6" class="mg-best-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-    <!-- Teachers -->
-    <a href="{% url 'core:stat_teachers' %}" class="kpi-card-premium kpi-blue animate__animated animate__zoomIn"
-      style="animation-delay: 0.1s;">
-      <div class="kpi-icon-premium glass-blue">
-        <i class="fa-solid fa-chalkboard-user"></i>
+        <div class="mg-activity-card">
+          <div class="mg-activity-card__head">
+            <div>
+              <h3 class="mg-activity-card__title">So'nggi faollik</h3>
+              <p class="mg-activity-card__sub">Real vaqtda — to'lovlar va davomat</p>
+            </div>
+            <a class="mg-activity-card__link" href="{% url 'core:activity_history' %}">
+              Hammasi
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+          <div class="mg-activity-list" id="mgRecentActivityList">
+            <div class="mg-activity-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+          </div>
+        </div>
       </div>
-      <div class="kpi-label">O'qituvchilar</div>
-      <div class="kpi-value counter" data-kpi="teachers">{{ stats.teachers|default:0 }}</div>
-    </a>
+    </div>
 
-    <!-- Products -->
-    <a href="{% url 'core:stat_products' %}" class="kpi-card-premium kpi-gold animate__animated animate__zoomIn"
-      style="animation-delay: 0.2s;">
-      <div class="kpi-icon-premium glass-gold">
-        <i class="fa-solid fa-box-open"></i>
+    <!-- QUICK ACTIONS -->
+    <div class="mg-sec">
+      <div class="mg-sec__hd">
+        <div class="mg-sec__ico" style="background:rgba(129,140,248,.12);color:var(--mg-violet);border-color:rgba(129,140,248,.18)">
+          <i class="fa-solid fa-compass"></i>
+        </div>
+        <div>
+          <h3 class="mg-sec__title">Tezkor amallar</h3>
+          <p class="mg-sec__sub">Eng ko'p ishlatiladigan bo'limlar</p>
+        </div>
       </div>
-      <div class="kpi-label">Mahsulotlar</div>
-      <div class="kpi-value counter" data-kpi="products">{{ stats.products|default:0 }}</div>
-    </a>
+      <div class="mg-qa-grid">
+        <a class="mg-qa mg-qa--blue" href="{% url 'core:stat_students' %}">
+          <div class="mg-qa__icon"><i class="fa-solid fa-user-plus"></i></div>
+          <div class="mg-qa__txt"><div class="mg-qa__title">O'quvchilar</div><div class="mg-qa__sub">Ro'yxat va kartalar</div></div>
+        </a>
+        <a class="mg-qa mg-qa--green" href="{% url 'education:attendance_groups' %}">
+          <div class="mg-qa__icon"><i class="fa-solid fa-clipboard-user"></i></div>
+          <div class="mg-qa__txt"><div class="mg-qa__title">Davomat</div><div class="mg-qa__sub">Yo'qlama olish</div></div>
+        </a>
+        <a class="mg-qa mg-qa--violet" href="{% url 'education:groups_home' %}">
+          <div class="mg-qa__icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="mg-qa__txt"><div class="mg-qa__title">Guruhlar</div><div class="mg-qa__sub">Boshqaruv</div></div>
+        </a>
+        <a class="mg-qa mg-qa--amber" href="{% url 'education:tolovlar_home' %}">
+          <div class="mg-qa__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+          <div class="mg-qa__txt"><div class="mg-qa__title">To'lovlar</div><div class="mg-qa__sub">Qabul va tarix</div></div>
+        </a>
+        <a class="mg-qa mg-qa--rose" href="{% url 'store:lead_list' %}">
+          <div class="mg-qa__icon"><i class="fa-solid fa-phone-volume"></i></div>
+          <div class="mg-qa__txt"><div class="mg-qa__title">Lidlar</div><div class="mg-qa__sub">Potentsial mijozlar</div></div>
+        </a>
+      </div>
+    </div>
 
-    <!-- Requests -->
-    <a href="{% url 'core:stat_requests' %}" class="kpi-card-premium kpi-red animate__animated animate__zoomIn"
-      style="animation-delay: 0.3s;">
-      <div class="kpi-icon-premium glass-red">
-        <i class="fa-solid fa-cart-shopping"></i>
-      </div>
-      <div class="kpi-label">So'rovlar</div>
-      <div class="kpi-value counter" data-kpi="pending_requests">{{ stats.pending_requests|default:0 }}</div>
-    </a>
   </div>
+</div>
+{% include "components/grace_period_modal.html" %}
 
-  <!-- MAIN WORKSPACE -->
-  <div class="section-grid">
-
-    <!-- LEFT: LOW ACTIVITY STUDENTS -->
-    <div class="card-premium-glass animate__animated animate__fadeInUp">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-user-clock"></i> Faolligi Past Talabalar</h2>
-        <a href="{% url 'core:low_activity_students' %}"
-          class="btn badge rounded-pill bg-white bg-opacity-10 text-white-50 xs-text text-uppercase px-3 py-2">Barchasi...</a>
-      </div>
-
-      <div class="student-list-mini" id="low-activity-list" data-deferred="{% if deferred %}1{% else %}0{% endif %}">
-        {% if deferred %}
-        <div class="text-center py-5" data-placeholder="loading">
-          <i class="fa-solid fa-circle-notch fa-spin text-white-50 fa-2x mb-2"></i>
-          <p class="text-white-50 small mb-0">Yuklanmoqda…</p>
-        </div>
-        {% else %}
-        {% for s in low_activity_list %}
-        <a href="{% url 'core:user_view' s.student_id %}" class="student-item-card">
-          <img src="{{ s.avatar }}" alt="{{ s.name }}" class="student-avatar">
-          <div class="student-info">
-            <span class="name">{{ s.name }}</span>
-            <div class="course">{{ s.course }} • {{ s.phone }}</div>
-          </div>
-          <div class="activity-status-box">
-            <div class="pct">{{ s.status }}%</div>
-            <div class="label">Faollik</div>
-          </div>
-        </a>
-        {% empty %}
-        <div class="text-center py-5">
-          <i class="fa-solid fa-circle-check text-success fa-3x mb-3 opacity-25"></i>
-          <p class="text-white-50">Hamma talabalar faol! Mukammal natija.</p>
-        </div>
-        {% endfor %}
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- RIGHT: QUICK NAVIGATION -->
-    <div class="card-premium-glass animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-compass"></i> Tezkor Navigatsiya</h2>
-        <span class="text-white-50 small opacity-50">Tezkor kirish</span>
-      </div>
-
-      <div class="action-box-grid">
-        <!-- Education -->
-        <a href="{% url 'education:groups_home' %}" class="quick-action-btn">
-          <div class="action-icon glass-blue"><i class="fa-solid fa-layer-group"></i></div>
-          <div class="action-text">
-            <span class="title">Guruhlar</span>
-            <span class="sub">Ro'yxat va nazorat</span>
-          </div>
-        </a>
-
-        <a href="{% url 'education:attendance_groups' %}" class="quick-action-btn">
-          <div class="action-icon glass-green"><i class="fa-solid fa-clipboard-user"></i></div>
-          <div class="action-text">
-            <span class="title">Davomat</span>
-            <span class="sub">Yo'qlama qilish</span>
-          </div>
-        </a>
-
-        <!-- Store -->
-        <a href="{% url 'core:stat_products' %}" class="quick-action-btn">
-          <div class="action-icon glass-gold"><i class="fa-solid fa-box-open"></i></div>
-          <div class="action-text">
-            <span class="title">Ombor</span>
-            <span class="sub">Mahsulotlar boshqaruvi</span>
-          </div>
-        </a>
-
-        <a href="{% url 'education:teacher_salary_list' %}" class="quick-action-btn">
-          <div class="action-icon glass-red"><i class="fa-solid fa-money-bill-wave"></i></div>
-          <div class="action-text">
-            <span class="title">Oyliklar</span>
-            <span class="sub">Xodimlar maoshi</span>
-          </div>
-        </a>
-
-        <!-- Leads -->
-        <a href="{% url 'store:lead_list' %}" class="quick-action-btn">
-          <div class="action-icon"
-            style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2);"><i
-              class="fa-solid fa-filter-circle-dollar"></i></div>
-          <div class="action-text">
-            <span class="title">Leadlar</span>
-            <span class="sub">Potentsial mijozlar</span>
-          </div>
-        </a>
-      </div>
-    </div>
-
-  </div>
-
+<!-- "Eng yaxshi guruhlar" satrlari uchun ko'proq menyu (3 nuqta tugma) -->
+<div id="mgBestGroupsMenu" class="mg-best-menu" role="menu" aria-hidden="true">
+  <a href="#" class="mg-best-menu__item" data-action="open" role="menuitem"><i class="fa-solid fa-arrow-up-right-from-square"></i> Guruhga kirish</a>
+  <a href="#" class="mg-best-menu__item" data-action="schedule" role="menuitem"><i class="fa-regular fa-calendar"></i> Jadval</a>
+  <a href="#" class="mg-best-menu__item" data-action="add-student" role="menuitem"><i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish</a>
+  <div class="mg-best-menu__divider"></div>
+  <a href="#" class="mg-best-menu__item" data-action="edit" role="menuitem"><i class="fa-solid fa-pen-to-square"></i> Tahrirlash</a>
 </div>
 
-{% include "components/grace_period_modal.html" %}
+<script>
+  // Group action URL templates — built via Django reverse with a sentinel
+  // ID, then the placeholder is swapped at click time.
+  window.__MG_GROUP_URLS = {
+    open:          "{% url 'education:group_detail'         pk=999999 %}",
+    edit:          "{% url 'education:group_edit'           pk=999999 %}",
+    'add-student': "{% url 'education:add_student_to_group' pk=999999 %}",
+    schedule:      "{% url 'education:group_schedule_manage' group_id=999999 %}",
+  };
+</script>
+
+<!-- ══════════════════ AI CHAT (manager) ══════════════════ -->
+<div class="mg-chat-overlay" id="mgChatOverlay"></div>
+<div class="mg-chat" id="mgChatPanel">
+  <div class="mg-chat__header">
+    <div class="mg-chat__hicon"><i class="fa-solid fa-robot"></i></div>
+    <div style="flex:1; min-width:0;">
+      <div class="mg-chat__htitle">AI Yordamchi</div>
+      <div class="mg-chat__hsub">Gemini · {{ center.name|default:"Markaz" }} · manager ko'rinishi</div>
+    </div>
+    <button class="mg-chat__close" id="mgChatClose" type="button"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="mg-chat__messages" id="mgChatMessages">
+    <div class="mg-msg">
+      <div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div>
+      <div class="mg-msg__bubble">
+        Salom! Men <strong>{{ center.name|default:"markaz" }}</strong> bo'yicha guruhlar, davomat, qarzdorlar va o'quvchilar haqida savollarga javob beraman.<br><br>
+        Telefon raqamlar maxfiyligi sabab maskalanadi.
+      </div>
+    </div>
+  </div>
+
+  <div class="mg-chat__prompts">
+    <button class="mg-chat__prompt" data-q="Bugungi davomat qanday?">📊 Bugungi davomat</button>
+    <button class="mg-chat__prompt" data-q="Kim qarzdor?">⚠️ Qarzdorlar</button>
+    <button class="mg-chat__prompt" data-q="Faol guruhlar nechta?">👥 Faol guruhlar</button>
+    <button class="mg-chat__prompt" data-q="Past faollikdagi o'quvchilar kimlar?">🔻 Past faollik</button>
+  </div>
+
+  <div class="mg-chat__footer">
+    <div class="mg-chat__inputrow">
+      <textarea class="mg-chat__input" id="mgChatInput" placeholder="Savol yozing... (Enter yuboradi)" rows="1"></textarea>
+      <button class="mg-chat__send" id="mgChatSend" type="button"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-  // Simple counter animation
-  document.addEventListener('DOMContentLoaded', () => {
-    const counters = document.querySelectorAll('.counter');
-    counters.forEach(counter => {
-      const target = +counter.innerText;
-      const inc = target / 20;
-      let count = 0;
+(function(){
+  const centerSlug = "{{ center.slug|default:''|escapejs }}";
+  const slugPrefix = centerSlug ? "/" + centerSlug : "";
+  const apiUrl = slugPrefix + "/api/dashboard/manager/";
 
-      const updateCount = () => {
-        if (count < target) {
-          count += inc;
-          counter.innerText = Math.ceil(count);
-          setTimeout(updateCount, 20);
-        } else {
-          counter.innerText = target;
+  function fmtN(n){ return n==null?'—':Number(n).toLocaleString('uz-UZ'); }
+  function fmtP(n){ return n==null?'—':Math.round(n)+'%'; }
+  function fmtSom(n){
+    if(n==null||n==='') return '—';
+    return Number(Math.round(n)).toLocaleString('uz-UZ') + ' so\'m';
+  }
+  function fmtSomSigned(amount){
+    if(amount==null||amount==='') return '';
+    const v = Number(amount||0);
+    const sign = v<0?'−':'+';
+    return sign + Math.abs(Math.round(v)).toLocaleString('uz-UZ') + ' so\'m';
+  }
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+  function formatActivityTime(iso){
+    if(!iso) return '';
+    const dt = new Date(iso);
+    if(isNaN(dt.getTime())) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - dt.getTime();
+    const minute = 60*1000, hour = 60*minute, day = 24*hour;
+    if(diffMs >= 0 && diffMs < minute) return 'hozir';
+    if(diffMs >= 0 && diffMs < hour)   return Math.max(1, Math.round(diffMs/minute)) + ' daqiqa oldin';
+    if(diffMs >= 0 && diffMs < day)    return Math.round(diffMs/hour) + ' soat oldin';
+    const sameYear = dt.getFullYear() === now.getFullYear();
+    return dt.toLocaleDateString('uz-UZ', {day:'2-digit', month:'2-digit', ...(sameYear?{}:{year:'numeric'})});
+  }
+  function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+  function setBadge(id, v){
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(v==null){ el.textContent='—'; el.className='mg-badge mg-badge--flat'; return; }
+    const f = parseFloat(v);
+    if(f>0){ el.innerHTML = `<i class="fa-solid fa-arrow-up"></i> +${f}%`; el.className='mg-badge mg-badge--up'; }
+    else if(f<0){ el.innerHTML = `<i class="fa-solid fa-arrow-down"></i> ${f}%`; el.className='mg-badge mg-badge--down'; }
+    else { el.textContent = '0%'; el.className='mg-badge mg-badge--flat'; }
+  }
+  function relTime(iso){
+    if(!iso) return '';
+    try {
+      const dt = new Date(iso);
+      const sec = (Date.now() - dt.getTime())/1000;
+      if(sec < 60) return 'hozir';
+      if(sec < 3600) return Math.floor(sec/60) + ' daq';
+      if(sec < 86400) return Math.floor(sec/3600) + ' soat';
+      const days = Math.floor(sec/86400);
+      if(days < 7) return days + ' kun';
+      return dt.toLocaleDateString('uz-UZ', {day:'2-digit', month:'2-digit'});
+    } catch(_){ return ''; }
+  }
+  function initials(name){
+    if(!name) return '?';
+    const parts = String(name).trim().split(/\s+/);
+    return (parts[0]?.[0]||'') + (parts[1]?.[0]||'');
+  }
+
+  // ── Chart.js theme ─────────────────────────────────────────
+  if(window.Chart){
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,.05)';
+    Chart.defaults.font.family = "'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif";
+  }
+
+  let attChart = null;
+
+  function renderKPI(k){
+    const ch = k.changes || {};
+    setText('mgK1v', fmtN(k.active_students));
+    setText('mgK1s', `+${fmtN(k.new_this_month)} davr ichida`);
+    setBadge('mgK1d', ch.active_students);
+
+    setText('mgK2v', fmtP(k.att_pct_today));
+    setText('mgK2s', k.att_today_label || '—');
+    setBadge('mgK2d', ch.att_pct);
+
+    setText('mgK3v', fmtN(k.debtors));
+    setBadge('mgK3d', ch.debtors);
+
+    setText('mgK6v', fmtN(k.pays_today));
+    setBadge('mgK6d', ch.pays);
+  }
+
+  function renderTodayList(items){
+    const el = document.getElementById('mgTodayList');
+    const cnt = document.getElementById('mgTodayCount');
+    if(!el) return;
+    if(!items || items.length === 0){
+      el.innerHTML = '<div class="mg-empty"><i class="fa-regular fa-calendar-check"></i><p>Bugun rejada darslar yo\'q</p></div>';
+      if(cnt) cnt.textContent = "Bugun darslar yo'q";
+      return;
+    }
+    if(cnt) cnt.textContent = `${items.length} ta dars rejada`;
+    el.innerHTML = items.map(it => {
+      const status = it.taken
+        ? `<span class="mg-row__status mg-row__status--ok"><i class="fa-solid fa-check"></i> ${it.present}/${it.total} · ${it.pct}%</span>`
+        : `<span class="mg-row__status mg-row__status--wait"><i class="fa-regular fa-clock"></i> Davomat olinmagan</span>`;
+      return `<a class="mg-row" href="${slugPrefix}/education/groups/${it.id}/">
+        <div class="mg-row__time">${escapeHtml(it.time || '—')}</div>
+        <div class="mg-row__main">
+          <div class="mg-row__title">${escapeHtml(it.name)}</div>
+          <div class="mg-row__sub">${escapeHtml(it.teacher || '—')}</div>
+        </div>
+        ${status}
+      </a>`;
+    }).join('');
+  }
+
+  function renderAttention(items){
+    const el = document.getElementById('mgAttentionList');
+    if(!el) return;
+    if(!items || items.length === 0){
+      el.innerHTML = '<div class="mg-empty"><i class="fa-solid fa-circle-check" style="color:var(--mg-green);opacity:.5"></i><p>Hammasi joyida — barcha o\'quvchilar faol</p></div>';
+      return;
+    }
+    el.innerHTML = items.map(s => {
+      const ava = s.avatar
+        ? `<div class="mg-attn__avatar" style="background-image:url('${escapeHtml(s.avatar)}')"></div>`
+        : `<div class="mg-attn__avatar">${escapeHtml(initials(s.name))}</div>`;
+      return `<a class="mg-attn-row" href="${slugPrefix}/user/${s.id}/view/">
+        ${ava}
+        <div class="mg-attn__main">
+          <div class="mg-attn__name">${escapeHtml(s.name || '—')}</div>
+          <div class="mg-attn__sub">${escapeHtml(s.course || '—')}${s.phone ? ' · ' + escapeHtml(s.phone) : ''}</div>
+        </div>
+        <div class="mg-attn__rate">${s.rate}%</div>
+      </a>`;
+    }).join('');
+  }
+
+  function renderAttendanceChart(labels, values){
+    const ctx = document.getElementById('mgChAtt');
+    if(!ctx || !window.Chart) return;
+    if(attChart){ attChart.destroy(); attChart = null; }
+    const ctx2d = ctx.getContext('2d');
+    const h = ctx.clientHeight || 230;
+    const grad = ctx2d.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, 'rgba(52,211,153,.30)');
+    grad.addColorStop(1, 'rgba(52,211,153,0)');
+    attChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels || [],
+        datasets: [{
+          label: 'Davomat %',
+          data: values || [],
+          borderColor: '#34d399',
+          backgroundColor: grad,
+          fill: true,
+          tension: .42,
+          borderWidth: 2.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: '#34d399',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display:false },
+          tooltip: {
+            backgroundColor: 'rgba(7,13,26,.94)',
+            borderColor: 'rgba(255,255,255,.08)',
+            borderWidth: 1,
+            titleColor: '#ffffff',
+            bodyColor: '#cbd5e1',
+            callbacks: { label: (c)=> ` ${c.parsed.y}%` }
+          }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color:'#64748b', font:{size:10}, maxRotation:0, autoSkipPadding:18 } },
+          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color:'#64748b', font:{size:10}, callback:(v)=>v+'%' } }
         }
-      };
-      updateCount();
+      }
     });
+  }
+
+  function renderFunnel(values){
+    const max = Math.max(1, ...(values||[1]));
+    const wrap = document.getElementById('mgFunnel');
+    if(!wrap) return;
+    const rows = wrap.querySelectorAll('.mg-funnel__row');
+    rows.forEach((row, i) => {
+      const v = (values||[])[i] || 0;
+      const fill = row.querySelector('.mg-funnel__fill');
+      const val = row.querySelector('.mg-funnel__val');
+      if(fill) fill.style.width = (v / max * 100).toFixed(1) + '%';
+      if(val) val.textContent = fmtN(v);
+    });
+  }
+
+  function renderBestGroupsTable(rows){
+    const el = document.getElementById('mgBestGroupsTable');
+    if(!el) return;
+    const data = rows || [];
+    if(!data.length){
+      el.innerHTML = '<tr><td colspan="5" class="mg-best-empty">Guruhlar topilmadi</td></tr>';
+      return;
+    }
+    const palette = ['#60a5fa','#818cf8','#34d399','#fbbf24','#f43f5e'];
+    el.innerHTML = data.map((row, i) => {
+      const color = palette[i % palette.length];
+      const pctRaw = Number(row.fill_percent || 0);
+      const pct = Math.max(0, Math.min(100, pctRaw));
+      const pctLabel = Number.isInteger(pctRaw) ? pctRaw : pctRaw.toFixed(1);
+      const initials = escapeHtml(row.initials || String(row.name||'G').slice(0,2).toUpperCase());
+      const status = escapeHtml(row.status || 'Faol');
+      const revenue = Number(row.revenue || 0);
+      const revenueLabel = revenue ? fmtSom(revenue) : '—';
+      const avatarStyle = `background:${color}22;color:${color}`;
+      const barStyle = `width:${Math.max(2, pct)}%;background:${color}`;
+      return `<tr>
+        <td>
+          <div class="mg-best-group">
+            <span class="mg-best-avatar" style="${avatarStyle}">${initials}</span>
+            <span class="mg-best-name">
+              <strong title="${escapeHtml(row.name||'Guruh')}">${escapeHtml(row.name||'Guruh')}</strong>
+              <small>${status}</small>
+            </span>
+          </div>
+        </td>
+        <td><span class="mg-best-teacher" title="${escapeHtml(row.teacher||'—')}">${escapeHtml(row.teacher||'—')}</span></td>
+        <td class="mg-best-count">${fmtN(row.enrolled||0)}</td>
+        <td>
+          <div class="mg-best-fill" title="${pctLabel}%">
+            <span class="mg-best-fill__track"><span class="mg-best-fill__bar" style="${barStyle}"></span></span>
+            <span class="mg-best-fill__pct">${pctLabel}%</span>
+          </div>
+        </td>
+        <td class="mg-best-revenue">${revenueLabel}</td>
+        <td><button class="mg-best-more" type="button" aria-label="Ko'proq" aria-haspopup="menu" data-group-id="${row.id||''}" data-group-name="${escapeHtml(row.name||'Guruh')}"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderRecentActivityList(rows){
+    const el = document.getElementById('mgRecentActivityList');
+    if(!el) return;
+    const data = rows || [];
+    if(!data.length){
+      el.innerHTML = '<div class="mg-activity-empty">So\'nggi faollik topilmadi</div>';
+      return;
+    }
+    const iconMap = {
+      payment: 'fa-wallet',
+      lead:    'fa-user-plus',
+      absence: 'fa-circle-xmark',
+      demo:    'fa-bullhorn',
+      leave:   'fa-right-from-bracket',
+      reward:  'fa-bolt',
+    };
+    el.innerHTML = data.map(row => {
+      const type = Object.prototype.hasOwnProperty.call(iconMap, row.type) ? row.type : 'lead';
+      const icon = iconMap[type] || 'fa-bolt';
+      const title = escapeHtml(row.title || 'Faollik');
+      const subtitle = escapeHtml(row.subtitle || '');
+      const timeText = formatActivityTime(row.timestamp);
+      const meta = [subtitle, timeText].filter(Boolean).join(' · ');
+      const amountText = fmtSomSigned(row.amount);
+      const amountClass = Number(row.amount||0) < 0 ? ' mg-activity-amount--negative' : '';
+      return `<div class="mg-activity-item">
+        <span class="mg-activity-icon mg-activity-icon--${type}"><i class="fa-solid ${icon}"></i></span>
+        <span class="mg-activity-info">
+          <span class="mg-activity-title" title="${title}">${title}</span>
+          <span class="mg-activity-meta">${escapeHtml(meta)}</span>
+        </span>
+        ${amountText ? `<span class="mg-activity-amount${amountClass}">${amountText}</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function setSyncTime(iso){
+    const el = document.getElementById('mgSyncTime');
+    if(!el) return;
+    try {
+      const dt = iso ? new Date(iso) : new Date();
+      el.textContent = dt.toLocaleTimeString('uz-UZ', { hour:'2-digit', minute:'2-digit' });
+    } catch(_) { el.textContent = '—'; }
+  }
+
+  // ── Sana filteri yordamchilari ──────────────────────────────
+  function _toIso(d){
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    const da = String(d.getDate()).padStart(2,'0');
+    return `${yr}-${mo}-${da}`;
+  }
+  function _initDates(){
+    const fromEl = document.getElementById('mgFrom');
+    const toEl   = document.getElementById('mgTo');
+    if(!fromEl || !toEl) return;
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    fromEl.value = _toIso(monthStart);
+    toEl.value   = _toIso(today);
+  }
+  function _setRange(key){
+    const fromEl = document.getElementById('mgFrom');
+    const toEl   = document.getElementById('mgTo');
+    if(!fromEl || !toEl) return;
+    const today = new Date();
+    let from = new Date(today);
+    if(key === 'today'){
+      from = today;
+    } else if(key === 'month'){
+      from = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else {
+      const days = parseInt(key, 10) || 30;
+      from = new Date(today.getTime() - (days-1)*86400000);
+    }
+    fromEl.value = _toIso(from);
+    toEl.value   = _toIso(today);
+  }
+  function _markPreset(key){
+    document.querySelectorAll('.mg-preset').forEach(b => {
+      b.classList.toggle('is-active', b.getAttribute('data-range') === key);
+    });
+  }
+
+  function load(){
+    const btn = document.getElementById('mgRefreshBtn');
+    if(btn){ btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; }
+    const fromEl = document.getElementById('mgFrom');
+    const toEl   = document.getElementById('mgTo');
+    const params = new URLSearchParams();
+    if(fromEl && fromEl.value) params.set('from', fromEl.value);
+    if(toEl   && toEl.value)   params.set('to',   toEl.value);
+    const url = apiUrl + (params.toString() ? '?' + params.toString() : '');
+    fetch(url, { credentials:'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if(!data){ return; }
+        renderKPI(data.kpi || {});
+        renderBestGroupsTable(data.top_groups_full || []);
+        renderRecentActivityList(data.recent_activity || []);
+        setSyncTime(data.synced_at);
+      })
+      .catch(err => console.warn('manager dashboard load failed', err))
+      .finally(() => {
+        if(btn){ btn.style.opacity=''; btn.style.pointerEvents=''; }
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    _initDates();
+    load();
+    const btn = document.getElementById('mgRefreshBtn');
+    if(btn) btn.addEventListener('click', load);
+    // Sana inputlari o'zgarganda — qayta yuklash + presetlardan oktivni olib tashlash
+    ['mgFrom','mgTo'].forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('change', () => {
+        document.querySelectorAll('.mg-preset').forEach(b => b.classList.remove('is-active'));
+        load();
+      });
+    });
+    // Quick presetlar
+    document.querySelectorAll('.mg-preset').forEach(btnEl => {
+      btnEl.addEventListener('click', () => {
+        const key = btnEl.getAttribute('data-range');
+        _setRange(key);
+        _markPreset(key);
+        load();
+      });
+    });
+    // Tiklash tugmasi → joriy oy boshidan bugungacha
+    const resetBtn = document.getElementById('mgFilterReset');
+    if(resetBtn) resetBtn.addEventListener('click', () => {
+      _setRange('month');
+      _markPreset('month');
+      load();
+    });
+    // Auto-refresh har 90 soniyada (joriy filter bilan)
+    setInterval(load, 90000);
   });
 
-  // ── Deferred dashboard stats (manager) ─────────────────────────────
-  // home view skeleton'ni render qiladi; real KPI + low-activity ma'lumotlari
-  // shu yerda async yuklanadi. Tenant slug context'dan olinadi.
-  (function () {
-    const centerSlug = "{{ center.slug|default:''|escapejs }}";
-    const slugPrefix = centerSlug ? "/" + centerSlug : "";
+  /* "Eng yaxshi guruhlar" jadvalidagi 3-nuqta menyusi — har bir satrda
+   * "Guruhga kirish / Jadval / O'quvchi qo'shish / Tahrirlash" amallarini
+   * ochadi. Menyu fixed-positioned, jadval overflowidan tashqarida render
+   * bo'ladi (clip bo'lmaydi). Director paneli bilan 1:1 mos. */
+  (function initBestGroupsMenu(){
+    const menu = document.getElementById('mgBestGroupsMenu');
+    const tbody = document.getElementById('mgBestGroupsTable');
+    if(!menu || !tbody) return;
+    const URL_TEMPLATES = window.__MG_GROUP_URLS || {};
+    let activeBtn = null;
 
-    function animateTo(el, target) {
-      const start = parseInt(el.innerText, 10) || 0;
-      if (start === target) { el.innerText = target; return; }
-      const diff = target - start;
-      const steps = 20;
-      let i = 0;
-      const step = () => {
-        i++;
-        const val = Math.round(start + (diff * i) / steps);
-        el.innerText = val;
-        if (i < steps) setTimeout(step, 25);
-        else el.innerText = target;
-      };
-      step();
+    function buildUrl(action, groupId){
+      const tmpl = URL_TEMPLATES[action];
+      if(!tmpl || !groupId) return '#';
+      return tmpl.replace(/999999/, String(groupId));
     }
 
-    function loadKpi() {
-      fetch(slugPrefix + "/api/dashboard/quick-stats/", { credentials: "same-origin" })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!data) return;
-          document.querySelectorAll("[data-kpi]").forEach(el => {
-            const key = el.getAttribute("data-kpi");
-            if (data[key] !== undefined) animateTo(el, Number(data[key]) || 0);
-          });
-        })
-        .catch(() => { /* silent */ });
+    function closeMenu(){
+      if(!menu.classList.contains('is-open')) return;
+      menu.classList.remove('is-open');
+      menu.setAttribute('aria-hidden','true');
+      if(activeBtn){ activeBtn.classList.remove('is-open'); activeBtn.setAttribute('aria-expanded','false'); }
+      activeBtn = null;
     }
 
-    function escapeHtml(s) {
-      return String(s || "").replace(/[&<>"']/g, c => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
-      }[c]));
-    }
-
-    function renderLowActivity(items) {
-      const container = document.getElementById("low-activity-list");
-      if (!container) return;
-      if (!items || items.length === 0) {
-        container.innerHTML =
-          '<div class="text-center py-5">' +
-          '<i class="fa-solid fa-circle-check text-success fa-3x mb-3 opacity-25"></i>' +
-          '<p class="text-white-50">Hamma talabalar faol! Mukammal natija.</p>' +
-          '</div>';
-        return;
+    function positionMenu(btn){
+      const r = btn.getBoundingClientRect();
+      // Render hidden first to measure menu size
+      menu.style.left = '-9999px';
+      menu.style.top = '0';
+      menu.classList.add('is-open');
+      const mw = menu.offsetWidth || 220;
+      const mh = menu.offsetHeight || 180;
+      const margin = 8;
+      let left = r.right - mw;          // align right edge of menu to button
+      let top = r.bottom + 6;
+      if(left < margin) left = margin;
+      if(left + mw > window.innerWidth - margin) left = window.innerWidth - mw - margin;
+      if(top + mh > window.innerHeight - margin){
+        top = r.top - mh - 6;            // flip above
+        if(top < margin) top = margin;
       }
-      container.innerHTML = items.map(s => (
-        '<a href="' + slugPrefix + '/user/' + s.student_id + '/view/" class="student-item-card">' +
-          '<img src="' + escapeHtml(s.avatar) + '" alt="' + escapeHtml(s.name) + '" class="student-avatar">' +
-          '<div class="student-info">' +
-            '<span class="name">' + escapeHtml(s.name) + '</span>' +
-            '<div class="course">' + escapeHtml(s.course) + ' • ' + escapeHtml(s.phone) + '</div>' +
-          '</div>' +
-          '<div class="activity-status-box">' +
-            '<div class="pct">' + (parseInt(s.status, 10) || 0) + '%</div>' +
-            '<div class="label">Faollik</div>' +
-          '</div>' +
-        '</a>'
-      )).join("");
+      menu.style.left = `${Math.round(left)}px`;
+      menu.style.top  = `${Math.round(top)}px`;
     }
 
-    function loadLowActivity() {
-      const container = document.getElementById("low-activity-list");
-      if (!container || container.getAttribute("data-deferred") !== "1") return;
-      fetch(slugPrefix + "/api/dashboard/low-activity/", { credentials: "same-origin" })
-        .then(r => r.ok ? r.json() : { items: [] })
-        .then(data => renderLowActivity(data.items || []))
-        .catch(() => renderLowActivity([]));
+    function openMenu(btn){
+      const groupId = btn.getAttribute('data-group-id') || '';
+      if(!groupId){ return; }
+      // Wire action links to this group's URLs
+      menu.querySelectorAll('[data-action]').forEach(a => {
+        const act = a.getAttribute('data-action');
+        a.setAttribute('href', buildUrl(act, groupId));
+      });
+      activeBtn = btn;
+      btn.classList.add('is-open');
+      btn.setAttribute('aria-expanded','true');
+      menu.setAttribute('aria-hidden','false');
+      positionMenu(btn);
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      loadKpi();
-      loadLowActivity();
+    // Delegated click on the more buttons (rows are re-rendered on each load).
+    tbody.addEventListener('click', function(ev){
+      const btn = ev.target.closest('.mg-best-more');
+      if(!btn || !tbody.contains(btn)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if(activeBtn === btn){ closeMenu(); return; }
+      closeMenu();
+      openMenu(btn);
     });
+
+    document.addEventListener('click', function(ev){
+      if(!menu.classList.contains('is-open')) return;
+      if(menu.contains(ev.target)) return;          // clicked inside menu — let link work
+      if(ev.target.closest('.mg-best-more')) return; // handled above
+      closeMenu();
+    });
+    document.addEventListener('keydown', function(ev){
+      if(ev.key === 'Escape') closeMenu();
+    });
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
   })();
+})();
+</script>
+
+<!-- ══════════════════ AI CHAT (manager) ══════════════════ -->
+<script>
+(function(){
+  'use strict';
+  const CHAT_API         = '{% url "core:director_boshqaruv_chat" %}';
+  const CHAT_HISTORY_API = '{% url "core:director_boshqaruv_chat_history" %}';
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+
+  const panel    = document.getElementById('mgChatPanel');
+  const overlay  = document.getElementById('mgChatOverlay');
+  const messages = document.getElementById('mgChatMessages');
+  const input    = document.getElementById('mgChatInput');
+  const sendBtn  = document.getElementById('mgChatSend');
+  const openBtn  = document.getElementById('mgAiOpen');
+  const closeBtn = document.getElementById('mgChatClose');
+  if(!panel || !overlay || !openBtn) return;
+
+  let loading = false;
+  let historyLoaded = false;
+  const USER_AVA = `{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}`;
+
+  function escapeHTML(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function renderText(s){
+    return escapeHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  }
+
+  function addMsg(role, text){
+    const isUser = role === 'user';
+    const ava = isUser
+      ? `<div class="mg-msg__ava">${escapeHTML(USER_AVA)}</div>`
+      : `<div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
+    const div = document.createElement('div');
+    div.className = `mg-msg ${isUser ? 'mg-msg--user' : ''}`;
+    div.innerHTML = `${ava}<div class="mg-msg__bubble">${renderText(text)}</div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function addTyping(){
+    const div = document.createElement('div');
+    div.className = 'mg-msg';
+    div.id = 'mgTypingEl';
+    div.innerHTML = `<div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="mg-msg__bubble"><div class="mg-msg__typing"><span></span><span></span><span></span></div></div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function removeTyping(){
+    const el = document.getElementById('mgTypingEl');
+    if(el) el.remove();
+  }
+
+  function open(){
+    panel.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    loadHistory();
+    setTimeout(() => input.focus(), 250);
+  }
+  function close(){
+    panel.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  async function loadHistory(){
+    if(historyLoaded) return;
+    historyLoaded = true;
+    try{
+      const res = await fetch(CHAT_HISTORY_API, {credentials:'same-origin'});
+      if(!res.ok) return;
+      const data = await res.json();
+      const msgs = Array.isArray(data.messages) ? data.messages : [];
+      if(msgs.length === 0) return;
+      messages.innerHTML = '';
+      msgs.forEach(m => addMsg(m.role === 'assistant' ? 'ai' : 'user', m.content));
+    }catch(e){ /* fallback: greeting stays */ }
+  }
+
+  async function send(q){
+    if(!q || loading) return;
+    loading = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+    addMsg('user', q);
+    addTyping();
+
+    try{
+      const res = await fetch(CHAT_API, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+        body: JSON.stringify({question:q})
+      });
+      const data = await res.json();
+      removeTyping();
+      addMsg('ai', data.answer || 'Javob olishda xatolik yuz berdi.');
+    }catch(e){
+      removeTyping();
+      addMsg('ai', 'Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');
+    }finally{
+      loading = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  openBtn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && panel.classList.contains('open')) close();
+  });
+
+  sendBtn.addEventListener('click', () => send(input.value.trim()));
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(input.value.trim()); }
+  });
+  input.addEventListener('input', function(){
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  document.querySelectorAll('.mg-chat__prompt').forEach(btn => {
+    btn.addEventListener('click', function(){
+      if(!panel.classList.contains('open')) open();
+      send(this.dataset.q);
+    });
+  });
+})();
 </script>
 {% endblock %}
