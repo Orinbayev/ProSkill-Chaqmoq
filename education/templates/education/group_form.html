@@ -4,7 +4,7 @@
 {% block body_class %}gas-page group-form-page{% endblock %}
 
 {% block content %}
-<div class="gas-shell gf-shell">
+<div class="gas-shell">
 
   {% if form.instance.pk %}
     {% include "education/_group_action_shell.html" with group=form.instance active_tab="edit" page_title="Tahrirlash" %}
@@ -28,166 +28,26 @@
   {% endif %}
 
   <style>
-    /* ===========================================================
-       Group form — theme-aware (follows global light/dark setting).
-       Dark = default; Light kicks in via html[data-role-theme="light"].
-       =========================================================== */
-    .gf-shell {
-      /* DARK defaults — match base.html dark gradient look */
-      --gf-bg:            transparent;
-      --gf-card-bg:       rgba(15, 23, 42, 0.55);
-      --gf-card-border:   rgba(255, 255, 255, 0.08);
-      --gf-card-shadow:   0 1px 2px rgba(0,0,0,.20), 0 18px 40px rgba(0,0,0,.32);
-      --gf-text:          #e5e7eb;
-      --gf-text-strong:   #f8fafc;
-      --gf-muted:         #94a3b8;
-      --gf-soft:          rgba(255, 255, 255, 0.04);
-      --gf-soft-border:   rgba(255, 255, 255, 0.06);
-
-      --gf-input-bg:      rgba(255, 255, 255, 0.05);
-      --gf-input-border:  rgba(255, 255, 255, 0.12);
-      --gf-input-text:    #e5e7eb;
-      --gf-input-placeholder: rgba(148, 163, 184, .65);
-      --gf-input-readonly-bg: rgba(255, 255, 255, 0.03);
-      --gf-input-readonly-text: #cbd5e1;
-
-      --gf-focus-border:  #38bdf8;
-      --gf-focus-ring:    rgba(56, 189, 248, 0.18);
-
-      --gf-tip-bg:        rgba(56, 189, 248, 0.10);
-      --gf-tip-border:    rgba(56, 189, 248, 0.28);
-      --gf-tip-text:      #93c5fd;
-      --gf-tip-link:      #bae6fd;
-
-      --gf-summary-bg:    rgba(255, 255, 255, 0.03);
-      --gf-summary-border:rgba(255, 255, 255, 0.06);
-
-      --gf-support-bg:    linear-gradient(180deg, rgba(99, 102, 241, .10), rgba(56, 189, 248, .08));
-      --gf-support-border:rgba(129, 140, 248, .35);
-      --gf-support-text:  #c7d2fe;
-      --gf-support-badge-bg: rgba(99, 102, 241, .18);
-      --gf-support-badge-text: #c7d2fe;
-
-      --gf-primary:       #2563eb;
-      --gf-primary-hover: #1d4ed8;
-      --gf-primary-text:  #ffffff;
-      --gf-ghost-bg:      rgba(255, 255, 255, 0.05);
-      --gf-ghost-bg-hover:rgba(255, 255, 255, 0.10);
-      --gf-ghost-border:  rgba(255, 255, 255, 0.10);
-      --gf-ghost-text:    #e2e8f0;
-
-      --gf-svg-arrow: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%2394a3b8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-
-      --gf-msg-success-bg:#064e3b; --gf-msg-success-bd:#065f46; --gf-msg-success-tx:#a7f3d0;
-      --gf-msg-error-bg:  #7f1d1d; --gf-msg-error-bd:  #991b1b; --gf-msg-error-tx:  #fecaca;
-      --gf-msg-warn-bg:   #78350f; --gf-msg-warn-bd:   #92400e; --gf-msg-warn-tx:   #fde68a;
-      --gf-msg-info-bg:   #1e3a8a; --gf-msg-info-bd:   #1d4ed8; --gf-msg-info-tx:   #bfdbfe;
-
-      background: var(--gf-bg);
-      color: var(--gf-text);
-    }
-
-    /* LIGHT theme overrides */
-    html[data-role-theme="light"] .gf-shell {
-      --gf-bg:            #f6f7fb;
-      --gf-card-bg:       #ffffff;
-      --gf-card-border:   #e5e7eb;
-      --gf-card-shadow:   0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
-      --gf-text:          #0f172a;
-      --gf-text-strong:   #0f172a;
-      --gf-muted:         #64748b;
-      --gf-soft:          #f8fafc;
-      --gf-soft-border:   #eef2f7;
-
-      --gf-input-bg:      #ffffff;
-      --gf-input-border:  #e5e7eb;
-      --gf-input-text:    #0f172a;
-      --gf-input-placeholder: #94a3b8;
-      --gf-input-readonly-bg: #f8fafc;
-      --gf-input-readonly-text: #475569;
-
-      --gf-focus-border:  #2563eb;
-      --gf-focus-ring:    rgba(37, 99, 235, 0.12);
-
-      --gf-tip-bg:        #eff6ff;
-      --gf-tip-border:    #bfdbfe;
-      --gf-tip-text:      #1d4ed8;
-      --gf-tip-link:      #1d4ed8;
-
-      --gf-summary-bg:    #f8fafc;
-      --gf-summary-border:#eef2f7;
-
-      --gf-support-bg:    linear-gradient(180deg, #f5f3ff, #eff6ff);
-      --gf-support-border:#c7d2fe;
-      --gf-support-text:  #4338ca;
-      --gf-support-badge-bg: #e0e7ff;
-      --gf-support-badge-text: #4338ca;
-
-      --gf-primary:       #2563eb;
-      --gf-primary-hover: #1d4ed8;
-      --gf-primary-text:  #ffffff;
-      --gf-ghost-bg:      #ffffff;
-      --gf-ghost-bg-hover:#f8fafc;
-      --gf-ghost-border:  #e5e7eb;
-      --gf-ghost-text:    #475569;
-
-      --gf-msg-success-bg:#ecfdf5; --gf-msg-success-bd:#a7f3d0; --gf-msg-success-tx:#047857;
-      --gf-msg-error-bg:  #fef2f2; --gf-msg-error-bd:  #fecaca; --gf-msg-error-tx:  #b91c1c;
-      --gf-msg-warn-bg:   #fffbeb; --gf-msg-warn-bd:   #fde68a; --gf-msg-warn-tx:   #b45309;
-      --gf-msg-info-bg:   #eff6ff; --gf-msg-info-bd:   #bfdbfe; --gf-msg-info-tx:   #1d4ed8;
-    }
-
-    /* ----- Shared structure ----- */
-    .gf-shell { background: var(--gf-bg); color: var(--gf-text); }
-
-    /* gas-shell breadcrumb/header re-themed via vars (only for this page) */
-    .gf-shell .gas-crumb,
-    .gf-shell .gas-crumb a { color: var(--gf-muted); }
-    .gf-shell .gas-crumb a:hover { color: var(--gf-text-strong); }
-    .gf-shell .gas-crumb__cur { color: var(--gf-text-strong); }
-    .gf-shell .gas-card {
-      background: var(--gf-card-bg);
-      border-color: var(--gf-card-border);
-      box-shadow: var(--gf-card-shadow);
-    }
-    .gf-shell .gas-head__name { color: var(--gf-text-strong); }
-    .gf-shell .gas-head__meta,
-    .gf-shell .gas-head__meta span { color: var(--gf-muted); }
-    .gf-shell .gas-tabs { border-top-color: var(--gf-soft-border); }
-    .gf-shell .gas-tab { color: var(--gf-muted); }
-    .gf-shell .gas-tab:hover { color: var(--gf-text-strong); }
-    .gf-shell .gas-tab.is-active { color: var(--gf-text-strong); }
-
-    .gf-new-avatar {
-      background: rgba(124, 58, 237, .15);
-      color: #c4b5fd;
-      font-size: 22px;
-    }
-    html[data-role-theme="light"] .gf-shell .gf-new-avatar {
-      background: #ede9fe;
-      color: #7c3aed;
-    }
+    .gf-new-avatar { background: #ede9fe; color: #7c3aed; font-size: 22px; }
 
     .gf-card {
       padding: 22px 24px;
       border-radius: 18px;
-      border: 1px solid var(--gf-card-border);
-      background: var(--gf-card-bg);
-      color: var(--gf-text);
-      box-shadow: var(--gf-card-shadow);
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
     }
     .gf-card + .gf-card { margin-top: 14px; }
-
     .gf-section-title {
       margin: 0 0 4px;
-      color: var(--gf-text-strong);
+      color: #0f172a;
       font-size: 17px;
       font-weight: 800;
       letter-spacing: -.01em;
     }
     .gf-section-sub {
       margin: 0 0 18px;
-      color: var(--gf-muted);
+      color: #94a3b8;
       font-size: 13px;
       font-weight: 500;
     }
@@ -209,7 +69,7 @@
     .gf-label {
       display: block;
       margin: 0 0 8px;
-      color: var(--gf-muted);
+      color: #94a3b8;
       font-size: 11.5px;
       font-weight: 800;
       letter-spacing: .08em;
@@ -217,75 +77,62 @@
     }
     .gf-help {
       margin-top: 6px;
-      color: var(--gf-muted);
+      color: #94a3b8;
       font-size: 12px;
       font-weight: 500;
     }
     .gf-error {
       margin-top: 6px;
-      color: #f87171;
+      color: #b91c1c;
       font-size: 12.5px;
       font-weight: 600;
     }
-    html[data-role-theme="light"] .gf-shell .gf-error { color: #b91c1c; }
 
-    /* ----- Native widget styling ----- */
-    .gf-shell .gf-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-    .gf-shell .gf-card select,
-    .gf-shell .gf-card textarea {
+    /* Style native form widgets (rendered by Django) inside the card */
+    .gf-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    .gf-card select,
+    .gf-card textarea {
       width: 100%;
       height: 48px;
       padding: 0 14px;
       border-radius: 12px;
-      border: 1px solid var(--gf-input-border);
-      background-color: var(--gf-input-bg);
-      color: var(--gf-input-text);
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #0f172a;
       font-size: 14.5px;
       font-weight: 600;
-      transition: border-color .15s, box-shadow .15s, background .15s;
+      transition: border-color .15s, box-shadow .15s;
       outline: 0;
       box-sizing: border-box;
-      box-shadow: none;
     }
-    .gf-shell .gf-card textarea {
+    .gf-card textarea {
       height: auto;
       min-height: 96px;
       padding: 12px 14px;
       line-height: 1.45;
       resize: vertical;
     }
-    .gf-shell .gf-card input::placeholder,
-    .gf-shell .gf-card textarea::placeholder { color: var(--gf-input-placeholder); }
-    .gf-shell .gf-card input:focus,
-    .gf-shell .gf-card select:focus,
-    .gf-shell .gf-card textarea:focus {
-      border-color: var(--gf-focus-border);
-      box-shadow: 0 0 0 3px var(--gf-focus-ring);
+    .gf-card input:focus,
+    .gf-card select:focus,
+    .gf-card textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
     }
-    .gf-shell .gf-card input[readonly] {
-      background-color: var(--gf-input-readonly-bg);
-      color: var(--gf-input-readonly-text);
-      border-color: var(--gf-input-border);
+    .gf-card input[readonly] {
+      background: #f8fafc;
+      color: #475569;
+      border-color: #e5e7eb;
     }
-
-    /* ----- Select: single chevron, no repeating arrows ----- */
-    .gf-shell .gf-card select {
+    .gf-card select {
       -webkit-appearance: none;
-      -moz-appearance: none;
       appearance: none;
-      background-image: var(--gf-svg-arrow);
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='%2394a3b8'><path d='M3 4.5l3 3 3-3' stroke='%2394a3b8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
       background-repeat: no-repeat;
       background-position: right 14px center;
       background-size: 12px 12px;
       padding-right: 38px;
     }
-    .gf-shell .gf-card select::-ms-expand { display: none; }
-    .gf-shell .gf-card option {
-      background: var(--gf-card-bg);
-      color: var(--gf-text);
-    }
 
-    /* ----- Summary cards ----- */
     .gf-summary {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -295,11 +142,11 @@
     .gf-summary-card {
       padding: 14px 16px;
       border-radius: 14px;
-      border: 1px solid var(--gf-summary-border);
-      background: var(--gf-summary-bg);
+      border: 1px solid #eef2f7;
+      background: #f8fafc;
     }
     .gf-summary-card__lbl {
-      color: var(--gf-muted);
+      color: #94a3b8;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: .08em;
@@ -307,75 +154,54 @@
     }
     .gf-summary-card__val {
       margin-top: 6px;
-      color: var(--gf-text-strong);
+      color: #0f172a;
       font-size: 18px;
       font-weight: 800;
       letter-spacing: -.01em;
     }
-    @media (max-width: 720px) { .gf-summary { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .gf-summary { grid-template-columns: 1fr; }
+    }
 
-    /* ----- Tip box ----- */
     .gf-tip {
       display: flex;
       align-items: flex-start;
       gap: 10px;
       padding: 12px 14px;
       border-radius: 12px;
-      border: 1px solid var(--gf-tip-border);
-      background: var(--gf-tip-bg);
-      color: var(--gf-tip-text);
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
       font-size: 13px;
       font-weight: 600;
       line-height: 1.45;
       margin-bottom: 18px;
     }
     .gf-tip i { margin-top: 2px; flex-shrink: 0; }
-    .gf-tip a { color: var(--gf-tip-link); font-weight: 800; text-decoration: underline; }
 
-    /* ----- Support section ----- */
     .gf-support {
       grid-column: 1 / -1;
-      padding: 18px;
-      border-radius: 16px;
-      border: 1px dashed var(--gf-support-border);
-      background: var(--gf-support-bg);
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
     }
     .gf-support__head {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
-      color: var(--gf-support-text);
-      font-size: 14.5px;
-      font-weight: 800;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 700;
     }
     .gf-support__head input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: #6366f1;
+      width: 18px;
+      height: 18px;
+      accent-color: #2563eb;
       margin: 0;
-    }
-    .gf-support__head .gf-support-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: var(--gf-support-badge-bg);
-      color: var(--gf-support-badge-text);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-    }
-    .gf-support__hint {
-      margin: 10px 0 0;
-      color: var(--gf-muted);
-      font-size: 12.5px;
-      font-weight: 500;
-      line-height: 1.5;
     }
     .gf-support__body {
       margin-top: 14px;
@@ -383,9 +209,10 @@
       grid-template-columns: 2fr 1fr;
       gap: 12px;
     }
-    @media (max-width: 720px) { .gf-support__body { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .gf-support__body { grid-template-columns: 1fr; }
+    }
 
-    /* ----- Actions ----- */
     .gf-actions {
       display: flex;
       align-items: center;
@@ -410,22 +237,18 @@
     }
     .gf-btn:active { transform: translateY(1px); }
     .gf-btn--ghost {
-      background: var(--gf-ghost-bg);
-      color: var(--gf-ghost-text);
-      border-color: var(--gf-ghost-border);
+      background: #ffffff;
+      color: #475569;
+      border-color: #e5e7eb;
     }
-    .gf-btn--ghost:hover {
-      background: var(--gf-ghost-bg-hover);
-      color: var(--gf-text-strong);
-    }
+    .gf-btn--ghost:hover { background: #f8fafc; color: #0f172a; }
     .gf-btn--primary {
-      background: var(--gf-primary);
-      color: var(--gf-primary-text);
-      box-shadow: 0 8px 20px rgba(37, 99, 235, .28);
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, .22);
     }
-    .gf-btn--primary:hover { background: var(--gf-primary-hover); }
+    .gf-btn--primary:hover { background: #1d4ed8; }
 
-    /* ----- Messages ----- */
     .gf-msgs { margin-bottom: 14px; }
     .gf-msg {
       display: flex;
@@ -438,12 +261,11 @@
       font-weight: 600;
       margin-bottom: 8px;
     }
-    .gf-msg--success { border-color: var(--gf-msg-success-bd); background: var(--gf-msg-success-bg); color: var(--gf-msg-success-tx); }
-    .gf-msg--error   { border-color: var(--gf-msg-error-bd);   background: var(--gf-msg-error-bg);   color: var(--gf-msg-error-tx); }
-    .gf-msg--warning { border-color: var(--gf-msg-warn-bd);    background: var(--gf-msg-warn-bg);    color: var(--gf-msg-warn-tx); }
-    .gf-msg--info    { border-color: var(--gf-msg-info-bd);    background: var(--gf-msg-info-bg);    color: var(--gf-msg-info-tx); }
+    .gf-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .gf-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .gf-msg--warning { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+    .gf-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
 
-    /* ----- Schedule (only on create) ----- */
     .gf-schedule-block { display: none; }
     .gf-schedule-block.show {
       display: grid;
@@ -451,7 +273,9 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
     }
-    @media (max-width: 720px) { .gf-schedule-block.show { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .gf-schedule-block.show { grid-template-columns: 1fr; }
+    }
   </style>
 
   {% if messages %}
@@ -524,37 +348,15 @@
           {% for error in form.course_start_date.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
         </div>
 
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.max_students.id_for_label }}">Maksimal o'quvchi soni</label>
-          {{ form.max_students }}
-          <div class="gf-help">Sig'im va to'ldirilish foizi shu maydondan hisoblanadi.</div>
-          {% for error in form.max_students.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.duration_months.id_for_label }}">Necha oy davom etadi</label>
-          {{ form.duration_months }}
-          <div class="gf-help">Masalan: 2, 4 yoki 6 oy.</div>
-          {% for error in form.duration_months.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field gf-field--full">
-          <label class="gf-label" for="{{ form.estimated_end_date.id_for_label }}">Tugash sanasi</label>
-          {{ form.estimated_end_date }}
-          <div class="gf-help">Bu sana avtomatik hisoblanadi.</div>
-          {% for error in form.estimated_end_date.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
         {% if form.use_support %}
         <div class="gf-support">
           <label class="gf-support__head">
             <input type="checkbox" name="{{ form.use_support.html_name }}" id="{{ form.use_support.id_for_label }}" {% if form.use_support.value %}checked{% endif %}>
-            <span>Support qo'shish</span>
-            <span class="gf-support-badge"><i class="fa-solid fa-handshake-angle"></i> Yordamchi xodim</span>
+            <span>🤝 Support qo'shish</span>
           </label>
-          <p class="gf-support__hint">
+          <div class="gf-help" style="margin-top:8px">
             Support — yordamchi xodim. Asosiy o'qituvchi davomatni oladi, support'ga foiz bo'yicha summa yoziladi.
-          </p>
+          </div>
           <div id="support-fields" class="gf-support__body" {% if not form.use_support.value %}style="display:none"{% endif %}>
             <div>
               <label class="gf-label" for="{{ form.support_teacher.id_for_label }}">Support xodimi</label>
@@ -578,6 +380,27 @@
         })();
         </script>
         {% endif %}
+
+        <div class="gf-field">
+          <label class="gf-label" for="{{ form.max_students.id_for_label }}">Maksimal o'quvchi soni</label>
+          {{ form.max_students }}
+          <div class="gf-help">Sig'im va to'ldirilish foizi shu maydondan hisoblanadi.</div>
+          {% for error in form.max_students.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label" for="{{ form.duration_months.id_for_label }}">Necha oy davom etadi</label>
+          {{ form.duration_months }}
+          <div class="gf-help">Masalan: 2, 4 yoki 6 oy.</div>
+          {% for error in form.duration_months.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label" for="{{ form.estimated_end_date.id_for_label }}">Tugash sanasi</label>
+          {{ form.estimated_end_date }}
+          <div class="gf-help">Bu sana avtomatik hisoblanadi.</div>
+          {% for error in form.estimated_end_date.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+        </div>
 
         {% if not form.instance.pk %}
         <div class="gf-field gf-field--full">
@@ -608,7 +431,7 @@
         <div class="gf-field gf-field--full">
           <div class="gf-tip" style="margin-bottom:0">
             <i class="fa-regular fa-calendar"></i>
-            <span>Dars jadvali (kun, vaqt, xona) endi <a href="{% url 'education:group_schedule_manage' group_id=form.instance.pk %}">Jadval</a> tabidan boshqariladi.</span>
+            <span>Dars jadvali (kun, vaqt, xona) endi <a href="{% url 'education:group_schedule_manage' group_id=form.instance.pk %}" style="color:#1d4ed8;font-weight:800;text-decoration:underline">Jadval</a> tabidan boshqariladi.</span>
           </div>
           {# Hidden fields preserve existing values during edit save #}
           <input type="hidden" name="{{ form.schedule_mode.html_name }}" value="{{ form.schedule_mode.value|default_if_none:'' }}">

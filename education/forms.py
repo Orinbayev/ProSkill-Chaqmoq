@@ -94,32 +94,41 @@ class GroupForm(forms.ModelForm):
             self.fields["oqituvchi"].label_from_instance = lambda obj: f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
 
         # ── Support teacher field'larini sozlash ──
-        # Har doim ko'rinadi — guruh bo'yicha ixtiyoriy ravishda yoqiladi.
+        # Faqat markazda feature yoqilgan bo'lsa ko'rinadi.
         from education.services.support_teacher import (
+            is_support_enabled,
             staff_queryset_for_support_dropdown,
         )
 
-        self.support_enabled_for_center = True
+        self.support_enabled_for_center = is_support_enabled(center)
 
-        qs = staff_queryset_for_support_dropdown(center)
-        self.fields["support_teacher"].queryset = qs
-        self.fields["support_teacher"].required = False
-        self.fields["support_teacher"].empty_label = "Support tanlang (ixtiyoriy)"
-        self.fields["support_teacher"].label_from_instance = (
-            lambda obj: (
-                f"{(obj.ism or '').strip()} {(obj.familya or '').strip()}".strip()
-                or obj.email
+        if self.support_enabled_for_center:
+            # Support dropdown — barcha xodimlar (teacher, manager, admin, ...).
+            qs = staff_queryset_for_support_dropdown(center)
+            self.fields["support_teacher"].queryset = qs
+            self.fields["support_teacher"].required = False
+            self.fields["support_teacher"].empty_label = "Support tanlang (ixtiyoriy)"
+            self.fields["support_teacher"].label_from_instance = (
+                lambda obj: (
+                    f"{(obj.ism or '').strip()} {(obj.familya or '').strip()}".strip()
+                    or obj.email
+                )
+                + f" ({obj.get_role_display() if hasattr(obj, 'get_role_display') else obj.role})"
             )
-            + f" ({obj.get_role_display() if hasattr(obj, 'get_role_display') else obj.role})"
-        )
-        self.fields["support_foiz"].required = False
+            self.fields["support_foiz"].required = False
 
-        instance = getattr(self, "instance", None)
-        has_support_already = bool(
-            instance and instance.pk and instance.support_teacher_id
-            and (instance.support_foiz or 0) > 0
-        )
-        self.fields["use_support"].initial = has_support_already
+            # Mavjud guruhda support biriktirilgan bo'lsa, checkbox yoqilgan
+            instance = getattr(self, "instance", None)
+            has_support_already = bool(
+                instance and instance.pk and instance.support_teacher_id
+                and (instance.support_foiz or 0) > 0
+            )
+            self.fields["use_support"].initial = has_support_already
+        else:
+            # Feature yo'q — formdan butunlay o'chiramiz.
+            self.fields.pop("support_teacher", None)
+            self.fields.pop("support_foiz", None)
+            self.fields.pop("use_support", None)
 
         for f in [
             "kurs_narxi",
