@@ -1149,6 +1149,74 @@ def _parse_user_birth_date(raw: str):
 
 @csrf_exempt
 @require_POST
+def family_student_by_name_api(request):
+    """
+    O'quvchi uchun ism + tug'ilgan sana orqali yozuvni topish.
+    Telefon raqami yo'q yoki noto'g'ri bo'lganda alternativ yo'l.
+
+    POST: {name_query, birth_date, telegram_id}
+    Response: {ok: true, matches: [{id, full_name, role, role_label, center, center_slug}]}
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    name_query = " ".join(str(payload.get("name_query") or "").split()).strip()
+    birth_date_raw = str(payload.get("birth_date") or "").strip()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+
+    if len(name_query) < 3:
+        return JsonResponse({"ok": False, "error": "Ismingizni kamida 3 harfdan iborat yozing."}, status=400)
+
+    parsed_date = _parse_user_birth_date(birth_date_raw)
+    if not parsed_date:
+        return JsonResponse(
+            {"ok": False, "error": "Tug'ilgan sana noto'g'ri formatda. Masalan: 15.03.2010"},
+            status=400,
+        )
+
+    # Rate limit faqat dastlabki qidirishga
+    if not _family_rate_limit_check("", telegram_id):
+        return JsonResponse({"ok": False, "error": "Juda ko'p urinish. Biroz kuting."}, status=429)
+
+    qs = (
+        User.objects.filter(
+            role="student",
+            is_active=True,
+            is_archived=False,
+            birth_date=parsed_date,
+        )
+        .select_related("center")
+    )
+
+    # Ism familiya bo'yicha qidirish
+    tokens = [t for t in name_query.split() if t]
+    name_filter = Q()
+    for tok in tokens:
+        name_filter &= Q(ism__icontains=tok) | Q(familya__icontains=tok) | Q(otchestvo__icontains=tok)
+    qs = qs.filter(name_filter)
+
+    matches = [_serialize_match_user(s) for s in qs[:10]]
+    if not matches:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Sizning ismingiz va tug'ilgan sanangiz bilan o'quvchi topilmadi. "
+                "Markazga murojaat qiling.",
+            },
+            status=404,
+        )
+
+    return JsonResponse({"ok": True, "matches": matches})
+
+
+@csrf_exempt
+@require_POST
 def family_search_child_api(request):
     """
     Ota-ona uchun farzand qidirish (ism orqali, parent markazi ichida).

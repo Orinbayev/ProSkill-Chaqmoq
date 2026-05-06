@@ -353,6 +353,24 @@ async def family_add_child_api(
     )
 
 
+async def family_student_by_name_api(
+    *,
+    name_query: str,
+    birth_date: str,
+    telegram_id: str | None = None,
+):
+    """O'quvchini ism + tug'ilgan sana orqali topish."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-student-by-name/",
+        data={
+            "name_query": name_query,
+            "birth_date": birth_date,
+            "telegram_id": telegram_id,
+        },
+    )
+
+
 async def family_confirm_link_api(
     *,
     user_id: int,

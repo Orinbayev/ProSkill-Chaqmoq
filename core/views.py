@@ -488,6 +488,15 @@ def home(request):
 
     if role == "manager":
         skeleton_ctx["low_activity_list"] = []
+        # Pending xarid so'rovlari (manager paneli uchun)
+        try:
+            from core.dashboard_views import _build_pending_purchase_requests
+            pr = _build_pending_purchase_requests(center)
+            skeleton_ctx["pending_purchase_requests"] = pr["recent"]
+            skeleton_ctx["pending_purchase_requests_count"] = pr["count"]
+        except Exception:
+            skeleton_ctx["pending_purchase_requests"] = []
+            skeleton_ctx["pending_purchase_requests_count"] = 0
         return render(request, "core/dashboard_manager.html", skeleton_ctx)
 
     if role == "teacher":

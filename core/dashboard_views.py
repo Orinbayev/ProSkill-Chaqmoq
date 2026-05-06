@@ -2485,11 +2485,52 @@ def director_boshqaruv(request):
     if user_role == "manager" and not request.user.is_superuser:
         return redirect("core:home")
     d_from, d_to = _parse_dates(request)
+    pending_purchase_requests = _build_pending_purchase_requests(center)
     return render(request, "core/dashboards/boshqaruv.html", {
         "center": center,
         "date_from": d_from,
         "date_to": d_to,
+        "pending_purchase_requests": pending_purchase_requests["recent"],
+        "pending_purchase_requests_count": pending_purchase_requests["count"],
     })
+
+
+def _build_pending_purchase_requests(center, limit: int = 6):
+    """Center bo'yicha kutilayotgan xarid so'rovlari ro'yxati va umumiy soni."""
+    try:
+        from store.models import PurchaseRequest
+    except Exception:
+        return {"recent": [], "count": 0}
+    qs = (
+        PurchaseRequest.objects.filter(center=center, status=PurchaseRequest.PENDING)
+        .select_related("student", "product")
+        .order_by("-sana")
+    )
+    count = qs.count()
+    recent = []
+    for req in qs[:limit]:
+        student = req.student
+        product = req.product
+        student_name = ""
+        if student:
+            student_name = (
+                f"{getattr(student, 'familya', '') or ''} {getattr(student, 'ism', '') or ''}".strip()
+                or student.email
+            )
+        try:
+            price_chaqmoq = int(getattr(product, "narx_chaqmoq", 0) or 0) * int(req.qty or 1)
+        except Exception:
+            price_chaqmoq = 0
+        recent.append({
+            "id": req.id,
+            "student_id": getattr(student, "id", None),
+            "student_name": student_name or "—",
+            "product_name": getattr(product, "nom", None) or "O‘chirilgan mahsulot",
+            "qty": req.qty,
+            "price_chaqmoq": price_chaqmoq,
+            "sana": req.sana,
+        })
+    return {"recent": recent, "count": count}
 
 
 @login_required

@@ -165,13 +165,24 @@ async def student_store(message: types.Message, state: FSMContext):
             await message.answer("ℹ️ Hozircha do'konda mahsulotlar yo'q.")
             return
 
+        # Mahsulot ma'lumotlarini state'ga saqlaymiz — tasdiqlash dialogida nom/narx ko'rsatish uchun
+        cached = {
+            int(p["id"]): {
+                "name": p.get("name") or p.get("nom") or "Mahsulot",
+                "price_chaqmoq": p.get("price_chaqmoq") or p.get("narx_chaqmoq") or 0,
+            }
+            for p in products
+            if p.get("id") is not None
+        }
+        await state.update_data(_cached_store_products=cached)
+
         recent_requests = "\n".join(
             f"• {item['product_name']} ×{item['qty']} — {item['status']}"
             for item in requests[:5]
         ) or "So'rovlar yo'q."
         text = (
             "🛍 <b>Do'kon</b>\n\n"
-            "Mahsulotni tanlasangiz, xarid so'rovi yuboriladi.\n\n"
+            "Mahsulotni tanlang — keyingi qadamda tasdiqlash so'raladi.\n\n"
             "<b>So'nggi so'rovlar:</b>\n"
             f"{recent_requests}"
         )
@@ -182,12 +193,65 @@ async def student_store(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(F.data.startswith("student:buy:"))
-async def student_buy_product(callback: types.CallbackQuery, state: FSMContext):
+async def student_buy_ask(callback: types.CallbackQuery, state: FSMContext):
+    """Mahsulot tugmasini bossa — avval tasdiqlash dialogi chiqadi."""
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     try:
         profile = await ensure_active_profile(callback, state, allowed_roles=("student",))
         if not profile:
             return
-        product_id = int(callback.data.split(":")[2])
+        try:
+            product_id = int(callback.data.split(":")[2])
+        except (ValueError, IndexError):
+            await callback.answer("Noto'g'ri tanlov", show_alert=True)
+            return
+
+        data = await state.get_data()
+        cached = data.get("_cached_store_products") or {}
+        # State da int yoki str key bo'lishi mumkin — ikkalasini tekshiramiz
+        product = cached.get(product_id) or cached.get(str(product_id)) or {}
+        name = product.get("name") or "Mahsulot"
+        price = product.get("price_chaqmoq") or 0
+
+        text = (
+            "🛍 <b>Xarid so'rovini tasdiqlaysizmi?</b>\n\n"
+            f"📦 Mahsulot: <b>{name}</b>\n"
+            f"⚡ Narxi: <b>{price} Chaqmoq</b>\n\n"
+            "Tasdiqlasangiz, manager yoki direktor tomonidan ko'rib chiqiladi. "
+            "Tasdiqlangach <b>{price} Chaqmoq</b> balansingizdan ushlab qolinadi."
+        ).replace("{price}", str(price))
+
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Ha, tasdiqlayman", callback_data=f"student:buy_confirm:{product_id}")],
+                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="student:buy_cancel")],
+            ]
+        )
+        await callback.message.answer(text, reply_markup=kb, parse_mode="HTML")
+        await callback.answer()
+    except Exception:
+        logger.exception("student_buy_ask failed")
+        await callback.answer("❌ Xatolik yuz berdi.", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("student:buy_confirm:"))
+async def student_buy_confirm(callback: types.CallbackQuery, state: FSMContext):
+    """Tasdiqlash bosilganda haqiqiy purchase request yuboriladi."""
+    try:
+        profile = await ensure_active_profile(callback, state, allowed_roles=("student",))
+        if not profile:
+            return
+        try:
+            product_id = int(callback.data.split(":")[2])
+        except (ValueError, IndexError):
+            await callback.answer("Noto'g'ri tanlov", show_alert=True)
+            return
+
+        data = await state.get_data()
+        cached = data.get("_cached_store_products") or {}
+        product = cached.get(product_id) or cached.get(str(product_id)) or {}
+        name = product.get("name") or "Mahsulot"
+
         status_code, response = await create_purchase_request_api(
             str(callback.from_user.id),
             profile["email"],
@@ -195,12 +259,30 @@ async def student_buy_product(callback: types.CallbackQuery, state: FSMContext):
             qty=1,
         )
         if status_code == 201:
-            await callback.answer("✅ Xarid so'rovi yuborildi.", show_alert=True)
+            backend_name = (response or {}).get("product_name") or name
+            await callback.message.edit_text(
+                "✅ <b>So'rov yuborildi!</b>\n\n"
+                f"📦 Mahsulot: <b>{backend_name}</b>\n\n"
+                "Manager yoki director tasdiqlagandan so'ng <b>balansingizdan ushlab qolinadi</b>. "
+                "Holat haqida xabar olasiz.",
+                parse_mode="HTML",
+            )
+            await callback.answer("✅ Yuborildi")
         else:
-            await callback.answer(response.get("error", "Xatolik yuz berdi."), show_alert=True)
+            err = (response or {}).get("error", "Xatolik yuz berdi.")
+            await callback.answer(err, show_alert=True)
     except Exception:
-        logger.exception("student_buy_product failed")
-        await callback.answer("❌ Xarid so'rovini yuborib bo'lmadi.", show_alert=True)
+        logger.exception("student_buy_confirm failed")
+        await callback.answer("❌ So'rovni yuborib bo'lmadi.", show_alert=True)
+
+
+@router.callback_query(F.data == "student:buy_cancel")
+async def student_buy_cancel(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        await callback.message.edit_text("❌ Xarid so'rovi bekor qilindi.")
+    except Exception:
+        pass
+    await callback.answer("Bekor qilindi")
 
 
 @router.message(F.text == "🔔 Sozlamalar")

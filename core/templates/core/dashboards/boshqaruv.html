@@ -3688,6 +3688,160 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
   .bq-kgrid { grid-template-columns: 1fr !important; }
   .bq-funnel__row { grid-template-columns: 70px 1fr 44px; gap: 8px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   XARID SO'ROVLARI (Purchase Requests) — Director va Manager dashboard
+   ══════════════════════════════════════════════════════════════ */
+.bq-pr-section { margin-top: 16px; }
+.bq-pr-card {
+  border-radius: 16px;
+  background: var(--bq-card, rgba(13,21,38,.88));
+  border: 1px solid var(--bq-br, rgba(255,255,255,.07));
+  padding: 18px 20px;
+  backdrop-filter: blur(12px);
+}
+.bq-pr-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.bq-pr-card__title-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.bq-pr-card__icon {
+  font-size: 24px;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(34,211,238,.18), rgba(129,140,248,.18));
+  border: 1px solid rgba(34,211,238,.22);
+}
+.bq-pr-card__title { margin: 0; color: var(--bq-txt, #e2e8f0); font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
+.bq-pr-card__sub  { margin: 2px 0 0; color: var(--bq-muted, #94a3b8); font-size: 12.5px; }
+.bq-pr-card__head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bq-pr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(251,146,60,.16), rgba(239,68,68,.14));
+  border: 1px solid rgba(251,146,60,.32);
+  color: #fb923c;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.bq-pr-badge--empty {
+  background: rgba(34,197,94,.10);
+  border-color: rgba(34,197,94,.28);
+  color: #34d399;
+}
+.bq-pr-card__all {
+  color: var(--bq-cyan, #22d3ee);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(34,211,238,.4);
+}
+.bq-pr-card__all:hover { color: #67e8f9; }
+.bq-pr-list { display: grid; gap: 10px; }
+.bq-pr-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid var(--bq-br, rgba(255,255,255,.07));
+  transition: border-color .15s, background .15s;
+}
+.bq-pr-row:hover { background: rgba(255,255,255,.04); border-color: var(--bq-br2, rgba(255,255,255,.13)); }
+.bq-pr-row__student { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bq-pr-row__avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22d3ee, #818cf8);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bq-pr-row__txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bq-pr-row__name { color: var(--bq-txt, #e2e8f0); font-weight: 700; font-size: 14px; }
+.bq-pr-row__meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--bq-muted, #94a3b8); font-size: 12px; }
+.bq-pr-row__product { color: var(--bq-soft, #475569); font-weight: 600; }
+.bq-pr-row__qty {
+  background: rgba(99,102,241,.12);
+  color: #818cf8;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.bq-pr-row__right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.bq-pr-row__price {
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.bq-pr-row__date { color: var(--bq-soft, #475569); font-size: 11.5px; white-space: nowrap; }
+.bq-pr-row__btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #22d3ee, #818cf8);
+  color: #0b1220;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid rgba(34,211,238,.4);
+  transition: transform .12s, box-shadow .15s;
+  white-space: nowrap;
+}
+.bq-pr-row__btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34,211,238,.22); color: #0b1220; }
+.bq-pr-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 16px;
+  border-radius: 12px;
+  background: rgba(34,197,94,.06);
+  border: 1px dashed rgba(34,197,94,.28);
+}
+.bq-pr-empty__icon { font-size: 24px; }
+.bq-pr-empty__title { color: var(--bq-txt, #e2e8f0); font-weight: 700; font-size: 14px; }
+.bq-pr-empty__sub   { color: var(--bq-muted, #94a3b8); font-size: 12.5px; margin-top: 2px; }
+@media (max-width: 640px) {
+  .bq-pr-row { grid-template-columns: 1fr; }
+  .bq-pr-row__right { justify-content: flex-start; }
+  .bq-pr-card__head-right { width: 100%; justify-content: space-between; }
+}
+
+/* Light mode override — Director boshqaruv da `--bq-*` allaqachon light ga aylanadi */
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-card {
+  background: #ffffff;
+  border-color: rgba(15,23,42,.10);
+  box-shadow: 0 4px 16px rgba(15,23,42,.06);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row {
+  background: #f8fafc;
+  border-color: rgba(15,23,42,.08);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row:hover {
+  background: #f1f5f9;
+  border-color: rgba(15,23,42,.16);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #818cf8);
+  border-color: rgba(37,99,235,.40);
+}
 </style>
 {% endblock %}
 
@@ -4476,6 +4630,63 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
     </div>
   </div>
 </div>
+
+<!-- ══════════ XARID SO'ROVLARI (PURCHASE REQUESTS) ══════════ -->
+<section class="bq-pr-section" aria-label="Mahsulot xarid so'rovlari">
+  <div class="bq-pr-card">
+    <div class="bq-pr-card__head">
+      <div class="bq-pr-card__title-wrap">
+        <span class="bq-pr-card__icon">🛍</span>
+        <div>
+          <h3 class="bq-pr-card__title">Mahsulot xarid so'rovlari</h3>
+          <p class="bq-pr-card__sub">O'quvchilar Telegram bot orqali yuborgan kutilayotgan so'rovlar</p>
+        </div>
+      </div>
+      <div class="bq-pr-card__head-right">
+        {% if pending_purchase_requests_count %}
+          <span class="bq-pr-badge">{{ pending_purchase_requests_count }} kutilmoqda</span>
+        {% else %}
+          <span class="bq-pr-badge bq-pr-badge--empty">0 kutilmoqda</span>
+        {% endif %}
+        <a href="{% url 'store:requests' %}" class="bq-pr-card__all">Barchasini ko'rish →</a>
+      </div>
+    </div>
+
+    {% if pending_purchase_requests %}
+      <div class="bq-pr-list">
+        {% for r in pending_purchase_requests %}
+          <div class="bq-pr-row">
+            <div class="bq-pr-row__main">
+              <div class="bq-pr-row__student">
+                <span class="bq-pr-row__avatar">{{ r.student_name|slice:":1"|upper|default:"?" }}</span>
+                <div class="bq-pr-row__txt">
+                  <div class="bq-pr-row__name">{{ r.student_name }}</div>
+                  <div class="bq-pr-row__meta">
+                    <span class="bq-pr-row__product">{{ r.product_name }}</span>
+                    {% if r.qty and r.qty > 1 %}<span class="bq-pr-row__qty">×{{ r.qty }}</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bq-pr-row__right">
+              <span class="bq-pr-row__price">⚡ {{ r.price_chaqmoq }}</span>
+              <span class="bq-pr-row__date">{{ r.sana|date:"d.m H:i" }}</span>
+              <a href="{% url 'store:requests' %}#req-{{ r.id }}" class="bq-pr-row__btn">Ko'rib chiqish</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bq-pr-empty">
+        <span class="bq-pr-empty__icon">✅</span>
+        <div>
+          <div class="bq-pr-empty__title">Hech qanday kutilayotgan so'rov yo'q</div>
+          <div class="bq-pr-empty__sub">O'quvchilar Telegram orqali so'rov yuborganda bu yerda ko'rinadi</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
 
 <!-- "Eng yaxshi guruhlar" satrlari uchun ko'proq menyu (3 nuqta tugma) -->
 <div id="bestGroupsMenu" class="bq-best-menu" role="menu" aria-hidden="true">

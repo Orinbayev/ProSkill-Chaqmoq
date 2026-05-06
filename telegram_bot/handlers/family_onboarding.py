@@ -38,6 +38,7 @@ from services.api_client import (
     family_find_by_phone_api,
     family_issue_credentials_api,
     family_search_child_api,
+    family_student_by_name_api,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,9 @@ class FamilyOnboardingState(StatesGroup):
     waiting_confirm = State()
     waiting_child_name = State()
     waiting_child_birthdate = State()
+    # Student uchun ism orqali qidirish
+    waiting_student_name = State()
+    waiting_student_birthdate = State()
 
 
 # ─── Keyboardlar ────────────────────────────────────────────────────────────
@@ -176,13 +180,31 @@ async def family_pick_role(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Noto'g'ri tanlov", show_alert=True)
         return
 
-    await state.set_state(FamilyOnboardingState.waiting_phone)
     await state.update_data(role=role)
 
-    role_text = "ota-ona" if role == "parent" else "o'quvchi"
+    if role == "student":
+        # O'quvchi uchun: 2 yo'lni taklif qilamiz
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📱 Telefon raqami orqali", callback_data="family:student_method:phone")],
+                [InlineKeyboardButton(text="📝 Ism va tug'ilgan sana orqali", callback_data="family:student_method:name")],
+                [InlineKeyboardButton(text="🔄 Qaytish", callback_data="family:restart")],
+            ]
+        )
+        await callback.message.answer(
+            "🎓 <b>Siz o'quvchi sifatida ulanmoqdasiz.</b>\n\n"
+            "Qanday usulda topilishingizni xohlaysiz?",
+            reply_markup=kb,
+            parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+
+    # Ota-ona — to'g'ridan-to'g'ri telefon
+    await state.set_state(FamilyOnboardingState.waiting_phone)
     await callback.message.answer(
-        f"📱 <b>Telefon raqamingizni yuboring</b>\n\n"
-        f"Siz <b>{role_text}</b> sifatida ulanmoqdasiz.\n\n"
+        "📱 <b>Telefon raqamingizni yuboring</b>\n\n"
+        "Siz <b>ota-ona</b> sifatida ulanmoqdasiz.\n\n"
         "<b>Ikki usuldan birini tanlang:</b>\n"
         "• Pastdagi tugmani bosing — Telegram avtomatik raqamni yuboradi\n"
         "• Yoki to'g'ridan-to'g'ri yozing: <code>+998901234567</code> yoki <code>901234567</code>",
@@ -190,6 +212,101 @@ async def family_pick_role(callback: types.CallbackQuery, state: FSMContext):
         parse_mode="HTML",
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("family:student_method:"))
+async def family_student_method(callback: types.CallbackQuery, state: FSMContext):
+    method = callback.data.split(":", 2)[2]
+    if method == "phone":
+        await state.set_state(FamilyOnboardingState.waiting_phone)
+        await callback.message.answer(
+            "📱 <b>Telefon raqamingizni yuboring</b>\n\n"
+            "Pastdagi tugmani bosing yoki yozing: <code>+998901234567</code>",
+            reply_markup=_share_contact_kb(),
+            parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+    if method == "name":
+        await state.set_state(FamilyOnboardingState.waiting_student_name)
+        await callback.message.answer(
+            "📝 <b>To'liq ismingizni yozing</b>\n\n"
+            "Familiya va ismingizni yozing — masalan: <code>Aliyev Akmal</code>\n"
+            "Kamida 3 harf yozing.",
+            parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+    await callback.answer("Noto'g'ri tanlov", show_alert=True)
+
+
+@router.message(FamilyOnboardingState.waiting_student_name, F.text)
+async def family_student_name(message: types.Message, state: FSMContext):
+    name_query = " ".join(message.text.split()).strip()
+    if len(name_query) < 3:
+        await message.answer("Kamida 3 harf yozing. Masalan: <code>Aliyev</code>", parse_mode="HTML")
+        return
+    await state.update_data(student_name_query=name_query)
+    await state.set_state(FamilyOnboardingState.waiting_student_birthdate)
+    await message.answer(
+        "📅 <b>Tug'ilgan sanangizni yozing</b>\n\n"
+        "Format: <code>kun.oy.yil</code>\n"
+        "Masalan: <code>15.03.2010</code>",
+        parse_mode="HTML",
+    )
+
+
+@router.message(FamilyOnboardingState.waiting_student_birthdate, F.text)
+async def family_student_birthdate(message: types.Message, state: FSMContext):
+    raw = message.text.strip()
+    data = await state.get_data()
+    name_query = data.get("student_name_query") or ""
+
+    status_code, response = await family_student_by_name_api(
+        name_query=name_query,
+        birth_date=raw,
+        telegram_id=str(message.from_user.id),
+    )
+
+    if status_code == 429:
+        await message.answer(
+            "⏱ Juda ko'p urinish. Iltimos, biroz kuting.",
+            reply_markup=_restart_kb(),
+        )
+        await state.clear()
+        return
+
+    if status_code != 200 or not response.get("ok"):
+        err = (response or {}).get("error") or "Sizning ma'lumotlaringiz topilmadi."
+        await message.answer(
+            f"❌ {err}\n\nQaytadan tug'ilgan sana yozib ko'ring (masalan: <code>15.03.2010</code>) "
+            "yoki <b>🔄 Qayta urinish</b>.",
+            parse_mode="HTML",
+            reply_markup=_restart_kb(),
+        )
+        return
+
+    matches = response.get("matches") or []
+    await state.update_data(role="student", parent_user_id=None, can_add_children=False)
+    await state.set_state(FamilyOnboardingState.waiting_confirm)
+
+    if len(matches) == 1:
+        s = matches[0]
+        await message.answer(
+            f"✅ <b>Topildi:</b>\n\n"
+            f"👤 {s.get('full_name')}\n"
+            f"🏫 {s.get('center', '—')}\n\n"
+            "Davom etish uchun tasdiqlang:",
+            reply_markup=_confirm_kb(s["id"]),
+            parse_mode="HTML",
+        )
+        return
+
+    await message.answer(
+        f"🔎 <b>Topildi {len(matches)} ta yozuv.</b>\n\nO'zingizni tanlang:",
+        reply_markup=_multi_confirm_kb(matches, can_add=False),
+        parse_mode="HTML",
+    )
 
 
 # ─── Telefon ─────────────────────────────────────────────────────────────────
