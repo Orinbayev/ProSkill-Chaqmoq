@@ -51,4 +51,6 @@ urlpatterns = [
     # Family bot — telefon orqali avtorizatsiya
     path('bot-family-find-by-phone/', api_auth.family_find_by_phone_api, name='bot_family_find_by_phone'),
     path('bot-family-issue-credentials/', api_auth.family_issue_credentials_api, name='bot_family_issue_credentials'),
+    path('bot-family-search-child/', api_auth.family_search_child_api, name='bot_family_search_child'),
+    path('bot-family-add-child/', api_auth.family_add_child_api, name='bot_family_add_child'),
 ]

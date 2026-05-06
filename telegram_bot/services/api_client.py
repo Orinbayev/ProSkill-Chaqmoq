@@ -313,3 +313,41 @@ async def family_issue_credentials_api(
             "telegram_id": telegram_id,
         },
     )
+
+
+async def family_search_child_api(
+    *,
+    parent_user_id: int,
+    name_query: str,
+    telegram_id: str | None = None,
+):
+    """Ota-ona uchun farzand qidirish (parent markazi ichida)."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-search-child/",
+        data={
+            "parent_user_id": parent_user_id,
+            "name_query": name_query,
+            "telegram_id": telegram_id,
+        },
+    )
+
+
+async def family_add_child_api(
+    *,
+    parent_user_id: int,
+    child_id: int,
+    birth_date: str,
+    telegram_id: str | None = None,
+):
+    """Ota-ona o'ziga farzandni biriktirish (tug'ilgan sana orqali tasdiqlash)."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-add-child/",
+        data={
+            "parent_user_id": parent_user_id,
+            "child_id": child_id,
+            "birth_date": birth_date,
+            "telegram_id": telegram_id,
+        },
+    )

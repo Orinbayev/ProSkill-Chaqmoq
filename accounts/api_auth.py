@@ -12,7 +12,7 @@ import string
 from hmac import compare_digest
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime, date as date_cls
 
 from accounts.utils import normalize_phone
 from accounts.models import User, UserActivity
@@ -800,6 +800,18 @@ def _serialize_match_user(user) -> dict:
     }
 
 
+def _find_parent_user_by_phone(phone: str):
+    """Telefon orqali parent rolidagi User'ni topish."""
+    if not phone:
+        return None
+    return (
+        User.objects.filter(role="parent", is_active=True, is_archived=False)
+        .filter(Q(phone_number=phone) | Q(telefon1=phone) | Q(telefon2=phone))
+        .select_related("center")
+        .first()
+    )
+
+
 @csrf_exempt
 @require_POST
 def family_find_by_phone_api(request):
@@ -910,7 +922,20 @@ def family_find_by_phone_api(request):
         except Exception:
             logger.exception("family_find_by_phone audit log failed")
 
-    return JsonResponse({"ok": True, "matches": matches})
+    parent_user_id = parent_users[0].id if parent_users else None
+    parent_center_slug = ""
+    if parent_users and parent_users[0].center:
+        parent_center_slug = parent_users[0].center.slug or ""
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "matches": matches,
+            "parent_user_id": parent_user_id,
+            "parent_center_slug": parent_center_slug,
+            "can_add_children": bool(parent_user_id),
+        }
+    )
 
 
 @csrf_exempt
@@ -1010,5 +1035,212 @@ def family_issue_credentials_api(request):
                 "password": new_password,
             },
             "login_url": _build_login_url(user),
+        }
+    )
+
+
+def _parse_user_birth_date(raw: str):
+    """Foydalanuvchi yozgan sanani DD.MM.YYYY yoki YYYY-MM-DD formatda qabul qilish."""
+    if not raw:
+        return None
+    raw = raw.strip().replace("/", ".").replace("-", ".")
+    parts = raw.split(".")
+    if len(parts) != 3:
+        return None
+    try:
+        a, b, c = (int(p) for p in parts)
+    except ValueError:
+        return None
+    # Format aniqlanadi: agar birinchi qism 4 xonali bo'lsa YYYY.MM.DD
+    if a > 1900:
+        year, month, day = a, b, c
+    else:
+        day, month, year = a, b, c
+    try:
+        return date_cls(year, month, day)
+    except ValueError:
+        return None
+
+
+@csrf_exempt
+@require_POST
+def family_search_child_api(request):
+    """
+    Ota-ona uchun farzand qidirish (ism orqali, parent markazi ichida).
+
+    POST: {parent_user_id, name_query, telegram_id}
+    Response: {ok: true, results: [{id, full_name, center, has_birth_date}]}
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    try:
+        parent_user_id = int(payload.get("parent_user_id") or 0)
+    except (TypeError, ValueError):
+        parent_user_id = 0
+    name_query = " ".join(str(payload.get("name_query") or "").split()).strip()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+
+    if parent_user_id <= 0:
+        return JsonResponse({"ok": False, "error": "Ota-ona profili topilmadi."}, status=400)
+    if len(name_query) < 3:
+        return JsonResponse({"ok": False, "error": "Kamida 3 harf yozing."}, status=400)
+
+    if telegram_id and not _family_rate_limit_check("", telegram_id):
+        return JsonResponse({"ok": False, "error": "Juda ko'p urinish."}, status=429)
+
+    try:
+        parent = User.objects.select_related("center").get(
+            id=parent_user_id, role="parent", is_active=True, is_archived=False
+        )
+    except User.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Ota-ona topilmadi."}, status=404)
+
+    qs = (
+        User.objects.filter(role="student", is_active=True, is_archived=False)
+        .select_related("center")
+    )
+    # Faqat ota-ona o'z markazi ichida qidiradi (xavfsizlik)
+    if parent.center_id:
+        qs = qs.filter(center_id=parent.center_id)
+
+    # Ism familiya bo'yicha qidirish (har ikkala maydonda)
+    tokens = [t for t in name_query.split() if t]
+    name_filter = Q()
+    for tok in tokens:
+        name_filter &= Q(ism__icontains=tok) | Q(familya__icontains=tok) | Q(otchestvo__icontains=tok)
+    qs = qs.filter(name_filter)
+
+    # Allaqachon biriktirilgan bolalarni chiqarib tashlash
+    existing_ids = list(parent.children.values_list("id", flat=True))
+    if existing_ids:
+        qs = qs.exclude(id__in=existing_ids)
+
+    results = []
+    for s in qs[:15]:
+        results.append(
+            {
+                "id": s.id,
+                "full_name": (f"{s.familya} {s.ism}").strip() or s.email,
+                "center": s.center.name if s.center else "",
+                "has_birth_date": bool(s.birth_date),
+            }
+        )
+
+    if not results:
+        return JsonResponse(
+            {"ok": False, "error": "Hech qanday farzand topilmadi. Ismni to'g'ri yozganingizni tekshiring."},
+            status=404,
+        )
+
+    return JsonResponse({"ok": True, "results": results})
+
+
+@csrf_exempt
+@require_POST
+def family_add_child_api(request):
+    """
+    Ota-ona o'ziga farzandni biriktirish (tug'ilgan sana orqali tasdiqlash).
+
+    POST: {parent_user_id, child_id, birth_date, telegram_id}
+    Response: {ok: true, child: {id, full_name, center}}
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    try:
+        parent_user_id = int(payload.get("parent_user_id") or 0)
+        child_id = int(payload.get("child_id") or 0)
+    except (TypeError, ValueError):
+        parent_user_id = child_id = 0
+    birth_date_raw = str(payload.get("birth_date") or "").strip()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+
+    if parent_user_id <= 0 or child_id <= 0:
+        return JsonResponse({"ok": False, "error": "Ma'lumot to'liq emas."}, status=400)
+
+    if telegram_id and not _family_rate_limit_check("", telegram_id):
+        return JsonResponse({"ok": False, "error": "Juda ko'p urinish."}, status=429)
+
+    parsed_date = _parse_user_birth_date(birth_date_raw)
+    if not parsed_date:
+        return JsonResponse(
+            {"ok": False, "error": "Tug'ilgan sana noto'g'ri formatda. Masalan: 15.03.2010"},
+            status=400,
+        )
+
+    try:
+        parent = User.objects.select_related("center").get(
+            id=parent_user_id, role="parent", is_active=True, is_archived=False
+        )
+        child = User.objects.select_related("center").get(
+            id=child_id, role="student", is_active=True, is_archived=False
+        )
+    except User.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Foydalanuvchi topilmadi."}, status=404)
+
+    # Markaz tekshiruvi (xavfsizlik)
+    if parent.center_id and child.center_id and parent.center_id != child.center_id:
+        return JsonResponse(
+            {"ok": False, "error": "Bu farzand boshqa markazda. Qo'shib bo'lmadi."},
+            status=403,
+        )
+
+    # Allaqachon biriktirilgan bo'lsa
+    if parent.children.filter(id=child.id).exists():
+        return JsonResponse(
+            {"ok": False, "error": "Bu farzand allaqachon ro'yxatingizda."},
+            status=409,
+        )
+
+    # Tug'ilgan sana tasdiqlash (xavfsizlik)
+    if not child.birth_date:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Bu farzandning tug'ilgan sanasi tizimda yo'q. Markazga murojaat qiling.",
+            },
+            status=409,
+        )
+    if child.birth_date != parsed_date:
+        return JsonResponse(
+            {"ok": False, "error": "Tug'ilgan sana mos kelmadi. Iltimos, qaytadan tekshiring."},
+            status=403,
+        )
+
+    try:
+        with transaction.atomic():
+            parent.children.add(child)
+            try:
+                UserActivity.objects.create(
+                    user=parent,
+                    action=f"Family bot: yangi farzand biriktirildi (child_id={child.id}, tg={telegram_id})",
+                )
+            except Exception:
+                logger.exception("family_add_child audit log failed")
+    except Exception:
+        logger.exception("family_add_child failed parent=%s child=%s", parent_user_id, child_id)
+        return JsonResponse({"ok": False, "error": "Server xatosi."}, status=500)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "child": {
+                "id": child.id,
+                "full_name": (f"{child.familya} {child.ism}").strip() or child.email,
+                "center": child.center.name if child.center else "",
+            },
         }
     )
