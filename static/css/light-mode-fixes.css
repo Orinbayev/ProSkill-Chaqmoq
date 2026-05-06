@@ -1078,3 +1078,70 @@ html[data-role-theme="light"] body .app-shell::before {
   -webkit-mask-image: radial-gradient(700px 520px at 20% 0%, black, transparent 65%) !important;
   mask-image: radial-gradient(700px 520px at 20% 0%, black, transparent 65%) !important;
 }
+
+/* =====================================================================
+   21) HAFTALIK JADVAL (weekly_schedule.html)
+   ===================================================================== */
+
+/* Kun kolonkalari — dark rgba background ni oq/och bilan almashtirish */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-day {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* Kun sarlavhasi — oq fon ustida qora matn */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-day-title {
+  color: var(--lm-text) !important;
+}
+
+/* Guruh kartlari (slot) — dark rgba o'rniga ochiq kulrang */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-slot {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* Guruh nomi — qora matn */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-slot-name {
+  color: var(--lm-text) !important;
+}
+
+/* Meta ma'lumotlar (o'qituvchi, vaqt, xona) */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-slot-meta {
+  color: var(--lm-muted) !important;
+}
+
+/* "Dars yo'q" bo'sh holat */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-empty {
+  background: var(--lm-surface-3) !important;
+  color: var(--lm-muted) !important;
+}
+
+/* Mobil accordion — details/summary */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-mobile details {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-mobile summary {
+  color: var(--lm-text) !important;
+}
+
+/* Filter paneli inputlar va selectlar */
+html[data-role-theme="light"] body.weekly-schedule-page select,
+html[data-role-theme="light"] body.weekly-schedule-page input[type="text"] {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page select option {
+  background: #ffffff !important;
+  color: var(--lm-text) !important;
+}
+
+/* Sarlavha (ui-panel header) */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-title,
+html[data-role-theme="light"] body.weekly-schedule-page .ui-sub {
+  color: var(--lm-text) !important;
+}

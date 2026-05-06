@@ -370,14 +370,6 @@
       <span class="si-text">Bo'limlar</span>
     </a>
 
-    {% if feature_weekly_schedule_ui %}
-    <a href="{% url 'education:weekly_schedule' %}"
-      class="sidebar-item {% if 'schedule/weekly' in p %}active{% endif %}" data-title="Haftalik Jadval">
-      <span class="si-ico"><i class="fa-solid fa-calendar-days"></i></span>
-      <span class="si-text">📅 Haftalik Jadval</span>
-    </a>
-    {% endif %}
-
     {% if feature_store or request.user.is_superuser %}
     <a href="{% url 'education:qarzdorlar_home' %}" class="sidebar-item {% if vn == 'education:qarzdorlar_home' %}active{% endif %}"
       data-title="Qarzdorlar">
@@ -549,6 +541,11 @@
   <a href="{% url 'chaqmoq:reyting' %}" class="floating-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
     <div class="fi-icon"><i class="fa-solid fa-trophy"></i></div>
     <span>Reyting</span>
+  </a>
+
+  <a href="{% url 'education:weekly_schedule' %}" class="floating-item {% if vn == 'education:weekly_schedule' %}active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-calendar-week"></i></div>
+    <span>Haftalik Jadval</span>
   </a>
       </div>
     </div>
