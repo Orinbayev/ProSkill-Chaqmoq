@@ -150,7 +150,11 @@ def branch_list_api(request):
             .count()
         )
 
-    return JsonResponse({"ok": True, "branches": branches})
+    return JsonResponse({
+        "ok": True,
+        "branches": branches,
+        "center": {"id": center.id, "name": center.name, "slug": center.slug},
+    })
 
 
 @login_required

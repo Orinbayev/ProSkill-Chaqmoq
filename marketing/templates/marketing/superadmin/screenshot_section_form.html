@@ -1,8 +1,8 @@
 {% extends 'marketing/superadmin/base.html' %}
 
-{% block page_title %}{{ page_title|default:'Ekran ko'rinishi' }}{% endblock %}
+{% block page_title %}{{ page_title|default:"Ekran ko'rinishi" }}{% endblock %}
 {% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:screenshot_section_list' %}">Ekran ko'rinishlari</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
-{% block heading %}{{ page_title|default:'Ekran ko'rinishi' }}{% endblock %}
+{% block heading %}{{ page_title|default:"Ekran ko'rinishi" }}{% endblock %}
 {% block subtitle %}Ekran ko'rinishi kontentini kiriting.{% endblock %}
 
 {% block header_actions %}<a href="{% url 'platform_global:marketing:screenshot_section_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxat</a>{% endblock %}
