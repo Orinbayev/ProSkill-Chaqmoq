@@ -4932,14 +4932,36 @@ def schedule_conflict_check(request):
         return JsonResponse({"conflict": False, "groups": []}, status=500)
 
 
+_WEEKLY_SLOT_MIN = 30
+
+
+def _weekly_t_to_min(t):
+    return t.hour * 60 + t.minute
+
+
+def _weekly_teacher_initials(teacher):
+    if not teacher:
+        return "?"
+    name = (teacher.get_full_name() or "").strip()
+    if not name:
+        name = (getattr(teacher, "username", "") or "").strip()
+    parts = [p for p in name.split() if p]
+    if len(parts) >= 2:
+        return (parts[0][:1] + parts[1][:1]).upper()
+    if parts:
+        return parts[0][:2].upper()
+    return "??"
+
+
 @login_required
 def weekly_schedule_view(request):
     """
-    Manager/Director uchun: haftaning 7 kuni bo'yicha
-    barcha guruhlarning jadvali.
+    Manager/Director uchun haftalik jadval — vaqt × kun gridi,
+    o'qituvchi rangi, o'qituvchi yuklamasi, Excel/PDF eksport.
     """
     from core.tenant import get_request_center
     from education.models import GroupSchedule
+    from collections import defaultdict
 
     try:
         center = get_request_center(request)
@@ -4976,9 +4998,111 @@ def weekly_schedule_view(request):
         total_slots_count = base_qs.count()
         filtered_slots_count = qs.count()
 
-        week_map = {weekday: [] for weekday, _ in _schedule_weekday_labels()}
+        weekday_labels = _schedule_weekday_labels()
+        week_map = {weekday: [] for weekday, _ in weekday_labels}
         for schedule in qs:
             week_map[schedule.weekday].append(schedule)
+
+        all_slots = list(qs)
+        if all_slots:
+            earliest = min(_weekly_t_to_min(s.start_time) for s in all_slots)
+            latest = max(
+                _weekly_t_to_min(s.end_time) if s.end_time
+                else _weekly_t_to_min(s.start_time) + 60
+                for s in all_slots
+            )
+            grid_start = (earliest // _WEEKLY_SLOT_MIN) * _WEEKLY_SLOT_MIN
+            grid_end = -(-latest // _WEEKLY_SLOT_MIN) * _WEEKLY_SLOT_MIN
+        else:
+            grid_start, grid_end = 8 * 60, 22 * 60
+        grid_start = max(grid_start, 6 * 60)
+        grid_end = min(grid_end, 23 * 60 + 30)
+
+        time_slots = []
+        cur = grid_start
+        while cur < grid_end:
+            hh, mm = divmod(cur, 60)
+            time_slots.append({"minute": cur, "label": f"{hh:02d}:{mm:02d}"})
+            cur += _WEEKLY_SLOT_MIN
+
+        teachers_in_use = []
+        seen_teacher_ids = set()
+        for s in all_slots:
+            tch = s.group.oqituvchi
+            if tch and tch.id not in seen_teacher_ids:
+                seen_teacher_ids.add(tch.id)
+                teachers_in_use.append(tch)
+
+        time_grid = {wd: [[] for _ in time_slots] for wd, _ in weekday_labels}
+        for s in all_slots:
+            start_m = _weekly_t_to_min(s.start_time)
+            end_m = _weekly_t_to_min(s.end_time) if s.end_time else start_m + 60
+            slot_idx = max(0, (start_m - grid_start) // _WEEKLY_SLOT_MIN)
+            if slot_idx >= len(time_slots):
+                continue
+            tch = s.group.oqituvchi
+            time_grid[s.weekday][slot_idx].append({
+                "item": s,
+                "is_unassigned": not s.group.oqituvchi_id,
+                "teacher_name": tch.get_full_name() if tch else "Belgilanmagan",
+                "teacher_initials": _weekly_teacher_initials(tch),
+            })
+
+        used_idx = sorted({
+            idx
+            for wd, _ in weekday_labels
+            for idx, cell in enumerate(time_grid[wd])
+            if cell
+        })
+        filtered_time_slots = [time_slots[i] for i in used_idx]
+        filtered_time_grid = {
+            wd: [time_grid[wd][i] for i in used_idx] for wd, _ in weekday_labels
+        }
+        grid_rows = []
+        for new_idx, orig_idx in enumerate(used_idx):
+            slot = time_slots[orig_idx]
+            cells = [time_grid[wd][orig_idx] for wd, _ in weekday_labels]
+            grid_rows.append({"label": slot["label"], "cells": cells, "minute": slot["minute"]})
+
+        teacher_load_map = defaultdict(lambda: {
+            "minutes": 0, "lessons": 0, "days": set(), "rooms": set(),
+        })
+        for s in all_slots:
+            tid = s.group.oqituvchi_id
+            key = tid if tid else "unassigned"
+            start_m = _weekly_t_to_min(s.start_time)
+            end_m = _weekly_t_to_min(s.end_time) if s.end_time else start_m + 60
+            teacher_load_map[key]["minutes"] += max(0, end_m - start_m)
+            teacher_load_map[key]["lessons"] += 1
+            teacher_load_map[key]["days"].add(s.weekday)
+            if s.room:
+                teacher_load_map[key]["rooms"].add(s.room)
+
+        weekday_short = {1: "Du", 2: "Se", 3: "Ch", 4: "Pa", 5: "Ju", 6: "Sh", 7: "Ya"}
+        teacher_loads = []
+        for tch in teachers_in_use:
+            ld = teacher_load_map.get(tch.id) or {"minutes": 0, "lessons": 0, "days": set(), "rooms": set()}
+            teacher_loads.append({
+                "teacher": tch,
+                "initials": _weekly_teacher_initials(tch),
+                "lessons": ld["lessons"],
+                "hours": round(ld["minutes"] / 60.0, 1),
+                "days_count": len(ld["days"]),
+                "days_short": [weekday_short[d] for d in sorted(ld["days"])],
+                "rooms": sorted(ld["rooms"]),
+            })
+        if "unassigned" in teacher_load_map:
+            ld = teacher_load_map["unassigned"]
+            teacher_loads.append({
+                "teacher": None,
+                "initials": "?",
+                "lessons": ld["lessons"],
+                "hours": round(ld["minutes"] / 60.0, 1),
+                "days_count": len(ld["days"]),
+                "days_short": [weekday_short[d] for d in sorted(ld["days"])],
+                "rooms": sorted(ld["rooms"]),
+            })
+        teacher_loads.sort(key=lambda x: (-x["hours"], -x["lessons"]))
 
         groups_qs = (
             Group.objects.filter(center=center, is_archived=False)
@@ -5016,43 +5140,26 @@ def weekly_schedule_view(request):
             is_archived=False,
         ).order_by("ism", "familya")
 
-        if request.GET.get("export") == "1":
-            import openpyxl
-
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Haftalik jadval"
-            ws.append(["Kun", "Guruh", "O'qituvchi", "Vaqt", "Xona", "Bo'lim"])
-            for weekday, label in _schedule_weekday_labels():
-                day_rows = week_map.get(weekday) or []
-                if not day_rows:
-                    ws.append([label, "—", "—", "—", "—", "—"])
-                    continue
-                for item in day_rows:
-                    ws.append(
-                        [
-                            label,
-                            item.group.nom,
-                            item.group.oqituvchi.get_full_name() if item.group.oqituvchi else "Belgilanmagan",
-                            item.time_range,
-                            item.room or "Xona yo'q",
-                            item.group.get_category_display(),
-                        ]
-                    )
-
-            response = HttpResponse(
-                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        export = (request.GET.get("export") or "").strip().lower()
+        if export in ("excel", "1", "xlsx"):
+            return _weekly_schedule_excel(
+                center, weekday_labels, week_map, filtered_time_slots, filtered_time_grid,
+                teacher_loads, teacher_id, room_filter, teachers,
             )
-            response["Content-Disposition"] = 'attachment; filename="haftalik_jadval.xlsx"'
-            wb.save(response)
-            return response
+        if export == "pdf":
+            return _weekly_schedule_pdf(
+                center, weekday_labels, filtered_time_slots, filtered_time_grid,
+                teacher_loads, teacher_id, room_filter, teachers,
+            )
 
         return render(
             request,
             "education/weekly_schedule.html",
             {
                 "week_map": week_map,
-                "weekday_labels": _schedule_weekday_labels(),
+                "weekday_labels": weekday_labels,
+                "grid_rows": grid_rows,
+                "teacher_loads": teacher_loads,
                 "rooms": rooms,
                 "teachers": teachers,
                 "selected_teacher": teacher_id,
@@ -5065,6 +5172,7 @@ def weekly_schedule_view(request):
                 "unscheduled_groups": unscheduled_groups,
                 "empty_state_message": empty_state_message,
                 "has_filters": bool(teacher_id or room_filter),
+                "teachers_in_use_count": len(teachers_in_use),
             },
         )
     except Http404:
@@ -5073,6 +5181,247 @@ def weekly_schedule_view(request):
         logger.exception("weekly_schedule_view failed")
         messages.error(request, "Haftalik jadvalni yuklashda xatolik yuz berdi.")
         return redirect("core:home")
+
+
+def _weekly_schedule_excel(center, weekday_labels, week_map, time_slots, time_grid,
+                           teacher_loads, teacher_id, room_filter, teachers):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    wb = openpyxl.Workbook()
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill("solid", fgColor="1E40AF")
+    cell_font = Font(size=10)
+    bold_small = Font(bold=True, size=10)
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin = Side(border_style="thin", color="CBD5E1")
+    border = Border(top=thin, bottom=thin, left=thin, right=thin)
+
+    ws = wb.active
+    ws.title = "Vaqt jadvali"
+    headers = ["Vaqt"] + [lbl for _, lbl in weekday_labels]
+    ws.append(headers)
+    for col_idx in range(1, len(headers) + 1):
+        c = ws.cell(row=1, column=col_idx)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = center_align
+        c.border = border
+
+    for row_idx, slot in enumerate(time_slots, start=2):
+        row_values = [slot["label"]]
+        for wd, _ in weekday_labels:
+            cell_items = time_grid[wd][row_idx - 2]
+            if cell_items:
+                lines = []
+                for entry in cell_items:
+                    it = entry["item"]
+                    tch_name = it.group.oqituvchi.get_full_name() if it.group.oqituvchi else "Belgilanmagan"
+                    rm = it.room or "—"
+                    lines.append(f"{it.group.nom}\n{tch_name}\n{it.time_range} | {rm}")
+                row_values.append("\n────\n".join(lines))
+            else:
+                row_values.append("")
+        ws.append(row_values)
+        for col_idx in range(1, len(row_values) + 1):
+            c = ws.cell(row=row_idx, column=col_idx)
+            c.alignment = center_align
+            c.border = border
+            if col_idx == 1:
+                c.font = bold_small
+                c.fill = PatternFill("solid", fgColor="F1F5F9")
+            else:
+                c.font = cell_font
+
+    ws.column_dimensions["A"].width = 11
+    for letter in ["B", "C", "D", "E", "F", "G", "H"]:
+        ws.column_dimensions[letter].width = 28
+    for row_idx in range(2, len(time_slots) + 2):
+        ws.row_dimensions[row_idx].height = 56
+    ws.freeze_panes = "B2"
+
+    ws2 = wb.create_sheet("Kun bo'yicha")
+    ws2.append(["Kun", "Guruh", "O'qituvchi", "Vaqt", "Xona", "Bo'lim"])
+    for col_idx in range(1, 7):
+        c = ws2.cell(row=1, column=col_idx)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = center_align
+        c.border = border
+    for wd, label in weekday_labels:
+        items = week_map.get(wd) or []
+        if not items:
+            ws2.append([label, "—", "—", "—", "—", "—"])
+            continue
+        for it in items:
+            try:
+                cat = it.group.get_category_display()
+            except Exception:
+                cat = ""
+            ws2.append([
+                label,
+                it.group.nom,
+                it.group.oqituvchi.get_full_name() if it.group.oqituvchi else "Belgilanmagan",
+                it.time_range,
+                it.room or "Xona yo'q",
+                cat,
+            ])
+    for col, w in zip(["A", "B", "C", "D", "E", "F"], [14, 28, 24, 16, 14, 18]):
+        ws2.column_dimensions[col].width = w
+
+    ws3 = wb.create_sheet("O'qituvchi yuklamasi")
+    ws3.append(["O'qituvchi", "Darslar", "Soatlar (haftada)", "Band kunlar", "Xonalar"])
+    for col_idx in range(1, 6):
+        c = ws3.cell(row=1, column=col_idx)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = center_align
+        c.border = border
+    for ld in teacher_loads:
+        name = ld["teacher"].get_full_name() if ld["teacher"] else "Belgilanmagan"
+        ws3.append([
+            name,
+            ld["lessons"],
+            ld["hours"],
+            ", ".join(ld["days_short"]),
+            ", ".join(ld["rooms"]),
+        ])
+    for col, w in zip(["A", "B", "C", "D", "E"], [28, 12, 18, 18, 28]):
+        ws3.column_dimensions[col].width = w
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    fname = f"haftalik_jadval_{timezone.localdate().isoformat()}.xlsx"
+    response["Content-Disposition"] = f'attachment; filename="{fname}"'
+    wb.save(response)
+    return response
+
+
+def _weekly_schedule_pdf(center, weekday_labels, time_slots, time_grid,
+                         teacher_loads, teacher_id, room_filter, teachers):
+    from reportlab.lib.pagesizes import A3, landscape
+    from reportlab.lib import colors as rl_colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.units import mm
+    from html import escape as _esc
+
+    buf = BytesIO()
+    page_size = landscape(A3)
+    doc = SimpleDocTemplate(
+        buf, pagesize=page_size,
+        leftMargin=10 * mm, rightMargin=10 * mm,
+        topMargin=10 * mm, bottomMargin=10 * mm,
+        title="Haftalik jadval",
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("title", parent=styles["Heading1"], fontSize=18, spaceAfter=4)
+    sub_style = ParagraphStyle("sub", parent=styles["Normal"], fontSize=10, textColor=rl_colors.grey, spaceAfter=8)
+    cell_dark = ParagraphStyle("celld", parent=styles["Normal"], fontSize=7, leading=9, alignment=1, textColor=rl_colors.HexColor("#0f172a"))
+
+    elements = []
+    center_name = (
+        getattr(center, "nom", None)
+        or getattr(center, "name", None)
+        or getattr(center, "title", None)
+        or "ChaqmoqApp"
+    )
+    elements.append(Paragraph(f"Haftalik Jadval — {_esc(str(center_name))}", title_style))
+    sub_parts = []
+    if teacher_id:
+        sel = next((t for t in teachers if t.id == teacher_id), None)
+        if sel:
+            sub_parts.append(f"O'qituvchi: {_esc(sel.get_full_name())}")
+    if room_filter:
+        sub_parts.append(f"Xona: {_esc(room_filter)}")
+    sub_parts.append(f"Sana: {timezone.localdate().strftime('%d.%m.%Y')}")
+    elements.append(Paragraph(" • ".join(sub_parts), sub_style))
+
+    head_row = ["Vaqt"] + [lbl for _, lbl in weekday_labels]
+    data = [head_row]
+    for r_idx, slot in enumerate(time_slots, start=1):
+        row = [slot["label"]]
+        for c_idx, (wd, _) in enumerate(weekday_labels, start=1):
+            entries = time_grid[wd][r_idx - 1]
+            if entries:
+                first = entries[0]
+                it = first["item"]
+                tch_name = _esc(first["teacher_name"])
+                rm = _esc(it.room) if it.room else "—"
+                extra = f"<br/><i>+{len(entries) - 1} qo'shimcha dars</i>" if len(entries) > 1 else ""
+                txt = (
+                    f"<b>{tch_name}</b><br/>"
+                    f"{_esc(it.group.nom)}<br/>"
+                    f"<font color='#475569'>{_esc(it.time_range)} · {rm}</font>{extra}"
+                )
+                row.append(Paragraph(txt, cell_dark))
+            else:
+                row.append("")
+        data.append(row)
+
+    col_count = len(head_row)
+    page_w = page_size[0] - 20 * mm
+    time_col_w = 20 * mm
+    day_col_w = (page_w - time_col_w) / (col_count - 1)
+    col_widths = [time_col_w] + [day_col_w] * (col_count - 1)
+
+    if len(data) == 1:
+        elements.append(Paragraph("Hech qanday dars vaqti kiritilmagan.", sub_style))
+    else:
+        tbl = Table(data, colWidths=col_widths, repeatRows=1)
+        style = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#1E40AF")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.4, rl_colors.HexColor("#CBD5E1")),
+            ("FONTSIZE", (0, 1), (0, -1), 8),
+            ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+            ("BACKGROUND", (0, 1), (0, -1), rl_colors.HexColor("#F1F5F9")),
+            ("ROWBACKGROUNDS", (1, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor("#F8FAFC")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ])
+        tbl.setStyle(style)
+        elements.append(tbl)
+
+    elements.append(Spacer(1, 8 * mm))
+    elements.append(Paragraph("O'qituvchi yuklamasi (haftalik)", title_style))
+
+    load_data = [["O'qituvchi", "Darslar", "Soat", "Band kunlar", "Xonalar"]]
+    for ld in teacher_loads:
+        name = ld["teacher"].get_full_name() if ld["teacher"] else "Belgilanmagan"
+        load_data.append([
+            _esc(name),
+            str(ld["lessons"]),
+            f"{ld['hours']}",
+            ", ".join(ld["days_short"]) or "—",
+            _esc(", ".join(ld["rooms"])) or "—",
+        ])
+    load_tbl = Table(load_data, colWidths=[60 * mm, 25 * mm, 25 * mm, 50 * mm, 80 * mm], repeatRows=1)
+    load_tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#1E40AF")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (1, 1), (2, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.4, rl_colors.HexColor("#CBD5E1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor("#F8FAFC")]),
+    ]))
+    elements.append(load_tbl)
+
+    doc.build(elements)
+    pdf_data = buf.getvalue()
+    buf.close()
+
+    response = HttpResponse(pdf_data, content_type="application/pdf")
+    fname = f"haftalik_jadval_{timezone.localdate().isoformat()}.pdf"
+    response["Content-Disposition"] = f'attachment; filename="{fname}"'
+    return response
 
 
 @login_required

@@ -1145,3 +1145,190 @@ html[data-role-theme="light"] body.weekly-schedule-page .ui-title,
 html[data-role-theme="light"] body.weekly-schedule-page .ui-sub {
   color: var(--lm-text) !important;
 }
+
+/* ui-panel.glass — header va filter container */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-panel {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+  color: var(--lm-text) !important;
+}
+
+/* Subtitle alohida ochroq rang */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-sub {
+  color: var(--lm-muted) !important;
+}
+
+/* Filter label'lari */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-label {
+  color: var(--lm-muted) !important;
+}
+
+/* Filter paneli — weekly-filter-grid ichidagi select va input
+   (yuqoridagi umumiy qoida ustiga aniqroq selector qo'shamiz) */
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-filter-grid select,
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-filter-grid input[type="text"] {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border-strong) !important;
+  color-scheme: light !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-filter-grid select option {
+  background: #ffffff !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .weekly-filter-grid input::placeholder {
+  color: var(--lm-muted) !important;
+}
+
+/* Excel (ui-btn-secondary) — oq fon, to'q border */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-btn-secondary {
+  background: #ffffff !important;
+  color: var(--lm-text-2) !important;
+  border-color: var(--lm-border-strong) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ui-btn-secondary:hover {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-primary) !important;
+  border-color: var(--lm-primary) !important;
+}
+
+/* Qidirish tugmasi (ui-btn-primary) — ko'k rangni saqlash, lekin
+   light mode da kontrast to'g'ri bo'lsin */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-btn-primary {
+  background: var(--lm-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--lm-primary) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ui-btn-primary:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+
+/* ui-section.glass — filter paneli container */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-section {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* ui-note (empty state xabar) */
+html[data-role-theme="light"] body.weekly-schedule-page .ui-note-muted {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-muted) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* === Statistika kartalari === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-stat {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-stat-label {
+  color: var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-stat-value {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-stat-sub {
+  color: var(--lm-muted) !important;
+}
+
+/* === View tabs === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-tabs {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-tab-btn {
+  color: var(--lm-text-2) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-tab-btn.is-active {
+  background: var(--lm-primary) !important;
+  color: #ffffff !important;
+}
+
+/* === Vaqt × kun gridi === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-grid-wrap {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-grid {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-grid thead th {
+  background: #1e40af !important;
+  color: #ffffff !important;
+  border-bottom-color: var(--lm-border-strong) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-grid tbody td {
+  border-right-color: var(--lm-border) !important;
+  border-bottom-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-grid tbody td.ws-time-cell {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-text) !important;
+  border-right-color: var(--lm-border-strong) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-empty-cell {
+  color: #cbd5e1 !important;
+}
+
+/* === Chip (light mode) — oq fonda kontrast === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip {
+  background: #eff6ff !important;
+  color: var(--lm-text) !important;
+  border-left-color: #2563eb !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip-teacher {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip-group {
+  color: var(--lm-text-2) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip-meta {
+  color: var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip-meta b {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-chip.is-unassigned {
+  background: repeating-linear-gradient(
+    45deg, #e2e8f0, #e2e8f0 6px, #f1f5f9 6px, #f1f5f9 12px
+  ) !important;
+  border-left-color: #94a3b8 !important;
+}
+
+/* === Legenda === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-legend-chip {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+/* === O'qituvchi yuklamasi === */
+html[data-role-theme="light"] body.weekly-schedule-page .ws-load-wrap {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-load {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-load thead th {
+  background: #1e40af !important;
+  color: #ffffff !important;
+  border-bottom-color: var(--lm-border-strong) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-load tbody td {
+  border-bottom-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page table.ws-load .ws-teacher-cell {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.weekly-schedule-page .ws-day-pill {
+  background: rgba(30, 64, 175, 0.10) !important;
+  color: #1e40af !important;
+}

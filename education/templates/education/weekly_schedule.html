@@ -4,16 +4,251 @@
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
 <style>
-  .weekly-layout {
+  .weekly-layout { display: grid; gap: 14px; }
+
+  /* === STAT CARDLAR === */
+  .ws-stats {
     display: grid;
-    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
   }
+  .ws-stat {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+  }
+  .ws-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .ws-stat-value {
+    margin-top: 4px;
+    color: #f8fafc;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.15;
+  }
+  .ws-stat-sub { color: #cbd5e1; font-size: 12px; margin-top: 2px; }
+
+  /* === FILTER === */
   .weekly-filter-grid {
     display: grid;
     grid-template-columns: 1.1fr 1fr auto auto;
     gap: 12px;
     align-items: end;
   }
+
+  /* === VIEW TABS === */
+  .ws-tabs {
+    display: inline-flex;
+    background: rgba(2, 6, 23, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .ws-tab-btn {
+    border: 0;
+    background: transparent;
+    color: #cbd5e1;
+    padding: 8px 14px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .ws-tab-btn.is-active {
+    background: rgba(37, 99, 235, 0.85);
+    color: #fff;
+  }
+
+  /* === VAQT GRIDI === */
+  .ws-grid-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(2, 6, 23, 0.42);
+    max-height: 78vh;
+  }
+  table.ws-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 880px;
+    color: #e2e8f0;
+    font-size: 13px;
+  }
+  table.ws-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #0f172a;
+    color: #f8fafc;
+    font-weight: 900;
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  table.ws-grid thead th.ws-time-head { width: 78px; min-width: 78px; }
+  table.ws-grid tbody td {
+    border-right: 1px solid rgba(148, 163, 184, 0.10);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+    vertical-align: top;
+    padding: 4px;
+    height: 60px;
+  }
+  table.ws-grid tbody td.ws-time-cell {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-weight: 800;
+    text-align: center;
+    width: 78px;
+    min-width: 78px;
+    border-right: 1px solid rgba(148, 163, 184, 0.22);
+  }
+  .ws-chip {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: auto auto auto;
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: start;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.25;
+    margin-bottom: 4px;
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  }
+  .ws-chip:last-child { margin-bottom: 0; }
+  .ws-chip-avatar {
+    grid-row: 1 / span 3;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .ws-chip-teacher {
+    font-weight: 900;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .ws-chip-group {
+    font-weight: 700;
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.2;
+  }
+  .ws-chip-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+  .ws-chip-meta b { color: #e2e8f0; font-weight: 800; }
+  .ws-chip.is-unassigned {
+    background: repeating-linear-gradient(
+      45deg, #334155, #334155 6px, #1e293b 6px, #1e293b 12px
+    );
+    border-left-color: #94a3b8;
+  }
+  .ws-chip.is-unassigned .ws-chip-avatar {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+  .ws-empty-cell {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* === Boshqaruv (load table) avatari === */
+  .ws-avatar-sm {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .ws-avatar-sm.is-unassigned {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+
+  /* === O'QITUVCHI YUKLAMASI === */
+  .ws-load-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(2, 6, 23, 0.42);
+  }
+  table.ws-load {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: #e2e8f0;
+    font-size: 14px;
+  }
+  table.ws-load thead th {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 900;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  }
+  table.ws-load tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+    vertical-align: middle;
+  }
+  table.ws-load tbody tr:last-child td { border-bottom: 0; }
+  table.ws-load .ws-teacher-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    color: #f8fafc;
+  }
+  .ws-day-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.22);
+    color: #dbeafe;
+    font-size: 11px;
+    font-weight: 800;
+    margin-right: 4px;
+  }
+
+  /* === KUN BO'YICHA (ikkinchi tab) === */
   .weekly-board {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -39,84 +274,114 @@
     border: 1px solid rgba(148, 163, 184, 0.12);
     margin-bottom: 10px;
   }
-  .weekly-slot:last-child {
-    margin-bottom: 0;
-  }
-  .weekly-slot-name {
-    color: #f8fafc;
-    font-size: 15px;
-    font-weight: 900;
-    margin-bottom: 8px;
-  }
-  .weekly-slot-meta {
-    display: grid;
-    gap: 4px;
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 700;
-  }
+  .weekly-slot:last-child { margin-bottom: 0; }
+  .weekly-slot-name { color: #f8fafc; font-size: 15px; font-weight: 900; margin-bottom: 8px; }
+  .weekly-slot-meta { display: grid; gap: 4px; color: #cbd5e1; font-size: 13px; font-weight: 700; }
   .weekly-empty {
     height: 100%;
     min-height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     border-radius: 14px;
     background: rgba(2, 6, 23, 0.3);
-    color: #64748b;
-    font-size: 15px;
-    font-weight: 800;
+    color: #64748b; font-size: 15px; font-weight: 800;
   }
-  .weekly-mobile {
-    display: none;
-  }
+
+  /* Mobile */
+  .weekly-mobile { display: none; }
   .weekly-mobile details {
-    border-radius: 16px;
-    overflow: hidden;
+    border-radius: 16px; overflow: hidden;
     background: rgba(15, 23, 42, 0.72);
     border: 1px solid rgba(148, 163, 184, 0.16);
     margin-bottom: 10px;
   }
   .weekly-mobile summary {
-    list-style: none;
-    cursor: pointer;
+    list-style: none; cursor: pointer;
     padding: 14px 16px;
-    color: #f8fafc;
-    font-size: 16px;
-    font-weight: 900;
+    color: #f8fafc; font-size: 16px; font-weight: 900;
   }
-  .weekly-mobile summary::-webkit-details-marker {
-    display: none;
-  }
-  .weekly-mobile-body {
-    padding: 0 12px 12px;
-  }
+  .weekly-mobile summary::-webkit-details-marker { display: none; }
+  .weekly-mobile-body { padding: 0 12px 12px; }
+
   @media (max-width: 1200px) {
-    .weekly-board {
-      display: none;
-    }
-    .weekly-mobile {
-      display: block;
-    }
+    .weekly-board { display: none; }
+    .weekly-mobile { display: block; }
+    .ws-stats { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 900px) {
-    .weekly-filter-grid {
-      grid-template-columns: 1fr;
+    .weekly-filter-grid { grid-template-columns: 1fr; }
+    .ws-stats { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* PRINT — bosma uchun */
+  @media print {
+    body * { visibility: hidden; }
+    .weekly-print-area, .weekly-print-area * { visibility: visible; }
+    .weekly-print-area {
+      position: absolute; left: 0; top: 0; width: 100%;
+      background: #fff;
     }
+    .ws-stats, .weekly-filter-grid, .ws-tabs, .ui-actions, .weekly-mobile { display: none !important; }
+    table.ws-grid thead th { background: #1e40af !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    table.ws-grid tbody td.ws-time-cell { background: #f1f5f9 !important; color: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ws-chip {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      border-left: 4px solid #2563eb !important;
+    }
+    .ws-chip-teacher { color: #0f172a !important; }
+    .ws-chip-group { color: #334155 !important; }
+    .ws-chip-meta { color: #475569 !important; }
+    .ws-chip-meta b { color: #0f172a !important; }
+    .ws-chip-avatar, .ws-avatar-sm { background: #2563eb !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ws-grid-wrap { max-height: none; overflow: visible; border: 1px solid #cbd5e1; }
+    @page { size: A3 landscape; margin: 10mm; }
   }
 </style>
 
-<div class="ui-shell">
+<div class="ui-shell weekly-print-area">
   <div class="ui-panel ui-header glass">
     <div>
       <h3 class="ui-title">📅 Haftalik Jadval</h3>
-      <div class="ui-sub">Guruhlarning haftalik dars kunlari va vaqtlari</div>
+      <div class="ui-sub">Bir qarashda — qaysi o'qituvchi, qaysi kuni, qaysi soatda band</div>
     </div>
     <div class="ui-actions">
-      <a href="?teacher={{ selected_teacher }}&room={{ selected_room|urlencode }}&export=1" class="ui-btn ui-btn-secondary">📥 Excel</a>
+      <a href="?teacher={{ selected_teacher }}&room={{ selected_room|urlencode }}&export=excel"
+         class="ui-btn ui-btn-secondary" title="Excel formatida yuklab olish">📊 Excel</a>
+      <a href="?teacher={{ selected_teacher }}&room={{ selected_room|urlencode }}&export=pdf"
+         class="ui-btn ui-btn-secondary" title="PDF formatida yuklab olish">📄 PDF</a>
+      <button type="button" class="ui-btn ui-btn-secondary" onclick="window.print()" title="Chop etish">🖨️ Chop etish</button>
     </div>
   </div>
 
+  <!-- STATISTIKA -->
+  <div class="ws-stats">
+    <div class="ws-stat glass">
+      <div class="ws-stat-label">Jami dars vaqtlari</div>
+      <div class="ws-stat-value">{{ filtered_slots_count }}</div>
+      <div class="ws-stat-sub">
+        {% if has_filters %}filtrlangan • jami {{ total_slots_count }}{% else %}haftada{% endif %}
+      </div>
+    </div>
+    <div class="ws-stat glass">
+      <div class="ws-stat-label">Faol o'qituvchilar</div>
+      <div class="ws-stat-value">{{ teachers_in_use_count }}</div>
+      <div class="ws-stat-sub">jadvalda qatnashayotgan</div>
+    </div>
+    <div class="ws-stat glass">
+      <div class="ws-stat-label">Jadvalga kiritilgan guruhlar</div>
+      <div class="ws-stat-value">{{ groups_with_schedule_count }}</div>
+      <div class="ws-stat-sub">jami {{ total_groups_count }} guruhdan</div>
+    </div>
+    <div class="ws-stat glass">
+      <div class="ws-stat-label">Jadvalsiz guruhlar</div>
+      <div class="ws-stat-value">{{ unscheduled_groups_count }}</div>
+      <div class="ws-stat-sub">vaqti hali kiritilmagan</div>
+    </div>
+  </div>
+
+  <!-- FILTER -->
   <div class="ui-panel ui-section glass weekly-layout">
     <form method="get" class="weekly-filter-grid">
       <div>
@@ -149,37 +414,67 @@
     {% if empty_state_message %}
       <div class="ui-note ui-note-muted mb-0">{{ empty_state_message }}</div>
     {% endif %}
+
+    <!-- VIEW TABS -->
+    <div class="ws-tabs" role="tablist" aria-label="Ko'rinishni tanlash">
+      <button type="button" class="ws-tab-btn is-active" data-ws-tab="grid">🕐 Vaqt jadvali</button>
+      <button type="button" class="ws-tab-btn" data-ws-tab="days">📅 Kun bo'yicha</button>
+      <button type="button" class="ws-tab-btn" data-ws-tab="load">👥 O'qituvchi yuklamasi</button>
+    </div>
   </div>
 
-  <div class="weekly-board">
-    {% for weekday, label in weekday_labels %}
-      <div class="weekly-day glass">
-        <div class="weekly-day-title">{{ label }}</div>
-        {% with items=week_map|get_item:weekday %}
-          {% if items %}
-            {% for item in items %}
-              <div class="weekly-slot">
-                <div class="weekly-slot-name">{{ item.group.nom }}</div>
-                <div class="weekly-slot-meta">
-                  <div>O'qituvchi: {% if item.group.oqituvchi %}{{ item.group.oqituvchi.get_full_name }}{% else %}Belgilanmagan{% endif %}</div>
-                  <div>Vaqt: {{ item.time_range }}</div>
-                  <div>Xona: {{ item.room|default:"Belgilanmagan" }}</div>
-                </div>
-              </div>
+  <!-- ASOSIY KO'RINISH: VAQT × KUN GRIDI -->
+  <div class="ws-view ws-view-grid">
+    {% if grid_rows %}
+    <div class="ws-grid-wrap glass">
+      <table class="ws-grid">
+        <thead>
+          <tr>
+            <th class="ws-time-head">Vaqt</th>
+            {% for weekday, label in weekday_labels %}
+              <th>{{ label }}</th>
             {% endfor %}
-          {% else %}
-            <div class="weekly-empty">Dars yo'q</div>
-          {% endif %}
-        {% endwith %}
-      </div>
-    {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in grid_rows %}
+            <tr>
+              <td class="ws-time-cell">{{ row.label }}</td>
+              {% for cell_entries in row.cells %}
+                <td>
+                  {% if cell_entries %}
+                    {% for entry in cell_entries %}
+                      <span class="ws-chip {% if entry.is_unassigned %}is-unassigned{% endif %}"
+                            title="{{ entry.teacher_name }} — {{ entry.item.group.nom }} • {{ entry.item.time_range }} • {{ entry.item.room|default:'Xona belgilanmagan' }}">
+                        <span class="ws-chip-avatar">{{ entry.teacher_initials }}</span>
+                        <div class="ws-chip-teacher">{{ entry.teacher_name }}</div>
+                        <div class="ws-chip-group">{{ entry.item.group.nom }}</div>
+                        <div class="ws-chip-meta">
+                          <b>{{ entry.item.time_range }}</b> · {{ entry.item.room|default:'—' }}
+                        </div>
+                      </span>
+                    {% endfor %}
+                  {% else %}
+                    <div class="ws-empty-cell">·</div>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="ui-note ui-note-muted">Hech qanday dars vaqti kiritilmagan. Guruhlar uchun jadval yarating.</div>
+    {% endif %}
   </div>
 
-  <div class="weekly-mobile">
-    {% for weekday, label in weekday_labels %}
-      <details {% if forloop.first %}open{% endif %}>
-        <summary>{{ label }}</summary>
-        <div class="weekly-mobile-body">
+  <!-- KUN BO'YICHA -->
+  <div class="ws-view ws-view-days" hidden>
+    <div class="weekly-board">
+      {% for weekday, label in weekday_labels %}
+        <div class="weekly-day glass">
+          <div class="weekly-day-title">{{ label }}</div>
           {% with items=week_map|get_item:weekday %}
             {% if items %}
               {% for item in items %}
@@ -197,8 +492,98 @@
             {% endif %}
           {% endwith %}
         </div>
-      </details>
-    {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="weekly-mobile">
+      {% for weekday, label in weekday_labels %}
+        <details {% if forloop.first %}open{% endif %}>
+          <summary>{{ label }}</summary>
+          <div class="weekly-mobile-body">
+            {% with items=week_map|get_item:weekday %}
+              {% if items %}
+                {% for item in items %}
+                  <div class="weekly-slot">
+                    <div class="weekly-slot-name">{{ item.group.nom }}</div>
+                    <div class="weekly-slot-meta">
+                      <div>O'qituvchi: {% if item.group.oqituvchi %}{{ item.group.oqituvchi.get_full_name }}{% else %}Belgilanmagan{% endif %}</div>
+                      <div>Vaqt: {{ item.time_range }}</div>
+                      <div>Xona: {{ item.room|default:"Belgilanmagan" }}</div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="weekly-empty">Dars yo'q</div>
+              {% endif %}
+            {% endwith %}
+          </div>
+        </details>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- O'QITUVCHI YUKLAMASI -->
+  <div class="ws-view ws-view-load" hidden>
+    {% if teacher_loads %}
+      <div class="ws-load-wrap glass">
+        <table class="ws-load">
+          <thead>
+            <tr>
+              <th>O'qituvchi</th>
+              <th style="text-align:center;">Darslar</th>
+              <th style="text-align:center;">Soat (haftada)</th>
+              <th>Band kunlar</th>
+              <th>Xonalar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ld in teacher_loads %}
+              <tr>
+                <td>
+                  <div class="ws-teacher-cell">
+                    <span class="ws-avatar-sm {% if not ld.teacher %}is-unassigned{% endif %}">{{ ld.initials }}</span>
+                    {% if ld.teacher %}{{ ld.teacher.get_full_name }}{% else %}Belgilanmagan{% endif %}
+                  </div>
+                </td>
+                <td style="text-align:center; font-weight:800;">{{ ld.lessons }}</td>
+                <td style="text-align:center; font-weight:800;">{{ ld.hours }}</td>
+                <td>
+                  {% for d in ld.days_short %}
+                    <span class="ws-day-pill">{{ d }}</span>
+                  {% empty %}—{% endfor %}
+                </td>
+                <td>{{ ld.rooms|join:", "|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="ui-note ui-note-muted">Yuklamalar uchun ma'lumot topilmadi.</div>
+    {% endif %}
   </div>
 </div>
+
+<script>
+  (function () {
+    var tabs = document.querySelectorAll('.ws-tab-btn');
+    var views = {
+      grid: document.querySelector('.ws-view-grid'),
+      days: document.querySelector('.ws-view-days'),
+      load: document.querySelector('.ws-view-load'),
+    };
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        tabs.forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        var key = btn.getAttribute('data-ws-tab');
+        Object.keys(views).forEach(function (k) {
+          if (!views[k]) return;
+          if (k === key) { views[k].removeAttribute('hidden'); }
+          else { views[k].setAttribute('hidden', ''); }
+        });
+      });
+    });
+  })();
+</script>
 {% endblock %}
