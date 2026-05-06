@@ -748,28 +748,33 @@ def get_parent_reports_data(request):
 
 
 # ─── Family bot — telefon orqali avtorizatsiya ─────────────────────────────
-_FAMILY_RATE_LIMIT_WINDOW = 300  # 5 daqiqa
-_FAMILY_RATE_LIMIT_MAX = 5  # bir telefondan 5 marta
+# Rate limit faqat dastlabki qidirishga (find-by-phone) qo'llaniladi —
+# tasdiqlash/qo'shish/login bosqichlari trusted hisoblanadi.
+_FAMILY_RATE_LIMIT_WINDOW = 120  # 2 daqiqa
+_FAMILY_RATE_LIMIT_MAX = 30  # 2 daqiqada 30 marta — keng chegaralangan
 _FAMILY_PASSWORD_LENGTH = 10
 _FAMILY_PASSWORD_ALPHABET = string.ascii_letters + string.digits
 
 
 def _family_rate_limit_check(phone: str, telegram_id: str) -> bool:
-    """Bir telefon yoki bir telegram_id 5 daqiqada 5 martadan ko'p urinishi mumkin emas."""
-    keys = []
+    """Faqat find-by-phone uchun. Boshqa endpointlar trusted."""
+    key_parts = []
     if phone:
-        keys.append(f"family_rl:phone:{phone}")
+        key_parts.append(f"family_rl:phone:{phone}")
     if telegram_id:
-        keys.append(f"family_rl:tg:{telegram_id}")
-    for key in keys:
-        try:
+        key_parts.append(f"family_rl:tg:{telegram_id}")
+    if not key_parts:
+        return True
+    try:
+        for key in key_parts:
             count = cache.get(key, 0) + 1
             cache.set(key, count, timeout=_FAMILY_RATE_LIMIT_WINDOW)
             if count > _FAMILY_RATE_LIMIT_MAX:
                 return False
-        except Exception:
-            logger.exception("family rate limit cache error")
-            # Cache muammo bo'lsa, davom etamiz (graceful)
+    except Exception:
+        logger.exception("family rate limit cache error")
+        # Cache muammo bo'lsa — bloklamaymiz
+        return True
     return True
 
 
@@ -974,12 +979,6 @@ def family_issue_credentials_api(request):
     if role not in ("parent", "student"):
         return JsonResponse({"ok": False, "error": "Noto'g'ri rol."}, status=400)
 
-    if telegram_id and not _family_rate_limit_check("", telegram_id):
-        return JsonResponse(
-            {"ok": False, "error": "Juda ko'p urinish. Biroz kuting."},
-            status=429,
-        )
-
     try:
         user = User.objects.select_related("center").get(
             id=user_id, is_active=True, is_archived=False
@@ -1178,9 +1177,6 @@ def family_search_child_api(request):
     if len(name_query) < 3:
         return JsonResponse({"ok": False, "error": "Kamida 3 harf yozing."}, status=400)
 
-    if telegram_id and not _family_rate_limit_check("", telegram_id):
-        return JsonResponse({"ok": False, "error": "Juda ko'p urinish."}, status=429)
-
     try:
         parent = User.objects.select_related("center").get(
             id=parent_user_id, role="parent", is_active=True, is_archived=False
@@ -1256,9 +1252,6 @@ def family_add_child_api(request):
 
     if parent_user_id <= 0 or child_id <= 0:
         return JsonResponse({"ok": False, "error": "Ma'lumot to'liq emas."}, status=400)
-
-    if telegram_id and not _family_rate_limit_check("", telegram_id):
-        return JsonResponse({"ok": False, "error": "Juda ko'p urinish."}, status=429)
 
     parsed_date = _parse_user_birth_date(birth_date_raw)
     if not parsed_date:
