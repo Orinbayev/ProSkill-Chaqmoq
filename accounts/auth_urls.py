@@ -53,4 +53,5 @@ urlpatterns = [
     path('bot-family-issue-credentials/', api_auth.family_issue_credentials_api, name='bot_family_issue_credentials'),
     path('bot-family-search-child/', api_auth.family_search_child_api, name='bot_family_search_child'),
     path('bot-family-add-child/', api_auth.family_add_child_api, name='bot_family_add_child'),
+    path('bot-family-confirm-link/', api_auth.family_confirm_link_api, name='bot_family_confirm_link'),
 ]

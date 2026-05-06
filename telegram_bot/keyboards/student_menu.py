@@ -14,7 +14,7 @@ def get_student_main_menu():
         [KeyboardButton(text="📊 Mening holatim"), KeyboardButton(text="⚡ Chaqmoq Balans")],
         [KeyboardButton(text="📅 Dars Jadvali"), KeyboardButton(text="💰 To'lov Holati")],
         [KeyboardButton(text="🏆 Reyting"), KeyboardButton(text="🛍 Do'kon")],
-        [KeyboardButton(text="🔔 Sozlamalar")],
+        [KeyboardButton(text="🔔 Sozlamalar"), KeyboardButton(text="🔑 Saytga login")],
     ]
     keyboard.extend(_common_rows())
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

@@ -13,7 +13,8 @@ def get_parent_main_menu():
     keyboard = [
         [KeyboardButton(text="👶 Bolalarim"), KeyboardButton(text="📊 Davomat")],
         [KeyboardButton(text="💰 To'lov Holati"), KeyboardButton(text="⚡ Chaqmoq Ballari")],
-        [KeyboardButton(text="📞 O'qituvchi")],
+        [KeyboardButton(text="📞 O'qituvchi"), KeyboardButton(text="➕ Farzand qo'shish")],
+        [KeyboardButton(text="🔑 Saytga login")],
     ]
     keyboard.extend(_common_rows())
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

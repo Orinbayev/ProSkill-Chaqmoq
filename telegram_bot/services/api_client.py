@@ -351,3 +351,23 @@ async def family_add_child_api(
             "telegram_id": telegram_id,
         },
     )
+
+
+async def family_confirm_link_api(
+    *,
+    user_id: int,
+    role: str,
+    telegram_id: str,
+    telegram_username: str | None = None,
+):
+    """Profil tasdiqlash — User.telegram_id ni saqlash."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-confirm-link/",
+        data={
+            "user_id": user_id,
+            "role": role,
+            "telegram_id": telegram_id,
+            "telegram_username": telegram_username,
+        },
+    )

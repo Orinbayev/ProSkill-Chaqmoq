@@ -52,8 +52,7 @@ dp.include_router(broadcast.router)
 dp.include_router(admins.router)
 dp.include_router(parents.router)
 dp.include_router(settings.router)
-dp.include_router(student.router)
-dp.include_router(parent.router)
+# parent.router va student.router olib tashlandi — endi yangi Family botda
 dp.include_router(teacher.router)
 dp.include_router(manager.router)
 dp.include_router(branch_approval.router)
@@ -173,7 +172,10 @@ async def _family_bot_polling():
         return
     family_bot = Bot(token=BOT_TOKEN_FAMILY)
     family_dp = Dispatcher()
+    # Family bot — ota-ona va o'quvchilar uchun to'liq panel
     family_dp.include_router(family_onboarding.router)
+    family_dp.include_router(parent.router)
+    family_dp.include_router(student.router)
     while True:
         print("👨‍👩‍👧 Family bot polling iteration started...")
         try:

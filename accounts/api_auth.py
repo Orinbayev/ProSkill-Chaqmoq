@@ -1039,6 +1039,92 @@ def family_issue_credentials_api(request):
     )
 
 
+@csrf_exempt
+@require_POST
+def family_confirm_link_api(request):
+    """
+    Telefon orqali tasdiqlangan foydalanuvchini Telegram bilan bog'lash.
+
+    POST: {user_id, role, telegram_id, telegram_username}
+    Response: {ok: true, profile: {id, email, role, full_name}}
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    try:
+        user_id = int(payload.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+    role = (payload.get("role") or "").strip().lower()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+    telegram_username = (payload.get("telegram_username") or "") or None
+
+    if user_id <= 0:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri user_id."}, status=400)
+    if role not in ("parent", "student"):
+        return JsonResponse({"ok": False, "error": "Noto'g'ri rol."}, status=400)
+    if not telegram_id:
+        return JsonResponse({"ok": False, "error": "Telegram ID bo'sh."}, status=400)
+
+    try:
+        user = User.objects.select_related("center").get(
+            id=user_id, is_active=True, is_archived=False
+        )
+    except User.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Foydalanuvchi topilmadi."}, status=404)
+
+    if user.role != role:
+        return JsonResponse(
+            {"ok": False, "error": "Foydalanuvchi roli mos kelmadi."},
+            status=403,
+        )
+
+    try:
+        with transaction.atomic():
+            update_fields = []
+            if user.telegram_id != telegram_id:
+                user.telegram_id = telegram_id
+                update_fields.append("telegram_id")
+            if user.telegram_username != telegram_username:
+                user.telegram_username = telegram_username
+                update_fields.append("telegram_username")
+            if not user.is_telegram_linked:
+                user.is_telegram_linked = True
+                update_fields.append("is_telegram_linked")
+            if update_fields:
+                user.save(update_fields=update_fields)
+
+            try:
+                UserActivity.objects.create(
+                    user=user,
+                    action=f"Family bot: profil tasdiqlandi (tg={telegram_id})",
+                )
+            except Exception:
+                logger.exception("family_confirm_link audit log failed")
+    except Exception:
+        logger.exception("family_confirm_link failed user_id=%s", user_id)
+        return JsonResponse({"ok": False, "error": "Server xatosi."}, status=500)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "profile": {
+                "id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "role_label": user.get_role_display() if hasattr(user, "get_role_display") else user.role,
+                "full_name": (f"{user.familya} {user.ism}").strip() or user.email,
+            },
+        }
+    )
+
+
 def _parse_user_birth_date(raw: str):
     """Foydalanuvchi yozgan sanani DD.MM.YYYY yoki YYYY-MM-DD formatda qabul qilish."""
     if not raw:
