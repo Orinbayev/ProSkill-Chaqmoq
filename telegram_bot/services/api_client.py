@@ -274,3 +274,42 @@ async def get_scheduler_weekly_reports_api():
 
 async def get_scheduler_month_end_reminders_api():
     return await _bot_json_request("GET", "bot-scheduler-month-end-reminders/")
+
+
+# ─── Family bot — telefon orqali ulanish ─────────────────────────────────
+async def family_find_by_phone_api(
+    *,
+    phone: str,
+    role: str,
+    telegram_id: str,
+    telegram_username: str | None = None,
+):
+    """Telefon raqami orqali ota-ona/o'quvchi yozuvini topish."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-find-by-phone/",
+        data={
+            "phone": phone,
+            "role": role,
+            "telegram_id": telegram_id,
+            "telegram_username": telegram_username,
+        },
+    )
+
+
+async def family_issue_credentials_api(
+    *,
+    user_id: int,
+    role: str,
+    telegram_id: str | None = None,
+):
+    """Tanlangan o'quvchi/ota-ona uchun yangi parol yaratib qaytarish."""
+    return await _bot_json_request(
+        "POST",
+        "bot-family-issue-credentials/",
+        data={
+            "user_id": user_id,
+            "role": role,
+            "telegram_id": telegram_id,
+        },
+    )

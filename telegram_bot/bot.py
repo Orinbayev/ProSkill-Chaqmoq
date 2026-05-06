@@ -9,10 +9,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiohttp import web
-from app_config import BOT_TOKEN, API_SECRET
+from app_config import BOT_TOKEN, BOT_TOKEN_FAMILY, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
 from handlers import student, teacher, parent, manager, branch_approval
+from handlers import family_onboarding
 from services.scheduler import setup_scheduler
 
 try:
@@ -142,17 +143,44 @@ async def main():
     print("✅ All Schedulers started.")
 
 
-    # 3. Start polling in a robust infinite loop
+    # 3. Start polling — main bot va Family bot parallel
     print("🤖 Bot Polling is starting NOW...")
-    logging.info("🤖 Starting Bot Polling loop...")
+    logging.info("🤖 Starting Bot Polling loop(s)...")
+    tasks = [_main_bot_polling()]
+    if BOT_TOKEN_FAMILY:
+        tasks.append(_family_bot_polling())
+        logging.info("👨‍👩‍👧 Family bot enabled (BOT_TOKEN_FAMILY mavjud)")
+    else:
+        logging.info("👨‍👩‍👧 Family bot disabled (BOT_TOKEN_FAMILY topilmadi)")
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+
+async def _main_bot_polling():
+    """Asosiy bot — Director/Manager/Teacher/Parent/Student deep link flow."""
     while True:
-        print("💡 Polling iteration started...")
+        print("💡 Main bot polling iteration started...")
         try:
-            # We use a fresh polling session each time
             await dp.start_polling(bot, handle_signals=False)
         except Exception as err:
-            logging.error(f"⚠️ Polling encountered an error: {err}")
-            logging.info("🔄 Retrying in 10 seconds... (Make sure no other bot is running!)")
+            logging.error(f"⚠️ Main bot polling error: {err}")
+            logging.info("🔄 Main bot retry in 10 sec...")
+            await asyncio.sleep(10)
+
+
+async def _family_bot_polling():
+    """Yangi Family bot — faqat ota-ona va o'quvchilar telefon orqali login olish uchun."""
+    if not BOT_TOKEN_FAMILY:
+        return
+    family_bot = Bot(token=BOT_TOKEN_FAMILY)
+    family_dp = Dispatcher()
+    family_dp.include_router(family_onboarding.router)
+    while True:
+        print("👨‍👩‍👧 Family bot polling iteration started...")
+        try:
+            await family_dp.start_polling(family_bot, handle_signals=False)
+        except Exception as err:
+            logging.error(f"⚠️ Family bot polling error: {err}")
+            logging.info("🔄 Family bot retry in 10 sec...")
             await asyncio.sleep(10)
         
 if __name__ == "__main__":

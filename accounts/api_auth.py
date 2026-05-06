@@ -1,8 +1,14 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.db.models import Q
+from django.db import transaction
+from django.core.cache import cache
 from accounts.models import User
 import json
 import logging
+import secrets
+import string
 from hmac import compare_digest
 from django.conf import settings
 from django.utils import timezone
@@ -739,3 +745,270 @@ def get_parent_reports_data(request):
 
     # Return data for bot
     return JsonResponse({"reports": parent_messages})
+
+
+# ─── Family bot — telefon orqali avtorizatsiya ─────────────────────────────
+_FAMILY_RATE_LIMIT_WINDOW = 300  # 5 daqiqa
+_FAMILY_RATE_LIMIT_MAX = 5  # bir telefondan 5 marta
+_FAMILY_PASSWORD_LENGTH = 10
+_FAMILY_PASSWORD_ALPHABET = string.ascii_letters + string.digits
+
+
+def _family_rate_limit_check(phone: str, telegram_id: str) -> bool:
+    """Bir telefon yoki bir telegram_id 5 daqiqada 5 martadan ko'p urinishi mumkin emas."""
+    keys = []
+    if phone:
+        keys.append(f"family_rl:phone:{phone}")
+    if telegram_id:
+        keys.append(f"family_rl:tg:{telegram_id}")
+    for key in keys:
+        try:
+            count = cache.get(key, 0) + 1
+            cache.set(key, count, timeout=_FAMILY_RATE_LIMIT_WINDOW)
+            if count > _FAMILY_RATE_LIMIT_MAX:
+                return False
+        except Exception:
+            logger.exception("family rate limit cache error")
+            # Cache muammo bo'lsa, davom etamiz (graceful)
+    return True
+
+
+def _gen_family_password() -> str:
+    return "".join(secrets.choice(_FAMILY_PASSWORD_ALPHABET) for _ in range(_FAMILY_PASSWORD_LENGTH))
+
+
+def _build_login_url(user) -> str:
+    """User markazi asosida login URL qaytarish."""
+    base = str(getattr(settings, "PUBLIC_BASE_URL", "") or "").rstrip("/")
+    if not base:
+        base = "https://chaqmoqapp.uz"
+    center = getattr(user, "center", None)
+    if center and getattr(center, "slug", None):
+        return f"{base}/{center.slug}/"
+    return f"{base}/"
+
+
+def _serialize_match_user(user) -> dict:
+    center = getattr(user, "center", None)
+    return {
+        "id": user.id,
+        "full_name": (f"{user.familya} {user.ism}").strip() or user.email,
+        "role": user.role,
+        "role_label": user.get_role_display() if hasattr(user, "get_role_display") else user.role,
+        "center": getattr(center, "name", "") if center else "",
+        "center_slug": getattr(center, "slug", "") if center else "",
+    }
+
+
+@csrf_exempt
+@require_POST
+def family_find_by_phone_api(request):
+    """
+    Telefon raqami orqali ota-ona/o'quvchi yozuvini topish.
+
+    POST: {phone, role, telegram_id, telegram_username}
+    Response (ok=true): {
+        ok: true,
+        matches: [
+            {id, full_name, role, role_label, center, center_slug},
+            ...
+        ]
+    }
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    phone_raw = (payload.get("phone") or "").strip()
+    role = (payload.get("role") or "").strip().lower()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+    telegram_username = (payload.get("telegram_username") or "") or None
+
+    if role not in ("parent", "student"):
+        return JsonResponse({"ok": False, "error": "Noto'g'ri rol."}, status=400)
+    if not phone_raw:
+        return JsonResponse({"ok": False, "error": "Telefon raqami bo'sh."}, status=400)
+
+    phone = normalize_phone(phone_raw)
+    if not phone:
+        return JsonResponse({"ok": False, "error": "Telefon raqami noto'g'ri."}, status=400)
+
+    if not _family_rate_limit_check(phone, telegram_id):
+        return JsonResponse(
+            {"ok": False, "error": "Juda ko'p urinish. Biroz kuting va qayta urinib ko'ring."},
+            status=429,
+        )
+
+    phone_q = Q(phone_number=phone) | Q(telefon1=phone) | Q(telefon2=phone)
+
+    if role == "student":
+        # Bevosita o'quvchi yozuvi
+        students = list(
+            User.objects.filter(role="student", is_active=True, is_archived=False)
+            .filter(phone_q)
+            .select_related("center")[:10]
+        )
+        if not students:
+            return JsonResponse(
+                {"ok": False, "error": "Sizning raqamingiz bilan o'quvchi topilmadi."},
+                status=404,
+            )
+        return JsonResponse({"ok": True, "matches": [_serialize_match_user(s) for s in students]})
+
+    # role == "parent": ikki yo'l — User.role=parent + children M2M, yoki student.parents
+    matches = []
+
+    # 1) Mavjud Parent useri bo'lsa, uning bola ro'yxatini olamiz
+    parent_users = list(
+        User.objects.filter(role="parent", is_active=True, is_archived=False)
+        .filter(phone_q)
+        .prefetch_related("children", "children__center")
+    )
+    seen_child_ids = set()
+    for parent in parent_users:
+        for child in parent.children.filter(is_active=True, is_archived=False):
+            if child.id in seen_child_ids:
+                continue
+            seen_child_ids.add(child.id)
+            matches.append(_serialize_match_user(child))
+
+    # 2) Student modelida `parents` reverse M2M — "Ota-ona telefoni" sifatida saqlangan students
+    #    (telefon1/telefon2 maydonlariga ota-ona telefoni yozilgan bo'lishi mumkin)
+    if not matches:
+        candidate_students = list(
+            User.objects.filter(role="student", is_active=True, is_archived=False)
+            .filter(phone_q)
+            .select_related("center")[:20]
+        )
+        for child in candidate_students:
+            if child.id in seen_child_ids:
+                continue
+            seen_child_ids.add(child.id)
+            matches.append(_serialize_match_user(child))
+
+    if not matches:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Sizning raqamingiz tizimda topilmadi yoki farzand biriktirilmagan.",
+            },
+            status=404,
+        )
+
+    # Audit (eng birinchi parent ga yozamiz, agar bor bo'lsa; yo'q bo'lsa skip)
+    if parent_users and telegram_id:
+        try:
+            UserActivity.objects.create(
+                user=parent_users[0],
+                action=f"Family bot: telefon orqali qidirish (matches={len(matches)}, tg={telegram_id})",
+            )
+        except Exception:
+            logger.exception("family_find_by_phone audit log failed")
+
+    return JsonResponse({"ok": True, "matches": matches})
+
+
+@csrf_exempt
+@require_POST
+def family_issue_credentials_api(request):
+    """
+    Tanlangan o'quvchi yoki ota-ona uchun yangi parol yaratib qaytarish.
+
+    POST: {user_id, role, telegram_id}
+    Response (ok=true): {
+        ok: true,
+        user: {full_name, role, role_label, center},
+        credentials: {email, password},
+        login_url: "https://chaqmoqapp.uz/<slug>/"
+    }
+    """
+    secret_err = _require_api_secret(request)
+    if secret_err:
+        return secret_err
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+
+    try:
+        user_id = int(payload.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+
+    role = (payload.get("role") or "").strip().lower()
+    telegram_id = str(payload.get("telegram_id") or "").strip()
+
+    if user_id <= 0:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri user_id."}, status=400)
+    if role not in ("parent", "student"):
+        return JsonResponse({"ok": False, "error": "Noto'g'ri rol."}, status=400)
+
+    if telegram_id and not _family_rate_limit_check("", telegram_id):
+        return JsonResponse(
+            {"ok": False, "error": "Juda ko'p urinish. Biroz kuting."},
+            status=429,
+        )
+
+    try:
+        user = User.objects.select_related("center").get(
+            id=user_id, is_active=True, is_archived=False
+        )
+    except User.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Foydalanuvchi topilmadi."}, status=404)
+
+    if user.role not in ("student", "parent"):
+        return JsonResponse(
+            {"ok": False, "error": "Bu foydalanuvchi uchun login berilmaydi."},
+            status=403,
+        )
+
+    new_password = _gen_family_password()
+
+    try:
+        with transaction.atomic():
+            user.set_password(new_password)
+            # Eski reset kodini ham bekor qilamiz (xavfsizlik)
+            user.reset_code = None
+            user.reset_code_expire_at = None
+            user.reset_code_used = False
+            user.reset_attempts = 0
+            user.save(
+                update_fields=[
+                    "password",
+                    "reset_code",
+                    "reset_code_expire_at",
+                    "reset_code_used",
+                    "reset_attempts",
+                ]
+            )
+            try:
+                UserActivity.objects.create(
+                    user=user,
+                    action=f"Family bot: yangi parol berildi (tg={telegram_id})",
+                )
+            except Exception:
+                logger.exception("family_issue_credentials audit log failed")
+    except Exception:
+        logger.exception("family_issue_credentials failed for user_id=%s", user_id)
+        return JsonResponse(
+            {"ok": False, "error": "Server xatosi. Keyinroq qayta urinib ko'ring."},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "user": _serialize_match_user(user),
+            "credentials": {
+                "email": user.email,
+                "password": new_password,
+            },
+            "login_url": _build_login_url(user),
+        }
+    )

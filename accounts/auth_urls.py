@@ -47,4 +47,8 @@ urlpatterns = [
     path('bot-scheduler-parent-attendance/', api_bot.bot_scheduler_parent_attendance, name='bot_scheduler_parent_attendance'),
     path('bot-scheduler-weekly-reports/', api_bot.bot_scheduler_weekly_reports, name='bot_scheduler_weekly_reports'),
     path('bot-scheduler-month-end-reminders/', api_bot.bot_scheduler_month_end_reminders, name='bot_scheduler_month_end_reminders'),
+
+    # Family bot — telefon orqali avtorizatsiya
+    path('bot-family-find-by-phone/', api_auth.family_find_by_phone_api, name='bot_family_find_by_phone'),
+    path('bot-family-issue-credentials/', api_auth.family_issue_credentials_api, name='bot_family_issue_credentials'),
 ]

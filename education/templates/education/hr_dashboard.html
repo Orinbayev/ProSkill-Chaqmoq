@@ -209,35 +209,61 @@
   .hrx-stat {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    height: 34px;
-    border-radius: 9px;
-    border: 1px solid transparent;
-    background: transparent;
+    gap: 10px;
+    padding: 10px 16px;
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
     color: var(--hrx-text-soft);
     font-size: 13px;
     cursor: pointer;
-    transition: all .15s var(--hrx-ease);
+    transition: all .18s var(--hrx-ease);
   }
-  .hrx-stat:hover { background: var(--hrx-surface-soft); color: var(--hrx-text); }
-  .hrx-stat.is-active {
-    background: var(--hrx-surface-2);
+  .hrx-stat:hover {
     border-color: var(--hrx-border-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--hrx-shadow-sm);
+  }
+  .hrx-stat.is-active {
+    background: linear-gradient(180deg, rgba(245, 200, 76, 0.10), rgba(245, 158, 11, 0.05));
+    border-color: var(--hrx-accent);
     color: var(--hrx-text);
+    box-shadow: 0 0 0 1px var(--hrx-accent) inset;
   }
   .hrx-stat__dot {
-    width: 7px; height: 7px; border-radius: 50%;
+    width: 10px; height: 10px; border-radius: 50%;
     background: var(--hrx-text-muted);
     box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    flex-shrink: 0;
   }
   .hrx-stat__dot--neutral { background: #94a3b8; }
-  .hrx-stat__dot--success { background: var(--hrx-success); box-shadow: 0 0 0 3px rgba(34,197,94,.12); }
-  .hrx-stat__dot--info    { background: var(--hrx-info);    box-shadow: 0 0 0 3px rgba(96,165,250,.14); }
-  .hrx-stat__dot--accent  { background: var(--hrx-accent);  box-shadow: 0 0 0 3px rgba(245,200,76,.16); }
-  .hrx-stat__label { font-size: 12px; color: var(--hrx-text-muted); letter-spacing: .01em; }
+  .hrx-stat__dot--success { background: var(--hrx-success); box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+  .hrx-stat__dot--info    { background: var(--hrx-info);    box-shadow: 0 0 0 3px rgba(96,165,250,.20); }
+  .hrx-stat__dot--accent  { background: var(--hrx-accent);  box-shadow: 0 0 0 3px rgba(245,200,76,.22); }
+  .hrx-stat__label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--hrx-text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
   .hrx-stat.is-active .hrx-stat__label { color: var(--hrx-text-soft); }
-  .hrx-stat__value { font-size: 14px; font-weight: 700; color: var(--hrx-text); font-variant-numeric: tabular-nums; }
+  .hrx-stat__value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--hrx-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-left: auto;
+  }
+  .hrx-stat__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
 
   .hrx-stats__hint {
     margin-left: auto;
@@ -534,6 +560,153 @@
   .hrx-card__free.is-busy i { color: var(--hrx-danger); }
   .hrx-card__free.is-empty i { color: var(--hrx-text-muted); }
   .hrx-card__free b { color: var(--hrx-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ───────── CARD V2 — Professional, aniq, sodda ───────── */
+  .hrx-card--v2 {
+    padding: 16px;
+    border-radius: 16px;
+    gap: 12px;
+    border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2);
+    box-shadow: var(--hrx-shadow-sm);
+  }
+  .hrx-card--v2:hover {
+    border-color: var(--hrx-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--hrx-shadow-md);
+  }
+  .hrx-card--v2.is-selected {
+    border-color: var(--hrx-accent);
+    background: var(--hrx-row-selected);
+    box-shadow: 0 0 0 2px var(--hrx-accent) inset, var(--hrx-shadow-md);
+  }
+  .hrx-card__top {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    min-width: 0;
+  }
+  .hrx-avatar--lg {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--hrx-accent), var(--hrx-accent-strong));
+    color: var(--hrx-accent-ink);
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.22);
+  }
+  .hrx-card__id {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-self: center;
+  }
+  .hrx-card__name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--hrx-text);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hrx-card__role {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--hrx-text-muted);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hrx-card__menu { align-self: start; }
+  .hrx-card__statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+  .hrx-card__statuses .hrx-badge i { font-size: 9px; margin-right: 3px; }
+
+  .hrx-card__free--row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: rgba(34, 197, 94, 0.10);
+    border: 1px solid rgba(34, 197, 94, 0.22);
+    color: var(--hrx-success);
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 0;
+  }
+  .hrx-card__free--row.is-busy {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.22);
+    color: var(--hrx-danger);
+  }
+  .hrx-card__free--row.is-empty {
+    background: var(--hrx-surface-soft);
+    border-color: var(--hrx-border);
+    color: var(--hrx-text-muted);
+  }
+  .hrx-card__free--row i { font-size: 14px; color: inherit; }
+  .hrx-card__free--row b { font-weight: 800; color: inherit; }
+
+  .hrx-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .hrx-chip--subject {
+    background: rgba(96, 165, 250, 0.12) !important;
+    color: var(--hrx-info) !important;
+    border-color: rgba(96, 165, 250, 0.24) !important;
+  }
+  .hrx-chip--level {
+    background: rgba(168, 85, 247, 0.12) !important;
+    color: #c084fc !important;
+    border-color: rgba(168, 85, 247, 0.24) !important;
+  }
+
+  .hrx-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--hrx-text-muted);
+    border-top: 1px solid var(--hrx-border);
+    padding-top: 10px;
+  }
+  .hrx-card__contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--hrx-text-soft);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+  .hrx-card__contact:hover { color: var(--hrx-accent); }
+  .hrx-card__contact--empty { color: var(--hrx-text-muted); font-weight: 500; }
+  .hrx-card__contact i { font-size: 11.5px; }
+
+  .hrx-card__weekrow {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
 
   /* ───────── EMPTY / LOADING ───────── */
   .hrx-loading {
@@ -895,16 +1068,44 @@
     -webkit-backdrop-filter: blur(8px);
     pointer-events: auto;
   }
+  /* Light mode — modal ham oq fon, qora matn */
+  html[data-role-theme="light"] .hrx-modal {
+    --hrx-surface: #ffffff;
+    --hrx-surface-2: #ffffff;
+    --hrx-surface-soft: rgba(15, 23, 42, 0.03);
+    --hrx-border: rgba(15, 23, 42, 0.10);
+    --hrx-border-strong: rgba(15, 23, 42, 0.18);
+    --hrx-text: #0f172a;
+    --hrx-text-soft: #334155;
+    --hrx-text-muted: #64748b;
+    --hrx-row-hover: rgba(245, 158, 11, 0.08);
+    --hrx-shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.18);
+    background: rgba(15, 23, 42, 0.45);
+    color-scheme: light;
+  }
+  /* Native browser picker (date/time/select) light mode da to‘g‘ri ko‘rinishi uchun */
+  html[data-role-theme="light"] .hrx-modal input,
+  html[data-role-theme="light"] .hrx-modal select,
+  html[data-role-theme="light"] .hrx-modal textarea {
+    color-scheme: light;
+  }
+  html[data-role-theme="light"] .hrx-modal .hrx-field select option {
+    background: #ffffff;
+    color: #0f172a;
+  }
+  /* Light mode — modal phone wrap fonini oqlash */
+  html[data-role-theme="light"] .hrx-modal .hrx-phone-wrap { background: #ffffff; }
+  html[data-role-theme="light"] .hrx-modal .hrx-phone-prefix { background: rgba(15, 23, 42, 0.04); }
   .hrx-modal.is-open { display: flex; animation: hrxFade .18s var(--hrx-ease); }
   @keyframes hrxFade { from { opacity: 0; } to { opacity: 1; } }
   .hrx-modal__card {
     width: 100%;
     max-width: 720px;
     max-height: min(760px, calc(100dvh - 48px));
-    background: #0a1222;
+    background: var(--hrx-surface-2);
     border: 1px solid var(--hrx-border-strong);
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    box-shadow: var(--hrx-shadow-lg);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -921,7 +1122,7 @@
     top: 0;
     z-index: 2;
     padding: 22px 24px 18px;
-    background: #0a1222;
+    background: var(--hrx-surface-2);
     border-bottom: 1px solid var(--hrx-border);
   }
   .hrx-modal__head h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--hrx-text); }
@@ -935,6 +1136,7 @@
     flex-direction: column;
     gap: 16px;
     scrollbar-color: rgba(148,163,184,.55) transparent;
+    background: var(--hrx-surface-2);
   }
   .hrx-modal__foot  {
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -943,7 +1145,7 @@
     bottom: 0;
     z-index: 2;
     padding: 16px 24px 20px;
-    background: #0a1222;
+    background: var(--hrx-surface-2);
     border-top: 1px solid var(--hrx-border);
   }
   .hrx-modal__close {
@@ -1580,7 +1782,7 @@
             <span>Lavozim</span>
             <select id="filterRoleSelect"><option value="">Barchasi</option></select>
           </label>
-          <label class="hrx-field hrx-field--full">
+          <label class="hrx-field hrx-field--full" style="display:none;" aria-hidden="true">
             <span>Fan</span>
             <select id="filterSubjectSelect"><option value="">Barchasi</option></select>
           </label>
@@ -1666,7 +1868,7 @@
     <div class="hrx-modal__head">
       <div>
         <h2 id="formModalTitle">Yangi xodim</h2>
-        <p>Profil ma'lumoti, kontakt va — ustoz bo‘lsa — bandlik slotlari.</p>
+        <p>Login va parol avtomatik yaratiladi. Ustoz bo‘lsa — bandlik vaqtlarini ham kiriting.</p>
       </div>
       <button type="button" class="hrx-modal__close" data-close-modal="employeeFormModal" aria-label="Yopish">
         <i class="fa-solid fa-xmark"></i>
@@ -1679,38 +1881,29 @@
         <label class="hrx-field hrx-field--full"><span>Ism familiya</span>
           <input id="employeeFullNameInput" type="text" maxlength="255" placeholder="Aliyev Akbar" data-modal-autofocus></label>
 
-        <div class="hrx-form-col">
-          <label class="hrx-field"><span>Telefon</span>
-            <div class="hrx-phone-wrap">
-              <span class="hrx-phone-prefix">+998</span>
-              <input id="employeePhoneInput" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="90 123 45 67">
-            </div>
-          </label>
-          <label class="hrx-field"><span>Pozitsiya</span>
-            <input id="employeePositionInput" type="text" maxlength="100" placeholder="IELTS ustoz"></label>
-          <label class="hrx-field"><span>HR roli</span>
-            <select id="employeeRoleSelect"></select></label>
-          <label class="hrx-field"><span>Darajalar</span>
-            <textarea id="employeeLevelsInput" rows="2" placeholder="A1, A2, IELTS"></textarea></label>
-        </div>
+        <label class="hrx-field"><span>HR roli</span>
+          <select id="employeeRoleSelect"></select></label>
 
-        <div class="hrx-form-col">
-          <label class="hrx-field"><span>Ishga qabul</span>
-            <input id="employeeHireDateInput" type="date"></label>
-          <div class="hrx-field">
-            <span>Fanlar</span>
-            <div id="employeeSubjectCombo" class="hrx-combo" data-combo>
-              <div id="employeeSubjectChips" class="hrx-combo__chips"></div>
-              <input id="employeeSubjectSearch" class="hrx-combo__input" type="text" placeholder="Fan qidiring…" autocomplete="off" aria-label="Fanlarni qidirish">
-              <div id="employeeSubjectMenu" class="hrx-combo__menu" hidden role="listbox"></div>
-            </div>
-            <select id="employeeSubjectSelect" multiple hidden></select>
+        <label class="hrx-field"><span>Telefon</span>
+          <div class="hrx-phone-wrap">
+            <span class="hrx-phone-prefix">+998</span>
+            <input id="employeePhoneInput" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="90 123 45 67">
           </div>
-          <label class="hrx-field"><span>Yo‘nalishlar</span>
-            <textarea id="employeeDirectionsInput" rows="2" placeholder="IELTS, SAT"></textarea></label>
-        </div>
+        </label>
 
-        <label class="hrx-field hrx-field--full"><span>Izoh</span>
+        <label class="hrx-field"><span>Pozitsiya</span>
+          <input id="employeePositionInput" type="text" maxlength="100" placeholder="IELTS ustozi"></label>
+
+        <label class="hrx-field"><span>Ishga qabul sanasi</span>
+          <input id="employeeHireDateInput" type="date"></label>
+
+        <label class="hrx-field hrx-field--full"><span>Yo‘nalishlar <small style="color:var(--hrx-text-muted);font-weight:500;">— vergul bilan ajrating</small></span>
+          <textarea id="employeeDirectionsInput" rows="2" placeholder="IELTS, SAT, Matematika, IT"></textarea></label>
+
+        <label class="hrx-field hrx-field--full"><span>Darajalar <small style="color:var(--hrx-text-muted);font-weight:500;">— ixtiyoriy</small></span>
+          <textarea id="employeeLevelsInput" rows="2" placeholder="A1, A2, B1, B2"></textarea></label>
+
+        <label class="hrx-field hrx-field--full"><span>Izoh <small style="color:var(--hrx-text-muted);font-weight:500;">— ixtiyoriy</small></span>
           <textarea id="employeeNoteInput" rows="2" placeholder="HR eslatmalar, kuchli tomonlar"></textarea></label>
 
         <label class="hrx-toggle hrx-field--full" for="employeeIsActiveInput">
@@ -1718,6 +1911,17 @@
           <span class="hrx-toggle__track"><span class="hrx-toggle__thumb"></span></span>
           <span class="hrx-toggle__label">Xodim aktiv holatda</span>
         </label>
+
+        <!-- Fan combo: yashirilgan, JS murojaatlari uchun saqlangan -->
+        <div class="hrx-field" style="display:none;" aria-hidden="true">
+          <span>Fanlar</span>
+          <div id="employeeSubjectCombo" class="hrx-combo" data-combo>
+            <div id="employeeSubjectChips" class="hrx-combo__chips"></div>
+            <input id="employeeSubjectSearch" class="hrx-combo__input" type="text" autocomplete="off">
+            <div id="employeeSubjectMenu" class="hrx-combo__menu" hidden role="listbox"></div>
+          </div>
+          <select id="employeeSubjectSelect" multiple hidden></select>
+        </div>
       </div>
 
       <section id="employeeAvailabilitySection" class="hrx-slots">
@@ -2359,32 +2563,53 @@
       const freeCls = freeLabelClass(row, av);
       const subjects = row.subject_names || [];
       const levels = row.levels || [];
-      const hasAvailabilityBadge = row.role === "teacher";
+      const isTeacher = row.role === "teacher";
+      const subjectsHtml = subjects.length
+        ? subjects.slice(0, 3).map((n) => `<span class="hrx-chip hrx-chip--subject">${escapeHtml(n)}</span>`).join("")
+          + (subjects.length > 3 ? `<span class="hrx-chip">+${subjects.length - 3}</span>` : "")
+        : "";
+      const levelsHtml = levels.length
+        ? levels.slice(0, 2).map((l) => `<span class="hrx-chip hrx-chip--level">${escapeHtml(l)}</span>`).join("")
+          + (levels.length > 2 ? `<span class="hrx-chip">+${levels.length - 2}</span>` : "")
+        : "";
       return `
-        <article class="hrx-card ${isSel ? "is-selected" : ""}" data-row-id="${row.id}" tabindex="0">
-          <div class="hrx-card__head">
-            <span class="hrx-avatar">${escapeHtml(getInitials(row.full_name))}</span>
-            <div class="hrx-person__meta" style="flex:1 1 auto; min-width:0;">
-              <span class="hrx-person__name">${escapeHtml(row.full_name || "—")}</span>
-              <span class="hrx-person__sub">${escapeHtml(row.role_label || "—")}${row.position ? " · " + escapeHtml(row.position) : ""}</span>
+        <article class="hrx-card hrx-card--v2 ${isSel ? "is-selected" : ""}" data-row-id="${row.id}" tabindex="0">
+          <div class="hrx-card__top">
+            <span class="hrx-avatar hrx-avatar--lg">${escapeHtml(getInitials(row.full_name))}</span>
+            <div class="hrx-card__id">
+              <h3 class="hrx-card__name">${escapeHtml(row.full_name || "—")}</h3>
+              <p class="hrx-card__role">${escapeHtml(row.role_label || "—")}${row.position ? " · " + escapeHtml(row.position) : ""}</p>
             </div>
-            <span data-no-row-click>${actionMenuHtml(row)}</span>
+            <span class="hrx-card__menu" data-no-row-click>${actionMenuHtml(row)}</span>
           </div>
 
-          <div class="hrx-card__row">
+          <div class="hrx-card__statuses">
             ${activeBadge(row)}
-            ${hasAvailabilityBadge ? `<span class="${av.className}">${escapeHtml(av.label)}</span>` : ""}
-            <span class="hrx-badge hrx-badge--neutral"><i class="fa-solid fa-users" style="font-size:9px;margin-right:3px;"></i>${escapeHtml(String(row.groups_count || 0))}</span>
+            ${isTeacher ? `<span class="${av.className}">${escapeHtml(av.label)}</span>` : ""}
+            <span class="hrx-badge hrx-badge--neutral"><i class="fa-solid fa-users"></i>${escapeHtml(String(row.groups_count || 0))} guruh</span>
           </div>
 
-          ${row.phone ? `<a class="hrx-card__phone" href="tel:${escapeHtml(row.phone)}" data-no-row-click><i class="fa-solid fa-phone" style="font-size:10px;margin-right:6px;color:var(--hrx-text-muted);"></i>${escapeHtml(row.phone)}</a>` : ""}
+          ${isTeacher ? `
+            <div class="hrx-card__free hrx-card__free--row ${freeCls}">
+              <i class="fa-solid ${freeLabelIcon(freeCls)}"></i>
+              <span>${freeLabelText(row)}</span>
+            </div>
+          ` : ""}
 
-          ${subjects.length ? `<div class="hrx-chip-row">${subjectChips(subjects, 3)}</div>` : ""}
-          ${levels.length ? `<div class="hrx-chip-row">${levels.slice(0, 2).map((l) => `<span class="hrx-chip">${escapeHtml(l)}</span>`).join("")}${levels.length > 2 ? `<span class="hrx-chip">+${levels.length - 2}</span>` : ""}</div>` : ""}
+          ${(subjectsHtml || levelsHtml) ? `
+            <div class="hrx-card__tags">
+              ${subjectsHtml}
+              ${levelsHtml}
+            </div>
+          ` : ""}
 
-          ${row.role === "teacher" ? `<div class="hrx-card__free ${freeCls}"><i class="fa-solid ${freeLabelIcon(freeCls)}"></i><span>${freeLabelText(row)}</span></div>` : ""}
+          <div class="hrx-card__meta">
+            ${row.phone
+              ? `<a class="hrx-card__contact" href="tel:${escapeHtml(row.phone)}" data-no-row-click><i class="fa-solid fa-phone"></i>${escapeHtml(row.phone)}</a>`
+              : `<span class="hrx-card__contact hrx-card__contact--empty"><i class="fa-solid fa-phone-slash"></i>Telefon yo'q</span>`}
+          </div>
 
-          <div class="hrx-day-row">${dayPills(row.schedule_days)}</div>
+          ${isTeacher ? `<div class="hrx-card__weekrow">${dayPills(row.schedule_days)}</div>` : ""}
         </article>
       `;
     }).join("");
