@@ -90,6 +90,18 @@ urlpatterns = [
     path("static-pages/<int:pk>/delete/", views.static_page_delete, name="static_page_delete"),
     path("static-pages/<int:pk>/toggle-active/", views.static_page_toggle_active, name="static_page_toggle_active"),
 
+    # === Tarif v2 — Bosqich 4: PlanFeature CRUD ===
+    path("features/", views.feature_list, name="feature_list"),
+    path("features/create/", views.feature_create, name="feature_create"),
+    path("features/<int:pk>/edit/", views.feature_edit, name="feature_edit"),
+    path("features/<int:pk>/delete/", views.feature_delete, name="feature_delete"),
+    path("features/<int:pk>/toggle-active/", views.feature_toggle_active, name="feature_toggle_active"),
+
+    # === Tarif v2 — Bosqich 4: Markaz feature override ===
+    path("centers/", views.center_list_for_features, name="center_list_for_features"),
+    path("centers/<int:pk>/features/", views.center_feature_overrides, name="center_feature_overrides"),
+    path("centers/<int:pk>/features/toggle/", views.center_feature_toggle, name="center_feature_toggle"),
+
     path("demo-leads/", views.demo_lead_list, name="demo_lead_list"),
     path("demo-leads/<int:pk>/", views.demo_lead_detail, name="demo_lead_detail"),
     path("demo-leads/<int:pk>/delete/", views.demo_lead_delete, name="demo_lead_delete"),

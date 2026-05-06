@@ -16,6 +16,7 @@ from .forms import (
     FAQForm,
     FeatureBlockForm,
     PartnerLogoForm,
+    PlanFeatureForm,
     PricingFeatureForm,
     PricingPlanImportForm,
     PricingPlanForm,
@@ -823,9 +824,43 @@ def pricing_plan_edit(request: HttpRequest, pk: int) -> HttpResponse:
         else _plan_feature_rows_from_instance(instance)
     )
     form = PricingPlanForm(request.POST or None, instance=instance)
+
+    # === Tarif v2 — Bosqich 4.2: PlanFeature M2M binding ===
+    # Marketing PricingPlan'ni billing.SubscriptionPlan bilan code orqali topishga harakat qilamiz.
+    from billing.models import PlanFeature as BillingPlanFeature, SubscriptionPlan
+    plan_code_candidate = (
+        getattr(instance, "code", None)
+        or getattr(instance, "plan_code", None)
+        or (instance.name or "").upper().strip() or None
+    )
+    sub_plan = None
+    if plan_code_candidate:
+        sub_plan = SubscriptionPlan.objects.filter(code=plan_code_candidate).first()
+
+    features_by_category: dict = {}
+    for feat in BillingPlanFeature.objects.filter(is_active=True).order_by("category", "order", "name"):
+        features_by_category.setdefault(feat.category, []).append(feat)
+
+    included_ids: set[int] = set()
+    if sub_plan is not None:
+        included_ids = set(sub_plan.plan_features.values_list("id", flat=True))
+
     if request.method == "POST" and form.is_valid():
         instance = form.save()
         _sync_plan_features(instance, feature_rows)
+
+        # Plan ↔ PlanFeature M2M sync (only when matching SubscriptionPlan exists)
+        if sub_plan is not None:
+            selected_ids = request.POST.getlist("plan_features")
+            try:
+                selected_ids_int = [int(x) for x in selected_ids if str(x).isdigit()]
+            except (TypeError, ValueError):
+                selected_ids_int = []
+            selected_features = BillingPlanFeature.objects.filter(id__in=selected_ids_int)
+            core_features = BillingPlanFeature.objects.filter(is_core=True, is_active=True)
+            final = set(selected_features) | set(core_features)
+            sub_plan.plan_features.set(final)
+
         messages.success(request, "Tarif rejasi yangilandi.")
         return redirect("platform_global:marketing:pricing_plan_list")
 
@@ -837,7 +872,12 @@ def pricing_plan_edit(request: HttpRequest, pk: int) -> HttpResponse:
         section_title="Marketing / Tarif rejalari",
         cancel_url_name="platform_global:marketing:pricing_plan_list",
         object_for_preview=instance,
-        extra_context={"feature_rows": feature_rows},
+        extra_context={
+            "feature_rows": feature_rows,
+            "features_by_category": features_by_category,
+            "included_ids": included_ids,
+            "sub_plan": sub_plan,
+        },
     )
 
 
@@ -1792,3 +1832,361 @@ def demo_lead_toggle_contacted(request: HttpRequest, pk: int) -> HttpResponse:
 
     next_url = request.POST.get("next") or reverse("platform_global:marketing:demo_lead_list")
     return redirect(next_url)
+
+
+# ============================================================
+# Tarif v2 — Bosqich 4: PlanFeature CRUD (billing.PlanFeature)
+# ============================================================
+
+import json
+import logging
+
+from django.http import JsonResponse
+
+logger = logging.getLogger(__name__)
+
+
+_FEATURE_CATEGORY_BADGES = {
+    "core": "mkt-badge-active",
+    "finance": "mkt-badge-info",
+    "team": "mkt-badge-amber",
+    "marketing": "mkt-badge-info",
+    "advanced": "mkt-badge-inactive",
+}
+
+
+def _attach_plan_membership(features):
+    """Har bir featurega .plan_codes (list[str]) atributini biriktirib qaytaradi."""
+    from billing.models import SubscriptionPlan
+    visible_plans = list(
+        SubscriptionPlan.objects.filter(active=True, landing_visible=True).order_by("tier")
+    )
+    plan_to_feature_ids = {
+        p: set(p.plan_features.values_list("id", flat=True)) for p in visible_plans
+    }
+    enriched = []
+    for feat in features:
+        codes = [p.code for p, ids in plan_to_feature_ids.items() if feat.id in ids]
+        feat.plan_codes = codes
+        enriched.append(feat)
+    return enriched
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def feature_list(request: HttpRequest) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature
+
+    q = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    active = request.GET.get("active", "")
+
+    queryset = BillingPlanFeature.objects.all().order_by("category", "order", "name")
+    queryset = _apply_search(queryset, q, ["code", "name", "name_uz", "name_ru", "name_en", "description_uz"])
+    if category:
+        queryset = queryset.filter(category=category)
+    queryset = _apply_active_filter(queryset, active)
+
+    page_obj = _paginate(request, queryset)
+    objects = _attach_plan_membership(list(page_obj.object_list))
+
+    return render(
+        request,
+        "marketing/superadmin/feature_list.html",
+        {
+            "page_obj": page_obj,
+            "objects": objects,
+            "q": q,
+            "category": category,
+            "active": active,
+            "category_choices": BillingPlanFeature.Category.choices,
+            "category_badges": _FEATURE_CATEGORY_BADGES,
+        },
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def feature_create(request: HttpRequest) -> HttpResponse:
+    form = PlanFeatureForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        instance = form.save()
+        form.save_plan_memberships(instance)
+        messages.success(request, "Xususiyat qo'shildi.")
+        return redirect("platform_global:marketing:feature_list")
+
+    return _render_form_page(
+        request,
+        template_name="marketing/superadmin/feature_form.html",
+        form=form,
+        page_title="Xususiyat qo'shish",
+        section_title="Marketing / Xususiyatlar",
+        cancel_url_name="platform_global:marketing:feature_list",
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def feature_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature
+
+    instance = get_object_or_404(BillingPlanFeature, pk=pk)
+    form = PlanFeatureForm(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid():
+        instance = form.save()
+        form.save_plan_memberships(instance)
+        messages.success(request, "Xususiyat yangilandi.")
+        return redirect("platform_global:marketing:feature_list")
+
+    return _render_form_page(
+        request,
+        template_name="marketing/superadmin/feature_form.html",
+        form=form,
+        page_title="Xususiyat tahrirlash",
+        section_title="Marketing / Xususiyatlar",
+        cancel_url_name="platform_global:marketing:feature_list",
+        object_for_preview=instance,
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+@require_POST
+def feature_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature
+    instance = get_object_or_404(BillingPlanFeature, pk=pk)
+    if instance.is_core:
+        messages.error(request, "CORE xususiyatni o'chirib bo'lmaydi.")
+        return redirect("platform_global:marketing:feature_list")
+    instance.delete()
+    messages.success(request, "Xususiyat o'chirildi.")
+    return redirect("platform_global:marketing:feature_list")
+
+
+@login_required
+@user_passes_test(is_superadmin)
+@require_POST
+def feature_toggle_active(request: HttpRequest, pk: int) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature
+    instance = get_object_or_404(BillingPlanFeature, pk=pk)
+    instance.is_active = not instance.is_active
+    instance.save(update_fields=["is_active"])
+    messages.success(request, "Xususiyat holati yangilandi.")
+    next_url = request.POST.get("next") or reverse("platform_global:marketing:feature_list")
+    return redirect(next_url)
+
+
+# ============================================================
+# Tarif v2 — Bosqich 4: Markaz feature override paneli
+# ============================================================
+
+
+def _send_override_telegram(text: str) -> bool:
+    """Override hodisasini Telegram guruhga yuborishga harakat qiladi.
+    Mavjud bo'lmasa, log'ga yozadi va False qaytaradi."""
+    try:
+        from billing.telegram_notifications import _send_message, _get_bot_token, _get_group_chat_id
+        token = _get_bot_token()
+        chat_id = _get_group_chat_id()
+        if not token or not chat_id:
+            logger.info("Telegram override notify skipped (no token/chat_id): %s", text)
+            return False
+        return _send_message(token, chat_id, text, log_label="override")
+    except Exception:
+        logger.exception("Telegram override notify failed")
+        return False
+
+
+def _resolve_center_or_404(pk: int):
+    from accounts.models import Center
+    return get_object_or_404(Center, pk=pk)
+
+
+def _compute_feature_rows_for_center(center, all_features):
+    """Har bir feature uchun: effective, source, has_override hisoblaydi."""
+    from billing.models import CenterFeatureOverride
+    from billing.services import center_has_feature, get_active_subscription
+
+    overrides_qs = CenterFeatureOverride.objects.filter(center=center).select_related("feature")
+    overrides_map = {o.feature_id: o for o in overrides_qs}
+
+    sub = get_active_subscription(center)
+    plan_feature_ids: set[int] = set()
+    if sub and sub.plan:
+        plan_feature_ids = set(sub.plan.plan_features.values_list("id", flat=True))
+
+    rows = []
+    for feat in all_features:
+        override = overrides_map.get(feat.id)
+        has_override = override is not None
+        effective = center_has_feature(center, feat.code)
+        if feat.is_core:
+            source = "CORE"
+        elif has_override:
+            source = "Override (yoqildi)" if override.enabled else "Override (o'chirildi)"
+        elif feat.id in plan_feature_ids:
+            source = "Tarif default"
+        else:
+            source = "Yo'q"
+        rows.append({
+            "feature": feat,
+            "effective": effective,
+            "source": source,
+            "has_override": has_override,
+            "override_enabled": override.enabled if override else None,
+        })
+    return rows
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def center_list_for_features(request: HttpRequest) -> HttpResponse:
+    from accounts.models import Center
+    q = request.GET.get("q", "").strip()
+    queryset = Center.objects.all().order_by("name")
+    if q:
+        queryset = queryset.filter(name__icontains=q)
+    page_obj = _paginate(request, queryset)
+    return render(
+        request,
+        "marketing/superadmin/center_list_for_features.html",
+        {
+            "page_obj": page_obj,
+            "objects": page_obj.object_list,
+            "q": q,
+        },
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def center_feature_overrides(request: HttpRequest, pk: int) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature
+    from billing.services import get_active_subscription
+
+    center = _resolve_center_or_404(pk)
+    sub = get_active_subscription(center)
+    plan = sub.plan if sub else None
+
+    all_features = list(
+        BillingPlanFeature.objects.filter(is_active=True).order_by("category", "order", "name")
+    )
+    rows = _compute_feature_rows_for_center(center, all_features)
+
+    rows_by_category: dict = {}
+    for row in rows:
+        rows_by_category.setdefault(row["feature"].category, []).append(row)
+
+    return render(
+        request,
+        "marketing/superadmin/center_feature_overrides.html",
+        {
+            "center": center,
+            "subscription": sub,
+            "plan": plan,
+            "rows_by_category": rows_by_category,
+            "category_choices": BillingPlanFeature.Category.choices,
+            "category_badges": _FEATURE_CATEGORY_BADGES,
+        },
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+@require_POST
+def center_feature_toggle(request: HttpRequest, pk: int) -> HttpResponse:
+    from billing.models import PlanFeature as BillingPlanFeature, CenterFeatureOverride
+    from billing.services import center_has_feature, get_active_subscription, invalidate_center_limit_cache
+
+    center = _resolve_center_or_404(pk)
+
+    # JSON yoki form-encoded body'ni ham qo'llab-quvvatlaymiz.
+    feature_code = ""
+    action = ""
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+        feature_code = (payload.get("feature_code") or "").strip()
+        action = (payload.get("action") or "").strip()
+    else:
+        feature_code = request.POST.get("feature_code", "").strip()
+        action = request.POST.get("action", "").strip()
+
+    if not feature_code or action not in {"enable", "disable", "remove_override"}:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri so'rov"}, status=400)
+
+    feat = BillingPlanFeature.objects.filter(code=feature_code).first()
+    if not feat:
+        return JsonResponse({"ok": False, "error": "Xususiyat topilmadi"}, status=404)
+
+    if feat.is_core:
+        return JsonResponse(
+            {"ok": False, "error": "CORE xususiyatni o'chirib bo'lmaydi"},
+            status=400,
+        )
+
+    action_uz = ""
+    if action == "enable":
+        CenterFeatureOverride.objects.update_or_create(
+            center=center,
+            feature=feat,
+            defaults={
+                "enabled": True,
+                "note": "SuperAdmin manual: yoqildi",
+                "created_by": request.user if request.user.is_authenticated else None,
+            },
+        )
+        action_uz = "yoqildi"
+    elif action == "disable":
+        CenterFeatureOverride.objects.update_or_create(
+            center=center,
+            feature=feat,
+            defaults={
+                "enabled": False,
+                "note": "SuperAdmin manual: o'chirildi",
+                "created_by": request.user if request.user.is_authenticated else None,
+            },
+        )
+        action_uz = "o'chirildi"
+    else:  # remove_override
+        CenterFeatureOverride.objects.filter(center=center, feature=feat).delete()
+        action_uz = "override olib tashlandi"
+
+    # Cache'ni yangilash (markaz limit/feature cache)
+    try:
+        invalidate_center_limit_cache(center)
+    except Exception:
+        logger.exception("invalidate_center_limit_cache failed")
+
+    # Telegram bildirgisi (best effort)
+    user_label = getattr(request.user, "username", "?") or "?"
+    _send_override_telegram(
+        f"🛠 Override: {center} | \"{feat.name_uz or feat.name}\" {action_uz} by {user_label}"
+    )
+
+    # Yangi holatni qaytaramiz
+    sub = get_active_subscription(center)
+    plan_feature_ids: set[int] = set()
+    if sub and sub.plan:
+        plan_feature_ids = set(sub.plan.plan_features.values_list("id", flat=True))
+    override = CenterFeatureOverride.objects.filter(center=center, feature=feat).first()
+    has_override = override is not None
+    effective = center_has_feature(center, feat.code)
+    if feat.is_core:
+        source = "CORE"
+    elif has_override:
+        source = "Override (yoqildi)" if override.enabled else "Override (o'chirildi)"
+    elif feat.id in plan_feature_ids:
+        source = "Tarif default"
+    else:
+        source = "Yo'q"
+
+    return JsonResponse({
+        "ok": True,
+        "effective": effective,
+        "source": source,
+        "has_override": has_override,
+        "override_enabled": override.enabled if override else None,
+    })

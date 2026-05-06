@@ -29,6 +29,7 @@ urlpatterns = [
     name="group_month_attendance_export"
 ),
     path("tolov/create/", views.create_payment, name="create_payment"),
+
     path("tolovlar/tarix/enrollment/<int:enrollment_id>/", views.payment_history_enrollment, name="payment_history_enrollment"),
     path("tolov/chek/<int:payment_id>/", views.payment_receipt_pdf, name="payment_receipt_pdf"),
     path("tolovlar/enrollment/<int:enrollment_id>/edit/", views.enrollment_edit, name="enrollment_edit"),

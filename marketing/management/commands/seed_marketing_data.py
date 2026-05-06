@@ -72,12 +72,12 @@ class Command(BaseCommand):
             "address": "Toshkent shahri, Yunusobod tumani",
             "meta_title": "ChaqmoqApp | O'quv markazlar uchun zamonaviy boshqaruv tizimi",
             "meta_description": "ChaqmoqApp o'quv markazlar uchun o'quvchi nazorati, guruh va davomat, to'lovlar, qarzdorlik, filiallar va Telegram integratsiyasini bitta tizimda birlashtiradi.",
-            "hero_title": "O'quv markazingiz boshqaruvini tez, aniq va zamonaviy qiling",
-            "hero_subtitle": "Sotuvdan tortib to'lovgacha bo'lgan barcha jarayonni ChaqmoqApp'da avtomatlashtiring.",
-            "primary_cta_text": "Demo olish",
+            "hero_title": "O'quv markazingizni ChaqmoqApp bilan avtomatlashtiring",
+            "hero_subtitle": "Bitta tizim — daromadni oshiradi, vaqtni tejaydi, xatolarni yo'qotadi.",
+            "primary_cta_text": "Demo so'rash",
             "primary_cta_url": "/demo/",
-            "secondary_cta_text": "Narxlarni ko'rish",
-            "secondary_cta_url": "/pricing/",
+            "secondary_cta_text": "Imkoniyatlarni ko'rish",
+            "secondary_cta_url": "#imkoniyatlar",
             "is_active": True,
         }
 
@@ -98,134 +98,220 @@ class Command(BaseCommand):
 
     def _seed_feature_blocks(self):
         feature_rows = [
-            (FeatureBlock.Section.FEATURE, "O'quvchilar boshqaruvi", "Bitta bazada to'liq karta va tarix."),
-            (FeatureBlock.Section.FEATURE, "Guruh va davomat nazorati", "Har dars bo'yicha qatnashuvni real vaqt kuzatish."),
-            (FeatureBlock.Section.FEATURE, "To'lovlar va qarzdorlik", "Qaysi o'quvchi kechikkanini bir zumda ko'rish."),
-            (FeatureBlock.Section.FEATURE, "O'qituvchi nazorati", "Ustozlar jadvali va samaradorlik analitikasi."),
-            (FeatureBlock.Section.FEATURE, "Filial boshqaruvi", "Bir nechta markazni yagona dashboarddan boshqarish."),
-            (FeatureBlock.Section.FEATURE, "Statistika va admin panel", "Rahbar uchun qaror qabul qilishga tayyor ma'lumotlar."),
-            (FeatureBlock.Section.INTEGRATION, "Telegram bot", "Eslatmalar va xabarnomalarni avtomatlashtirish."),
-            (FeatureBlock.Section.INTEGRATION, "Click / Payme to'lov", "Onlayn to'lovlarni qabul qilish uchun tayyor modul."),
-            (FeatureBlock.Section.INTEGRATION, "SMS va qo'ng'iroq", "Mijozlar bilan aloqa jarayonlarini kuchaytirish."),
-            (FeatureBlock.Section.INTEGRATION, "CRM ulanish", "Leaddan sotuvgacha bo'lgan yo'lni monitoring qilish."),
-            (FeatureBlock.Section.SOLUTION, "Nazoratning yo'qolishi", "Har bo'lim bo'yicha aniq KPI va hisobotlar bilan tartibni tiklang."),
-            (FeatureBlock.Section.SOLUTION, "Qo'lda ishlash ko'pligi", "Takroriy ishlarni avtomatlashtirib jamoa vaqtini tejang."),
-            (FeatureBlock.Section.SOLUTION, "Qarzdorlik ko'payishi", "To'lov intizomini monitoring qilib tushumni barqarorlashtiring."),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-mortarboard-fill",
+                "O'quvchilar",
+                "Har bir o'quvchining to'liq kartasi va tarixi.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-clipboard2-check-fill",
+                "Davomat",
+                "Bir bosishda davomat va Telegram xabar.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-credit-card-2-front-fill",
+                "To'lov va qarzdorlik",
+                "Qarzdorlar avtomatik ro'yxat va eslatmalar.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-calendar2-week-fill",
+                "Guruh va jadval",
+                "Guruh, o'qituvchi va jadval bitta tizimda.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-phone-fill",
+                "Ota-ona paneli",
+                "Ota-ona telefondan farzand ma'lumotini ko'radi.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-graph-up-arrow",
+                "Analitika",
+                "Tushum, davomat va qarzdorlik bo'yicha hisobot.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-cash-coin",
+                "O'qituvchi maoshi",
+                "Har dars uchun maosh avtomatik hisoblanadi.",
+            ),
+            (
+                FeatureBlock.Section.FEATURE, "bi bi-buildings-fill",
+                "Ko'p filial",
+                "Barcha filiallar bitta dashboardda.",
+            ),
+            (
+                FeatureBlock.Section.INTEGRATION, "bi bi-telegram",
+                "Telegram bot integratsiyasi",
+                "To'lov eslatmalari, davomat xabarlari va qarzdorlik bildirishnomalarini avtomatik yuboring.",
+            ),
+            (
+                FeatureBlock.Section.INTEGRATION, "bi bi-credit-card-fill",
+                "Click to'lov tizimi",
+                "O'quvchilar Click orqali onlayn to'lov qilishi va chek olishi mumkin. Ma'lumot avtomatik yangilanadi.",
+            ),
         ]
 
-        for index, (section, title, description) in enumerate(feature_rows, start=1):
-            FeatureBlock.objects.get_or_create(
+        # Avval barcha FEATURE bloklarini deactivate qilamiz (eski uzun matnlar yoki ortiqcha kartalar tozalansin)
+        FeatureBlock.objects.filter(section=FeatureBlock.Section.FEATURE).update(is_active=False)
+
+        for index, (section, icon, title, description) in enumerate(feature_rows, start=1):
+            FeatureBlock.objects.update_or_create(
                 section=section,
                 title=title,
                 defaults={
                     "description": description,
                     "subtitle": "",
-                    "icon": "bi bi-stars",
+                    "icon": icon,
                     "order": index,
                     "is_active": True,
+                    # Lokalizatsiya fieldlarini tozalash — tarjima override bo'lib qolmasin
+                    "title_uz": "",
+                    "description_uz": "",
                 },
             )
 
     def _seed_pricing(self):
+        # Yangi narx tizimi: oylik abonement, 1 filial uchun
+        # Standart=400k, Premium=600k (tavsiya), Pro=900k so'm/oy
         plan_defs = [
             {
-                "name": "Start",
-                "student_range": "0-200",
-                "base_price": 990000,
+                "name": "Standart",
+                "student_range": "0–200 ta o'quvchi",
+                "base_price": 400000,
+                "is_recommended": False,
+                "badge_text": "",
                 "features": [
-                    "O'quvchi va guruhlar boshqaruvi",
-                    "Davomat jurnali",
-                    "To'lov va qarzdorlik nazorati",
-                    "Admin panel statistikasi",
+                    "O'quvchilar va guruhlar boshqaruvi",
+                    "Davomat jurnali (kunlik)",
+                    "To'lovlar nazorati",
+                    "Director dashboard (asosiy statistika)",
+                    "1 ta filial",
                 ],
+                "order": 1,
             },
             {
-                "name": "Growth",
-                "student_range": "200-500",
-                "base_price": 1490000,
+                "name": "Premium",
+                "student_range": "200–500 ta o'quvchi",
+                "base_price": 600000,
+                "is_recommended": True,
+                "badge_text": "Top tavsiya",
                 "features": [
-                    "Barcha Start funksiyalari",
-                    "Ko'p filialli boshqaruv",
-                    "Telegram avtomatik xabarnomalar",
-                    "Ustozlar samaradorlik hisobotlari",
+                    "Standart dagi hamma imkoniyatlar",
+                    "Avtomatik qarzdorlik nazorati",
+                    "Ota-ona / o'quvchi shaxsiy panel",
+                    "Telegram bot integratsiyasi",
+                    "Kengaytirilgan analytics",
+                    "Prioritet support",
                 ],
+                "order": 2,
             },
             {
                 "name": "Pro",
-                "student_range": "500+",
-                "base_price": 2290000,
+                "student_range": "500+ ta o'quvchi",
+                "base_price": 900000,
+                "is_recommended": False,
+                "badge_text": "Ko'p filial",
                 "features": [
-                    "Barcha Growth funksiyalari",
-                    "Integratsiya uchun kengaytirilgan imkoniyatlar",
+                    "Premium dagi hamma imkoniyatlar",
+                    "Ko'p filial boshqaruvi",
+                    "O'qituvchi maoshi avtomatik hisob",
+                    "Chuqur analytics va hisobotlar",
                     "Prioritet texnik yordam",
-                    "Maxsus onboarding sessiya",
+                    "Onboarding sessiya",
                 ],
+                "order": 3,
             },
         ]
 
-        duration_discounts = {
-            3: (0, ""),
-            6: (8, "8% chegirma"),
-            9: (12, "12% chegirma"),
-            12: (18, "18% chegirma"),
-        }
+        for plan_def in plan_defs:
+            plan, created = PricingPlan.objects.get_or_create(
+                name=plan_def["name"],
+                student_range=plan_def["student_range"],
+                duration_months=1,
+                defaults={
+                    "old_price": None,
+                    "current_price": plan_def["base_price"],
+                    "discount_label": "",
+                    "badge_text": plan_def["badge_text"],
+                    "is_recommended": plan_def["is_recommended"],
+                    "is_active": True,
+                    "order": plan_def["order"],
+                },
+            )
 
-        for order, plan_def in enumerate(plan_defs, start=1):
-            for duration, (discount_percent, discount_label) in duration_discounts.items():
-                old_price = plan_def["base_price"] * duration
-                discounted = int(old_price * (100 - discount_percent) / 100)
-                plan, _ = PricingPlan.objects.get_or_create(
-                    name=plan_def["name"],
-                    student_range=plan_def["student_range"],
-                    duration_months=duration,
-                    defaults={
-                        "old_price": old_price,
-                        "current_price": discounted,
-                        "discount_label": discount_label,
-                        "badge_text": "Tavsiya etiladi" if (plan_def["name"] == "Growth" and duration == 12) else "",
-                        "is_recommended": plan_def["name"] == "Growth" and duration in (9, 12),
-                        "is_active": True,
-                        "order": order,
-                    },
-                )
+            if not plan.features.exists():
+                for feature_order, feature_text in enumerate(plan_def["features"], start=1):
+                    PricingFeature.objects.create(
+                        pricing_plan=plan,
+                        text=feature_text,
+                        order=feature_order,
+                    )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"  PricingPlan yaratildi: {plan_def['name']}"))
+            else:
+                self.stdout.write(self.style.WARNING(f"  PricingPlan mavjud: {plan_def['name']}"))
 
-                if not plan.features.exists():
-                    for feature_order, feature_text in enumerate(plan_def["features"], start=1):
-                        PricingFeature.objects.create(
-                            pricing_plan=plan,
-                            text=feature_text,
-                            order=feature_order,
-                        )
+        # Custom tarif — pricing page da qo'lda qo'shiladi, seed qilmaymiz
+        self.stdout.write(self.style.SUCCESS("Pricing planlar yangilandi."))
 
     def _seed_faq(self):
         rows = [
             (
+                1,
+                "ChaqmoqApp nima va kim uchun mo'ljallangan?",
+                "ChaqmoqApp — o'quv markazlar uchun bulutli boshqaruv tizimi. "
+                "Direktor, administrator, o'qituvchi, ota-ona va o'quvchi uchun alohida panellar mavjud. "
+                "Davomat, to'lov, qarzdorlik, guruhlar, Telegram va ko'p filiallarni bitta tizimda boshqarasiz.",
+            ),
+            (
+                2,
                 "Joriy qilish qancha vaqt oladi?",
-                "Odatda 1-2 ish kuni ichida markazingizni to'liq ishga tushiramiz.",
+                "Odatda 1–2 ish kuni ichida markazingizni to'liq ishga tushiramiz. "
+                "Bizning jamoa sizga onboarding sessiya o'tkazib, barcha sozlamalarni bajaradi.",
             ),
             (
-                "Ma'lumotlar xavfsizmi?",
-                "Ha, platforma bulutda himoyalangan holda ishlaydi va doimiy backup qilinadi.",
+                3,
+                "Narx qanday hisoblanadi — oyma-oy yoki yillik?",
+                "Oylik abonement to'lovida ishlaymiz: Standart 400 000, Premium 600 000, Pro 900 000 so'm/oy. "
+                "Uzoq muddatga to'lashda chegirma berilishi mumkin — menejerimiz bilan bog'laning.",
             ),
             (
-                "Telegram integratsiyasi bormi?",
-                "Ha, to'lov eslatmalari, xabarlar va boshqa avtomatlashtirilgan oqimlar mavjud.",
+                4,
+                "Telegram integratsiyasi qanday ishlaydi?",
+                "ChaqmoqApp o'z Telegram bot integratsiyasiga ega. "
+                "To'lov eslatmalari, davomat xabarlari va qarzdorlik bildirishnomalarini avtomatik yuboramiz. "
+                "Ota-onalar va o'quvchilar ham Telegram orqali o'z ma'lumotlarini ko'rishi mumkin.",
             ),
             (
+                5,
+                "Ma'lumotlarim xavfsizmi? Backup qilinadimi?",
+                "Ha, barcha ma'lumotlar shifrlangan bulut serverda saqlanadi va kundalik backup qilinadi. "
+                "Xodim ketsa ham, eski ma'lumotlar yo'qolmaydi. "
+                "Biz ma'lumotlarni faqat siz bilan ishlashimiz uchun foydalanamiz.",
+            ),
+            (
+                6,
+                "Ko'p filial boshqarish mumkinmi?",
+                "Ha, Pro tarifida bir nechta filiallarni yagona dashboarddan boshqarish mumkin. "
+                "Har filial uchun alohida statistika, o'qituvchi va o'quvchilar bazasi saqlash imkoniyati bor.",
+            ),
+            (
+                7,
                 "Tarifni keyin o'zgartirish mumkinmi?",
-                "Albatta, markazingiz o'sishiga qarab tarifni istalgan payt yangilashingiz mumkin.",
+                "Albatta. Markazingiz o'sishiga qarab tarifni istalgan vaqt yangilashingiz mumkin. "
+                "Downgrade ham mumkin — menejerimizga xabar yuboring, biz bir kunda hal qilamiz.",
             ),
         ]
 
-        for index, (question, answer) in enumerate(rows, start=1):
+        for order, question, answer in rows:
             FAQ.objects.get_or_create(
                 question=question,
                 defaults={
                     "answer": answer,
-                    "order": index,
+                    "order": order,
                     "is_active": True,
                 },
             )
+        self.stdout.write(self.style.SUCCESS("FAQ'lar yangilandi (7 ta)."))
 
     def _seed_testimonials(self):
         rows = [

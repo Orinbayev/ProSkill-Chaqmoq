@@ -151,12 +151,23 @@ def mark_contacted(modeladmin, request, queryset):
 
 @admin.register(DemoLead)
 class DemoLeadAdmin(RichTextAdmin):
-    list_display = ("full_name", "center_name", "phone", "region", "is_contacted", "created_at")
-    search_fields = ("full_name", "center_name", "phone", "region", "note")
+    list_display = ("full_name", "center_name", "phone", "students_count", "region", "is_contacted", "created_at")
+    search_fields = ("full_name", "center_name", "phone", "region", "note", "comment")
     list_filter = ("is_contacted", "region", "created_at")
     ordering = ("-created_at",)
     list_editable = ("is_contacted",)
     readonly_fields = ("created_at",)
+    fieldsets = (
+        ("Asosiy ma'lumotlar", {
+            "fields": ("full_name", "center_name", "phone", "region", "students_count", "comment", "consent"),
+        }),
+        ("Admin", {
+            "fields": ("is_contacted", "note", "selected_plan"),
+        }),
+        ("Vaqt", {
+            "fields": ("created_at",),
+        }),
+    )
     actions = [mark_contacted]
 
 

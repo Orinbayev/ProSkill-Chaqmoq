@@ -1201,6 +1201,7 @@ def create_payment(request):
     return redirect(next_url)
 
 
+
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F, Value
 
@@ -3149,7 +3150,15 @@ def _get_payment_dashboard_data(request):
     selected_from = parse_date(date_from_raw) if date_from_raw else None
     selected_to = parse_date(date_to_raw) if date_to_raw else None
 
-    if not selected_from and not selected_to:
+    # pay_month tanlanib, sana filtri ko'rsatilmagan bo'lsa:
+    # paid_date filtrini o'sha yilning boshidan oxirigacha kengaytir.
+    # (Aks holda default joriy oy date filtri pay_month bilan to'qnashib,
+    # boshqa oylarda qilingan to'lovlarni yashiradi.)
+    if sel_month and sel_month.isdigit() and not date_from_raw and not date_to_raw:
+        # Aprel kabi o'tgan oy tanlansa, joriy yilning to'liq diapazonini ishlatamiz
+        selected_from = date(today.year, 1, 1)
+        selected_to = date(today.year, 12, 31)
+    elif not selected_from and not selected_to:
         selected_from = cur_month_start
         selected_to = today
     else:
@@ -3205,10 +3214,11 @@ def _get_payment_dashboard_data(request):
             qs = qs.filter(payment_type=sel_type_filter)
 
         if sel_month and sel_month.isdigit():
+            # paid_date oyi bo'yicha filterlash (to'lov qilingan sana oyi)
             qs = qs.filter(
-                allocations__tuition_month__month__month=int(sel_month),
-                allocations__tuition_month__month__year=cur_year,
-            ).distinct()
+                paid_date__month=int(sel_month),
+                paid_date__year=cur_year,
+            )
         return qs
 
     pay_qs = _apply_shared_payment_filters(pay_qs)
@@ -7983,6 +7993,8 @@ def enrollment_remove(request, pk):
 @login_required
 def enrollment_toggle_deferred(request, pk):
     if not _can_manage(request.user):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": "Ruxsat yo'q."}, status=403)
         messages.error(request, "Ruxsat yo'q.")
         return redirect("education:qarzdorlar_home")
     center = get_active_center(request)
@@ -7992,9 +8004,15 @@ def enrollment_toggle_deferred(request, pk):
     enr = get_object_or_404(qs, pk=pk)
     enr.is_deferred = not enr.is_deferred
     enr.save(update_fields=["is_deferred"])
+    status_label = "kechiktirildi" if enr.is_deferred else "oddiy holatga qaytarildi"
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "success": True,
+            "is_deferred": enr.is_deferred,
+            "message": f"{enr.student.get_full_name()} to'lovi {status_label}.",
+        })
     next_url = request.POST.get("next") or reverse("education:qarzdorlar_home")
-    status = "kechiktirildi" if enr.is_deferred else "oddiy holatga qaytarildi"
-    messages.success(request, f"✅ {enr.student.get_full_name()} to'lovi {status}.")
+    messages.success(request, f"✅ {enr.student.get_full_name()} to'lovi {status_label}.")
     return redirect(next_url)
 
 

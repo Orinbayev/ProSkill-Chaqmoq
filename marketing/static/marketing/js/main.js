@@ -473,4 +473,63 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     }
+
+    // ── Dashboard Showcase Tab Navigation ────────────────────────────────
+    const DS_DESCRIPTIONS = {
+        director:   { icon: "bi-speedometer2",   label: "Asosiy panel",  desc: "— Umumiy tushum, davomat va guruh statistikasi bir joyda" },
+        financial:  { icon: "bi-cash-coin",       label: "To'lovlar",     desc: "— Oylik tushum grafiklari va moliyaviy tahlil" },
+        attendance: { icon: "bi-calendar2-check", label: "Davomat",       desc: "— Guruh bo'yicha qatnashuv ko'rsatkichlari va Telegram xabarlari" },
+        students:   { icon: "bi-people",          label: "O'quvchilar",   desc: "— O'quvchilar ro'yxati, filter va faollik tahlili" },
+        billing:    { icon: "bi-graph-up-arrow",  label: "Analitika",     desc: "— Billing dinamikasi, qarzdorlik nazorati va to'lov tarixi" },
+        groups:     { icon: "bi-grid-3x3-gap",    label: "Guruhlar",      desc: "— Jadval, o'qituvchi va o'quvchi boshqaruvi" },
+    };
+
+    const dsTabs   = document.querySelectorAll(".lp-ds-tab");
+    const dsPanels = document.querySelectorAll(".lp-ds-panel");
+    const dsInfo   = document.getElementById("lp-ds-bottom-info");
+
+    if (dsTabs.length && dsPanels.length) {
+        const activateTab = (tab) => {
+            const key = tab.dataset.dsTab;
+
+            // Update tabs
+            dsTabs.forEach((t) => {
+                const active = t === tab;
+                t.classList.toggle("is-active", active);
+                t.setAttribute("aria-selected", active ? "true" : "false");
+            });
+
+            // Update panels
+            dsPanels.forEach((panel) => {
+                const panelKey = panel.id.replace("lp-ds-panel-", "");
+                const show = panelKey === key;
+                panel.classList.toggle("is-active", show);
+                if (show) {
+                    panel.removeAttribute("hidden");
+                } else {
+                    panel.setAttribute("hidden", "");
+                }
+            });
+
+            // Update bottom info
+            if (dsInfo && DS_DESCRIPTIONS[key]) {
+                const { icon, label, desc } = DS_DESCRIPTIONS[key];
+                dsInfo.innerHTML = `<i class="bi ${icon}" aria-hidden="true"></i><strong>${label}</strong><span>${desc}</span>`;
+            }
+        };
+
+        dsTabs.forEach((tab) => {
+            tab.addEventListener("click", () => activateTab(tab));
+        });
+
+        // Keyboard: arrow left/right to navigate tabs
+        dsTabs.forEach((tab, idx) => {
+            tab.addEventListener("keydown", (event) => {
+                let next = null;
+                if (event.key === "ArrowRight") { next = dsTabs[idx + 1] || dsTabs[0]; }
+                if (event.key === "ArrowLeft")  { next = dsTabs[idx - 1] || dsTabs[dsTabs.length - 1]; }
+                if (next) { next.focus(); activateTab(next); event.preventDefault(); }
+            });
+        });
+    }
 });

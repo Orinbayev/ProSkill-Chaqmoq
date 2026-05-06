@@ -50,11 +50,21 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Light mode: body va layout fon ranglarini ham oqlashtirish */
+  html[data-role-theme="light"] body.hr-dashboard-page,
+  html[data-role-theme="light"] body.hr-dashboard-page .layout,
+  html[data-role-theme="light"] body.hr-dashboard-page .app-shell,
+  html[data-role-theme="light"] body.hr-dashboard-page .main-content,
+  html[data-role-theme="light"] body.hr-dashboard-page .content-shell {
+    background: #f0f3f9 !important;
+  }
+  html[data-role-theme="light"] body.hr-dashboard-page .app-shell::before {
+    display: none !important;
+  }
+
   html[data-role-theme="light"] body.hr-dashboard-page .hrx {
-    --hrx-bg: radial-gradient(circle at 12% -10%, rgba(59,130,246,.08), transparent 38%),
-              radial-gradient(circle at 92% -8%, rgba(245,158,11,.10), transparent 36%),
-              linear-gradient(180deg, #f6f8fc, #eef2f8 60%, #f6f8fc);
-    --hrx-surface: rgba(255, 255, 255, 0.92);
+    --hrx-bg: #f0f3f9;
+    --hrx-surface: #ffffff;
     --hrx-surface-2: #ffffff;
     --hrx-surface-soft: rgba(15, 23, 42, 0.02);
     --hrx-elev: rgba(15, 23, 42, 0.06);

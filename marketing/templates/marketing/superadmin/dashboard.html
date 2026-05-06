@@ -30,6 +30,14 @@
         <div class="mkt-kpi-label">Tarif rejalari</div>
         <div class="mkt-kpi-value">{{ counts.pricing_plans }}</div>
     </a>
+    <a href="{% url 'platform_global:marketing:feature_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Xususiyatlar</div>
+        <div class="mkt-kpi-value"><i class="bi bi-toggles"></i></div>
+    </a>
+    <a href="{% url 'platform_global:marketing:center_list_for_features' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Markaz xususiyatlari</div>
+        <div class="mkt-kpi-value"><i class="bi bi-building-gear"></i></div>
+    </a>
     <a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-kpi-card">
         <div class="mkt-kpi-label">Ko'p so'raladigan savollar</div>
         <div class="mkt-kpi-value">{{ counts.faqs }}</div>
@@ -59,6 +67,8 @@
     <div class="mkt-card-body">
         <div class="mkt-quick-actions">
             <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-cash-coin"></i> Tariflar</a>
+            <a href="{% url 'platform_global:marketing:feature_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-toggles"></i> Xususiyatlar</a>
+            <a href="{% url 'platform_global:marketing:center_list_for_features' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-building-gear"></i> Markaz xususiyatlari</a>
             <a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-telephone"></i> Demo so'rovlari</a>
             <a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-question-circle"></i> Savol-javoblar</a>
             <a href="{% url 'platform_global:marketing:testimonial_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-chat-quote"></i> Mijozlar fikri</a>

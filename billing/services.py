@@ -59,6 +59,7 @@ def apply_plan_to_center(center: Center, plan: SubscriptionPlan) -> None:
     Markazga tarif biriktirilganda — tarifning featurelari markazga avtomatik qo'llanadi.
     Center.features JSONField ham sinxronlanadi (backward-compat).
     """
+    # Legacy JSONField sync — kept for backward compat.
     enabled_codes = set(plan.plan_features.values_list("code", flat=True))
     current_overrides = center.features or {}
 
@@ -82,22 +83,77 @@ def apply_plan_to_center(center: Center, plan: SubscriptionPlan) -> None:
     invalidate_center_limit_cache(center)
 
 
-def can_center_use_feature(center: Center, feature_code: str) -> bool:
-    """
-    Markazda ma'lum bir feature ishlash-yo'qligini tekshiradi.
-    Priority: center.features (manual overrides) > plan.plan_features
-    """
-    # 1. Check explicit manual override in center.features JSONField
-    center_features = center.features or {}
-    if feature_code in center_features:
-        return bool(center_features[feature_code])
+LEGACY_CODE_MAP = {
+    # legacy PlanFeature.code → v2 PlanFeature.code
+    "leads": "lidlar",
+    "branches": "filial_qoshish",
+    "roles": "rollar",
+    # "sms" maps to itself but we keep it explicit for safety
+    "sms": "sms",
+    # UI-only flags (kept untouched, unmapped)
+    # "ui_weekly_schedule", "ui_certificates", "ui_exam_sessions",
+    # "ui_failed_students", "tasks", "kpi", "store",
+    # "support_teacher_enabled" — these stay as JSONField overrides only
+}
 
-    # 2. Check active subscription plan's M2M features
-    sub = get_active_subscription(center)
-    if sub and sub.plan:
-        return sub.plan.plan_features.filter(code=feature_code).exists()
 
+def _resolve_feature_code(code: str) -> str:
+    """Map legacy feature codes to v2 codes. Returns input if no mapping."""
+    return LEGACY_CODE_MAP.get(code, code)
+
+
+def center_has_feature(center, slug: str) -> bool:
+    """
+    Single source of truth for ChaqmoqApp feature gating (v2).
+
+    Resolution order:
+      1. Resolve any legacy code to its v2 equivalent.
+      2. If the (root) center has a CenterFeatureOverride for this feature,
+         that wins absolutely.
+      3. CORE features (PlanFeature.is_core=True) are always enabled.
+      4. Otherwise, check the active subscription's plan.plan_features M2M.
+      5. As a final compatibility layer, fall back to legacy Center.features
+         JSONField for keys that have no v2 PlanFeature row yet.
+    """
+    from billing.models import PlanFeature, CenterFeatureOverride
+    code = _resolve_feature_code(slug)
+
+    # Resolve to root center
+    root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+
+    # 1. Override wins
+    override = (
+        CenterFeatureOverride.objects
+        .filter(center=root, feature__code=code)
+        .first()
+    )
+    if override:
+        return override.enabled
+
+    # 2. Look up the feature
+    feature = PlanFeature.objects.filter(code=code, is_active=True).first()
+
+    # CORE always on
+    if feature and feature.is_core:
+        return True
+
+    # 3. Active subscription plan
+    sub = get_active_subscription(root)
+    if sub and not sub.is_blocked() and sub.plan and feature:
+        if sub.plan.plan_features.filter(code=code).exists():
+            return True
+
+    # 4. Legacy JSONField fallback (for UI flags not yet migrated)
+    raw = getattr(root, 'features', None) or {}
+    if isinstance(raw, dict) and code in raw and isinstance(raw[code], bool):
+        return raw[code]
+
+    # If we reached here with no feature row at all, default to False (closed)
     return False
+
+
+def can_center_use_feature(center, feature_code):
+    return center_has_feature(center, feature_code)
 
 
 # ============================================================
@@ -390,6 +446,10 @@ def calculate_upgrade_preview(
     result["is_upgrade"] = is_upgrade
     return result
 
+# DEPRECATED 2026-05-06 — replaced by PlanFeature/Plan.plan_features M2M.
+# Kept for emergency rollback only. Will be removed after 2026-06-15
+# (after the new paying tenant is onboarded and verified on v2).
+# DO NOT add new entries here.
 FEATURES_BY_PLAN = {
     "FREE": set(),
     "STANDARD": {"finance", "tasks"},
@@ -765,24 +825,23 @@ def default_trial_expires():
     return timezone.now() + timezone.timedelta(days=7)
 
 
-def get_feature_flags(center: Center) -> set[str]:
-    # Filial bo'lsa — asosiy markazning feature flaglarini ishlatamiz
+def get_feature_flags(center):
+    """Return set of enabled feature codes for the center (effective state)."""
+    from billing.models import PlanFeature
     root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
-
-    sub = get_active_subscription(root)
-    # Fallback to center.plan if no active sub exists
-    code = sub.plan.code if (sub and sub.plan) else root.plan
-
-    features = FEATURES_BY_PLAN.get(code, set()).copy()
-    # Asosiy markaz override-larini qo'llamiz
-    manual_features = getattr(root, 'features', {}) or {}
-    for feature_name, enabled in manual_features.items():
-        if enabled:
-            features.add(feature_name)
-        elif feature_name in features:
-            features.remove(feature_name)
-
-    return features
+    enabled = set()
+    # Iterate every active feature and ask center_has_feature
+    for code in PlanFeature.objects.filter(is_active=True).values_list('code', flat=True):
+        if center_has_feature(root, code):
+            enabled.add(code)
+    # Also include legacy JSONField truthy keys that have no PlanFeature row,
+    # so existing UI flags keep working
+    raw = getattr(root, 'features', None) or {}
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            if isinstance(v, bool) and v:
+                enabled.add(k)
+    return enabled
 
 
 def can_add_branch(center: Center) -> tuple[bool, str]:
@@ -798,43 +857,38 @@ def can_add_branch(center: Center) -> tuple[bool, str]:
     """
     root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
     sub = get_active_subscription(root)
-
     if not sub:
         return False, "Aktiv tarif topilmadi. Avval tarif sotib oling."
 
+    # NEW: feature gate
+    if not center_has_feature(root, "filial_qoshish"):
+        return (
+            False,
+            f"Tarifingiz ({sub.plan.title if sub.plan else '—'}) "
+            f"filial qo'shishga ruxsat bermaydi. PRO yoki PREMIUM tarifga o'ting."
+        )
+
     plan = sub.plan
-    max_b = plan.max_branches  # 0 = cheksiz, 1 = faqat asosiy, 2+ = filiallar
-
+    max_b = plan.max_branches if plan else 1
     if max_b == 0:
-        return True, "OK"  # Cheksiz
-
-    # max_branches=1 → faqat asosiy markaz, filial qo'shib bo'lmaydi
+        return True, "OK"
     if max_b == 1:
         return (
             False,
-            f"Tarifingiz ({plan.title}) filial qo'shishga ruxsat bermaydi. "
-            f"Filial ochish uchun yuqori tarifga o'ting.",
+            f"Tarifingiz ({plan.title}) faqat asosiy markazni qo'llab-quvvatlaydi. "
+            f"Filial uchun PRO yoki PREMIUM tarif kerak."
         )
 
-    # Hozirgi faol filiallar soni
+    from accounts.models import Center
     current_branches = Center.objects.filter(
-        parent_center=root,
-        is_deleted=False,
-        status=Center.STATUS_ACTIVE,
+        parent_center=root, is_deleted=False, status=Center.STATUS_ACTIVE
     ).count()
-
-    # max_branches: asosiy markaz + filiallar JAMI.
-    # Masalan max_branches=3 → 1 asosiy + 2 filial
-    allowed_branches = max_b - 1  # maksimal filiallar soni
-
-    if current_branches >= allowed_branches:
+    if current_branches >= (max_b - 1):
         return (
             False,
-            f"Tarifingizda {allowed_branches} ta filial limiti bor "
-            f"({current_branches} ta ishlatilgan). "
-            f"Ko'proq filial uchun yuqori tarifga o'ting.",
+            f"Tarifingizda {max_b - 1} ta filial limiti bor "
+            f"({current_branches} ta ishlatilgan). PREMIUM tarifga o'ting."
         )
-
     return True, "OK"
 
 

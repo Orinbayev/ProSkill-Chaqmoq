@@ -140,7 +140,7 @@
                     </thead>
                     <tbody>
                         {% for row in page_obj %}
-                        <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.06); box-shadow: inset 3px 0 0 rgba(245,158,11,0.55);"{% endif %}>
+                        <tr data-student-id="{{ row.student.id }}"{% if row.is_deferred %} class="row-deferred"{% endif %}>
                             <td>
                                 <div class="cell-stack">
                                     <span class="cell-stack__primary">{{ row.student.get_full_name }}</span>
@@ -231,14 +231,13 @@
                                     </button>
                                     {% if row.enrollment %}
                                     {% with deferred_target=row.deferred_enrollment|default:row.enrollment %}
-                                    <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_toggle_deferred' deferred_target.id %}" method="post" style="display:inline;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                        <button type="submit" class="action-btn{% if row.is_deferred %} action-btn--amber{% endif %}"
-                                            title="{% if row.is_deferred %}Qaytarish{% else %}Kechiktirish{% endif %}">
-                                            <i class="fa-solid {% if row.is_deferred %}fa-check{% else %}fa-clock{% endif %}"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                        class="action-btn{% if row.is_deferred %} action-btn--amber{% endif %} js-toggle-deferred"
+                                        title="{% if row.is_deferred %}Qaytarish{% else %}Kechiktirish{% endif %}"
+                                        data-url="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_toggle_deferred' deferred_target.id %}"
+                                        data-is-deferred="{{ row.is_deferred|yesno:'true,false' }}">
+                                        <i class="fa-solid {% if row.is_deferred %}fa-check{% else %}fa-clock{% endif %}"></i>
+                                    </button>
                                     <a href="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
                                         class="action-btn" title="Tahrirlash">
                                         <i class="fa-solid fa-pen"></i>
@@ -309,82 +308,284 @@
 {% endblock %}
 
 {% block modals %}
-<!-- PAYMENT MODAL -->
+<!-- PAYMENT MODAL v2 -->
+<style>
+/* ── Deferred row highlight ── */
+tr.row-deferred {
+    background: rgba(245,158,11,0.06);
+    box-shadow: inset 3px 0 0 rgba(245,158,11,0.55);
+}
+[data-role-theme="light"] tr.row-deferred {
+    background: rgba(245,158,11,0.10);
+    box-shadow: inset 3px 0 0 rgba(245,158,11,0.70);
+}
+
+/* ── Payment Modal v2 styles ── */
+#paymentModal .modal-dialog { max-width: 520px; }
+#paymentModal .modal-content {
+    border-radius: 20px;
+    border: 1px solid var(--m-border);
+    overflow: hidden;
+}
+.pv2-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--m-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.pv2-header__title { font-size: 17px; font-weight: 700; color: var(--m-text); margin: 0; }
+.pv2-body { padding: 20px 24px; }
+.pv2-student-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 18px;
+}
+.pv2-student-block__name { font-size: 16px; font-weight: 700; color: var(--m-text); }
+.pv2-student-block__group { font-size: 12px; color: var(--m-text-muted); margin-top: 2px; }
+.pv2-debt-box {
+    background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.10));
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 14px;
+    padding: 14px 18px;
+    text-align: center;
+    margin-bottom: 18px;
+}
+.pv2-debt-box__label { font-size: 11px; font-weight: 600; color: var(--m-text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.pv2-debt-box__amount { font-size: 26px; font-weight: 800; color: #10b981; font-feature-settings: 'tnum' 1; line-height: 1.2; }
+
+/* Payment method cards */
+.pv2-method-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.pv2-method-card { position: relative; }
+.pv2-method-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.pv2-method-card label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 6px;
+    border-radius: 12px;
+    border: 1.5px solid var(--m-border);
+    background: var(--m-bg-card, rgba(255,255,255,0.04));
+    cursor: pointer;
+    transition: border-color .18s, background .18s, transform .12s;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m-text-muted);
+    text-align: center;
+    line-height: 1.2;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.pv2-method-card label i { font-size: 18px; }
+.pv2-method-card input:checked + label {
+    border-color: #3b82f6;
+    background: rgba(59,130,246,0.12);
+    color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+}
+.pv2-method-card--naqd input:checked + label { border-color: #10b981; background: rgba(16,185,129,0.12); color: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
+.pv2-method-card--click input:checked + label { border-color: #6366f1; background: rgba(99,102,241,0.12); color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.2); }
+.pv2-method-card--payme input:checked + label { border-color: #ef4444; background: rgba(239,68,68,0.12); color: #ef4444; box-shadow: 0 4px 12px rgba(239,68,68,0.2); }
+.pv2-method-card--karta input:checked + label { border-color: #f59e0b; background: rgba(245,158,11,0.12); color: #f59e0b; box-shadow: 0 4px 12px rgba(245,158,11,0.2); }
+.pv2-method-card--aralash input:checked + label { border-color: #8b5cf6; background: rgba(139,92,246,0.12); color: #8b5cf6; box-shadow: 0 4px 12px rgba(139,92,246,0.2); }
+
+/* Single payment entry */
+.pv2-entry { margin-bottom: 0; }
+.pv2-field { margin-bottom: 12px; }
+.pv2-label { font-size: 11px; font-weight: 600; color: var(--m-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; display: block; }
+.pv2-input {
+    width: 100%;
+    padding: 10px 13px;
+    border-radius: 10px;
+    border: 1.5px solid var(--m-border);
+    background: var(--m-bg-input, rgba(255,255,255,0.05));
+    color: var(--m-text);
+    font-size: 14px;
+    font-weight: 600;
+    transition: border-color .18s;
+    outline: none;
+    -webkit-appearance: none;
+}
+.pv2-input:focus { border-color: #3b82f6; }
+.pv2-input::placeholder { color: var(--m-text-muted); font-weight: 400; }
+
+/* Mixed row */
+.pv2-mixed-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Validation hint */
+.pv2-hint { font-size: 11px; color: var(--m-text-muted); margin-top: 4px; }
+.pv2-hint--error { color: #ef4444; }
+.pv2-hint--ok { color: #10b981; }
+
+/* Footer */
+.pv2-footer {
+    padding: 14px 24px 20px;
+    border-top: 1px solid var(--m-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.pv2-btn-cancel {
+    padding: 9px 20px; border-radius: 10px; border: 1.5px solid var(--m-border);
+    background: transparent; color: var(--m-text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: border-color .18s, color .18s;
+}
+.pv2-btn-cancel:hover { border-color: var(--m-text-muted); color: var(--m-text); }
+.pv2-btn-save {
+    padding: 9px 24px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: opacity .18s, transform .12s;
+    display: flex; align-items: center; gap: 7px;
+}
+.pv2-btn-save:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.pv2-btn-save:not(:disabled):hover { opacity: .9; transform: translateY(-1px); }
+.pv2-spinner { display: none; }
+.pv2-btn-save.loading .pv2-spinner { display: inline; }
+.pv2-btn-save.loading .pv2-btn-text { opacity: .7; }
+
+/* Utility: JS-hidden panels and elements */
+.pv2-hidden { display: none; }
+.pv2-hint-center { text-align: center; }
+.pv2-header__wallet-icon { color: #3b82f6; }
+
+/* Light mode adjustments */
+[data-role-theme="light"] .pv2-input { background: #fff; border-color: #e2e8f0; color: #1e293b; }
+[data-role-theme="light"] .pv2-input:focus { border-color: #3b82f6; }
+[data-role-theme="light"] .pv2-method-card label { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+[data-role-theme="light"] .pv2-debt-box { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.06)); border-color: rgba(16,185,129,0.3); }
+</style>
+
+{% now "Y-m-d" as default_payment_date %}
 <div class="modal fade glass-modal" id="paymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">To'lov qilish</h5>
+            <!-- Header -->
+            <div class="pv2-header">
+                <h5 class="pv2-header__title">
+                    <i class="fa-solid fa-wallet me-2 pv2-header__wallet-icon"></i>To'lov qilish
+                </h5>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:create_payment' %}" method="post">
+
+            <div class="pv2-body">
+                <!-- Student info -->
+                <div class="pv2-student-block">
+                    <div class="pv2-student-block__name" id="payStudentName">—</div>
+                    <div class="pv2-student-block__group" id="payGroupName"></div>
+                </div>
+
+                <!-- Debt amount display -->
+                <div class="pv2-debt-box">
+                    <div class="pv2-debt-box__label" id="payDebtLabel">Joriy qarz summasi</div>
+                    <div class="pv2-debt-box__amount" id="payMonthlyFee">0 so'm</div>
+                </div>
+
+                <!-- Payment methods -->
+                <div class="pv2-method-grid" id="pv2MethodGrid">
+                    {% for pm in payment_methods %}
+                        {% if pm.nom == "NAQD" %}
+                        <div class="pv2-method-card pv2-method-card--naqd">
+                            <input type="radio" name="pv2_method" id="pv2m{{ pm.id }}" value="cash" data-mode="cash" {% if forloop.first %}checked{% endif %}>
+                            <label for="pv2m{{ pm.id }}"><i class="fa-solid fa-money-bill-wave"></i>Naqd</label>
+                        </div>
+                        {% elif pm.nom == "ARALASH" %}
+                        <div class="pv2-method-card pv2-method-card--aralash">
+                            <input type="radio" name="pv2_method" id="pv2m{{ pm.id }}" value="mixed" data-mode="mixed">
+                            <label for="pv2m{{ pm.id }}"><i class="fa-solid fa-layer-group"></i>Aralash</label>
+                        </div>
+                        {% elif pm.nom == "CLICK" %}
+                        <div class="pv2-method-card pv2-method-card--click">
+                            <input type="radio" name="pv2_method" id="pv2m{{ pm.id }}" value="card" data-mode="card">
+                            <label for="pv2m{{ pm.id }}"><i class="fa-solid fa-bolt"></i>Click</label>
+                        </div>
+                        {% elif pm.nom == "PAYME" %}
+                        <div class="pv2-method-card pv2-method-card--payme">
+                            <input type="radio" name="pv2_method" id="pv2m{{ pm.id }}" value="card" data-mode="card">
+                            <label for="pv2m{{ pm.id }}"><i class="fa-solid fa-p"></i>Payme</label>
+                        </div>
+                        {% else %}
+                        <div class="pv2-method-card pv2-method-card--karta">
+                            <input type="radio" name="pv2_method" id="pv2m{{ pm.id }}" value="card" data-mode="card">
+                            <label for="pv2m{{ pm.id }}"><i class="fa-solid fa-credit-card"></i>{{ pm.nom|title }}</label>
+                        </div>
+                        {% endif %}
+                    {% empty %}
+                        <div class="pv2-method-card pv2-method-card--naqd">
+                            <input type="radio" name="pv2_method" id="pv2mCash" value="cash" data-mode="cash" checked>
+                            <label for="pv2mCash"><i class="fa-solid fa-money-bill-wave"></i>Naqd</label>
+                        </div>
+                        <div class="pv2-method-card pv2-method-card--karta">
+                            <input type="radio" name="pv2_method" id="pv2mCard" value="card" data-mode="card">
+                            <label for="pv2mCard"><i class="fa-solid fa-credit-card"></i>Karta</label>
+                        </div>
+                        <div class="pv2-method-card pv2-method-card--aralash">
+                            <input type="radio" name="pv2_method" id="pv2mMixed" value="mixed" data-mode="mixed">
+                            <label for="pv2mMixed"><i class="fa-solid fa-layer-group"></i>Aralash</label>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- SINGLE PAYMENT PANEL -->
+                <div id="pv2PanelSingle">
+                    <div class="pv2-entry">
+                        <div class="pv2-field">
+                            <label class="pv2-label">To'lov sanasi</label>
+                            <input type="date" class="pv2-input" id="pv2SingleDate" value="{{ default_payment_date }}">
+                        </div>
+                        <div id="pv2SingleCashWrap" class="pv2-field">
+                            <label class="pv2-label">Naqd (so'm)</label>
+                            <input type="number" class="pv2-input" id="pv2SingleCash" placeholder="0" min="0">
+                        </div>
+                        <div id="pv2SingleCardWrap" class="pv2-field pv2-hidden">
+                            <label class="pv2-label">Karta / Click / Payme (so'm)</label>
+                            <input type="number" class="pv2-input" id="pv2SingleCard" placeholder="0" min="0">
+                        </div>
+                        <div class="pv2-field">
+                            <label class="pv2-label">Izoh</label>
+                            <textarea class="pv2-input" id="pv2SingleNote" rows="2" placeholder="Izoh qoldirish..."></textarea>
+                        </div>
+                        <div class="pv2-hint" id="pv2SingleHint"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="pv2-footer">
+                <button type="button" class="pv2-btn-cancel" data-bs-dismiss="modal">Bekor qilish</button>
+                <button type="button" class="pv2-btn-save" id="pv2SaveBtn" disabled>
+                    <i class="fa-solid fa-spinner fa-spin pv2-spinner"></i>
+                    <span class="pv2-btn-text">Saqlash</span>
+                </button>
+            </div>
+
+            <!-- Hidden real form (single payment fallback) -->
+            <form id="pv2SingleForm"
+                  action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:create_payment' %}"
+                  method="post" class="pv2-hidden">
                 {% csrf_token %}
-                {% now "Y-m-d" as default_payment_date %}
-                <div class="modal-body p-4">
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <input type="hidden" name="student_id" id="payStudentId">
-                    <input type="hidden" name="enrollment_id" id="payEnrollmentId">
-                    <input type="hidden" name="payment_scope" id="payPaymentScope">
-                    <input type="hidden" name="month" value="{{ effective_pay_month }}">
-
-                    <div class="mb-4 text-center">
-                        <h4 class="fw-bold mb-1" id="payStudentName" style="color:var(--m-text);">Ism Familya</h4>
-                        <p class="mb-3" id="payGroupName" style="color:var(--m-text-muted); font-size:13px;">Guruh nomi</p>
-                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 14px; border:1px solid var(--m-border);">
-                            <div style="color:var(--m-text-muted); font-size:12px; margin-bottom:4px;" id="payDebtLabel">Joriy qarz summasi:</div>
-                            <div class="h3 fw-bold mb-0" id="payMonthlyFee" style="color:var(--m-text); font-feature-settings:'tnum' 1;">0 so'm</div>
-                        </div>
-                    </div>
-
-                    <div class="payment-method-grid mb-4" style="background: rgba(0,0,0,0.25); padding: 4px; border-radius:14px;">
-                        {% for pm in payment_methods %}
-                            {% if pm.nom == "NAQD" %}
-                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="cash" data-mode="cash" {% if forloop.first %}checked{% endif %}>
-                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
-                                <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> {{ pm.nom|title }}
-                            </label>
-                            {% elif pm.nom == "ARALASH" %}
-                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="mixed" data-mode="mixed">
-                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
-                                <i class="fa-solid fa-layer-group d-block mb-1"></i> {{ pm.nom|title }}
-                            </label>
-                            {% else %}
-                            <input type="radio" class="btn-check" name="payment_method" id="methodPM{{ pm.id }}" value="card" data-mode="card" data-method-name="{{ pm.nom }}">
-                            <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodPM{{ pm.id }}">
-                                <i class="fa-solid fa-credit-card d-block mb-1"></i> {{ pm.nom|title }}
-                            </label>
-                            {% endif %}
-                        {% empty %}
-                        <input type="radio" class="btn-check" name="payment_method" id="methodCash" value="cash" checked>
-                        <label class="btn btn-sm border-0 rounded-3 payment-type-btn" for="methodCash">
-                            <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> Naqd
-                        </label>
-                        {% endfor %}
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="filter-label">To'lov sanasi</label>
-                            <input type="date" name="paid_date" class="filter-input" value="{{ default_payment_date }}">
-                        </div>
-                        <div class="col-12" id="divCash">
-                            <label class="filter-label">Naqd pul (so'm)</label>
-                            <input type="number" name="cash_amount" id="inputCash" class="filter-input" placeholder="0">
-                        </div>
-                        <div class="col-12" id="divCard" style="display:none;">
-                            <label class="filter-label">Karta / Click (so'm)</label>
-                            <input type="number" name="card_amount" id="inputCard" class="filter-input" placeholder="0">
-                        </div>
-                        <div class="col-12">
-                            <label class="filter-label">Izoh (Comment)</label>
-                            <textarea name="note" class="filter-input" rows="2" placeholder="Izoh qoldirish..."></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-ghost-pill" data-bs-dismiss="modal">Bekor qilish</button>
-                    <button type="submit" class="btn-primary-pill">Saqlash</button>
-                </div>
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="student_id" id="pv2HidStudentId">
+                <input type="hidden" name="enrollment_id" id="pv2HidEnrollmentId">
+                <input type="hidden" name="payment_scope" id="pv2HidScope">
+                <input type="hidden" name="month" value="{{ effective_pay_month }}">
+                <input type="hidden" name="paid_date" id="pv2HidDate">
+                <input type="hidden" name="cash_amount" id="pv2HidCash">
+                <input type="hidden" name="card_amount" id="pv2HidCard">
+                <input type="hidden" name="note" id="pv2HidNote">
+                <input type="hidden" name="payment_method" id="pv2HidMethod">
             </form>
         </div>
     </div>
@@ -420,6 +621,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% csrf_token %}
 {{ chart_data|json_script:"chart-data" }}
 {{ chart_labels|json_script:"chart-labels" }}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -429,16 +631,6 @@
         const buildTenantPath = function (path) {
             return tenantPrefix ? `/${tenantPrefix}${path}` : path;
         };
-
-        function togglePaymentInputs() {
-            const checked = document.querySelector('input[name="payment_method"]:checked');
-            if (!checked) return;
-            const divCash = document.getElementById('divCash'), divCard = document.getElementById('divCard');
-            const inputCash = document.getElementById('inputCash'), inputCard = document.getElementById('inputCard');
-            if (checked.value === 'cash') { divCash.style.display = 'block'; divCash.className = 'col-12'; divCard.style.display = 'none'; inputCard.value = ''; }
-            else if (checked.value === 'card') { divCash.style.display = 'none'; divCard.style.display = 'block'; divCard.className = 'col-12'; inputCash.value = ''; }
-            else { divCash.style.display = 'block'; divCash.className = 'col-6'; divCard.style.display = 'block'; divCard.className = 'col-6'; }
-        }
 
         // ====================================================
         // Number formatting helpers (Uzbek format)
@@ -722,42 +914,143 @@
                 }
             }
 
-            // Modal
+            // ====================================================
+            // PAYMENT MODAL v2 — pv2 logic
+            // ====================================================
             const paymentModal = document.getElementById('paymentModal');
             const deleteConfirmModal = document.getElementById('deleteConfirmModal');
             const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
             let activeDeleteForm = null;
 
+            // State
+            let pv2State = { studentId: '', enrollmentId: '', paymentScope: '', debtRaw: 0 };
+
+            function pv2GetMode() {
+                const checked = document.querySelector('input[name="pv2_method"]:checked');
+                return checked ? checked.getAttribute('data-mode') || checked.value : 'cash';
+            }
+
+            function pv2UpdateMethodInputs() {
+                const mode = pv2GetMode();
+
+                // Single panel
+                const cashW = document.getElementById('pv2SingleCashWrap');
+                const cardW = document.getElementById('pv2SingleCardWrap');
+                if (cashW && cardW) {
+                    if (mode === 'cash')  { cashW.classList.remove('pv2-hidden'); cardW.classList.add('pv2-hidden'); document.getElementById('pv2SingleCard').value = ''; }
+                    else if (mode === 'card') { cashW.classList.add('pv2-hidden'); cardW.classList.remove('pv2-hidden'); document.getElementById('pv2SingleCash').value = ''; }
+                    else { cashW.classList.remove('pv2-hidden'); cardW.classList.remove('pv2-hidden'); }
+                }
+
+                pv2Validate();
+            }
+
+            function pv2Validate() {
+                const saveBtn = document.getElementById('pv2SaveBtn');
+                const debt = pv2State.debtRaw;
+
+                const cash = parseInt(document.getElementById('pv2SingleCash')?.value || 0, 10) || 0;
+                const card = parseInt(document.getElementById('pv2SingleCard')?.value || 0, 10) || 0;
+                const total = cash + card;
+                const hint = document.getElementById('pv2SingleHint');
+                if (total <= 0) {
+                    hint.textContent = '';
+                    hint.className = 'pv2-hint';
+                    saveBtn.disabled = true;
+                } else if (total > debt && debt > 0) {
+                    hint.textContent = `Jami ${formatUzMoney(total)} — qarzdan ${formatUzMoney(total - debt)} ko'p (ortiqcha keyingi oyga o'tadi)`;
+                    hint.className = 'pv2-hint';
+                    saveBtn.disabled = false;
+                } else {
+                    hint.textContent = `Jami: ${formatUzMoney(total)}`;
+                    hint.className = 'pv2-hint pv2-hint--ok';
+                    saveBtn.disabled = false;
+                }
+            }
+
+            function pv2Reset() {
+                document.getElementById('pv2PanelSingle').classList.remove('pv2-hidden');
+                ['pv2SingleCash','pv2SingleCard','pv2SingleNote'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                document.getElementById('pv2SingleHint').textContent = '';
+                document.getElementById('pv2SaveBtn').disabled = true;
+                document.getElementById('pv2SaveBtn').classList.remove('loading');
+
+                // Select first method (Naqd)
+                const firstMethod = document.querySelector('input[name="pv2_method"]');
+                if (firstMethod) { firstMethod.checked = true; pv2UpdateMethodInputs(); }
+            }
+
             if (paymentModal) {
                 paymentModal.addEventListener('show.bs.modal', function (event) {
-                    const button = event.relatedTarget;
-                    const studentId = button.getAttribute('data-student-id');
-                    const enrollmentId = button.getAttribute('data-enrollment-id') || '';
-                    const paymentScope = button.getAttribute('data-payment-scope') || '';
-                    const paymentLabel = button.getAttribute('data-payment-label') || "Joriy qarz summasi";
-                    const studentName = button.getAttribute('data-student-name');
-                    const debt = button.getAttribute('data-debt');
+                    const btn = event.relatedTarget;
+                    pv2State.studentId    = btn.getAttribute('data-student-id') || '';
+                    pv2State.enrollmentId = btn.getAttribute('data-enrollment-id') || '';
+                    pv2State.paymentScope = btn.getAttribute('data-payment-scope') || '';
+                    const paymentLabel    = btn.getAttribute('data-payment-label') || 'Joriy qarz summasi';
+                    const studentName     = btn.getAttribute('data-student-name') || '—';
+                    const debtRaw         = parseInt(btn.getAttribute('data-debt') || 0, 10) || 0;
+                    pv2State.debtRaw      = debtRaw;
 
-                    document.getElementById('payStudentId').value = studentId;
-                    document.getElementById('payEnrollmentId').value = enrollmentId;
-                    document.getElementById('payPaymentScope').value = paymentScope;
                     document.getElementById('payStudentName').textContent = studentName;
-                    document.getElementById('payDebtLabel').textContent = `${paymentLabel}:`;
-                    document.getElementById('payMonthlyFee').textContent = Number(debt).toLocaleString() + " so'm";
-                    document.getElementById('inputCash').value = debt;
-                    document.getElementById('inputCard').value = '';
+                    document.getElementById('payDebtLabel').textContent   = paymentLabel + ':';
+                    document.getElementById('payMonthlyFee').textContent  = formatUzMoney(debtRaw);
+                    document.getElementById('payGroupName').textContent   = '';
 
-                    fetch(buildTenantPath(`/talim/tolovlar/student/${studentId}/groups/`))
-                        .then(res => res.json())
-                        .then(data => {
-                            document.getElementById('payGroupName').textContent = data.groups || '';
-                        })
-                        .catch(() => {
-                            document.getElementById('payGroupName').textContent = '';
-                        });
+                    pv2Reset();
 
-                    document.getElementById('methodCash').checked = true;
-                    togglePaymentInputs();
+                    // Auto-fill single cash with full debt
+                    document.getElementById('pv2SingleCash').value = debtRaw || '';
+                    pv2Validate();
+
+                    fetch(buildTenantPath(`/talim/tolovlar/student/${pv2State.studentId}/groups/`))
+                        .then(r => r.json())
+                        .then(d => { document.getElementById('payGroupName').textContent = d.groups || ''; })
+                        .catch(() => {});
+                });
+
+                paymentModal.addEventListener('hidden.bs.modal', function () {
+                    document.getElementById('pv2SaveBtn').classList.remove('loading');
+                    document.getElementById('pv2SaveBtn').disabled = true;
+                });
+            }
+
+            // Method cards
+            document.querySelectorAll('input[name="pv2_method"]').forEach(r => r.addEventListener('change', pv2UpdateMethodInputs));
+
+            // Input change -> validate
+            ['pv2SingleCash','pv2SingleCard'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', pv2Validate);
+            });
+
+            // Save button
+            const pv2SaveBtn = document.getElementById('pv2SaveBtn');
+            if (pv2SaveBtn) {
+                pv2SaveBtn.addEventListener('click', function () {
+                    if (pv2SaveBtn.disabled) return;
+                    const mode = pv2GetMode();
+
+                    // Single — submit hidden form
+                    const cash = parseInt(document.getElementById('pv2SingleCash').value || 0, 10) || 0;
+                    const card = parseInt(document.getElementById('pv2SingleCard').value || 0, 10) || 0;
+                    const note = document.getElementById('pv2SingleNote').value || '';
+                    const date = document.getElementById('pv2SingleDate').value || '';
+
+                    document.getElementById('pv2HidStudentId').value    = pv2State.studentId;
+                    document.getElementById('pv2HidEnrollmentId').value = pv2State.enrollmentId;
+                    document.getElementById('pv2HidScope').value        = pv2State.paymentScope;
+                    document.getElementById('pv2HidDate').value         = date;
+                    document.getElementById('pv2HidCash').value         = cash;
+                    document.getElementById('pv2HidCard').value         = card;
+                    document.getElementById('pv2HidNote').value         = note;
+                    document.getElementById('pv2HidMethod').value       = mode;
+
+                    pv2SaveBtn.classList.add('loading');
+                    pv2SaveBtn.disabled = true;
+                    document.getElementById('pv2SingleForm').submit();
                 });
             }
 
@@ -794,7 +1087,6 @@
                 });
             }
 
-            document.querySelectorAll('input[name="payment_method"]').forEach(r => r.addEventListener('change', togglePaymentInputs));
             document.querySelectorAll('[data-group-toggle]').forEach(function (button) {
                 button.addEventListener('click', function () {
                     const target = document.getElementById(button.getAttribute('data-group-toggle'));
@@ -874,6 +1166,110 @@
                     }
                 });
             }
+
+            // ====================================================
+            // AJAX: To'lov kechiktirish toggle (clock icon)
+            // O'quvchi ro'yxatdan yo'qolmasdi — faqat sariq highlight bo'ladi
+            // ====================================================
+            function getCsrfToken() {
+                const el = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (el) return el.value;
+                const cookie = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+                return cookie ? cookie.trim().slice('csrftoken='.length) : '';
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-toggle-deferred');
+                if (!btn) return;
+
+                e.preventDefault();
+                if (btn.disabled) return;
+
+                const url = btn.getAttribute('data-url');
+                if (!url) return;
+
+                btn.disabled = true;
+                const icon = btn.querySelector('i');
+                const prevIconClass = icon ? icon.className : '';
+
+                if (icon) {
+                    icon.className = 'fa-solid fa-spinner fa-spin';
+                }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'next=' + encodeURIComponent(window.location.href),
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    btn.disabled = false;
+                    if (!data.success) {
+                        if (icon) icon.className = prevIconClass;
+                        alert(data.error || 'Xatolik yuz berdi.');
+                        return;
+                    }
+
+                    const isDeferred = data.is_deferred;
+                    const tr = btn.closest('tr');
+
+                    // Row highlight
+                    if (tr) {
+                        if (isDeferred) {
+                            tr.classList.add('row-deferred');
+                        } else {
+                            tr.classList.remove('row-deferred');
+                        }
+                    }
+
+                    // Button icon va class
+                    btn.setAttribute('data-is-deferred', isDeferred ? 'true' : 'false');
+                    if (isDeferred) {
+                        btn.classList.add('action-btn--amber');
+                        btn.setAttribute('title', 'Qaytarish');
+                        if (icon) icon.className = 'fa-solid fa-check';
+                    } else {
+                        btn.classList.remove('action-btn--amber');
+                        btn.setAttribute('title', 'Kechiktirish');
+                        if (icon) icon.className = 'fa-solid fa-clock';
+                    }
+
+                    // Qarz summa rangi
+                    if (tr) {
+                        const amountCell = tr.querySelector('.cell-amount--red');
+                        if (amountCell) {
+                            if (isDeferred) {
+                                amountCell.style.color = 'var(--m-amber)';
+                            } else {
+                                amountCell.style.color = '';
+                            }
+                        }
+                        // "Kechiktirilgan" pill badge ko'rsatish / yashirish
+                        const namePrimary = tr.querySelector('.cell-stack__primary');
+                        if (namePrimary) {
+                            const existingPill = tr.querySelector('.pill-badge--pending');
+                            if (isDeferred && !existingPill) {
+                                const pill = document.createElement('span');
+                                pill.className = 'pill-badge pill-badge--pending';
+                                pill.style.alignSelf = 'flex-start';
+                                pill.innerHTML = '<i class="fa-solid fa-clock"></i> Kechiktirilgan';
+                                namePrimary.insertAdjacentElement('afterend', pill);
+                            } else if (!isDeferred && existingPill) {
+                                existingPill.remove();
+                            }
+                        }
+                    }
+                })
+                .catch(function () {
+                    btn.disabled = false;
+                    if (icon) icon.className = prevIconClass;
+                    alert('Serverga ulanishda xatolik.');
+                });
+            });
         });
     })();
 </script>

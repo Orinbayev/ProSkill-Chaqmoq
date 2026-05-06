@@ -1,0 +1,240 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% load static %}
+
+{% block page_title %}{{ center.name }} — xususiyatlar{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:center_list_for_features' %}">Markazlar</a><span>/</span><span class="is-current">{{ center.name }}</span>{% endblock %}
+{% block heading %}{{ center.name }} — xususiyatlar boshqaruvi{% endblock %}
+{% block subtitle %}Tarif default'idan ustun turuvchi override'larni shu yerdan boshqaring.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+.cfo-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.cfo-chip { border:1px solid var(--mkt-line); border-radius:999px; padding:6px 12px; font-size:0.78rem; color:#cbd5e1; background:rgba(255,255,255,0.03); cursor:pointer; font-weight:700; }
+.cfo-chip.is-active { background: var(--mkt-primary); color:#fff; border-color: transparent; }
+.cfo-state-on { color:#86efac; font-weight:800; }
+.cfo-state-off { color:#fca5a5; font-weight:800; }
+.cfo-row[data-effective="true"] td.cfo-state { background: rgba(34, 197, 94, 0.04); }
+.cfo-row[data-effective="false"] td.cfo-state { background: rgba(239, 68, 68, 0.04); }
+.cfo-source-CORE { color:#86efac; }
+.cfo-source-tarif { color:#93c5fd; }
+.cfo-source-override-on { color:#86efac; }
+.cfo-source-override-off { color:#fca5a5; }
+.cfo-source-no { color: var(--mkt-muted); }
+</style>
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:center_list_for_features' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Markazlar</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card" style="margin-bottom:14px;">
+    <div class="mkt-card-head">
+        <h3>{{ center.name }}</h3>
+        <div style="display:flex; gap:8px; align-items:center;">
+            {% if plan %}
+                <span class="mkt-badge mkt-badge-active">Tarif: {{ plan.code }}</span>
+                {% if subscription %}<span class="mkt-muted" style="font-size:0.74rem;">{{ subscription.status }} · {{ subscription.expires_at|date:"d.m.Y" }} gacha</span>{% endif %}
+            {% else %}
+                <span class="mkt-badge mkt-badge-inactive">Tarif: yo'q</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="mkt-card-body">
+        <div class="cfo-toolbar" id="cfo-filter-chips">
+            <button type="button" class="cfo-chip is-active" data-cat="">Barchasi</button>
+            {% for code, label in category_choices %}
+            <button type="button" class="cfo-chip" data-cat="{{ code }}">{{ label }}</button>
+            {% endfor %}
+        </div>
+
+        <div class="mkt-table-wrap">
+            <table class="mkt-table" id="cfo-table">
+                <thead>
+                    <tr>
+                        <th>Kategoriya</th>
+                        <th>Nom</th>
+                        <th>Kod</th>
+                        <th class="cfo-state">Holat</th>
+                        <th>Manba</th>
+                        <th style="text-align:right;">Amal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {# Render rows directly grouped by category in the natural order #}
+                    {% for cat_code, rows in rows_by_category.items %}
+                        {% for row in rows %}
+                        <tr class="cfo-row"
+                            data-feature-code="{{ row.feature.code }}"
+                            data-category="{{ row.feature.category }}"
+                            data-effective="{{ row.effective|yesno:'true,false' }}"
+                            data-has-override="{{ row.has_override|yesno:'true,false' }}"
+                            data-is-core="{{ row.feature.is_core|yesno:'true,false' }}">
+                            <td><span class="mkt-badge mkt-badge-info">{{ row.feature.get_category_display }}</span></td>
+                            <td>
+                                <div class="mkt-inline-stack">
+                                    <span class="mkt-title">{{ row.feature.name_uz|default:row.feature.name }}</span>
+                                    {% if row.feature.description_uz %}<span class="mkt-muted">{{ row.feature.description_uz|truncatechars:80 }}</span>{% endif %}
+                                </div>
+                            </td>
+                            <td><code style="color:#a5b4fc;">{{ row.feature.code }}</code></td>
+                            <td class="cfo-state">
+                                <span class="cfo-state-label {% if row.effective %}cfo-state-on{% else %}cfo-state-off{% endif %}">
+                                    {% if row.effective %}● Yoqilgan{% else %}○ O'chirilgan{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="cfo-source-label
+                                    {% if row.source == 'CORE' %}cfo-source-CORE
+                                    {% elif row.source == 'Tarif default' %}cfo-source-tarif
+                                    {% elif row.source == 'Override (yoqildi)' %}cfo-source-override-on
+                                    {% elif row.source == 'Override (o\'chirildi)' %}cfo-source-override-off
+                                    {% else %}cfo-source-no{% endif %}">
+                                    {{ row.source }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;">
+                                <div class="mkt-actions cfo-actions" data-actions>
+                                    {# Buttons rendered by JS based on state — keep server-rendered fallback below #}
+                                    {% if row.feature.is_core %}
+                                        <span class="mkt-badge mkt-badge-active">CORE — har doim yoniq</span>
+                                    {% else %}
+                                        {% if row.has_override %}
+                                            <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-muted" data-action="remove_override"><i class="bi bi-arrow-counterclockwise"></i> Override olib tashla</button>
+                                            {% if row.override_enabled %}
+                                                <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-danger" data-action="disable"><i class="bi bi-x-circle"></i> O'chirish</button>
+                                            {% else %}
+                                                <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-primary" data-action="enable"><i class="bi bi-check2-circle"></i> Yoqish</button>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if row.effective %}
+                                                <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-danger" data-action="disable"><i class="bi bi-x-circle"></i> O'chirish</button>
+                                            {% else %}
+                                                <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-primary" data-action="enable"><i class="bi bi-check2-circle"></i> Yoqish</button>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% empty %}
+                    <tr><td colspan="6" class="mkt-empty">Faol xususiyatlar yo'q.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const TOGGLE_URL = "{% url 'platform_global:marketing:center_feature_toggle' center.pk %}";
+    const CSRF = "{{ csrf_token }}";
+
+    const chips = document.querySelectorAll("#cfo-filter-chips .cfo-chip");
+    const rows = document.querySelectorAll("#cfo-table tbody tr.cfo-row");
+
+    chips.forEach(function (chip) {
+        chip.addEventListener("click", function () {
+            chips.forEach(function (c) { c.classList.remove("is-active"); });
+            chip.classList.add("is-active");
+            const cat = chip.getAttribute("data-cat");
+            rows.forEach(function (r) {
+                if (!cat) { r.style.display = ""; return; }
+                r.style.display = (r.getAttribute("data-category") === cat) ? "" : "none";
+            });
+        });
+    });
+
+    function renderActions(row) {
+        const actionsEl = row.querySelector("[data-actions]");
+        if (!actionsEl) return;
+        const isCore = row.getAttribute("data-is-core") === "true";
+        if (isCore) {
+            actionsEl.innerHTML = '<span class="mkt-badge mkt-badge-active">CORE — har doim yoniq</span>';
+            return;
+        }
+        const hasOverride = row.getAttribute("data-has-override") === "true";
+        const effective = row.getAttribute("data-effective") === "true";
+        const overrideEnabled = row.getAttribute("data-override-enabled");
+        let html = "";
+        if (hasOverride) {
+            html += '<button type="button" class="mkt-btn mkt-btn-sm mkt-btn-muted" data-action="remove_override"><i class="bi bi-arrow-counterclockwise"></i> Override olib tashla</button>';
+            if (overrideEnabled === "true") {
+                html += ' <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-danger" data-action="disable"><i class="bi bi-x-circle"></i> O\'chirish</button>';
+            } else {
+                html += ' <button type="button" class="mkt-btn mkt-btn-sm mkt-btn-primary" data-action="enable"><i class="bi bi-check2-circle"></i> Yoqish</button>';
+            }
+        } else {
+            if (effective) {
+                html += '<button type="button" class="mkt-btn mkt-btn-sm mkt-btn-danger" data-action="disable"><i class="bi bi-x-circle"></i> O\'chirish</button>';
+            } else {
+                html += '<button type="button" class="mkt-btn mkt-btn-sm mkt-btn-primary" data-action="enable"><i class="bi bi-check2-circle"></i> Yoqish</button>';
+            }
+        }
+        actionsEl.innerHTML = html;
+    }
+
+    function updateRow(row, payload) {
+        row.setAttribute("data-effective", payload.effective ? "true" : "false");
+        row.setAttribute("data-has-override", payload.has_override ? "true" : "false");
+        if (payload.override_enabled === null || typeof payload.override_enabled === "undefined") {
+            row.removeAttribute("data-override-enabled");
+        } else {
+            row.setAttribute("data-override-enabled", payload.override_enabled ? "true" : "false");
+        }
+        const stateLabel = row.querySelector(".cfo-state-label");
+        if (stateLabel) {
+            stateLabel.textContent = payload.effective ? "● Yoqilgan" : "○ O'chirilgan";
+            stateLabel.className = "cfo-state-label " + (payload.effective ? "cfo-state-on" : "cfo-state-off");
+        }
+        const sourceLabel = row.querySelector(".cfo-source-label");
+        if (sourceLabel) {
+            sourceLabel.textContent = payload.source || "";
+            let cls = "cfo-source-no";
+            if (payload.source === "CORE") cls = "cfo-source-CORE";
+            else if (payload.source === "Tarif default") cls = "cfo-source-tarif";
+            else if (payload.source === "Override (yoqildi)") cls = "cfo-source-override-on";
+            else if (payload.source === "Override (o'chirildi)") cls = "cfo-source-override-off";
+            sourceLabel.className = "cfo-source-label " + cls;
+        }
+        renderActions(row);
+    }
+
+    document.querySelector("#cfo-table tbody").addEventListener("click", function (e) {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+        const row = btn.closest("tr.cfo-row");
+        if (!row) return;
+        const action = btn.getAttribute("data-action");
+        const featureCode = row.getAttribute("data-feature-code");
+
+        btn.disabled = true;
+        fetch(TOGGLE_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": CSRF,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ feature_code: featureCode, action: action })
+        }).then(function (r) {
+            return r.json().then(function (j) { return { status: r.status, body: j }; });
+        }).then(function (resp) {
+            if (!resp.body || !resp.body.ok) {
+                alert((resp.body && resp.body.error) || "Xatolik yuz berdi");
+                btn.disabled = false;
+                return;
+            }
+            updateRow(row, resp.body);
+        }).catch(function () {
+            alert("Tarmoq xatosi");
+            btn.disabled = false;
+        });
+    });
+})();
+</script>
+{% endblock %}

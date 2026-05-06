@@ -28,10 +28,14 @@ DEMO_FORM_I18N = {
         "center_name": "O'quv markaz nomi",
         "phone": "Telefon raqam",
         "region": "Viloyatni tanlang",
+        "students_count": "O'quvchilar soni (taxminan)",
+        "comment": "Qo'shimcha izoh (ixtiyoriy)",
         "consent": "Ma'lumotlarimni qayta ishlashga roziman",
         "ph_full_name": "Masalan: Amirxon O'rinbayev",
         "ph_center_name": "Masalan: Yuksalish o'quv markazi",
         "ph_phone": "+998901234567",
+        "ph_students_count": "Masalan: 50-100 ta, 200 dan ortiq",
+        "ph_comment": "Savollaringiz yoki qo'shimcha ma'lumot...",
         "region_placeholder": "Viloyatni tanlang",
         "err_phone_prefix": "Telefon +998 bilan boshlanishi kerak.",
         "err_phone_length": "Telefon raqam 12 ta raqamdan iborat bo'lishi kerak.",
@@ -43,10 +47,14 @@ DEMO_FORM_I18N = {
         "center_name": "Название учебного центра",
         "phone": "Номер телефона",
         "region": "Выберите область",
+        "students_count": "Количество учеников (примерно)",
+        "comment": "Дополнительный комментарий (необязательно)",
         "consent": "Согласен на обработку данных",
         "ph_full_name": "Например: Амирхон Оринбаев",
         "ph_center_name": "Например: Учебный центр Yuksalish",
         "ph_phone": "+998901234567",
+        "ph_students_count": "Например: 50-100, более 200",
+        "ph_comment": "Вопросы или дополнительная информация...",
         "region_placeholder": "Выберите область",
         "err_phone_prefix": "Телефон должен начинаться с +998.",
         "err_phone_length": "Телефон должен содержать 12 цифр после +.",
@@ -58,10 +66,14 @@ DEMO_FORM_I18N = {
         "center_name": "Learning center name",
         "phone": "Phone number",
         "region": "Select region",
+        "students_count": "Number of students (approx.)",
+        "comment": "Additional comment (optional)",
         "consent": "I agree to personal data processing",
         "ph_full_name": "For example: Amirxon O'rinbayev",
         "ph_center_name": "For example: Yuksalish Learning Center",
         "ph_phone": "+998901234567",
+        "ph_students_count": "For example: 50-100, more than 200",
+        "ph_comment": "Questions or additional information...",
         "region_placeholder": "Select region",
         "err_phone_prefix": "Phone number must start with +998.",
         "err_phone_length": "Phone number must contain 12 digits after +.",
@@ -111,12 +123,14 @@ class StyledModelForm(forms.ModelForm):
 class DemoLeadForm(forms.ModelForm):
     class Meta:
         model = DemoLead
-        fields = ["full_name", "center_name", "phone", "region", "consent"]
+        fields = ["full_name", "center_name", "phone", "region", "students_count", "comment", "consent"]
         widgets = {
             "full_name": forms.TextInput(),
             "center_name": forms.TextInput(),
             "phone": forms.TextInput(),
             "region": forms.Select(),
+            "students_count": forms.TextInput(),
+            "comment": forms.Textarea(attrs={"rows": 3}),
             "consent": forms.CheckboxInput(),
         }
 
@@ -131,20 +145,29 @@ class DemoLeadForm(forms.ModelForm):
         self.fields["region"].required = True
         self.fields["region"].choices = [("", text_pack["region_placeholder"])] + list(REGION_CHOICES)
         self.fields["consent"].required = True
+        self.fields["students_count"].required = False
+        self.fields["comment"].required = False
 
         self.fields["full_name"].label = text_pack["full_name"]
         self.fields["center_name"].label = text_pack["center_name"]
         self.fields["phone"].label = text_pack["phone"]
         self.fields["region"].label = text_pack["region"]
+        self.fields["students_count"].label = text_pack["students_count"]
+        self.fields["comment"].label = text_pack["comment"]
         self.fields["consent"].label = text_pack["consent"]
 
         self.fields["full_name"].widget.attrs["placeholder"] = text_pack["ph_full_name"]
         self.fields["center_name"].widget.attrs["placeholder"] = text_pack["ph_center_name"]
         self.fields["phone"].widget.attrs["placeholder"] = text_pack["ph_phone"]
+        self.fields["students_count"].widget.attrs["placeholder"] = text_pack["ph_students_count"]
+        self.fields["comment"].widget.attrs["placeholder"] = text_pack["ph_comment"]
 
         for field_name, field in self.fields.items():
             if field_name != "consent":
-                field.widget.attrs.setdefault("class", "input")
+                if isinstance(field.widget, forms.Textarea):
+                    field.widget.attrs.setdefault("class", "input input-textarea")
+                else:
+                    field.widget.attrs.setdefault("class", "input")
 
     def clean_phone(self):
         phone = self.cleaned_data["phone"]
@@ -535,4 +558,58 @@ class StaticPageForm(StyledModelForm):
 class DemoLeadUpdateForm(StyledModelForm):
     class Meta:
         model = DemoLead
-        fields = ["is_contacted", "note"]
+        fields = ["is_contacted", "note", "students_count"]
+
+
+# === Tarif v2 — Bosqich 4: PlanFeature CRUD form ===
+
+class PlanFeatureForm(StyledModelForm):
+    """SuperAdmin uchun PlanFeature (billing.PlanFeature) yaratish/tahrirlash formasi.
+    Qo'shimcha: feature'ni START / PRO / PREMIUM tariflariga bog'lash uchun 3 ta checkbox."""
+
+    included_in_start = forms.BooleanField(required=False, label="START tarifda mavjud")
+    included_in_pro = forms.BooleanField(required=False, label="PRO tarifda mavjud")
+    included_in_premium = forms.BooleanField(required=False, label="PREMIUM tarifda mavjud")
+
+    class Meta:
+        # Lazy import — billing'ni modul yuklanishida import qilmaslik uchun.
+        from billing.models import PlanFeature as _PlanFeature
+        model = _PlanFeature
+        fields = [
+            "code",
+            "name",
+            "name_uz",
+            "name_ru",
+            "name_en",
+            "description_uz",
+            "category",
+            "icon",
+            "is_core",
+            "order",
+            "is_active",
+        ]
+        widgets = {
+            "description_uz": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            from billing.models import SubscriptionPlan
+            for code in ["START", "PRO", "PREMIUM"]:
+                plan = SubscriptionPlan.objects.filter(code=code).first()
+                if plan and plan.plan_features.filter(pk=self.instance.pk).exists():
+                    self.fields[f"included_in_{code.lower()}"].initial = True
+
+    def save_plan_memberships(self, instance):
+        """View tomonidan chaqiriladi — tarif M2M aloqalarini sinxronlaydi."""
+        from billing.models import SubscriptionPlan
+        for code in ["START", "PRO", "PREMIUM"]:
+            plan = SubscriptionPlan.objects.filter(code=code).first()
+            if not plan:
+                continue
+            checked = bool(self.cleaned_data.get(f"included_in_{code.lower()}"))
+            if checked:
+                plan.plan_features.add(instance)
+            else:
+                plan.plan_features.remove(instance)

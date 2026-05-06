@@ -1,0 +1,103 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% load static %}
+
+{% block page_title %}{{ page_title|default:'Xususiyat' }}{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:feature_list' %}">Xususiyatlar</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
+{% block heading %}{{ page_title|default:'Xususiyat' }}{% endblock %}
+{% block subtitle %}Xususiyat (PlanFeature) ma'lumotlari va bog'lanadigan tariflarni belgilang.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:feature_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxat</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="mkt-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <section class="mkt-card" style="margin-bottom:14px;">
+        <div class="mkt-card-head"><h3>1) Asosiy ma'lumotlar</h3></div>
+        <div class="mkt-card-body">
+            <div class="mkt-form-grid">
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.code.id_for_label }}">Kod (unique) *</label>
+                    {{ form.code }}
+                    <p class="mkt-help">Masalan: ai_assistant, sms_marketing</p>
+                    {% for error in form.code.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.name.id_for_label }}">Nomi (fallback)</label>
+                    {{ form.name }}
+                    {% for error in form.name.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.name_uz.id_for_label }}">Nomi (UZ)</label>
+                    {{ form.name_uz }}
+                    {% for error in form.name_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.name_ru.id_for_label }}">Nomi (RU)</label>
+                    {{ form.name_ru }}
+                    {% for error in form.name_ru.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.name_en.id_for_label }}">Nomi (EN)</label>
+                    {{ form.name_en }}
+                    {% for error in form.name_en.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.icon.id_for_label }}">Ikonka (bi-...)</label>
+                    {{ form.icon }}
+                    <p class="mkt-help">Masalan: bi-cash-coin</p>
+                    {% for error in form.icon.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field full">
+                    <label class="mkt-label" for="{{ form.description_uz.id_for_label }}">Tavsif (UZ)</label>
+                    {{ form.description_uz }}
+                    {% for error in form.description_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mkt-card" style="margin-bottom:14px;">
+        <div class="mkt-card-head"><h3>2) Tariflarga biriktirish</h3></div>
+        <div class="mkt-card-body">
+            <p class="mkt-help" style="margin:0 0 12px;">Quyidagi tariflar (billing.SubscriptionPlan) bo'yicha ushbu xususiyat avtomatik kiritiladi/olib tashlanadi.</p>
+            <div class="mkt-form-grid">
+                <label class="mkt-check-row">{{ form.included_in_start }} START tarifda mavjud</label>
+                <label class="mkt-check-row">{{ form.included_in_pro }} PRO tarifda mavjud</label>
+                <label class="mkt-check-row">{{ form.included_in_premium }} PREMIUM tarifda mavjud</label>
+            </div>
+        </div>
+    </section>
+
+    <section class="mkt-card" style="margin-bottom:14px;">
+        <div class="mkt-card-head"><h3>3) Qo'shimcha sozlamalar</h3></div>
+        <div class="mkt-card-body">
+            <div class="mkt-form-grid">
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.category.id_for_label }}">Kategoriya *</label>
+                    {{ form.category }}
+                    {% for error in form.category.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mkt-field">
+                    <label class="mkt-label" for="{{ form.order.id_for_label }}">Tartib</label>
+                    {{ form.order }}
+                    {% for error in form.order.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+                <label class="mkt-check-row">{{ form.is_core }} CORE — har doim yoqilgan, o'chirib bo'lmaydi</label>
+                <label class="mkt-check-row">{{ form.is_active }} Faol</label>
+            </div>
+        </div>
+    </section>
+
+    <div class="mkt-form-actions">
+        <a href="{% url 'platform_global:marketing:feature_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a>
+        <button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button>
+    </div>
+</form>
+{% endblock %}

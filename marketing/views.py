@@ -64,7 +64,7 @@ MARKETING_UI = {
         "partners_title": "Biz bilan ishlayotgan markazlar",
         "partners_empty": "Hamkor markazlar logolari hozircha qo'shilmagan.",
         "features_eyebrow": "Nega ChaqmoqApp?",
-        "features_title": "Markaz egasi va administrator uchun eng zarur funksiyalar",
+        "features_title": "Eng zarur funksiyalar",
         "feature_empty_title": "CRM + Davomat",
         "feature_empty_text": "Kerakli marketing bloklarini superadmin paneldan to'ldiring.",
         "before_after_eyebrow": "Platforma qanday yordam beradi?",
@@ -961,7 +961,6 @@ def _base_context(request, lang_code=None):
         "index": _route("index", lang, prefixed),
         "pricing": _route("pricing", lang, prefixed),
         "demo": _route("demo", lang, prefixed),
-        "support": _route("support", lang, prefixed),
         "vacancies": _route("vacancies", lang, prefixed),
         "privacy": _route("privacy", lang, prefixed),
         "terms": _route("terms", lang, prefixed),
@@ -1284,19 +1283,62 @@ def index(request, lang_code=None):
 
 
 def pricing(request, lang_code=None):
+    from billing.models import SubscriptionPlan, PlanFeature
+
     context = _base_context(request, lang_code)
     lang = context["current_lang"]
-    plans = PricingPlan.objects.filter(is_active=True).prefetch_related("features").order_by("duration_months", "order", "id")
 
-    duration_map = OrderedDict()
-    for plan in plans:
-        duration_map.setdefault(plan.duration_months, []).append(_localize_plan(plan, lang))
+    plans = (
+        SubscriptionPlan.objects
+        .filter(active=True, landing_visible=True)
+        .prefetch_related("plan_features")
+        .order_by("tier", "monthly_price")
+    )
+
+    # Tarif v2 — kategoriyalar tartibi va UZ yorliqlari
+    CATEGORY_ORDER = ["core", "finance", "team", "marketing", "advanced"]
+    CATEGORY_LABELS_UZ = {
+        "core": "Asosiy",
+        "finance": "Moliya",
+        "team": "Jamoa va filiallar",
+        "marketing": "Marketing",
+        "advanced": "Kengaytirilgan",
+    }
+    # Bosqich 8: aniq 9 ta feature — show_on_landing=True barcha visible.
+    # `is_highlight` endi visible == True bilan teng (ortiqcha extras section yo'q).
+    all_features = list(
+        PlanFeature.objects
+        .filter(is_active=True, show_on_landing=True)
+        .order_by("category", "order")
+    )
+
+    def _group_by_category(features):
+        grouped = []
+        for cat in CATEGORY_ORDER:
+            items = [f for f in features if f.category == cat]
+            if items:
+                grouped.append({
+                    "code": cat,
+                    "label": CATEGORY_LABELS_UZ.get(cat, cat),
+                    "features": items,
+                })
+        return grouped
+
+    features_by_category = _group_by_category(all_features)
+
+    plan_cards = []
+    for p in plans:
+        included = set(p.plan_features.values_list("code", flat=True))
+        plan_cards.append({
+            "obj": p,
+            "included_codes": included,
+        })
 
     context.update(
         {
             "active_menu": "pricing",
-            "duration_map": duration_map,
-            "duration_filters": list(duration_map.keys()),
+            "plan_cards": plan_cards,
+            "features_by_category": features_by_category,
         }
     )
     _set_page_meta(
@@ -1333,37 +1375,6 @@ def demo(request, lang_code=None):
         breadcrumb_label=context["ui"]["menu_demo"],
     )
     return _render_marketing(request, "marketing/demo.html", context)
-
-
-def support(request, lang_code=None):
-    context = _base_context(request, lang_code)
-    lang = context["current_lang"]
-    ui = context["ui"]
-    context.update(
-        {
-            "active_menu": "support",
-            "support_cards": [
-                _localize_support(obj, lang)
-                for obj in SupportCard.objects.filter(is_active=True).order_by("order", "id")
-            ],
-            "support_faqs": [
-                _localize_faq(obj, lang)
-                for obj in FAQ.objects.filter(is_active=True).order_by("order", "id")[:4]
-            ],
-            "support_steps": [
-                {"title": ui["support_step_1_title"], "text": ui["support_step_1_text"]},
-                {"title": ui["support_step_2_title"], "text": ui["support_step_2_text"]},
-                {"title": ui["support_step_3_title"], "text": ui["support_step_3_text"]},
-            ],
-        }
-    )
-    _set_page_meta(
-        context,
-        f"{context['ui']['menu_support']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
-        context["ui"]["support_page_desc"],
-        breadcrumb_label=context["ui"]["menu_support"],
-    )
-    return _render_marketing(request, "marketing/support.html", context)
 
 
 def vacancies(request, lang_code=None):
@@ -1523,7 +1534,6 @@ def resources(request, lang_code=None):
     resource_links = [
         {"title": context["ui"]["menu_demo"], "description": context["ui"]["demo_page_desc"], "url": context["routes"]["demo"], "icon": "bi bi-camera-video-fill"},
         {"title": context["ui"]["menu_pricing"], "description": context["ui"]["pricing_page_desc"], "url": context["routes"]["pricing"], "icon": "bi bi-cash-stack"},
-        {"title": context["ui"]["menu_support"], "description": context["ui"]["support_page_desc"], "url": context["routes"]["support"], "icon": "bi bi-headset"},
         {"title": context["ui"]["privacy_default_title"], "description": context["ui"]["legal_eyebrow"], "url": context["routes"]["privacy"], "icon": "bi bi-shield-check"},
         {"title": context["ui"]["terms_default_title"], "description": context["ui"]["footer_legal"], "url": context["routes"]["terms"], "icon": "bi bi-file-earmark-text"},
         {"title": context["ui"]["menu_vacancies"], "description": context["ui"]["vacancy_page_desc"], "url": context["routes"]["vacancies"], "icon": "bi bi-briefcase-fill"},

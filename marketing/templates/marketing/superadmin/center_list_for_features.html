@@ -1,0 +1,57 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% load static %}
+
+{% block page_title %}Markaz xususiyatlari{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Markaz xususiyatlari</span>{% endblock %}
+{% block heading %}Markaz xususiyatlari{% endblock %}
+{% block subtitle %}Har bir markaz uchun feature override panelini oching.{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head">
+        <h3>Markazlar</h3>
+        <span class="mkt-count">{{ page_obj.paginator.count }} ta</span>
+    </div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid one">
+            <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Markaz nomi bo'yicha qidirish">
+            <button type="submit" class="mkt-btn mkt-btn-primary"><i class="bi bi-funnel"></i> Qidirish</button>
+        </form>
+    </div>
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead>
+                <tr>
+                    <th>Nomi</th>
+                    <th>Slug</th>
+                    <th>Tarif (legacy)</th>
+                    <th style="text-align:right;">Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in objects %}
+                <tr>
+                    <td><span class="mkt-title">{{ c.name }}</span></td>
+                    <td><span class="mkt-muted">{{ c.slug }}</span></td>
+                    <td><span class="mkt-badge mkt-badge-info">{{ c.plan }}</span></td>
+                    <td style="text-align:right;">
+                        <a href="{% url 'platform_global:marketing:center_feature_overrides' c.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-primary"><i class="bi bi-toggles"></i> Xususiyatlar boshqaruvi</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="mkt-empty">Markaz topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="mkt-pagination">
+        <span class="mkt-muted">Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        <div class="mkt-page-links">
+            {% if page_obj.has_previous %}<a class="mkt-page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">«</a>{% endif %}
+            {% if page_obj.has_next %}<a class="mkt-page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">»</a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

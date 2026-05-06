@@ -21,6 +21,11 @@ class PlanFeature(models.Model):
         TEAM      = "team",      "Jamoa va Rollar"
         ADVANCED  = "advanced",  "Murakkab Tizimlar"
 
+    class ImplStatus(models.TextChoices):
+        READY   = "READY",   "Tayyor"
+        PARTIAL = "PARTIAL", "Qisman"
+        PLANNED = "PLANNED", "Rejada"
+
     code        = models.CharField(max_length=50, unique=True, verbose_name="Kod (unique)")
     name        = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.CharField(max_length=255, blank=True, default="", verbose_name="Qisqa izoh")
@@ -32,6 +37,32 @@ class PlanFeature(models.Model):
     )
     is_core     = models.BooleanField(default=False, verbose_name="Asosiy feature?")
     order       = models.PositiveSmallIntegerField(default=0, verbose_name="Tartib")
+
+    # === Tarif v2 — Bosqich 1: ko'p tilli & meta maydonlar ===
+    # `code` allaqachon unique va index — uni slug sifatida ishlatamiz, parallel `slug` qo'shmaymiz.
+    name_uz        = models.CharField(max_length=80, blank=True, default="", verbose_name="Nomi (UZ)")
+    name_ru        = models.CharField(max_length=80, blank=True, default="", verbose_name="Nomi (RU)")
+    name_en        = models.CharField(max_length=80, blank=True, default="", verbose_name="Nomi (EN)")
+    description_uz = models.TextField(blank=True, default="", verbose_name="Tavsif (UZ)")
+    icon           = models.CharField(max_length=40, blank=True, default="", verbose_name="Ikonka")
+    is_active      = models.BooleanField(default=True, verbose_name="Faol")
+
+    # === Tarif v2 — Bosqich 7: implementation/landing visibility ===
+    implementation_status = models.CharField(
+        max_length=10,
+        choices=ImplStatus.choices,
+        default=ImplStatus.READY,
+        verbose_name="Implementatsiya holati",
+    )
+    show_on_landing = models.BooleanField(
+        default=True,
+        verbose_name="Landing'da ko'rinsin?",
+    )
+    is_highlight = models.BooleanField(
+        default=False,
+        verbose_name="Asosiy xususiyat?",
+        help_text="Landing card'da yuqorida 'asosiy' xususiyat sifatida ko'rinadi",
+    )
 
     class Meta:
         ordering  = ("category", "order", "name")
@@ -88,6 +119,13 @@ class SubscriptionPlan(models.Model):
     )
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    # === Tarif v2 — Bosqich 1: landing & marketing meta ===
+    subtitle_uz       = models.CharField(max_length=120, blank=True, default="", verbose_name="Sarlavha ostidagi matn (UZ)")
+    description_uz    = models.TextField(blank=True, default="", verbose_name="Tavsif (UZ)")
+    is_recommended    = models.BooleanField(default=False, verbose_name="Tavsiya etiladi")
+    student_range_uz  = models.CharField(max_length=40, blank=True, default="", verbose_name="O'quvchilar diapazoni (UZ)")
+    landing_visible   = models.BooleanField(default=True, verbose_name="Landingda ko'rsatilsin")
 
     class Meta:
         ordering = ("tier", "monthly_price",) # Order by Tier first
@@ -194,6 +232,38 @@ class CenterSubscription(models.Model):
 
     def __str__(self):
         return f"{self.center} → {self.plan.code} [{self.status}]"
+
+
+class CenterFeatureOverride(models.Model):
+    """
+    Markaz darajasidagi feature override.
+    Tarif default'idan ustun turib, ma'lum bir markaz uchun
+    feature'ni majburan yoqib/o'chirib qo'yish imkonini beradi.
+    """
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name='feature_overrides',
+    )
+    feature = models.ForeignKey(PlanFeature, on_delete=models.CASCADE)
+    enabled = models.BooleanField()
+    note = models.TextField(blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('center', 'feature')]
+        verbose_name = "Markaz xususiyat override"
+
+    def __str__(self):
+        state = "✓" if self.enabled else "✗"
+        return f"{state} {self.center} → {self.feature}"
 
 
 class Subscription(models.Model):

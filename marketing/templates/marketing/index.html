@@ -21,28 +21,33 @@
                     <p class="home-hero-subtitle">{{ site_content.hero_subtitle }}</p>
                 </div>
 
-                <div class="hero-mini-live" aria-hidden="true">
+                <div class="hero-mini-live" aria-label="Asosiy ko'rsatkichlar">
                     <div class="hero-mini-card hero-mini-card-green">
-                        <span class="hero-mini-icon"><i class="bi bi-activity"></i></span>
-                        <div>
-                            <strong>Jonli davomat</strong>
-                            <small>87% faol ko'rsatkich</small>
+                        <span class="hero-mini-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                        <div class="hero-mini-body">
+                            <span class="hero-mini-trend"><i class="bi bi-arrow-up-short"></i></span>
+                            <strong>+34%</strong>
+                            <span class="hero-mini-title">Daromad o'sadi</span>
+                            <small>Bironta so'm yo'qolmaydi</small>
                         </div>
                     </div>
 
                     <div class="hero-mini-card hero-mini-card-blue">
-                        <span class="hero-mini-icon"><i class="bi bi-graph-up-arrow"></i></span>
-                        <div>
-                            <strong>18.4 mln</strong>
-                            <small>oylik tushum trendi</small>
+                        <span class="hero-mini-icon"><i class="bi bi-stopwatch-fill"></i></span>
+                        <div class="hero-mini-body">
+                            <strong>8 soat</strong>
+                            <span class="hero-mini-title">Hafta sizga qaytadi</span>
+                            <small>Qog'ozbozlik tugaydi</small>
                         </div>
                     </div>
 
                     <div class="hero-mini-card hero-mini-card-amber">
-                        <span class="hero-mini-icon"><i class="bi bi-bell-fill"></i></span>
-                        <div>
-                            <strong>Telegram avtomatik</strong>
-                            <small>To'lov va davomat eslatmalari</small>
+                        <span class="hero-mini-icon"><i class="bi bi-shield-check"></i></span>
+                        <div class="hero-mini-body">
+                            <span class="hero-mini-pulse" aria-hidden="true"></span>
+                            <strong>24/7</strong>
+                            <span class="hero-mini-title">Doim nazoratda</span>
+                            <small>Hech narsa o'tib ketmaydi</small>
                         </div>
                     </div>
                 </div>
@@ -226,32 +231,6 @@
     </div>
 </section>
 
-<section class="quick-links-strip" aria-labelledby="quick-links-title">
-    <div class="container">
-        <div class="section-header quick-links-header">
-            <p class="eyebrow">{{ ui.quick_links_eyebrow|default:"Mashhur sahifalar" }}</p>
-            <h2 id="quick-links-title">{{ ui.quick_links_title|default:"ChaqmoqApp bo'limlarini tez oching" }}</h2>
-            <p>{{ ui.quick_links_desc|default:"Platformaning eng muhim sahifalari foydalanuvchi va qidiruv tizimi uchun aniq ko'rinadigan tarzda joylashtirildi." }}</p>
-        </div>
-
-        <div class="quick-links-grid">
-            {% for item in homepage_quick_links %}
-            <a class="support-card quick-link-card quick-link-card-{{ item.accent }}" href="{{ item.url }}">
-                <span class="support-card-icon quick-link-icon quick-link-icon-{{ item.accent }}">
-                    <i class="{{ item.icon }}"></i>
-                </span>
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
-                <span class="quick-link-cta">
-                    {{ ui.quick_links_cta|default:"Sahifani ochish" }}
-                    <i class="bi bi-arrow-right-short"></i>
-                </span>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
 <section class="partners-strip" aria-labelledby="partners-title">
     <div class="container">
         <div class="partners-head">
@@ -292,6 +271,169 @@
     </div>
 </section>
 
+<!-- ===== MUAMMO VA YECHIM ===== -->
+<section class="section lp-problem-section" id="muammo-yechim" aria-labelledby="problem-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">Tanish muammolar</p>
+            <h2 id="problem-title">Bu muammolar sizga tanishmi?</h2>
+            <p>ChaqmoqApp bularning hammasini avtomatlashtiradi.</p>
+        </div>
+
+        <div class="lp-problem-grid">
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-red">
+                    <i class="bi bi-clipboard-x-fill"></i>
+                </div>
+                <h3>To'lovlar chalkash</h3>
+                <p>Excel yoki daftarda kim to'lagani noaniq.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Avtomatik qarzdor ro'yxati + Telegram eslatma</span>
+                </div>
+            </article>
+
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-amber">
+                    <i class="bi bi-calendar2-x-fill"></i>
+                </div>
+                <h3>Davomat tartibsiz</h3>
+                <p>Qo'lda yoziladi, ota-ona xabardor emas.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Jonli davomat + ota-onaga avtomatik xabar</span>
+                </div>
+            </article>
+
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-blue">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <h3>Jadval to'qnashuvi</h3>
+                <p>Guruh va o'qituvchi rejasi chalkashadi.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Markazlashgan jadval va to'qnashuv ogohlantirishi</span>
+                </div>
+            </article>
+
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-purple">
+                    <i class="bi bi-graph-down-arrow"></i>
+                </div>
+                <h3>Tushum noaniq</h3>
+                <p>Oylik daromad va rentabellik bilinmaydi.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Real vaqtli moliya va davomat analytics</span>
+                </div>
+            </article>
+
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-orange">
+                    <i class="bi bi-telephone-x-fill"></i>
+                </div>
+                <h3>Aloqa qiyin</h3>
+                <p>Har xabarni qo'lda yuborish vaqt oladi.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Ota-ona paneli + Telegram bot</span>
+                </div>
+            </article>
+
+            <article class="lp-problem-card reveal-up">
+                <div class="lp-problem-icon lp-problem-icon-green">
+                    <i class="bi bi-eye-slash-fill"></i>
+                </div>
+                <h3>Filial nazorati qiyin</h3>
+                <p>Har filialga borib tekshirish kerak.</p>
+                <div class="lp-problem-solution">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Barcha filiallar bitta dashboardda</span>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ===== KIMLAR UCHUN ===== -->
+<section class="section section-slate lp-forwhom-section" id="kimlar-uchun" aria-labelledby="forwhom-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">Platformadan kimlar foydalanadi</p>
+            <h2 id="forwhom-title">Har bir rol uchun alohida panel</h2>
+            <p>Markaz egasidan tortib o'quvchigacha — hamma o'ziga kerakli ma'lumotni topadi.</p>
+        </div>
+
+        <div class="lp-forwhom-grid">
+            <article class="lp-forwhom-card reveal-up lp-forwhom-card-amber">
+                <div class="lp-forwhom-icon">
+                    <i class="bi bi-briefcase-fill"></i>
+                </div>
+                <h3>Markaz egasi / Direktor</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i>Umumiy tushum va statistika</li>
+                    <li><i class="bi bi-check2"></i>Barcha filiallar ko'rinishi</li>
+                    <li><i class="bi bi-check2"></i>Qarzdorlik va davomat tahlili</li>
+                    <li><i class="bi bi-check2"></i>O'qituvchi samaradorligi</li>
+                </ul>
+            </article>
+
+            <article class="lp-forwhom-card reveal-up lp-forwhom-card-blue">
+                <div class="lp-forwhom-icon">
+                    <i class="bi bi-person-gear"></i>
+                </div>
+                <h3>Administrator / Manager</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i>O'quvchi qo'shish va boshqarish</li>
+                    <li><i class="bi bi-check2"></i>Guruh va jadval sozlash</li>
+                    <li><i class="bi bi-check2"></i>To'lov qabul qilish</li>
+                    <li><i class="bi bi-check2"></i>Demo so'rovlarni kuzatish</li>
+                </ul>
+            </article>
+
+            <article class="lp-forwhom-card reveal-up lp-forwhom-card-green">
+                <div class="lp-forwhom-icon">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <h3>O'qituvchi</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i>Dars davomati belgilash</li>
+                    <li><i class="bi bi-check2"></i>O'z guruhlarini ko'rish</li>
+                    <li><i class="bi bi-check2"></i>Jadval va dars vaqti</li>
+                    <li><i class="bi bi-check2"></i>Maosh tarixi</li>
+                </ul>
+            </article>
+
+            <article class="lp-forwhom-card reveal-up lp-forwhom-card-purple">
+                <div class="lp-forwhom-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h3>Ota-ona</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i>Farzand davomati va ballar</li>
+                    <li><i class="bi bi-check2"></i>To'lov tarixi va qarz holati</li>
+                    <li><i class="bi bi-check2"></i>Dars jadvali</li>
+                    <li><i class="bi bi-check2"></i>Telegram xabarnomalar</li>
+                </ul>
+            </article>
+
+            <article class="lp-forwhom-card reveal-up lp-forwhom-card-slate">
+                <div class="lp-forwhom-icon">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <h3>O'quvchi</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i>O'z davomat statistikasi</li>
+                    <li><i class="bi bi-check2"></i>Dars jadvali va guruh</li>
+                    <li><i class="bi bi-check2"></i>To'lov holati</li>
+                    <li><i class="bi bi-check2"></i>O'qituvchi ma'lumotlari</li>
+                </ul>
+            </article>
+        </div>
+    </div>
+</section>
+
 <section class="section section-slate" id="imkoniyatlar" aria-labelledby="features-title">
     <div class="container">
         <div class="section-header center">
@@ -319,28 +461,6 @@
     </div>
 </section>
 
-<section class="section" aria-labelledby="screens-title">
-    <div class="container">
-        <div class="section-header center">
-            <p class="eyebrow">{{ ui.screens_eyebrow }}</p>
-            <h2 id="screens-title">{{ ui.screens_title }}</h2>
-        </div>
-
-        <div class="screen-grid">
-            {% for shot in screenshots %}
-            <article class="screen-card reveal-up">
-                <img src="{{ shot.image.url }}" alt="{{ shot.title }}" loading="lazy" decoding="async">
-                <div class="screen-card-meta">
-                    <h3>{{ shot.title }}</h3>
-                    <p>{{ shot.description }}</p>
-                </div>
-            </article>
-            {% empty %}
-            <div class="empty-note">{{ ui.screens_empty }}</div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
 
 <section class="section section-slate" id="integrations" aria-labelledby="integrations-title">
     <div class="container integration-layout">
@@ -382,15 +502,31 @@
 
         <div class="pricing-preview-grid">
             {% for plan in pricing_preview %}
-            <article class="pricing-preview-card {% if plan.is_recommended %}is-recommended{% endif %} reveal-up">
+            <article class="pricing-preview-card pricing-preview-card-{{ forloop.counter }} {% if plan.is_recommended %}is-recommended{% endif %} reveal-up">
                 {% if plan.is_recommended %}
-                <div class="recommended-pill">{{ plan.badge_text|default:'Top' }}</div>
+                <div class="recommended-pill">
+                    <i class="bi bi-stars" aria-hidden="true"></i>
+                    <span>{{ plan.badge_text|default:'Eng mashhur' }}</span>
+                </div>
                 {% elif plan.badge_text %}
                 <div class="recommended-pill muted">{{ plan.badge_text }}</div>
                 {% endif %}
 
-                <h3>{{ plan.name }}</h3>
-                <p class="plan-range">{{ plan.student_range }}</p>
+                <div class="plan-head">
+                    <span class="plan-icon-badge" aria-hidden="true">
+                        {% if forloop.counter == 1 %}
+                        <i class="bi bi-rocket-takeoff-fill"></i>
+                        {% elif plan.is_recommended %}
+                        <i class="bi bi-gem"></i>
+                        {% else %}
+                        <i class="bi bi-trophy-fill"></i>
+                        {% endif %}
+                    </span>
+                    <div>
+                        <h3>{{ plan.name }}</h3>
+                        <p class="plan-range">{{ plan.student_range }}</p>
+                    </div>
+                </div>
 
                 <div class="plan-price-row">
                     <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
@@ -402,14 +538,17 @@
 
                 <ul class="plan-features">
                     {% for feature_text in plan.features|slice:':4' %}
-                    <li>{{ feature_text }}</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ feature_text }}</span></li>
                     {% empty %}
-                    <li>{{ ui.plan_feature_fallback_1 }}</li>
-                    <li>{{ ui.plan_feature_fallback_2 }}</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_1 }}</span></li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_2 }}</span></li>
                     {% endfor %}
                 </ul>
 
-                <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
+                <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block plan-cta" href="{{ routes.demo }}">
+                    {{ ui.pricing_demo }}
+                    <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                </a>
             </article>
             {% empty %}
             <div class="empty-note">{{ ui.pricing_empty }}</div>
@@ -471,8 +610,11 @@
             {% for item in faqs %}
             <article class="faq-item {% if forloop.first %}open{% endif %}">
                 <button type="button" class="faq-q" data-accordion-btn>
-                    <span>{{ item.question }}</span>
-                    <i class="bi bi-plus-lg"></i>
+                    <span class="faq-q-num" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                    <span class="faq-q-text">{{ item.question }}</span>
+                    <span class="faq-q-toggle" aria-hidden="true">
+                        <i class="bi bi-plus-lg"></i>
+                    </span>
                 </button>
                 <div class="faq-a" data-accordion-content>
                     <p>{{ item.answer }}</p>
@@ -481,8 +623,11 @@
             {% empty %}
             <article class="faq-item open">
                 <button type="button" class="faq-q" data-accordion-btn>
-                    <span>{{ ui.faq_empty_q }}</span>
-                    <i class="bi bi-plus-lg"></i>
+                    <span class="faq-q-num" aria-hidden="true">01</span>
+                    <span class="faq-q-text">{{ ui.faq_empty_q }}</span>
+                    <span class="faq-q-toggle" aria-hidden="true">
+                        <i class="bi bi-plus-lg"></i>
+                    </span>
                 </button>
                 <div class="faq-a" data-accordion-content>
                     <p>{{ ui.faq_empty_a }}</p>
@@ -495,13 +640,42 @@
 
 <section class="section final-cta">
     <div class="container final-cta-box reveal-up">
-        <div class="final-cta-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-        <h2>{{ ui.final_title }}</h2>
-        <p>{{ ui.final_text }}</p>
+        <!-- Decorative layers -->
+        <div class="final-cta-grid" aria-hidden="true"></div>
+        <div class="final-cta-orb final-cta-orb-1" aria-hidden="true"></div>
+        <div class="final-cta-orb final-cta-orb-2" aria-hidden="true"></div>
+        <div class="final-cta-orb final-cta-orb-3" aria-hidden="true"></div>
 
-        <div class="final-cta-actions">
-            <a class="btn btn-primary" href="{{ routes.demo }}">{{ ui.final_demo }}</a>
-            <a class="btn btn-light on-dark" href="#pricing-plans">{{ ui.final_pricing }}</a>
+        <div class="final-cta-content">
+            <div class="final-cta-eyebrow">
+                <i class="bi bi-stars" aria-hidden="true"></i>
+                <span>Cheklangan taklif</span>
+            </div>
+
+            <div class="final-cta-icon">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+
+            <h2>{{ ui.final_title }}</h2>
+            <p>{{ ui.final_text }}</p>
+
+            <div class="final-cta-actions">
+                <a class="btn btn-primary final-cta-btn-primary" href="{{ routes.demo }}">
+                    <i class="bi bi-camera-video-fill" aria-hidden="true"></i>
+                    {{ ui.final_demo }}
+                </a>
+                <a class="btn btn-light on-dark" href="#pricing-plans">
+                    {{ ui.final_pricing }}
+                    <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                </a>
+            </div>
+
+            <ul class="final-cta-trust" aria-label="Demo shartlari">
+                <li><i class="bi bi-check-circle-fill"></i><span>7 kun bepul sinov</span></li>
+                <li><i class="bi bi-check-circle-fill"></i><span>Karta talab qilinmaydi</span></li>
+                <li><i class="bi bi-check-circle-fill"></i><span>15 daqiqada o'rnatish</span></li>
+                <li><i class="bi bi-check-circle-fill"></i><span>Ma'lumotlar xavfsiz</span></li>
+            </ul>
         </div>
     </div>
 </section>

@@ -284,8 +284,46 @@
                     </div>
                 </div>
             </section>
-        </div>
 
+            {% if features_by_category %}
+            <section class="mkt-card pp-card">
+                <div class="mkt-card-head pp-card-head-split">
+                    <div>
+                        <h3>5) Bu tarifda mavjud xususiyatlar (PlanFeature)</h3>
+                        <p class="mkt-help">
+                            {% if sub_plan %}
+                                Tarif <code>{{ sub_plan.code }}</code> bilan billing.SubscriptionPlan.plan_features M2M sinxronlanadi.
+                                CORE belgisidagilar har doim yoqilgan va o'chirilmaydi.
+                            {% else %}
+                                <span style="color:#fca5a5;">Diqqat: marketing tarif kodi billing.SubscriptionPlan.code bilan mos kelmadi — biriktirish o'tkazib yuboriladi.</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="mkt-card-body">
+                    {% for cat, feats in features_by_category.items %}
+                    <div class="mkt-form-grid single" style="margin-bottom:14px;">
+                        <h4 style="color:#cbd5e1; font-size:0.84rem; text-transform:uppercase; letter-spacing:0.7px; margin:0 0 6px;">
+                            {{ feats.0.get_category_display }}
+                        </h4>
+                        <div class="mkt-form-grid">
+                            {% for feat in feats %}
+                            <label class="mkt-check-row">
+                                <input type="checkbox" name="plan_features" value="{{ feat.id }}" class="sa-check"
+                                    {% if feat.id in included_ids %}checked{% endif %}
+                                    {% if feat.is_core %}checked disabled{% endif %}>
+                                {{ feat.name_uz|default:feat.name }}
+                                <small style="color:var(--mkt-muted);">({{ feat.code }})</small>
+                                {% if feat.is_core %}<span class="mkt-badge mkt-badge-active" style="margin-left:6px;">CORE</span>{% endif %}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        </div>
         <aside class="pp-sidebar">
             <div class="mkt-card pp-preview-card-wrap">
                 <div class="mkt-card-head">

@@ -329,15 +329,8 @@
   }
 
   @keyframes menuFadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .menu-dropdown a,
@@ -346,7 +339,7 @@
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
-    color: var(--text-main);
+    color: #e2e8f0;
     text-decoration: none;
     font-size: 13px;
     font-weight: 500;
@@ -359,15 +352,49 @@
     cursor: pointer;
   }
 
+  .menu-dropdown a i,
+  .menu-dropdown button i { color: #94a3b8; }
+
   .menu-dropdown a:hover,
   .menu-dropdown button:hover {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--primary);
+    color: #f8fafc;
   }
 
+  .menu-dropdown .text-red { color: #fca5a5; }
+  .menu-dropdown .text-red i { color: #ef4444; }
   .menu-dropdown .text-red:hover {
-    background: rgba(239, 68, 68, 0.1) !important;
-    color: var(--red) !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #f87171 !important;
+  }
+
+  /* Light mode overrides */
+  html[data-role-theme="light"] body.users-stats-page .menu-btn { color: #64748b; }
+  html[data-role-theme="light"] body.users-stats-page .menu-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1d4ed8;
+  }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown a,
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown button {
+    color: #374151;
+  }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown a i,
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown button i { color: #6b7280; }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown a:hover,
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown button:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown .text-red { color: #dc2626; }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown .text-red i { color: #dc2626; }
+  html[data-role-theme="light"] body.users-stats-page .menu-dropdown .text-red:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #b91c1c !important;
   }
 
   /* MODALS */

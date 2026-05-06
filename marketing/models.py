@@ -313,10 +313,17 @@ class DemoLead(TimeStampedModel):
         verbose_name="Tanlangan tarif (eski)",
     )
     password = models.CharField(max_length=128, blank=True, verbose_name="Parol (eski)")
+    students_count = models.CharField(
+        max_length=40,
+        blank=True,
+        verbose_name="O'quvchilar soni",
+        help_text="Masalan: 50-100 ta, 200 dan ortiq",
+    )
+    comment = models.TextField(blank=True, verbose_name="Qo'shimcha izoh (foydalanuvchi)")
     consent = models.BooleanField(default=False, verbose_name="Rozilik")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan sana")
     is_contacted = models.BooleanField(default=False, verbose_name="Bog'lanilgan")
-    note = models.TextField(blank=True, verbose_name="Izoh")
+    note = models.TextField(blank=True, verbose_name="Admin izohi")
 
     class Meta:
         ordering = ["-created_at"]

@@ -53,6 +53,14 @@
                 {{ form.region }}
                 {% for err in form.region.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
 
+                <label for="id_students_count">{{ form.students_count.label }}</label>
+                {{ form.students_count }}
+                {% for err in form.students_count.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label for="id_comment">{{ form.comment.label }}</label>
+                {{ form.comment }}
+                {% for err in form.comment.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
                 <label class="consent-row" for="id_consent">
                     {{ form.consent }}
                     <span>{{ form.consent.label }}</span>

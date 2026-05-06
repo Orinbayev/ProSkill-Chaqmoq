@@ -3,41 +3,6 @@
 {% block title %}{{ meta_title }}{% endblock %}
 
 {% block content %}
-<section class="page-hero page-hero-centered">
-    <div class="container">
-        <h1>{{ ui.about_page_title }}</h1>
-        <p>{{ ui.about_page_desc }}</p>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container support-quick-grid">
-        <article class="support-panel reveal-up">
-            <h2>{{ ui.benefits_title }}</h2>
-            <p>{{ ui.benefits_desc }}</p>
-            <ul class="plan-features">
-                <li>{{ ui.after_1 }}</li>
-                <li>{{ ui.after_2 }}</li>
-                <li>{{ ui.after_3 }}</li>
-                <li>{{ ui.after_4 }}</li>
-            </ul>
-        </article>
-
-        <article class="support-panel reveal-up">
-            <h2>{{ ui.metrics_title }}</h2>
-            <p>{{ ui.before_after_title }}</p>
-            <div class="support-step-list">
-                {% for metric in about_metrics %}
-                <div class="support-step-item">
-                    <h3>{{ metric.value }}</h3>
-                    <p>{{ metric.label }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </article>
-    </div>
-</section>
-
 <section class="section section-slate">
     <div class="container">
         <div class="section-head">

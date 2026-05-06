@@ -1,0 +1,124 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% load static %}
+
+{% block page_title %}Xususiyatlar (PlanFeatures){% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Xususiyatlar</span>{% endblock %}
+{% block heading %}Xususiyatlar (PlanFeatures){% endblock %}
+{% block subtitle %}Tariflarda mavjud bo'lishi mumkin bo'lgan xususiyatlar ro'yxati. CORE belgisidagilarni o'chirib bo'lmaydi.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-cash-coin"></i> Tariflar</a>
+<a href="{% url 'platform_global:marketing:feature_create' %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Xususiyat qo'shish</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head">
+        <h3>Xususiyatlar ro'yxati</h3>
+        <span class="mkt-count">{{ page_obj.paginator.count }} ta</span>
+    </div>
+
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid compact">
+            <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Kod, nom yoki tavsif bo'yicha qidirish">
+            <select name="category" class="sa-select">
+                <option value="">Kategoriya (barchasi)</option>
+                {% for code, label in category_choices %}
+                <option value="{{ code }}" {% if category == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="active" class="sa-select">
+                <option value="">Holat (barchasi)</option>
+                <option value="1" {% if active == '1' %}selected{% endif %}>Faol</option>
+                <option value="0" {% if active == '0' %}selected{% endif %}>Faolmas</option>
+            </select>
+            <button class="mkt-btn mkt-btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtr</button>
+        </form>
+    </div>
+
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead>
+                <tr>
+                    <th>Kod</th>
+                    <th>Nomi (UZ)</th>
+                    <th>Kategoriya</th>
+                    <th>CORE</th>
+                    <th>Faol</th>
+                    <th>Tariflar</th>
+                    <th style="text-align:right;">Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feat in objects %}
+                <tr>
+                    <td><code style="color:#a5b4fc;">{{ feat.code }}</code></td>
+                    <td>
+                        <div class="mkt-inline-stack">
+                            <span class="mkt-title">{{ feat.name_uz|default:feat.name }}</span>
+                            {% if feat.description_uz %}<span class="mkt-muted">{{ feat.description_uz|truncatechars:60 }}</span>{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="mkt-badge
+                            {% if feat.category == 'core' %}mkt-badge-active
+                            {% elif feat.category == 'finance' %}mkt-badge-info
+                            {% elif feat.category == 'team' %}mkt-badge-amber
+                            {% elif feat.category == 'marketing' %}mkt-badge-info
+                            {% elif feat.category == 'advanced' %}mkt-badge-inactive
+                            {% else %}mkt-badge-info{% endif %}">{{ feat.get_category_display }}</span>
+                    </td>
+                    <td>
+                        {% if feat.is_core %}
+                        <span class="mkt-badge mkt-badge-active">CORE</span>
+                        {% else %}
+                        <span class="mkt-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'platform_global:marketing:feature_toggle_active' feat.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="mkt-btn mkt-btn-sm {% if feat.is_active %}mkt-btn-muted{% else %}mkt-btn-danger{% endif %}">
+                                {% if feat.is_active %}<i class="bi bi-toggle-on"></i> Faol{% else %}<i class="bi bi-toggle-off"></i> Faolmas{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        {% for code in feat.plan_codes %}
+                        <span class="mkt-badge mkt-badge-amber" style="margin-right:4px;">{{ code }}</span>
+                        {% empty %}
+                        <span class="mkt-muted">—</span>
+                        {% endfor %}
+                    </td>
+                    <td style="text-align:right;">
+                        <div class="mkt-actions">
+                            <a href="{% url 'platform_global:marketing:feature_edit' feat.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-pencil"></i> Tahrir</a>
+                            {% if not feat.is_core %}
+                            <form method="post" action="{% url 'platform_global:marketing:feature_delete' feat.pk %}" onsubmit="return confirm('Xususiyatni o’chirishni tasdiqlaysizmi? Cascada bilan barcha override yozuvlari ham o’chiriladi.');">
+                                {% csrf_token %}
+                                <button type="submit" class="mkt-btn mkt-btn-sm mkt-btn-danger"><i class="bi bi-trash"></i> O'chirish</button>
+                            </form>
+                            {% else %}
+                            <span class="mkt-muted" title="CORE xususiyatni o'chirib bo'lmaydi">CORE — qulflangan</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="mkt-empty">Xususiyatlar topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="mkt-pagination">
+        <span class="mkt-muted">Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        <div class="mkt-page-links">
+            {% if page_obj.has_previous %}<a class="mkt-page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if active %}&active={{ active }}{% endif %}">«</a>{% endif %}
+            {% if page_obj.has_next %}<a class="mkt-page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if active %}&active={{ active }}{% endif %}">»</a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
