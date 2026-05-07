@@ -538,7 +538,6 @@ MARKETING_ROUTE_NAMES = (
     "demo",
     "about",
     "resources",
-    "support",
     "features",
     "vacancies",
     "privacy",
@@ -548,7 +547,6 @@ MARKETING_ROUTE_NAMES = (
 MARKETING_PAGE_LABEL_KEYS = {
     "pricing": "menu_pricing",
     "demo": "menu_demo",
-    "support": "menu_support",
     "vacancies": "menu_vacancies",
     "privacy": "privacy_default_title",
     "terms": "terms_default_title",
@@ -1071,7 +1069,7 @@ def _build_marketing_schema(request, context: dict) -> str:
                     "url": context["absolute_routes"][page_slug],
                 }
                 for index, page_slug in enumerate(
-                    ["pricing", "demo", "about", "resources", "support", "features"],
+                    ["pricing", "demo", "about", "resources", "features"],
                     start=1,
                 )
             ],
@@ -1255,13 +1253,6 @@ def index(request, lang_code=None):
                     "url": context["routes"]["resources"],
                     "icon": "bi bi-journal-richtext",
                     "accent": "violet",
-                },
-                {
-                    "title": context["ui"]["menu_support"],
-                    "description": context["ui"]["support_page_desc"],
-                    "url": context["routes"]["support"],
-                    "icon": "bi bi-headset",
-                    "accent": "slate",
                 },
             ],
             "feature_blocks": [_localize_feature(obj, lang) for obj in feature_qs],

@@ -2,7 +2,10 @@ from django.utils import timezone
 from education.models import (
     Enrollment, StudentGroupHistory, Group
 )
-from education.services.tuition import resolve_lesson_schedule
+from education.services.tuition import (
+    resolve_lesson_schedule,
+    ensure_all_tuition_months_since_start,
+)
 from django.db import transaction
 
 class EnrollmentService:
@@ -93,7 +96,13 @@ class EnrollmentService:
                 kurs_narxi=narx,
                 oqituvchi_foiz=foiz
             )
-        
+
+        # Yangi yoki qayta yoqilgan enrollment uchun: joined_at dan joriy oygacha
+        # TuitionMonth'larni yaratamiz — retroactive (o'tgan oyga) ro'yxatga
+        # olishda ham qarz to'g'ri ko'rinishi uchun.
+        if created or reactivated:
+            ensure_all_tuition_months_since_start(enrollment, timezone.localdate())
+
         return enrollment
 
     @staticmethod

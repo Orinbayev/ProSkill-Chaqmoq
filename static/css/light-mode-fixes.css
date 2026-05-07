@@ -1332,3 +1332,76 @@ html[data-role-theme="light"] body.weekly-schedule-page .ws-day-pill {
   background: rgba(30, 64, 175, 0.10) !important;
   color: #1e40af !important;
 }
+
+/* =====================================================================
+   22) USER EDIT PAGE (core/user_edit.html)
+   O'quvchi / O'qituvchi / Manager tahrirlash formasi.
+   Template endi --ue-* CSS variable-larni ishlatadi, shuning uchun
+   bu yerda faqat --ue-* variable-larni light qiymatlarga override qilamiz.
+   ===================================================================== */
+
+html[data-role-theme="light"] body.user-edit-page {
+  /* Template :root dagi --ue-* variable-larni light ranglar bilan almashtirish */
+  --ue-bg:              var(--lm-bg) !important;
+  --ue-card:            var(--lm-surface) !important;
+  --ue-hover:           var(--lm-surface-2) !important;
+  --ue-border:          var(--lm-border) !important;
+  --ue-border-hov:      var(--lm-border-strong) !important;
+  --ue-text:            var(--lm-text) !important;
+  --ue-muted:           var(--lm-muted) !important;
+  --ue-input-bg:        var(--lm-surface) !important;
+  --ue-input-text:      var(--lm-text) !important;
+  --ue-gender-bg:       var(--lm-surface-2) !important;
+  --ue-gender-hov:      #E2E8F0 !important;
+  --ue-gender-hov-text: var(--lm-text) !important;
+  --ue-cancel-bg:       var(--lm-surface-2) !important;
+  --ue-cancel-hov:      #E2E8F0 !important;
+  --ue-cancel-hov-text: var(--lm-text) !important;
+  --ue-del-bg:          var(--lm-surface-2) !important;
+  --ue-del-toggle-bg:   #E2E8F0 !important;
+
+  background: var(--lm-bg) !important;
+  color: var(--lm-text) !important;
+}
+
+/* Focus ring — light modeda sariq o'rniga ko'k */
+html[data-role-theme="light"] body.user-edit-page .form-control:focus {
+  border-color: var(--lm-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Select dropdown chevron — light fonda ko'rinadigan qilib */
+html[data-role-theme="light"] body.user-edit-page select.form-control {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%) !important;
+  color-scheme: light !important;
+}
+
+/* Date input native picker */
+html[data-role-theme="light"] body.user-edit-page input[type="date"].form-control {
+  color-scheme: light !important;
+}
+
+/* Gender tanlangan holat — ko'k aksent */
+html[data-role-theme="light"] body.user-edit-page #gender_male:checked + label,
+html[data-role-theme="light"] body.user-edit-page #gender_female:checked + label {
+  background: rgba(37, 99, 235, 0.10) !important;
+  border-color: var(--lm-primary) !important;
+  color: var(--lm-primary) !important;
+}
+
+/* Delete toggle hover — qizil tint light mos */
+html[data-role-theme="light"] body.user-edit-page .delete-toggle:hover {
+  background: #FEF2F2 !important;
+  border-color: #FECACA !important;
+}
+
+html[data-role-theme="light"] body.user-edit-page .delete-toggle input:checked ~ span {
+  color: #DC2626 !important;
+}
+
+/* Ogohlantirish matni (guruh topilmasa) */
+html[data-role-theme="light"] body.user-edit-page .text-warning {
+  color: #B45309 !important;
+}

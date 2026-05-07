@@ -249,17 +249,16 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
     # ─────────────────────────────────────────────────────────────────────
     # STSENARIY 3: ORTIQCHA TO'LOV (overpayment forward allocation)
     # ─────────────────────────────────────────────────────────────────────
-    def test_overpayment_credits_last_paid_month(self):
+    def test_overpayment_flows_into_next_month_tuition(self):
         """
-        Ortiqcha to'lov (mavjud qarzdan ko'p): qolgan summa kelajak oylariga
-        AVTOMATIK yaratilmaydi (eski "April/May phantom oylar" bug'ini oldini
-        olish uchun). Buning o'rniga oxirgi yopilgan oyga "credit" sifatida
-        yoziladi. Bu xato emas — agar foydalanuvchi keyingi oyni alohida
-        ochgach, balans positive bo'lib turadi.
+        Ortiqcha to'lov (mavjud qarzdan ko'p): qolgan summa kelgusi oy uchun
+        TuitionMonth avtomatik yaratiladi va unga oqim qiladi. Bu o'quvchi
+        500k to'lasa may + iyun ikkalasi qarzdorlar safidan chiqishi uchun
+        kerak.
         """
+        from education.services.tuition import add_month
         prev_fee = int(self.prev_tm.fee_amount)
         cur_fee = int(self.cur_tm.fee_amount)
-        # 50% ortiqcha (mavjud 2 oydan tashqari)
         excess = cur_fee // 2
         overpay_amount = prev_fee + cur_fee + excess
 
@@ -272,7 +271,6 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
             paid_at=datetime.combine(self.today, datetime.min.time()),
         )
 
-        # O'tgan oy aniq fee miqdoricha yopilgan
         self.prev_tm.refresh_from_db()
         self.cur_tm.refresh_from_db()
         prev_paid = sum(
@@ -282,13 +280,20 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
             self.cur_tm.allocations.filter(is_deleted=False).values_list("amount", flat=True)
         )
         self.assertEqual(prev_paid, prev_fee, "Prev oy aniq fee qadar yopilgan")
-        # Joriy oy fee + excess (credit overflow) — keyingi oy yaratilmaydi
-        self.assertEqual(
-            cur_paid, cur_fee + excess,
-            "Ortiqcha summa joriy oyga credit sifatida yoziladi (keyingi oy yaratilmaydi)",
-        )
+        self.assertEqual(cur_paid, cur_fee, "Joriy oy aniq fee qadar yopilgan (overflow emas)")
 
-        # Qarzdorlar sahifasi: qarz manfiy emas, lekin filtered_debt 0
+        # Kelgusi oy avtomatik yaratilgan va excess unga yozilgan
+        next_month = add_month(self.cur_month, 1)
+        next_tm = TuitionMonth.objects.filter(
+            enrollment=self.enrollment, month=next_month, is_deleted=False
+        ).first()
+        self.assertIsNotNone(next_tm, "Kelgusi oy uchun TuitionMonth yaratilishi kerak")
+        next_paid = sum(
+            next_tm.allocations.filter(is_deleted=False).values_list("amount", flat=True)
+        )
+        self.assertEqual(next_paid, excess, "Excess summa kelgusi oyga yozilgan")
+
+        # Qarzdorlar sahifasi (joriy oy filteri): qarz 0
         response = self._student_total_debt_via_view()
         self.assertEqual(response.context["filtered_debt"], 0)
         self.assertEqual(response.context["page_obj"].paginator.count, 0)

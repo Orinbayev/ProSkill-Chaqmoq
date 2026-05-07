@@ -1,41 +1,49 @@
 {% extends "base.html" %}
+{% block body_class %}user-edit-page{% endblock %}
 {% block content %}
 
 <style>
+  /* === Dark mode default values (light-mode-fixes.css overrides these via body.user-edit-page) === */
   :root {
-    --bg-dark: #020617;
-    --bg-card: #0f172a;
-    --bg-hover: #1e293b;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.15);
+    --ue-bg:          #020617;
+    --ue-card:        #0f172a;
+    --ue-hover:       #1e293b;
+    --ue-border:      rgba(255, 255, 255, 0.08);
+    --ue-border-hov:  rgba(255, 255, 255, 0.15);
+    --ue-text:        #f8fafc;
+    --ue-muted:       #94a3b8;
+    --ue-input-bg:    rgba(2, 6, 23, 0.5);
+    --ue-input-text:  #f8fafc;
+    --ue-gender-bg:   rgba(255, 255, 255, 0.05);
+    --ue-gender-hov:  rgba(255, 255, 255, 0.10);
+    --ue-gender-hov-text: #fff;
+    --ue-cancel-bg:   rgba(255, 255, 255, 0.05);
+    --ue-cancel-hov:  rgba(255, 255, 255, 0.10);
+    --ue-cancel-hov-text: white;
+    --ue-del-bg:      rgba(255, 255, 255, 0.03);
+    --ue-del-toggle-bg: rgba(255, 255, 255, 0.10);
 
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-
-    --primary: #f59e0b;
-    --primary-glow: rgba(245, 158, 11, 0.5);
-
-    --blue: #3b82f6;
-    --green: #22c55e;
-    --red: #ef4444;
-
-    --glass: rgba(15, 23, 42, 0.7);
-    --radius: 16px;
+    --primary:        #f59e0b;
+    --primary-glow:   rgba(245, 158, 11, 0.5);
+    --blue:           #3b82f6;
+    --green:          #22c55e;
+    --red:            #ef4444;
+    --radius:         16px;
   }
 
   body {
-    background: var(--bg-dark);
-    color: var(--text-main);
+    background: var(--ue-bg);
+    color: var(--ue-text);
   }
 
-  /* ===== WRAPPER (keep class) ===== */
+  /* ===== WRAPPER ===== */
   .edit-box {
     max-width: 980px;
     margin: 18px auto;
     padding: 24px;
     border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--bg-card);
+    border: 1px solid var(--ue-border);
+    background: var(--ue-card);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
@@ -53,17 +61,15 @@
   .edit-title {
     font-size: 24px;
     font-weight: 800;
-    color: #fff;
+    color: var(--ue-text);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-
-
   .section-title {
-    color: var(--text-main);
+    color: var(--ue-text);
     margin: 24px 0 16px;
     font-size: 18px;
     font-weight: 700;
@@ -84,7 +90,7 @@
 
   /* ===== LABELS / INPUTS ===== */
   .form-label {
-    color: var(--text-muted);
+    color: var(--ue-muted);
     font-weight: 700;
     font-size: 13px;
     letter-spacing: .2px;
@@ -93,9 +99,9 @@
   }
 
   .form-control {
-    background: rgba(2, 6, 23, 0.5) !important;
-    color: #fff !important;
-    border: 1px solid var(--border) !important;
+    background: var(--ue-input-bg) !important;
+    color: var(--ue-input-text) !important;
+    border: 1px solid var(--ue-border) !important;
     padding: 12px 16px !important;
     border-radius: 10px !important;
     width: 100%;
@@ -109,7 +115,8 @@
   }
 
   .form-control::placeholder {
-    color: rgba(148, 163, 184, .65);
+    color: var(--ue-muted);
+    opacity: 0.7;
   }
 
   .form-control:focus {
@@ -129,7 +136,6 @@
     position: relative;
     height: 100%;
     min-width: 0;
-    /* Fix for flex items overflowing */
   }
 
   .gender-option input {
@@ -146,13 +152,13 @@
     gap: 8px;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
+    background: var(--ue-gender-bg);
+    border: 1px solid var(--ue-border);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--ue-muted);
     font-size: 14px;
     margin: 0;
   }
@@ -160,21 +166,21 @@
   .gender-option input:checked+label {
     background: rgba(59, 130, 246, 0.15);
     border-color: var(--blue);
-    color: #fff;
+    color: var(--ue-input-text);
     box-shadow: none;
   }
 
   .gender-option label:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--ue-gender-hov);
+    color: var(--ue-gender-hov-text);
   }
 
   select.form-control {
     appearance: none;
     padding-right: 46px !important;
     background-image:
-      linear-gradient(45deg, transparent 50%, rgba(226, 232, 240, 0.5) 50%),
-      linear-gradient(135deg, rgba(226, 232, 240, 0.5) 50%, transparent 50%);
+      linear-gradient(45deg, transparent 50%, var(--ue-muted) 50%),
+      linear-gradient(135deg, var(--ue-muted) 50%, transparent 50%);
     background-position:
       calc(100% - 20px) calc(50%),
       calc(100% - 15px) calc(50%);
@@ -183,31 +189,31 @@
   }
 
   select.form-control option {
-    background-color: var(--bg-card);
-    color: var(--text-main);
+    background-color: var(--ue-card);
+    color: var(--ue-text);
     padding: 10px;
   }
 
   hr {
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--ue-border);
     opacity: 1;
     margin: 24px 0;
   }
 
   /* ===== GROUP BOX ===== */
   .group-box {
-    background: var(--bg-hover);
+    background: var(--ue-hover);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--ue-border);
     box-shadow: none;
     backdrop-filter: none;
   }
 
   .group-label {
-    color: white;
+    color: var(--ue-text);
     font-weight: 700;
     font-size: 14px;
     letter-spacing: 0;
@@ -240,8 +246,8 @@
     cursor: pointer;
     gap: 12px;
     user-select: none;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
+    background: var(--ue-del-bg);
+    border: 1px solid var(--ue-border);
     padding: 8px 16px;
     border-radius: 12px;
     transition: 0.3s;
@@ -260,8 +266,8 @@
     height: 24px;
     flex: 0 0 44px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--border);
+    background: var(--ue-del-toggle-bg);
+    border: 1px solid var(--ue-border);
     outline: none;
     transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -293,7 +299,7 @@
   }
 
   .delete-toggle span {
-    color: var(--text-muted);
+    color: var(--ue-muted);
     font-weight: 700;
     font-size: 14px;
     transition: 0.3s;
@@ -338,13 +344,13 @@
   }
 
   .btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--ue-cancel-bg);
     padding: 0 24px;
     height: 48px;
     font-weight: 700;
-    color: var(--text-muted);
+    color: var(--ue-muted);
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--ue-border);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -355,10 +361,10 @@
   }
 
   .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--border-hover);
+    background: var(--ue-cancel-hov);
+    border-color: var(--ue-border-hov);
     transform: translateY(-1px);
-    color: white;
+    color: var(--ue-cancel-hov-text);
     box-shadow: none;
   }
 
@@ -501,7 +507,7 @@
 
     </div>
 
-    <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
+    <hr class="mt-4 mb-3" class="ue-hr">
 
     <!-- ===== ANKETA SECTION (Student, Manager & Teacher) ===== -->
     <div id="anketaSection" {% if user_obj.role != 'student' and user_obj.role !=  'manager' and user_obj.role != 'teacher' %}style="display:none;" {% endif %}>
@@ -518,35 +524,25 @@
         <!-- Jinsi -->
         <div class="col-md-6 col-12 mb-3">
           <label class="form-label">Jinsi <span class="text-danger">*</span></label>
-          <div class="gender-options" style="display: flex; gap: 10px; width: 100%;">
+          <div class="gender-options">
 
-            <div class="gender-option" style="flex: 1; position: relative;">
+            <div class="gender-option">
               <input type="radio" name="gender" value="male" id="gender_male"
-                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'male' %}checked{% endif   %}>
-              <label for="gender_male"
-                style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                {% if user_obj.gender == 'male' %}checked{% endif %}>
+              <label for="gender_male">
                 <i class="fa-solid fa-person"></i> Erkak
               </label>
             </div>
 
-            <div class="gender-option" style="flex: 1; position: relative;">
+            <div class="gender-option">
               <input type="radio" name="gender" value="female" id="gender_female"
-                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'female' %}checked{%  endif %}>
-              <label for="gender_female"
-                style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                {% if user_obj.gender == 'female' %}checked{% endif %}>
+              <label for="gender_female">
                 <i class="fa-solid fa-person-dress"></i> Ayol
               </label>
             </div>
 
           </div>
-          <style>
-            #gender_male:checked+label,
-            #gender_female:checked+label {
-              background: rgba(59, 130, 246, 0.15) !important;
-              border-color: #3b82f6 !important;
-              color: #fff !important;
-            }
-          </style>
         </div>
       </div>
 
@@ -579,7 +575,7 @@
     <!-- ===== BUTTONS (Bottom Right) ===== -->
     <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
       <a href="{% if user_obj.role == 'manager' %}/stat/managers/{% elif user_obj.role == 'teacher' %}/stat/teachers/{% else %}/stat/students/{% endif %}"
-        class="btn-cancel" style="height: 44px; padding: 0 28px; background: rgba(255,255,255,0.03);">
+        class="btn-cancel" style="height: 44px; padding: 0 28px;">
         Bekor qilish
       </a>
       <button type="submit" class="btn-save" style="height: 44px; padding: 0 32px;">
@@ -588,7 +584,7 @@
     </div>
 
     {% if user_obj.role == 'student' %}
-    <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
+    <hr class="mt-4 mb-3" class="ue-hr">
 
     <!-- ===== GROUP SECTION ===== -->
     <div class="section-title">📘 O'quvchining guruhlari va kurs narxlari</div>
@@ -625,7 +621,7 @@
     {% endif %}
 
     {% if user_obj.role == 'student' %}
-    <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
+    <hr class="mt-4 mb-3" class="ue-hr">
 
     <!-- ===== ADD NEW GROUP ===== -->
     <div class="section-title">➕ Yangi guruhga qo'shish</div>

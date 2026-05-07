@@ -1332,24 +1332,29 @@ def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, tot
         p.save(update_fields=update_fields)
 
 
+_FUTURE_OVERFLOW_MONTH_LIMIT = 12
+
+
 def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount: int, start_month: date) -> None:
     """
-    To'lovni `start_month` dan boshlab MAVJUD TuitionMonth'lar bo'ylab oldinga
+    To'lovni `start_month` dan boshlab TuitionMonth'lar bo'ylab oldinga
     taqsimlaydi.
 
     Qoidalar:
       • Har oyga `min(qolgan_summa, owed=fee-paid)` yoziladi — oydagi qarzdan
         ko'p yozilmaydi.
-      • Iteratsiya FAQAT mavjud TuitionMonth (`is_deleted=False`)'lar bo'ylab
-        boradi; kelajak oylar AVTOMATIK yaratilmaydi.
-        Bu "APREL 2026 / MAY 2026 kabi xayoliy oylar paydo bo'ldi" eski
-        muammosini qayta yuzaga keltirmaydi.
-      • Agar hamma mavjud oylar yopilgandan keyin pul ortib qolsa — qolgan
-        qism oxirgi to'langan oyga (yoki yagona oy bo'lsa, start_month'ga)
-        "credit" sifatida yoziladi.
+      • Avval mavjud TuitionMonth (`is_deleted=False`)'lar bo'ylab boradi.
+      • Mavjud oylar yopilgandan keyin pul qolsa — kelgusi oylar uchun
+        TuitionMonth avtomatik yaratiladi (max `_FUTURE_OVERFLOW_MONTH_LIMIT`
+        oy oldinga) va to'lov ularga ham oqim qiladi.
+      • Limit dan keyin hali pul qolsa — qolgan qism oxirgi taqsimlangan
+        oyga "credit" sifatida yoziladi.
 
-    Stsenariy: o'tgan oy 500 000 + joriy oy 500 000 qarz, 1 000 000 to'lansa,
-    o'tgan oyga 500 000 va joriy oyga 500 000 yoziladi (xato-emas).
+    Stsenariylar:
+      - Aprel 40k qarz + may 250k qarz, foydalanuvchi 290k to'laydi:
+        aprel 40k yopiladi, may 250k yopiladi, qarzdorlar safidan chiqadi.
+      - May 250k qarz, foydalanuvchi 500k to'laydi: may yopiladi, iyun uchun
+        TuitionMonth yaratilib, 250k unga yoziladi (iyun ham yopiladi).
     """
     amount = int(amount or 0)
     if amount <= 0:
@@ -1360,8 +1365,7 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
     payment_center = getattr(payment, "center", None) or getattr(enrollment, "center", None)
     remaining = amount
 
-    # start_month TuitionMonth'i mavjudligi kafolatlanadi (forward iteratsiya
-    # uchun anchor). Boshqa kelajak oylar yaratilmaydi.
+    # start_month TuitionMonth'i mavjudligi kafolatlanadi.
     ensure_tuition_month(enrollment, cur)
 
     months_qs = (
@@ -1372,19 +1376,18 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
     months_list = list(months_qs)
     last_allocated_tm = None
 
-    for tm in months_list:
-        if remaining <= 0:
-            break
+    def _allocate_to_tm(tm):
+        nonlocal remaining, last_allocated_tm
         fee = int(getattr(tm, fee_field, 0) or 0)
         if fee <= 0:
-            continue
+            return
         paid_now = int(
             tm.allocations.filter(is_deleted=False)
             .aggregate(s=Sum("amount"))["s"] or 0
         )
         owed = max(0, fee - paid_now)
         if owed <= 0:
-            continue
+            return
         portion = min(remaining, owed)
         PaymentAllocation.objects.create(
             center=payment_center,
@@ -1395,7 +1398,25 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
         remaining -= portion
         last_allocated_tm = tm
 
-    # Hamma oylar yopilgandan keyin pul qolsa — credit sifatida oxirgi
+    for tm in months_list:
+        if remaining <= 0:
+            break
+        _allocate_to_tm(tm)
+
+    # Mavjud oylar yopilgandan keyin pul qolsa — kelgusi oylar uchun
+    # TuitionMonth yaratib, allocation davom ettiriladi (max 12 oy).
+    if remaining > 0:
+        next_month = (
+            add_month(months_list[-1].month, 1) if months_list else cur
+        )
+        for _ in range(_FUTURE_OVERFLOW_MONTH_LIMIT):
+            if remaining <= 0:
+                break
+            tm = ensure_tuition_month(enrollment, next_month)
+            _allocate_to_tm(tm)
+            next_month = add_month(next_month, 1)
+
+    # 12 oydan tashqari hali pul qolsa — credit sifatida oxirgi
     # taqsimlangan oyga (yoki anchor start_month'ga) yoziladi.
     if remaining > 0:
         anchor_tm = last_allocated_tm or (months_list[0] if months_list else None)
