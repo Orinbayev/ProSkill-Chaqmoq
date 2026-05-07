@@ -305,6 +305,61 @@ class PaymentCarryoverTests(TestCase):
         self.assertEqual(eng_debt + prog_debt, 150_000, "Jami qolgan qarz 150k")
 
     # ──────────────────────────────────────────────────────────────────────
+    # Senariy: To'lovni faqat tanlangan oy uchun o'chirish — boshqa oyga
+    # ta'sir bermaslik. PaymentAllocation'lar ham soft-delete qilinadi.
+    # ──────────────────────────────────────────────────────────────────────
+    def test_per_month_payment_delete_isolates_to_target_month(self):
+        from django.urls import reverse
+
+        # Aprel + may'ga to'liq to'lov (har biri 250k) — jami 500k
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+        cur_tm = ensure_tuition_month(self.enrollment, self.cur_month)
+        create_payment_and_allocate(
+            enrollment=self.enrollment,
+            created_by=self.manager,
+            cash_amount=500_000,
+            card_amount_som=0,
+            start_month=self.prev_month,
+            paid_at=datetime.combine(self.today, datetime.min.time()),
+        )
+        prev_tm.refresh_from_db()
+        cur_tm.refresh_from_db()
+        self.assertEqual(_allocations_sum(prev_tm), 250_000)
+        self.assertEqual(_allocations_sum(cur_tm), 250_000)
+
+        # Aprel'ni o'chiramiz (keep_in_group=1, month=prev_month)
+        self.client.force_login(self.manager)
+        url = (
+            f"/{self.center.slug}"
+            + reverse("education:enrollment_delete", args=[self.enrollment.id])
+        )
+        response = self.client.post(url, {
+            "keep_in_group": "1",
+            "month": self.prev_month.strftime("%Y-%m"),
+        })
+        self.assertIn(response.status_code, (302, 303))
+
+        # Aprel TuitionMonth — soft-deleted (qarzdorlar safidan chiqdi)
+        prev_tm.refresh_from_db()
+        self.assertTrue(prev_tm.is_deleted, "Aprel TuitionMonth o'chirilishi kerak")
+
+        # Aprel allocation'lari — soft-deleted
+        prev_alloc_active = prev_tm.allocations.filter(is_deleted=False).count()
+        self.assertEqual(prev_alloc_active, 0, "Aprel allocation'lari o'chirilishi kerak")
+
+        # MAY tegmasin
+        cur_tm.refresh_from_db()
+        self.assertFalse(cur_tm.is_deleted, "May TuitionMonth tegilmasligi kerak")
+        self.assertEqual(
+            _allocations_sum(cur_tm), 250_000,
+            "May allocation'lari saqlanishi kerak (250k to'liq)",
+        )
+        self.assertEqual(
+            cur_tm.fee_amount - _allocations_sum(cur_tm), 0,
+            "May qarzdor bo'lmasligi kerak",
+        )
+
+    # ──────────────────────────────────────────────────────────────────────
     # Senariy 4: start_month=None -> eng eski to'lanmagan oydan boshlasin
     # ──────────────────────────────────────────────────────────────────────
     def test_default_start_month_picks_earliest_unpaid(self):

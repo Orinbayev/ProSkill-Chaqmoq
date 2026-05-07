@@ -1829,20 +1829,58 @@ def enrollment_delete(request, enrollment_id: int):
         student_name = f"{enr.student.ism} {enr.student.familya}"
         group_name = getattr(enr.group, "nom", "")
         keep_in_group = request.POST.get("keep_in_group") == "1"
+        # Oy parametri: berilsa, faqat o'sha oyga ta'sir qiladi (aprelni
+        # tozalasangiz may tegmaydi). Berilmasa — barcha oylar (eski xulq).
+        month_str = (request.POST.get("month") or "").strip()
+        target_month = parse_month_str(month_str) if month_str else None
 
         if keep_in_group:
-            # Faqat to'lov yozuvlarini o'chirish, enrollment saqlanadi
-            payments_qs = Payment.objects.filter(enrollment=enr)
-            for payment in payments_qs:
-                payment.delete(deleted_by=request.user)
-            TuitionMonth.objects.filter(enrollment=enr).update(
-                is_deleted=True,
-                deleted_at=timezone.now(),
-            )
-            messages.success(
-                request,
-                f"To'lov yozuvlari o'chirildi. {student_name} ({group_name}) guruhda qoldi."
-            )
+            with transaction.atomic():
+                tm_qs = TuitionMonth.objects.filter(enrollment=enr, is_deleted=False)
+                if target_month is not None:
+                    tm_qs = tm_qs.filter(month=target_month)
+                affected_tm_ids = list(tm_qs.values_list("id", flat=True))
+
+                # 1) Shu oy(lar)ga tegishli PaymentAllocation'larni soft-delete.
+                #    Bu kerak: qarz = fee - sum(allocations); allocation tegmasa
+                #    paid o'zgarmaydi va qarzdor sifatida ko'rinmaydi.
+                if affected_tm_ids:
+                    PaymentAllocation.objects.filter(
+                        tuition_month_id__in=affected_tm_ids,
+                        is_deleted=False,
+                    ).update(is_deleted=True, deleted_at=timezone.now(), deleted_by=request.user)
+
+                # 2) Endi qaysi Payment'lar shu o'chirilgan allocation'lardan
+                #    boshqasiz qoldi (ya'ni butunlay yopiq edi va endi bo'sh) —
+                #    ularni soft-delete. Boshqa oylarda hali allocation bor bo'lsa
+                #    Payment'ni qoldiramiz (boshqa oyga ta'sir qilmaslik uchun).
+                payments_to_check = Payment.objects.filter(
+                    enrollment=enr, is_deleted=False
+                )
+                for p in payments_to_check:
+                    has_active_allocations = p.allocations.filter(is_deleted=False).exists()
+                    if not has_active_allocations:
+                        p.delete(deleted_by=request.user)
+
+                # 3) TuitionMonth'larni soft-delete (qarzdorlar safidan chiqsin).
+                if affected_tm_ids:
+                    TuitionMonth.objects.filter(id__in=affected_tm_ids).update(
+                        is_deleted=True,
+                        deleted_at=timezone.now(),
+                    )
+
+            if target_month is not None:
+                messages.success(
+                    request,
+                    f"{target_month:%Y-%m} oyi uchun to'lov yozuvlari o'chirildi. "
+                    f"{student_name} ({group_name}) guruhda qoldi.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"To'lov yozuvlari (barcha oylar) o'chirildi. "
+                    f"{student_name} ({group_name}) guruhda qoldi.",
+                )
         else:
             enr.delete(deleted_by=request.user)
             messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o'chirildi.")

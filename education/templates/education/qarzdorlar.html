@@ -247,6 +247,8 @@
                                         style="display:inline;">
                                         {% csrf_token %}
                                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        {# Joriy filter oyi: faqat shu oy uchun to'lov o'chiriladi (boshqa oylarga ta'sir bermaydi) #}
+                                        <input type="hidden" name="month" value="{{ effective_pay_month }}">
                                         <button
                                             type="button"
                                             class="action-btn action-btn--delete"
