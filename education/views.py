@@ -4315,7 +4315,7 @@ def group_detail(request, pk: int):
         selected_date = localdate()
     selected_month = month_first_day(selected_date)
 
-    enrollments = (
+    enrollments = list(
         Enrollment.objects
         .filter(group=g, is_active=True)
         .select_related("student", "group")   # ✅ MUHIM

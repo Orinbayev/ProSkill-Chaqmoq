@@ -189,6 +189,7 @@ def manager_dashboard_api(request):
 
     from datetime import date, datetime, time as _time, timedelta
     from django.db.models import Count, Q, F, Sum
+    from django.db.models.functions import Coalesce
     from accounts.models import User
     from core.tenant import get_request_center
     from core.dashboard_metrics import (
@@ -282,18 +283,36 @@ def manager_dashboard_api(request):
     pays_yest = pay_qs.filter(paid_date__range=(prev_from_d, prev_to_d)).count()
 
     # ── Bugungi darslar (groups with class today) ───────────────────
-    weekday = today.weekday()  # 0=Mon
+    # GroupSchedule.weekday: 1=Mon..7=Sun; Python weekday(): 0=Mon..6=Sun
+    weekday = today.weekday() + 1  # Python 0-based → GroupSchedule 1-based
     today_groups = []
     try:
-        groups_qs = active_groups_for_center(center)
-        for g in groups_qs.select_related("oqituvchi")[:200]:
-            schedule = list(g.schedules.all()) if hasattr(g, "schedules") else []
+        from django.db.models import Prefetch
+        from education.models import GroupSchedule
+
+        groups_qs = active_groups_for_center(center).select_related("oqituvchi").prefetch_related(
+            Prefetch("schedules", queryset=GroupSchedule.objects.all(), to_attr="_schedules_cache")
+        )[:200]
+        # Bugungi Attendance'ni bitta query bilan olish
+        group_ids = [g.pk for g in groups_qs]
+        att_today_rows = (
+            Attendance.objects.filter(group_id__in=group_ids, date=today)
+            .values("group_id")
+            .annotate(
+                total=Count("id"),
+                present_count=Count("id", filter=present_q),
+            )
+        )
+        att_today_map = {row["group_id"]: row for row in att_today_rows}
+
+        for g in groups_qs:
+            schedule = getattr(g, "_schedules_cache", [])
             has_today = any(getattr(sc, "weekday", -1) == weekday for sc in schedule)
             if not has_today:
                 continue
-            att_today_qs = Attendance.objects.filter(group=g, date=today)
-            att_total = att_today_qs.count()
-            att_present = att_today_qs.filter(present_q).count()
+            att_row = att_today_map.get(g.pk, {})
+            att_total = att_row.get("total", 0)
+            att_present = att_row.get("present_count", 0)
             taken = att_total > 0
             teacher = getattr(g, "oqituvchi", None)
             teacher_name = ""
@@ -323,14 +342,29 @@ def manager_dashboard_api(request):
     today_groups.sort(key=lambda r: (r["taken"], r["time"] or "99:99"))
 
     # ── Davomat dinamikasi (oxirgi 30 kun) ──────────────────────────
+    # N+1 fix: 30 marta alohida query o'rniga bitta aggregate query
     att_labels = []
     att_values = []
     try:
+        thirty_days_ago = today - timedelta(days=29)
+        att_30_rows = (
+            attendance_for_center(center)
+            .filter(date__gte=thirty_days_ago, date__lte=today)
+            .values("date")
+            .annotate(
+                total=Count("id"),
+                present_count=Count("id", filter=present_q),
+            )
+        )
+        att_30_map = {row["date"]: row for row in att_30_rows}
         for i in range(29, -1, -1):
             d = today - timedelta(days=i)
-            snap = get_center_attendance_snapshot(center, d)
+            row = att_30_map.get(d, {})
+            total_d = row.get("total", 0)
+            present_d = row.get("present_count", 0)
+            pct_d = round(present_d * 100 / total_d) if total_d else 0
             att_labels.append(d.strftime("%d.%m"))
-            att_values.append(snap.get("pct", 0))
+            att_values.append(pct_d)
     except Exception:
         att_labels = []
         att_values = []
@@ -352,18 +386,30 @@ def manager_dashboard_api(request):
         pass
 
     # ── Top guruhlar to'liqlik bo'yicha ─────────────────────────────
+    # N+1 fix: har guruh uchun alohida _Pay.aggregate() o'rniga bitta annotate query
     top_groups = []
     top_groups_full = []  # Director-style format ("Eng yaxshi guruhlar" jadvali uchun)
     try:
         from education.models import Payment as _Pay
-        gqs = active_groups_for_center(center).annotate(
-            enrolled=Count(
-                "enrollments",
-                filter=Q(enrollments__is_active=True, enrollments__is_deleted=False),
-                distinct=True,
+        gqs = (
+            active_groups_for_center(center)
+            .annotate(
+                enrolled=Count(
+                    "enrollments",
+                    filter=Q(enrollments__is_active=True, enrollments__is_deleted=False),
+                    distinct=True,
+                ),
+                revenue=Coalesce(
+                    Sum(
+                        "payments__summa",
+                        filter=Q(payments__paid_date__range=(d_from, d_to)),
+                    ),
+                    0,
+                ),
             )
+            .select_related("oqituvchi")[:80]
         )
-        for g in gqs.select_related("oqituvchi")[:80]:
+        for g in gqs:
             cap = int(getattr(g, "max_students", 0) or 0)
             enr = int(getattr(g, "enrolled", 0) or 0)
             pct = round(enr * 100 / cap) if cap else 0
@@ -389,13 +435,7 @@ def manager_dashboard_api(request):
                 initials = words[0][:2].upper()
             else:
                 initials = "G"
-            try:
-                rev_sum = int(
-                    _Pay.objects.filter(group=g, paid_date__range=(d_from, d_to))
-                    .aggregate(s=Sum("summa"))["s"] or 0
-                )
-            except Exception:
-                rev_sum = 0
+            rev_sum = int(getattr(g, "revenue", 0) or 0)
             if pct >= 95:
                 status_lbl = "To'ldirilgan"
             elif enr:

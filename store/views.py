@@ -985,10 +985,20 @@ def expense_create(request):
 
         sana = None
         if sana_raw:
-            sana = parse_datetime(sana_raw) or parse_date(sana_raw)
-            if sana is None:
+            parsed = parse_datetime(sana_raw)
+            if parsed is None:
+                # parse_date date qaytaradi — uni aware datetime'ga aylantirish kerak
+                d = parse_date(sana_raw)
+                if d is not None:
+                    from datetime import datetime as _dt, time as _time
+                    parsed = timezone.make_aware(_dt.combine(d, _time.min))
+            if parsed is None:
                 messages.error(request, "Sana formati noto'g'ri (YYYY-MM-DD kutiladi)")
                 return redirect('store:expenses')
+            # Naive datetime bo'lsa aware qilish
+            if timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed)
+            sana = parsed
         if sana is None:
             sana = timezone.now()
 
@@ -1064,10 +1074,19 @@ def expense_edit(request, pk):
         expense.payment_method = payment_method
 
         if sana_str:
-            parsed_sana = parse_datetime(sana_str) or parse_date(sana_str)
+            parsed_sana = parse_datetime(sana_str)
+            if parsed_sana is None:
+                d = parse_date(sana_str)
+                if d is not None:
+                    from datetime import datetime as _dt, time as _time
+                    from django.utils import timezone as _tz
+                    parsed_sana = _tz.make_aware(_dt.combine(d, _time.min))
             if parsed_sana is None:
                 messages.error(request, "Sana formati noto'g'ri (YYYY-MM-DD kutiladi)")
                 return redirect('store:expenses')
+            from django.utils import timezone as _tz
+            if _tz.is_naive(parsed_sana):
+                parsed_sana = _tz.make_aware(parsed_sana)
             expense.sana = parsed_sana
 
         if category_id:

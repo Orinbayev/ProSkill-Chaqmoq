@@ -1067,9 +1067,10 @@ def stat_students(request):
     start_index = page_obj.start_index() if page_obj.paginator.count else 0
 
     context = {
-        "title": "O‘quvchilar",
+        "title": "O’quvchilar",
         "page_obj": page_obj,
-        "total_count": rows.count(),
+        # paginator.count cache qiladi — rows.count() alohida query kerak emas
+        "total_count": paginator.count,
         "start_index": start_index,
         "page_size": page_size,
         "categories": categories,
@@ -1081,7 +1082,7 @@ def stat_students(request):
         "multi_group_filter": multi_group,
     }
 
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return render(request, "core/includes/student_list_table.html", context)
 
     return render(request, "core/stats_users.html", context)
@@ -2357,31 +2358,41 @@ def notification_preferences_view(request):
 def _get_low_activity_data(center, limit=10):
     if not center:
         return []
-        
+
     from django.utils import timezone
     from datetime import timedelta
-    from django.db.models import Count, Q
+    from django.db.models import Count, Q, Prefetch
     from education.models import Enrollment
     from accounts.models import User
-    
+
     today = timezone.localtime(timezone.now()).date()
     thirty_days_ago = today - timedelta(days=30)
-    
+
     base_qs = User.objects.filter(center=center, role='student', is_archived=False)
-    # Get students with low attendance in last 30 days
-    candidates = base_qs.annotate(
-        att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
-    ).order_by('att_count')
-    
+    # N+1 fix: prefetch_related bilan guruh ma'lumotini oldindan yuklaymiz
+    candidates = (
+        base_qs
+        .annotate(
+            att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
+        )
+        .prefetch_related(
+            Prefetch(
+                'enrollments',
+                queryset=Enrollment.objects.filter(is_active=True).select_related('group'),
+                to_attr='_active_enrollments',
+            )
+        )
+        .filter(att_count__lt=8)
+        .order_by('att_count')[:limit * 3]  # limit*3 - filter uchun zapas
+    )
+
     low_list = []
     for s in candidates:
-        if s.att_count >= 8: # Arbitrary threshold for "active"
-            continue
-            
-        enr = s.enrollments.filter(is_active=True).first()
+        active_enrs = getattr(s, '_active_enrollments', [])
+        enr = active_enrs[0] if active_enrs else None
         reasons = []
         att_pct = round((s.att_count / 12) * 100) if s.att_count < 12 else 100
-        
+
         if s.att_count < 5:
             reasons.append(f"Davomat past ({att_pct}%)")
         if enr and getattr(enr, 'jami_tolangan', 0) < getattr(enr, 'kurs_narhi', 0):
@@ -2403,7 +2414,7 @@ def _get_low_activity_data(center, limit=10):
         })
         if len(low_list) >= limit:
             break
-            
+
     return low_list
 
 @login_required
