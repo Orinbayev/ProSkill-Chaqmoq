@@ -465,6 +465,43 @@ tr.row-deferred {
 [data-role-theme="light"] .pv2-input:focus { border-color: #3b82f6; }
 [data-role-theme="light"] .pv2-method-card label { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
 [data-role-theme="light"] .pv2-debt-box { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.06)); border-color: rgba(16,185,129,0.3); }
+
+/* ── Delete confirm: keep-in-group checkbox block ── */
+.delete-confirm-keep-group {
+    margin-top: 14px;
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.30);
+    border-radius: 10px;
+}
+.delete-confirm-keep-group__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-text);
+    margin: 0;
+}
+.delete-confirm-keep-group__checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #f59e0b;
+    flex-shrink: 0;
+}
+.delete-confirm-keep-group__hint {
+    margin: 6px 0 0 26px;
+    font-size: 11px;
+    color: var(--m-text-muted);
+    line-height: 1.4;
+}
+[data-role-theme="light"] .delete-confirm-keep-group {
+    background: rgba(245,158,11,0.10);
+    border-color: rgba(245,158,11,0.45);
+}
 </style>
 
 {% now "Y-m-d" as default_payment_date %}
@@ -609,6 +646,15 @@ tr.row-deferred {
                 </div>
                 <div class="delete-confirm-hint" id="deleteConfirmHint">
                     Guruh: —
+                </div>
+                <div class="delete-confirm-keep-group">
+                    <label class="delete-confirm-keep-group__label">
+                        <input type="checkbox" id="keepInGroupCheckbox" class="delete-confirm-keep-group__checkbox">
+                        Guruhdan chiqarmasdan faqat to'lovni o'chirish
+                    </label>
+                    <p class="delete-confirm-keep-group__hint">
+                        Belgilansa — faqat to'lov yozuvlari o'chadi, o'quvchi guruhda qoladi.
+                    </p>
                 </div>
             </div>
             <div class="modal-footer justify-content-center gap-2">
@@ -1075,6 +1121,8 @@ tr.row-deferred {
                     activeDeleteForm = null;
                     confirmDeleteBtn.disabled = false;
                     confirmDeleteBtn.innerHTML = "Ha, o'chirish";
+                    const keepCb = document.getElementById('keepInGroupCheckbox');
+                    if (keepCb) keepCb.checked = false;
                 });
             }
 
@@ -1083,6 +1131,18 @@ tr.row-deferred {
                     if (!activeDeleteForm) return;
                     confirmDeleteBtn.disabled = true;
                     confirmDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> O\'chirilmoqda...';
+
+                    // checkbox holatini formga qo'shamiz
+                    const keepCb = document.getElementById('keepInGroupCheckbox');
+                    let keepInput = activeDeleteForm.querySelector('input[name="keep_in_group"]');
+                    if (!keepInput) {
+                        keepInput = document.createElement('input');
+                        keepInput.type = 'hidden';
+                        keepInput.name = 'keep_in_group';
+                        activeDeleteForm.appendChild(keepInput);
+                    }
+                    keepInput.value = (keepCb && keepCb.checked) ? '1' : '0';
+
                     activeDeleteForm.submit();
                 });
             }

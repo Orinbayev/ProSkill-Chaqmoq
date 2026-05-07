@@ -1774,8 +1774,24 @@ def enrollment_delete(request, enrollment_id: int):
     if request.method == "POST":
         student_name = f"{enr.student.ism} {enr.student.familya}"
         group_name = getattr(enr.group, "nom", "")
-        enr.delete(deleted_by=request.user)
-        messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o'chirildi.")
+        keep_in_group = request.POST.get("keep_in_group") == "1"
+
+        if keep_in_group:
+            # Faqat to'lov yozuvlarini o'chirish, enrollment saqlanadi
+            payments_qs = Payment.objects.filter(enrollment=enr)
+            for payment in payments_qs:
+                payment.delete(deleted_by=request.user)
+            TuitionMonth.objects.filter(enrollment=enr).update(
+                is_deleted=True,
+                deleted_at=timezone.now(),
+            )
+            messages.success(
+                request,
+                f"To'lov yozuvlari o'chirildi. {student_name} ({group_name}) guruhda qoldi."
+            )
+        else:
+            enr.delete(deleted_by=request.user)
+            messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o'chirildi.")
         return redirect(next_url)
 
     return render(request, "education/enrollment_delete_confirm.html", {"enr": enr, "next": next_url})
