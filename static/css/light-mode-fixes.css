@@ -1405,3 +1405,152 @@ html[data-role-theme="light"] body.user-edit-page .delete-toggle input:checked ~
 html[data-role-theme="light"] body.user-edit-page .text-warning {
   color: #B45309 !important;
 }
+
+/* =====================================================================
+   STORE: XARID SO'ROVLARI (requests.html)
+   ===================================================================== */
+
+/* CSS variables override */
+html[data-role-theme="light"] body.purchase-requests-page {
+  --bg:    var(--lm-bg) !important;
+  --panel: var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:  var(--lm-border) !important;
+  --text:  var(--lm-text) !important;
+  --muted: var(--lm-muted) !important;
+  --shadow: var(--lm-shadow-lg) !important;
+}
+
+/* Page container */
+html[data-role-theme="light"] body.purchase-requests-page .page-container {
+  color: var(--lm-text) !important;
+}
+
+/* Toolbar (sariq chaqmoq ikonkali header qism) */
+html[data-role-theme="light"] body.purchase-requests-page .toolbar {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Page icon — icon wrapper */
+html[data-role-theme="light"] body.purchase-requests-page .page-icon {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* Page title va subtitle */
+html[data-role-theme="light"] body.purchase-requests-page .page-title {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.purchase-requests-page .page-sub {
+  color: var(--lm-muted) !important;
+}
+
+/* "N ta so'rov" pill badge */
+html[data-role-theme="light"] body.purchase-requests-page .pill {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+/* Table card */
+html[data-role-theme="light"] body.purchase-requests-page .table-card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+
+/* Scrollable wrapper */
+html[data-role-theme="light"] body.purchase-requests-page .table-responsive {
+  background: transparent !important;
+}
+
+/* Table scrollbar light */
+html[data-role-theme="light"] body.purchase-requests-page .table-responsive::-webkit-scrollbar-track {
+  background: var(--lm-surface-2) !important;
+}
+html[data-role-theme="light"] body.purchase-requests-page .table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.35) !important;
+}
+
+/* Table header row */
+html[data-role-theme="light"] body.purchase-requests-page .tbl thead th {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-muted) !important;
+  border-bottom-color: var(--lm-border) !important;
+}
+
+/* Table body cells */
+html[data-role-theme="light"] body.purchase-requests-page .tbl tbody td {
+  color: var(--lm-text) !important;
+  border-bottom-color: var(--lm-border) !important;
+}
+
+/* O'quvchi ismi — hardcoded style="color:#fff;" ni override */
+html[data-role-theme="light"] body.purchase-requests-page .tbl tbody td[style*="color:#fff"],
+html[data-role-theme="light"] body.purchase-requests-page .tbl tbody td[style*="color: #fff"] {
+  color: var(--lm-text) !important;
+}
+
+/* Table row hover */
+html[data-role-theme="light"] body.purchase-requests-page .tbl tbody tr:hover {
+  background: var(--lm-surface-2) !important;
+}
+
+/* Mobile card rows */
+@media (max-width: 768px) {
+  html[data-role-theme="light"] body.purchase-requests-page .tbl tr {
+    background: var(--lm-surface) !important;
+    border-color: var(--lm-border) !important;
+    box-shadow: var(--lm-shadow) !important;
+  }
+  html[data-role-theme="light"] body.purchase-requests-page .tbl td::before {
+    color: var(--lm-muted) !important;
+  }
+  html[data-role-theme="light"] body.purchase-requests-page .tbl td:last-child {
+    border-top-color: var(--lm-border) !important;
+  }
+}
+
+/* Sana monospace */
+html[data-role-theme="light"] body.purchase-requests-page .date-mono {
+  color: var(--lm-muted) !important;
+}
+
+/* Empty row */
+html[data-role-theme="light"] body.purchase-requests-page .empty-row {
+  color: var(--lm-muted) !important;
+}
+
+/* Status badges — warn (Kutilmoqda) */
+html[data-role-theme="light"] body.purchase-requests-page .badge.warn {
+  background: rgba(202, 138, 4, 0.12) !important;
+  color: #92400E !important;
+  border-color: rgba(202, 138, 4, 0.30) !important;
+}
+
+/* Status badges — success (Tasdiqlandi) */
+html[data-role-theme="light"] body.purchase-requests-page .badge.success {
+  background: rgba(22, 163, 74, 0.10) !important;
+  color: #166534 !important;
+  border-color: rgba(22, 163, 74, 0.25) !important;
+}
+
+/* Status badges — danger (Rad etildi) */
+html[data-role-theme="light"] body.purchase-requests-page .badge.danger {
+  background: rgba(220, 38, 38, 0.10) !important;
+  color: #991B1B !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+/* Approve / Reject tugmalari — ular asosan gradient, light mode da yaxshi ko'rinadi,
+   lekin shadow'ni biroz yumshatamiz */
+html[data-role-theme="light"] body.purchase-requests-page .btn-approve {
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25) !important;
+}
+html[data-role-theme="light"] body.purchase-requests-page .btn-reject {
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22) !important;
+}

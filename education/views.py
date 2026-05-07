@@ -2550,16 +2550,16 @@ def qarzdorlar_home(request):
 
     if pay_month_int:
         selected_year = selected_to.year if selected_to else today.year
-        period_start_month = date(selected_year, pay_month_int, 1)
-        period_end_month = period_start_month
-        selected_from = period_start_month
-        selected_to = month_last_day(period_start_month)
-    else:
-        period_start_month = month_first_day(selected_from)
-        period_end_month = month_first_day(selected_to)
+        _pay_month_start = date(selected_year, pay_month_int, 1)
+        selected_from = _pay_month_start
+        selected_to = month_last_day(_pay_month_start)
 
-    period_months = month_range_starts(period_start_month, period_end_month)
-    effective_pay_month = period_months[0] if period_months else period_start_month
+    # Grafik bilan mos kelishi uchun: filter va jadval har doim faqat
+    # selected_to oyi (oxirgi tanlangan oy) uchun qarzni ko'rsatadi.
+    # date_from faqat UI label va grafik range uchun saqlanadi.
+    _display_month = month_first_day(selected_to)
+    period_months = [_display_month]
+    effective_pay_month = _display_month
 
     # ─── FAOL ENROLLMENT'LAR ─────────────────────────────────────────────────
     # Faqat:  is_active=True  +  student NOT archived  +  group NOT archived
@@ -2813,6 +2813,7 @@ def qarzdorlar_home(request):
     display_rows = debtor_rows
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
+
     chart_enrollment_ids = {
         enrollment_id
         for row in display_rows
