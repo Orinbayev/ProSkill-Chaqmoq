@@ -232,6 +232,79 @@ class PaymentCarryoverTests(TestCase):
         self.assertIsNotNone(cur_tm_new, "May TuitionMonth ham yaratilishi kerak")
 
     # ──────────────────────────────────────────────────────────────────────
+    # Senariy: bir o'quvchining 2 yo'nalishi — bitta to'lov ikkalasiga
+    # to'g'ri taqsimlanadi va qolgan qarz aniq ko'rinadi
+    # ──────────────────────────────────────────────────────────────────────
+    def test_single_payment_distributes_across_multiple_enrollments(self):
+        from django.urls import reverse
+
+        # 2-yo'nalish: 400k oylik (Programming kabi)
+        prog_group = Group.objects.create(
+            center=self.center,
+            nom="Programming",
+            oqituvchi=self.teacher,
+            kurs_narxi=400_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        prog_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=prog_group,
+            student=self.student,
+            kurs_narhi=400_000,
+            student_payable_amount=400_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+            joined_at=self.cur_month,
+        )
+        StudentGroupHistory.objects.create(
+            student=self.student,
+            group=prog_group,
+            center=self.center,
+            start_date=self.cur_month,
+            kurs_narxi=400_000,
+            oqituvchi_foiz=40,
+        )
+
+        # English (250k oylik) qarzini joriy oy uchun ta'minlaymiz
+        eng_tm = ensure_tuition_month(self.enrollment, self.cur_month)
+        prog_tm = ensure_tuition_month(prog_enrollment, self.cur_month)
+        self.assertEqual(eng_tm.fee_amount, 250_000)
+        self.assertEqual(prog_tm.fee_amount, 400_000)
+        # Jami qarz: 250k + 400k = 650k. Foydalanuvchi 500k to'laydi.
+
+        self.client.force_login(self.manager)
+        url = f"/{self.center.slug}" + reverse("education:create_payment")
+        response = self.client.post(url, {
+            "student_id": self.student.id,
+            "cash_amount": "500000",
+            "card_amount": "0",
+            "month": self.cur_month.strftime("%Y-%m"),
+            "paid_date": self.today.isoformat(),
+        })
+        self.assertIn(response.status_code, (302, 303))
+
+        eng_tm.refresh_from_db()
+        prog_tm.refresh_from_db()
+
+        eng_paid = _allocations_sum(eng_tm)
+        prog_paid = _allocations_sum(prog_tm)
+
+        # English (1-yozilgan) to'liq yopilishi kerak
+        self.assertEqual(eng_paid, 250_000, "English 250k to'liq yopilishi kerak")
+        # Programming'ga qoldiq 250k yozilgan (400k - 250k = 150k qarz qoldi)
+        self.assertEqual(prog_paid, 250_000, "Programming'ga 250k yozilishi kerak")
+        # Jami yozilgan = 500k
+        self.assertEqual(eng_paid + prog_paid, 500_000)
+
+        # Qolgan qarz: Programming 150k
+        eng_debt = eng_tm.fee_amount - eng_paid
+        prog_debt = prog_tm.fee_amount - prog_paid
+        self.assertEqual(eng_debt, 0)
+        self.assertEqual(prog_debt, 150_000, "Programming hali 150k qarzdor bo'lishi kerak")
+        self.assertEqual(eng_debt + prog_debt, 150_000, "Jami qolgan qarz 150k")
+
+    # ──────────────────────────────────────────────────────────────────────
     # Senariy 4: start_month=None -> eng eski to'lanmagan oydan boshlasin
     # ──────────────────────────────────────────────────────────────────────
     def test_default_start_month_picks_earliest_unpaid(self):

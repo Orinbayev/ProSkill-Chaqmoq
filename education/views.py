@@ -1093,7 +1093,25 @@ def create_payment(request):
         qs = Enrollment.objects.all()
         if center: qs = qs.filter(center=center)
         enrollment = get_object_or_404(qs, id=enrollment_id)
-        
+
+        # Double-submit himoyasi: oxirgi 60 sekundda shu enrollment uchun
+        # bir xil summa va sana bilan to'lov yozilganmi? Agar ha — qaytarib
+        # yozmaymiz (foydalanuvchi tugmani 2 marta bossa ham, faqat 1 to'lov).
+        from .models import Payment as _Payment
+        total = cash_amount + card_amount
+        recent_dup = _Payment.objects.filter(
+            enrollment=enrollment,
+            summa=total,
+            paid_date=selected_paid_date,
+            created_at__gte=timezone.now() - timedelta(seconds=60),
+        ).exists()
+        if recent_dup:
+            messages.warning(
+                request,
+                "⚠️ Aynan shu summa va sana bilan to'lov yaqinda yozilgan. Takrorlanmasin uchun e'tiborsiz qoldirildi.",
+            )
+            return redirect(next_url)
+
         try:
             with transaction.atomic():
                 create_payment_and_allocate(
@@ -1165,33 +1183,69 @@ def create_payment(request):
                 )
 
                 remaining_sum = cash_amount + card_amount
-                
-                # 1. First, pay off current month debts for all active enrollments
+
+                # 1-BOSQICH: barcha faol enrollment'larning JORIY oy qarzlarini
+                # tartib bilan yopamiz (eng eski enrollment birinchi).
                 for e in enrollments:
-                    if remaining_sum <= 0: break
-                    
+                    if remaining_sum <= 0:
+                        break
                     tm = ensure_tuition_month(e, start_month)
                     fee = int(getattr(tm, "fee_amount", 0) or 0)
                     paid = int(get_month_paid(e, start_month) or 0)
                     debt = max(0, fee - paid)
-                    
                     if debt > 0:
                         take = min(remaining_sum, debt)
                         _allocate_amount_forward(
                             enrollment=e,
                             payment=main_payment,
                             amount=take,
-                            start_month=start_month
+                            start_month=start_month,
                         )
                         remaining_sum -= take
-                
-                # 2. If money still remains, apply it to the first enrollment (forward allocation)
+
+                # 2-BOSQICH: qolgan pulni har enrollment uchun navbat bilan
+                # KELGUSI qarzli oylariga taqsimlaymiz (round-robin), pul
+                # tugaguncha. Bu bitta to'lov bir nechta yo'nalishni qoplashi
+                # uchun kerak. Safety: max 24 ta iteratsiya × N enrollment
+                # (taxminan 2 yil bo'yicha hech qaysi enrollment 0 ga tushmasa).
+                if remaining_sum > 0 and enrollments:
+                    from education.services.tuition import find_earliest_unpaid_month
+                    enrollment_list = list(enrollments)
+                    safety = 24 * len(enrollment_list)
+                    idx = 0
+                    while remaining_sum > 0 and safety > 0:
+                        e = enrollment_list[idx % len(enrollment_list)]
+                        tm = find_earliest_unpaid_month(e, start_month=start_month)
+                        fee = int(getattr(tm, "fee_amount", 0) or 0)
+                        paid = int(get_month_paid(tm) or 0)
+                        owed = max(0, fee - paid)
+                        if owed > 0:
+                            take = min(remaining_sum, owed)
+                            _allocate_amount_forward(
+                                enrollment=e,
+                                payment=main_payment,
+                                amount=take,
+                                start_month=tm.month,
+                            )
+                            remaining_sum -= take
+                        idx += 1
+                        safety -= 1
+                        # Bir to'liq aylanaga o'tdik va hech progress bo'lmasa,
+                        # to'xtaymiz (cheksiz loop oldini olish).
+                        if (
+                            idx % len(enrollment_list) == 0
+                            and remaining_sum == cash_amount + card_amount
+                        ):
+                            break
+
+                # Qolgan pul (24-iteratsiyadan keyin ham) — credit sifatida
+                # 1-enrollment'ning oxirgi oyiga yoziladi.
                 if remaining_sum > 0:
                     _allocate_amount_forward(
                         enrollment=enrollments[0],
                         payment=main_payment,
                         amount=remaining_sum,
-                        start_month=start_month
+                        start_month=start_month,
                     )
             
             messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to'lov saqlandi!")
@@ -2385,13 +2439,16 @@ def group_month_attendance(request, group_id):
 
 @login_required
 def qarzdorlar_home(request):
-    from core.tenant import get_request_center
+    from core.tenant import get_request_center, require_center
 
     if not user_can_manage_payments(request.user):
         messages.error(request, "Ruxsat yo'q.")
         return redirect("core:home")
 
-    center = get_request_center(request)
+    # Multi-tenant izolyatsiya: center bo'lmasa boshqa markaz qarzdorlari
+    # ko'rinib qolmasligi uchun require_center superuser'ni picker'ga,
+    # boshqalarni 404 ga yuboradi.
+    center = require_center(request)
 
     # ─── FILTERS ────────────────────────────────────────────────────────────
     q = (request.GET.get("q") or "").strip()
@@ -2468,13 +2525,19 @@ def qarzdorlar_home(request):
 
     # ─── FAOL ENROLLMENT'LAR ─────────────────────────────────────────────────
     # Faqat:  is_active=True  +  student NOT archived  +  group NOT archived
+    # Legacy data: center=None enrollment'lari group/student.center orqali
+    # markazga biriktiriladi (dashboard_metrics bilan izchil).
+    from django.db.models import Q as _Q
     active_enrs_qs = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
         .filter(is_active=True, student__is_archived=False, group__is_archived=False)
+        .filter(
+            _Q(center=center)
+            | _Q(center__isnull=True, group__center=center)
+            | _Q(center__isnull=True, student__center=center)
+        )
     )
-    if center:
-        active_enrs_qs = active_enrs_qs.filter(center=center)
 
     chart_months = _last_12_ending(selected_to)
 

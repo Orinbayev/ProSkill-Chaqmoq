@@ -944,31 +944,54 @@ def expenses_export_xlsx(request):
     return response
 
 
+def _user_can_manage_expenses(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if user.is_superuser:
+        return True
+    return getattr(user, "role", None) in ("manager", "director")
+
+
 @login_required
 def expense_create(request):
     """
     Yangi xarajat qo'shish
     """
+    if not _user_can_manage_expenses(request.user):
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('store:expenses')
     if request.method == 'POST':
         center = require_center(request)
         from .models import Expense
         from django.utils import timezone
-        
-        summa = request.POST.get('summa', 0)
+        from django.utils.dateparse import parse_date, parse_datetime
+
+        summa_raw = (request.POST.get('summa') or '').strip()
         izoh = request.POST.get('izoh', '')
         category_id = request.POST.get('category')
         payment_method = request.POST.get('payment_method', 'naqd')
-        sana = request.POST.get('sana')
-        
-        if not summa or int(summa) <= 0:
+        sana_raw = (request.POST.get('sana') or '').strip()
+
+        try:
+            summa = int(summa_raw)
+        except (TypeError, ValueError):
             messages.error(request, "Summa noto'g'ri kiritildi")
             return redirect('store:expenses')
-            
+        if summa <= 0:
+            messages.error(request, "Summa noto'g'ri kiritildi")
+            return redirect('store:expenses')
+
         receiver = request.POST.get('receiver', '')
 
-        if not sana:
+        sana = None
+        if sana_raw:
+            sana = parse_datetime(sana_raw) or parse_date(sana_raw)
+            if sana is None:
+                messages.error(request, "Sana formati noto'g'ri (YYYY-MM-DD kutiladi)")
+                return redirect('store:expenses')
+        if sana is None:
             sana = timezone.now()
-            
+
         Expense.objects.create(
             center=center,
             summa=summa,
@@ -977,10 +1000,10 @@ def expense_create(request):
             category_id=category_id if category_id else None,
             payment_method=payment_method,
             sana=sana,
-            worker=request.user 
+            worker=request.user
         )
         messages.success(request, "Xarajat qo'shildi")
-        
+
     return redirect('store:expenses')
 
 
@@ -989,47 +1012,64 @@ def expense_category_create(request):
     """
     Yangi xarajat toifasi (category) qo'shish
     """
+    if not _user_can_manage_expenses(request.user):
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('store:expenses')
     if request.method == 'POST':
         center = require_center(request)
         from .models import ExpenseCategory
-        
+
         nom = request.POST.get('nom', '').strip()
-        
+
         if nom:
             ExpenseCategory.objects.create(center=center, nom=nom)
             messages.success(request, "Yangi toifa qo'shildi")
         else:
             messages.error(request, "Toifa nomi kiritilmadi")
-            
+
     return redirect('store:expenses')
 
 @login_required
 def expense_edit(request, pk):
+    if not _user_can_manage_expenses(request.user):
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('store:expenses')
     center = require_center(request)
     from .models import Expense, ExpenseCategory
-    
+
     expense = get_object_or_404(Expense, pk=pk, center=center)
-    
+
     if request.method == 'POST':
-        summa = request.POST.get('summa', '')
+        from django.utils.dateparse import parse_date, parse_datetime
+
+        summa_raw = (request.POST.get('summa') or '').strip()
         izoh = request.POST.get('izoh', '')
-        sana_str = request.POST.get('sana', '')
+        sana_str = (request.POST.get('sana') or '').strip()
         category_id = request.POST.get('category_id') # ID string bo'lishi mumkin
         payment_method = request.POST.get('payment_method')
         receiver = request.POST.get('receiver', '')
-        
-        if not summa or int(summa) <= 0:
+
+        try:
+            summa = int(summa_raw)
+        except (TypeError, ValueError):
             messages.error(request, "Summa noto'g'ri")
             return redirect('store:expenses')
-            
+        if summa <= 0:
+            messages.error(request, "Summa noto'g'ri")
+            return redirect('store:expenses')
+
         expense.summa = summa
         expense.izoh = izoh
         expense.receiver = receiver
         expense.payment_method = payment_method
-        
+
         if sana_str:
-            expense.sana = sana_str
-            
+            parsed_sana = parse_datetime(sana_str) or parse_date(sana_str)
+            if parsed_sana is None:
+                messages.error(request, "Sana formati noto'g'ri (YYYY-MM-DD kutiladi)")
+                return redirect('store:expenses')
+            expense.sana = parsed_sana
+
         if category_id:
             try:
                 cat = ExpenseCategory.objects.get(pk=category_id, center=center)
@@ -1038,22 +1078,25 @@ def expense_edit(request, pk):
                  expense.category = None
         else:
             expense.category = None
-            
+
         expense.save()
         messages.success(request, "Xarajat tahrirlandi")
-        
+
     return redirect('store:expenses')
 
 @login_required
 def expense_delete(request, pk):
+    if not _user_can_manage_expenses(request.user):
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('store:expenses')
     center = require_center(request)
     from .models import Expense
-    
+
     if request.method == 'POST':
         expense = get_object_or_404(Expense, pk=pk, center=center)
         expense.delete()
         messages.success(request, "Xarajat o'chirildi")
-        
+
     return redirect('store:expenses')
 
 
@@ -1062,6 +1105,9 @@ def expense_comment(request, pk):
     """
     Faqat izohni o'zgartirish (Comment funksiyasi uchun)
     """
+    if not _user_can_manage_expenses(request.user):
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('store:expenses')
     center = require_center(request)
     from .models import Expense
 

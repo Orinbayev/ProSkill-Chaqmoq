@@ -1378,6 +1378,10 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
 
     def _allocate_to_tm(tm):
         nonlocal remaining, last_allocated_tm
+        # Yopiq (closed) oyga to'lov yozmaymiz — buxgalter oyni mahkamlasa,
+        # o'sha oyga keyin allocation kirib hisobotni o'zgartirmasligi kerak.
+        if is_month_closed_for_center(getattr(enrollment, "center", None), tm.month):
+            return
         fee = int(getattr(tm, fee_field, 0) or 0)
         if fee <= 0:
             return
@@ -1458,6 +1462,20 @@ def create_payment_and_allocate(
     if total <= 0:
         raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas")
 
+    # Multi-tenant himoyasi: created_by foydalanuvchining markazi enrollment
+    # markazi bilan mos kelishi kerak (yoki superuser).
+    enr_center_id = getattr(enrollment, "center_id", None)
+    if created_by is not None and enr_center_id is not None:
+        actor_center_id = getattr(created_by, "center_id", None)
+        if (
+            not getattr(created_by, "is_superuser", False)
+            and actor_center_id is not None
+            and actor_center_id != enr_center_id
+        ):
+            raise ValueError(
+                "Boshqa markaz enrollment'iga to'lov yozish mumkin emas."
+            )
+
     if paid_at is None:
         paid_at = timezone.now()
     elif isinstance(paid_at, date) and not isinstance(paid_at, datetime):
@@ -1473,6 +1491,13 @@ def create_payment_and_allocate(
         start_month = tm_earliest.month
     else:
         start_month = month_first_day(start_month)
+
+    # Yopiq oyga aniq to'lov bloklanadi — buxgalter oy yopilgandan keyin
+    # o'sha oyga to'lov yozish hisobotni buzadi.
+    if is_month_closed_for_center(getattr(enrollment, "center", None), start_month):
+        raise ValueError(
+            f"{start_month:%Y-%m} oyi mahkam (closed). Bu oyga to'lov yozish mumkin emas."
+        )
 
     # Payment CREATE (robust)
     kwargs = {}
@@ -1604,17 +1629,19 @@ def reallocate_enrollment(enrollment: Enrollment) -> None:
     # hech bo‘lmasa current oy mavjud bo‘lsin
     ensure_tuition_month(enrollment, timezone.localdate())
 
+    # Eng eski TuitionMonth oyi: enrollment uchun bir marta hisoblanadi.
+    # Har payment'da qayta hisoblamaymiz — base o'zgarmaydi, faqat
+    # find_earliest_unpaid har safar yangi "eng eski qarz"ni topadi
+    # (chunki oldingi payment yopgan oylarni o'tkazib yuboradi).
+    first_tm = TuitionMonth.objects.filter(enrollment=enrollment).order_by("month").first()
+    base = first_tm.month if first_tm else month_first_day(timezone.localdate())
+
     for p in payments:
         cash = int(getattr(p, "cash_amount", 0) or 0)
         card = _get_payment_card_amount(p)
         total = cash + card
         if total <= 0:
             continue
-
-        # unpaid oylar bo'yicha taqsimlash
-    # eng birinchi oydan boshlab to'g'ri hisoblash
-        first_tm = TuitionMonth.objects.filter(enrollment=enrollment).order_by("month").first()
-        base = first_tm.month if first_tm else month_first_day(timezone.localdate())
 
         tm = find_earliest_unpaid_month(enrollment, start_month=base)
         _allocate_amount_forward(enrollment=enrollment, payment=p, amount=total, start_month=tm.month)
