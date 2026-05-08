@@ -1105,7 +1105,7 @@ def create_payment(request):
             enrollment=enrollment,
             summa=total,
             paid_date=selected_paid_date,
-            created_at__gte=timezone.now() - timedelta(seconds=60),
+            created_at__gte=timezone.now() - timedelta(seconds=5),
         ).exists()
         if recent_dup:
             messages.warning(
@@ -1114,6 +1114,10 @@ def create_payment(request):
             )
             return redirect(next_url)
 
+        # O'tgan barcha oylar uchun TuitionMonth mavjudligini ta'minlaymiz —
+        # shunda allocation past oylarni ham to'g'ri yopadi.
+        ensure_all_tuition_months_since_start(enrollment, start_month)
+
         try:
             with transaction.atomic():
                 create_payment_and_allocate(
@@ -1121,7 +1125,7 @@ def create_payment(request):
                     cash_amount=cash_amount,
                     card_amount_som=card_amount,
                     created_by=request.user,
-                    start_month=start_month,
+                    start_month=None,  # eng eski to'lanmagan oydan boshlasin
                     paid_at=selected_paid_at,
                     note=note,
                     payment_type=infer_payment_type(cash_amount, card_amount),
@@ -1166,22 +1170,12 @@ def create_payment(request):
                 messages.error(request, "Faol o'qituvchi haqqi qarzi topilmadi.")
                 return redirect(next_url)
             
-        # Double-submit himoyasi: student_id branchida ham 60 soniya ichida
-        # bir xil summa va sana bilan to'lov yozilganmi tekshiramiz.
-        from .models import Payment as _Payment
-        total_for_student = cash_amount + card_amount
-        recent_dup_student = _Payment.objects.filter(
-            student=student,
-            summa=total_for_student,
-            paid_date=selected_paid_date,
-            created_at__gte=timezone.now() - timedelta(seconds=60),
-        ).exists()
-        if recent_dup_student:
-            messages.warning(
-                request,
-                "⚠️ Aynan shu summa va sana bilan to'lov yaqinda yozilgan. Takrorlanmasin uchun e'tiborsiz qoldirildi.",
-            )
-            return redirect(next_url)
+        from education.services.tuition import find_earliest_unpaid_month
+
+        # TuitionMonth rekordlarini transaction tashqarisida yaratamiz —
+        # bu faqat ensure operatsiyasi, payment bilan bog'liq emas.
+        for e in enrollments:
+            ensure_all_tuition_months_since_start(e, start_month)
 
         try:
             with transaction.atomic():
@@ -1203,62 +1197,41 @@ def create_payment(request):
 
                 remaining_sum = cash_amount + card_amount
 
-                # 1-BOSQICH: barcha faol enrollment'larning JORIY oy qarzlarini
-                # tartib bilan yopamiz (eng eski enrollment birinchi).
+                # Har enrollment uchun: eng eski to'lanmagan oydan boshlab
+                # barcha qarzlarni yopamiz (o'tgan + joriy oylar ham qoplanadi).
                 for e in enrollments:
                     if remaining_sum <= 0:
                         break
-                    tm = ensure_tuition_month(e, start_month)
-                    fee = int(getattr(tm, "fee_amount", 0) or 0)
-                    paid = int(get_month_paid(e, start_month) or 0)
-                    debt = max(0, fee - paid)
-                    if debt > 0:
-                        take = min(remaining_sum, debt)
-                        _allocate_amount_forward(
-                            enrollment=e,
-                            payment=main_payment,
-                            amount=take,
-                            start_month=start_month,
-                        )
-                        remaining_sum -= take
 
-                # 2-BOSQICH: qolgan pulni har enrollment uchun navbat bilan
-                # KELGUSI qarzli oylariga taqsimlaymiz (round-robin), pul
-                # tugaguncha. Bu bitta to'lov bir nechta yo'nalishni qoplashi
-                # uchun kerak. Safety: max 24 ta iteratsiya × N enrollment
-                # (taxminan 2 yil bo'yicha hech qaysi enrollment 0 ga tushmasa).
-                if remaining_sum > 0 and enrollments:
-                    from education.services.tuition import find_earliest_unpaid_month
-                    enrollment_list = list(enrollments)
-                    safety = 24 * len(enrollment_list)
-                    idx = 0
-                    prev_remaining = remaining_sum + 1  # sentinel
-                    while remaining_sum > 0 and safety > 0:
-                        e = enrollment_list[idx % len(enrollment_list)]
-                        tm = find_earliest_unpaid_month(e, start_month=start_month)
-                        fee = int(getattr(tm, "fee_amount", 0) or 0)
-                        paid = int(get_month_paid(e, tm.month) or 0)
-                        owed = max(0, fee - paid)
-                        if owed > 0:
-                            take = min(remaining_sum, owed)
-                            _allocate_amount_forward(
-                                enrollment=e,
-                                payment=main_payment,
-                                amount=take,
-                                start_month=tm.month,
-                            )
-                            remaining_sum -= take
-                        idx += 1
-                        safety -= 1
-                        # Bir to'liq aylanishda hech progress bo'lmasa (hamma qarz
-                        # to'langan yoki allocation imkonsiz) — cheksiz loopni to'xtat.
-                        if idx % len(enrollment_list) == 0:
-                            if remaining_sum >= prev_remaining:
-                                break
-                            prev_remaining = remaining_sum
+                    # O'tgan + joriy oylardagi umumiy qarz (DB'da hamma rekord mavjud)
+                    past_tms = TuitionMonth.objects.filter(
+                        enrollment=e,
+                        month__lte=start_month,
+                        is_deleted=False,
+                    ).order_by("month")
+                    total_debt = sum(
+                        max(0, int(getattr(tm, "fee_amount", 0) or 0) - int(get_month_paid(e, tm.month) or 0))
+                        for tm in past_tms
+                    )
 
-                # Qolgan pul (24-iteratsiyadan keyin ham) — credit sifatida
-                # 1-enrollment'ning oxirgi oyiga yoziladi.
+                    if total_debt <= 0:
+                        continue
+
+                    take = min(remaining_sum, total_debt)
+
+                    # Eng eski to'lanmagan oydan alloca qilish
+                    earliest_tm = find_earliest_unpaid_month(e)
+                    earliest_start = earliest_tm.month if earliest_tm else start_month
+
+                    _allocate_amount_forward(
+                        enrollment=e,
+                        payment=main_payment,
+                        amount=take,
+                        start_month=earliest_start,
+                    )
+                    remaining_sum -= take
+
+                # Ortiqcha to'lov (kredit) — 1-enrollment uchun kelgusi oyga
                 if remaining_sum > 0:
                     _allocate_amount_forward(
                         enrollment=enrollments[0],
@@ -1460,6 +1433,23 @@ def enrollment_edit(request, enrollment_id):
     def _build_edit_context(active_enrollment, *, teacher_share_only_checked: bool):
         preview_month = _preview_month_for_start_date(enrollment_start_date(active_enrollment), start_month)
         pricing_preview = tuition_month_preview(active_enrollment, preview_month)
+
+        # Joriy oy to'langan/to'lanmagan holatini tekshiramiz
+        _month_paid = int(get_month_paid(active_enrollment, preview_month) or 0)
+        _fee = int(pricing_preview.get("fee_amount", 0) or 0)
+        _remaining_debt = max(0, _fee - _month_paid)
+        _month_label = pricing_preview.get("month_label_uz", "").upper()
+        if _fee > 0 and _month_paid >= _fee:
+            pricing_preview["debt_label_uz"] = f"{_month_label} OYI TO'LANGAN"
+            pricing_preview["fee_amount"] = 0
+            pricing_preview["fee_amount_display"] = format_money(0)
+            pricing_preview["is_month_paid"] = True
+        else:
+            pricing_preview["debt_label_uz"] = f"{_month_label} OYI QARZI"
+            pricing_preview["fee_amount"] = _remaining_debt
+            pricing_preview["fee_amount_display"] = format_money(_remaining_debt)
+            pricing_preview["is_month_paid"] = False
+
         group_options = [
             {
                 "group_id": row["group_id"],
@@ -1485,7 +1475,8 @@ def enrollment_edit(request, enrollment_id):
             active_enrollment,
             remaining_lessons_value,
         )
-        # Kumulativ qarz: preview_month gacha barcha oylar yig'indisi
+        # Faqat so'nggi 2 oy ko'rsatiladi: joriy oy + bitta oldingi oy.
+        # Mart va undan avvalgi qarzlar UI'da yashiriladi (DB'da saqlanadi).
         if getattr(active_enrollment, "id", None):
             _cum_snapshots = calculate_enrollment_debt_snapshots(
                 [active_enrollment],
@@ -1493,10 +1484,28 @@ def enrollment_edit(request, enrollment_id):
                 cumulative_up_to=preview_month,
             )
             _cum_snap = _cum_snapshots.get(active_enrollment.id, {})
-            pricing_preview["previous_unpaid"] = int(_cum_snap.get("previous_unpaid", 0) or 0)
-            pricing_preview["cumulative_debt"] = int(_cum_snap.get("cumulative_debt", pricing_preview.get("fee_amount", 0)) or 0)
-            pricing_preview["credit_balance"] = int(_cum_snap.get("credit_balance", 0) or 0)
-            pricing_preview["net_cumulative_debt"] = int(_cum_snap.get("net_cumulative_debt", pricing_preview["cumulative_debt"]) or 0)
+            credit = int(_cum_snap.get("credit_balance", 0) or 0)
+
+            # Faqat bir oldingi oy (aprel) qarzini ko'rsatamiz
+            prev_month = _add_month(month_first_day(preview_month), -1)
+            prev_tm = TuitionMonth.objects.filter(
+                enrollment=active_enrollment,
+                month=prev_month,
+                is_deleted=False,
+            ).first()
+            if prev_tm:
+                prev_fee = int(getattr(prev_tm, "fee_amount", 0) or 0)
+                prev_paid = int(get_month_paid(active_enrollment, prev_month) or 0)
+                previous_unpaid_1month = max(0, prev_fee - prev_paid)
+            else:
+                previous_unpaid_1month = 0
+
+            current_fee = int(pricing_preview.get("fee_amount", 0) or 0)
+            cumulative_2months = current_fee + previous_unpaid_1month
+            pricing_preview["previous_unpaid"] = previous_unpaid_1month
+            pricing_preview["cumulative_debt"] = cumulative_2months
+            pricing_preview["credit_balance"] = credit
+            pricing_preview["net_cumulative_debt"] = max(0, cumulative_2months - credit)
         else:
             pricing_preview["previous_unpaid"] = 0
             pricing_preview["cumulative_debt"] = int(pricing_preview.get("fee_amount", 0) or 0)

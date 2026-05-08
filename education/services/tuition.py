@@ -1621,15 +1621,22 @@ def create_payment_and_allocate(
 
     local_paid_at = timezone.localtime(paid_at)
 
+    _center = getattr(enrollment, "center", None)
+    _explicit_start = start_month is not None
+
     if start_month is None:
         tm_earliest = find_earliest_unpaid_month(enrollment)
         start_month = tm_earliest.month
+        # Agar eng eski oy yopiq bo'lsa — birinchi ochiq oyga o'tamiz
+        _today_month = month_first_day(timezone.localdate())
+        while is_month_closed_for_center(_center, start_month) and start_month <= _today_month:
+            start_month = add_month(start_month, 1)
     else:
         start_month = month_first_day(start_month)
 
-    # Yopiq oyga aniq to'lov bloklanadi — buxgalter oy yopilgandan keyin
-    # o'sha oyga to'lov yozish hisobotni buzadi.
-    if is_month_closed_for_center(getattr(enrollment, "center", None), start_month):
+    # Faqat foydalanuvchi aniq yopiq oyni ko'rsatgan holda bloklaymiz.
+    # Auto-detect da yopiq oylarni yuqorida o'tkazib ketamiz.
+    if _explicit_start and is_month_closed_for_center(_center, start_month):
         raise ValueError(
             f"{start_month:%Y-%m} oyi mahkam (closed). Bu oyga to'lov yozish mumkin emas."
         )

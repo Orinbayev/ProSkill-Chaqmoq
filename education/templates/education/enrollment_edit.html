@@ -1193,8 +1193,13 @@
 	            <span class="billing-value" id="editPreviewPerLesson">{{ pricing_preview.per_lesson_amount_display }}</span>
 	          </div>
 	          <div class="billing-metric highlight">
+	            {% if pricing_preview.is_month_paid %}
+	            <span class="billing-label" id="editPreviewDebtLabel" style="color:#10b981;">{{ pricing_preview.debt_label_uz }}</span>
+	            <span class="billing-value" id="editPreviewFee" style="color:#10b981;">TO'LANGAN</span>
+	            {% else %}
 	            <span class="billing-label" id="editPreviewDebtLabel">{{ pricing_preview.debt_label_uz|default:"SHU OY QARZI" }}</span>
 	            <span class="billing-value" id="editPreviewFee">{{ pricing_preview.fee_amount_display }}</span>
+	            {% endif %}
 	          </div>
 	          {% if pricing_preview.previous_unpaid %}
 	          <div class="billing-metric" style="border-top:1px dashed var(--m-border,#e5e7eb);margin-top:4px;padding-top:4px;">
