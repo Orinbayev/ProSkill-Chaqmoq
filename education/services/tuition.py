@@ -1035,15 +1035,23 @@ def calculate_enrollment_debt_snapshots(
     fee_field = tuition_month_fee_field()
 
     fee_map: dict[tuple[int, date], int] = {}
+    # is_deleted=True bo'lgan (o'chirilgan) TuitionMonth'lar uchun fee=0
+    # virtual hisoblashni bloklaymiz: deleted_key_set'da bo'lgan oy uchun
+    # prorated_monthly_fee chaqirilmaydi.
+    deleted_key_set: set[tuple[int, date]] = set()
     tuition_month_ids: list[int] = []
     for row in (
-        TuitionMonth.objects
+        TuitionMonth.all_objects
         .filter(enrollment_id__in=enrollment_ids, month__in=month_list)
-        .values("id", "enrollment_id", "month", fee_field)
+        .values("id", "enrollment_id", "month", fee_field, "is_deleted")
     ):
         key = (row["enrollment_id"], row["month"])
-        fee_map[key] = int(row[fee_field] or 0)
-        tuition_month_ids.append(row["id"])
+        if row["is_deleted"]:
+            # O'chirilgan — virtual fee hisoblashni bloklash, paid ham 0
+            deleted_key_set.add(key)
+        else:
+            fee_map[key] = int(row[fee_field] or 0)
+            tuition_month_ids.append(row["id"])
 
     paid_map: dict[tuple[int, date], int] = {}
     if tuition_month_ids:
@@ -1066,7 +1074,10 @@ def calculate_enrollment_debt_snapshots(
             key = (enrollment.id, month)
             fee = fee_map.get(key)
             if fee is None:
-                if virtual_month_set is None or month in virtual_month_set:
+                if key in deleted_key_set:
+                    # O'chirilgan TuitionMonth — fee=0, virtual hisoblash yo'q
+                    fee = 0
+                elif virtual_month_set is None or month in virtual_month_set:
                     fee = int(prorated_monthly_fee(enrollment, month) or 0)
                 else:
                     fee = 0
@@ -1106,6 +1117,10 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
         },
     )
     if not created and tm.is_deleted:
+        # "manual_cleared" deb belgilangan — foydalanuvchi ataylab o'chirgan.
+        # Bu holda ensure_tuition_month qayta tiklamasligi kerak.
+        if getattr(tm, "deleted_reason", None) == "manual_cleared":
+            return tm
         tm.restore()
 
     update_fields = []

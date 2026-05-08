@@ -1836,24 +1836,48 @@ def enrollment_delete(request, enrollment_id: int):
 
         if keep_in_group:
             with transaction.atomic():
-                tm_qs = TuitionMonth.objects.filter(enrollment=enr, is_deleted=False)
+                # all_objects — is_deleted=True bo'lganlarni ham ko'rsatadi,
+                # agar avval o'chirilgan bo'lsa, ustiga qayta o'chirish xavfsiz.
+                tm_qs = TuitionMonth.all_objects.filter(enrollment=enr)
                 if target_month is not None:
                     tm_qs = tm_qs.filter(month=target_month)
-                affected_tm_ids = list(tm_qs.values_list("id", flat=True))
+
+                # Faqat hali o'chirilmagan recordlar
+                alive_tm_ids = list(
+                    tm_qs.filter(is_deleted=False).values_list("id", flat=True)
+                )
+
+                # Virtual TuitionMonth case: DBda yozuv yo'q bo'lsa ham o'quvchi
+                # qarzdor ko'rinadi. Shu holda sentinel yozuv yaratib o'chiramiz —
+                # calculate_enrollment_debt_snapshots bundan keyin fee=0 deb oladi.
+                # deleted_reason="manual_cleared" ensure_tuition_month'ni qayta
+                # tiklamasligiga ishora beradi.
+                if target_month is not None and not tm_qs.exists():
+                    from education.services.tuition import prorated_monthly_fee, tuition_month_fee_field
+                    fee_field_name = tuition_month_fee_field()
+                    fee_val = int(prorated_monthly_fee(enr, target_month) or 0)
+                    sentinel_tm = TuitionMonth(
+                        enrollment=enr,
+                        month=target_month,
+                        center=getattr(enr, "center", None),
+                        is_deleted=True,
+                        deleted_at=timezone.now(),
+                        deleted_by=request.user,
+                        deleted_reason="manual_cleared",
+                    )
+                    setattr(sentinel_tm, fee_field_name, fee_val)
+                    sentinel_tm.save()
 
                 # 1) Shu oy(lar)ga tegishli PaymentAllocation'larni soft-delete.
-                #    Bu kerak: qarz = fee - sum(allocations); allocation tegmasa
-                #    paid o'zgarmaydi va qarzdor sifatida ko'rinmaydi.
-                if affected_tm_ids:
+                if alive_tm_ids:
                     PaymentAllocation.objects.filter(
-                        tuition_month_id__in=affected_tm_ids,
+                        tuition_month_id__in=alive_tm_ids,
                         is_deleted=False,
                     ).update(is_deleted=True, deleted_at=timezone.now(), deleted_by=request.user)
 
-                # 2) Endi qaysi Payment'lar shu o'chirilgan allocation'lardan
-                #    boshqasiz qoldi (ya'ni butunlay yopiq edi va endi bo'sh) —
-                #    ularni soft-delete. Boshqa oylarda hali allocation bor bo'lsa
-                #    Payment'ni qoldiramiz (boshqa oyga ta'sir qilmaslik uchun).
+                # 2) Qaysi Payment'lar hech qanday aktiv allocation'siz qoldi —
+                #    ularni soft-delete. Boshqa oylarda allocation bor bo'lsa
+                #    Payment'ni qoldiramiz.
                 payments_to_check = Payment.objects.filter(
                     enrollment=enr, is_deleted=False
                 )
@@ -1862,11 +1886,15 @@ def enrollment_delete(request, enrollment_id: int):
                     if not has_active_allocations:
                         p.delete(deleted_by=request.user)
 
-                # 3) TuitionMonth'larni soft-delete (qarzdorlar safidan chiqsin).
-                if affected_tm_ids:
-                    TuitionMonth.objects.filter(id__in=affected_tm_ids).update(
+                # 3) Alive TuitionMonth'larni soft-delete.
+                # deleted_reason="manual_cleared" ensure_tuition_month'ni qayta
+                # tiklamasligiga ishora beradi.
+                if alive_tm_ids:
+                    TuitionMonth.objects.filter(id__in=alive_tm_ids).update(
                         is_deleted=True,
                         deleted_at=timezone.now(),
+                        deleted_by=request.user,
+                        deleted_reason="manual_cleared",
                     )
 
             if target_month is not None:
