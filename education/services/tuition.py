@@ -1643,6 +1643,13 @@ def create_payment_and_allocate(
         kwargs["student"] = enrollment.student
     if _model_has_field(Payment, "group"):
         kwargs["group"] = enrollment.group
+    # center: enrollment.center → group.center zanjiridan aniqlaymiz
+    if _model_has_field(Payment, "center"):
+        _enr_center = getattr(enrollment, "center", None) or getattr(
+            getattr(enrollment, "group", None), "center", None
+        )
+        if _enr_center:
+            kwargs["center"] = _enr_center
 
     if _model_has_field(Payment, "cash_amount"):
         kwargs["cash_amount"] = cash_amount

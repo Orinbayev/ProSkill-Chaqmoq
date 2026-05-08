@@ -1166,6 +1166,23 @@ def create_payment(request):
                 messages.error(request, "Faol o'qituvchi haqqi qarzi topilmadi.")
                 return redirect(next_url)
             
+        # Double-submit himoyasi: student_id branchida ham 60 soniya ichida
+        # bir xil summa va sana bilan to'lov yozilganmi tekshiramiz.
+        from .models import Payment as _Payment
+        total_for_student = cash_amount + card_amount
+        recent_dup_student = _Payment.objects.filter(
+            student=student,
+            summa=total_for_student,
+            paid_date=selected_paid_date,
+            created_at__gte=timezone.now() - timedelta(seconds=60),
+        ).exists()
+        if recent_dup_student:
+            messages.warning(
+                request,
+                "⚠️ Aynan shu summa va sana bilan to'lov yaqinda yozilgan. Takrorlanmasin uchun e'tiborsiz qoldirildi.",
+            )
+            return redirect(next_url)
+
         try:
             with transaction.atomic():
                 # One check for the whole payment
@@ -1215,11 +1232,12 @@ def create_payment(request):
                     enrollment_list = list(enrollments)
                     safety = 24 * len(enrollment_list)
                     idx = 0
+                    prev_remaining = remaining_sum + 1  # sentinel
                     while remaining_sum > 0 and safety > 0:
                         e = enrollment_list[idx % len(enrollment_list)]
                         tm = find_earliest_unpaid_month(e, start_month=start_month)
                         fee = int(getattr(tm, "fee_amount", 0) or 0)
-                        paid = int(get_month_paid(tm) or 0)
+                        paid = int(get_month_paid(e, tm.month) or 0)
                         owed = max(0, fee - paid)
                         if owed > 0:
                             take = min(remaining_sum, owed)
@@ -1232,13 +1250,12 @@ def create_payment(request):
                             remaining_sum -= take
                         idx += 1
                         safety -= 1
-                        # Bir to'liq aylanaga o'tdik va hech progress bo'lmasa,
-                        # to'xtaymiz (cheksiz loop oldini olish).
-                        if (
-                            idx % len(enrollment_list) == 0
-                            and remaining_sum == cash_amount + card_amount
-                        ):
-                            break
+                        # Bir to'liq aylanishda hech progress bo'lmasa (hamma qarz
+                        # to'langan yoki allocation imkonsiz) — cheksiz loopni to'xtat.
+                        if idx % len(enrollment_list) == 0:
+                            if remaining_sum >= prev_remaining:
+                                break
+                            prev_remaining = remaining_sum
 
                 # Qolgan pul (24-iteratsiyadan keyin ham) — credit sifatida
                 # 1-enrollment'ning oxirgi oyiga yoziladi.
@@ -3317,7 +3334,7 @@ def _get_payment_dashboard_data(request):
     }
     sel_type_filter = ''
     if sel_type:
-        sel_type_filter = _PM_NAME_TO_MODE.get(sel_type.lower(), 'card')
+        sel_type_filter = _PM_NAME_TO_MODE.get(sel_type.lower(), '')
 
     selected_from = parse_date(date_from_raw) if date_from_raw else None
     selected_to = parse_date(date_to_raw) if date_to_raw else None

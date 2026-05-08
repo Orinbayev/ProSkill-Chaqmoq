@@ -1099,8 +1099,8 @@ tr.row-deferred {
                     document.getElementById('pv2HidNote').value         = note;
                     document.getElementById('pv2HidMethod').value       = mode;
 
-                    pv2SaveBtn.classList.add('loading');
                     pv2SaveBtn.disabled = true;
+                    pv2SaveBtn.classList.add('loading');
                     document.getElementById('pv2SingleForm').submit();
                 });
             }
