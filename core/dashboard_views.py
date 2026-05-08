@@ -2486,12 +2486,25 @@ def director_boshqaruv(request):
         return redirect("core:home")
     d_from, d_to = _parse_dates(request)
     pending_purchase_requests = _build_pending_purchase_requests(center)
+    # Active payment methods for payment modal
+    active_payment_methods = []
+    try:
+        from store.models import PaymentMethod as _PM
+        from store.views import _ensure_default_payment_methods as _seed_pm
+        _seed_pm(center)
+        active_payment_methods = list(
+            _PM.objects.filter(center=center, is_active=True).values_list('nom', flat=True).order_by('nom')
+        )
+    except Exception:
+        active_payment_methods = []
+
     return render(request, "core/dashboards/boshqaruv.html", {
         "center": center,
         "date_from": d_from,
         "date_to": d_to,
         "pending_purchase_requests": pending_purchase_requests["recent"],
         "pending_purchase_requests_count": pending_purchase_requests["count"],
+        "active_payment_methods": active_payment_methods,
     })
 
 

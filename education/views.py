@@ -4120,13 +4120,94 @@ def payment_delete(request, payment_id):
 
 @login_required
 def student_groups_api(request, student_id):
-    """Return all active group names for a student (for payment modal display)."""
+    """Return active group names and total debt for a student (payment modal)."""
+    from django.db.models import Sum
     center = get_active_center(request)
     qs = Enrollment.objects.filter(student_id=student_id, is_active=True, group__is_archived=False).select_related('group')
     if center:
         qs = qs.filter(center=center)
     groups = [e.group.nom for e in qs if e.group and not getattr(e.group, "is_archived", False)]
-    return JsonResponse({"groups": " + ".join(groups) if groups else ""})
+
+    # Calculate total debt: sum of all TuitionMonth fees minus all payments
+    try:
+        enr_ids = [e.id for e in qs]
+        total_fee = TuitionMonth.objects.filter(
+            enrollment_id__in=enr_ids, is_deleted=False
+        ).aggregate(s=Sum('fee_amount'))['s'] or 0
+        total_paid = Payment.objects.filter(
+            student_id=student_id, is_deleted=False
+        ).aggregate(s=Sum('summa'))['s'] or 0
+        debt = max(0, int(total_fee) - int(total_paid))
+    except Exception:
+        debt = 0
+
+    return JsonResponse({
+        "groups": " + ".join(groups) if groups else "",
+        "debt": debt,
+    })
+
+
+@login_required
+def students_with_debt_api(request):
+    """Return students who have debt > 0 for the payment modal (JSON)."""
+    from django.db.models import Sum
+    center = get_active_center(request)
+    if not center:
+        return JsonResponse({"students": []})
+
+    # 1. Active enrollments for this center
+    enr_qs = Enrollment.objects.filter(
+        is_active=True, center=center, group__is_archived=False
+    ).select_related('student', 'group')
+
+    # 2. Total fees per student (sum TuitionMonth.fee_amount)
+    enr_ids = list(enr_qs.values_list('id', flat=True))
+    fee_rows = (
+        TuitionMonth.objects.filter(enrollment_id__in=enr_ids, is_deleted=False)
+        .values('enrollment__student_id')
+        .annotate(total=Sum('fee_amount'))
+    )
+    student_fees = {r['enrollment__student_id']: int(r['total'] or 0) for r in fee_rows}
+
+    # 3. Total paid per student (sum Payment.summa)
+    student_ids = list(student_fees.keys())
+    paid_rows = (
+        Payment.objects.filter(student_id__in=student_ids, center=center, is_deleted=False)
+        .values('student_id')
+        .annotate(total=Sum('summa'))
+    )
+    student_paid = {r['student_id']: int(r['total'] or 0) for r in paid_rows}
+
+    # 4. Group names per student
+    student_groups = {}
+    for e in enr_qs:
+        if e.group:
+            student_groups.setdefault(e.student_id, []).append(e.group.nom)
+
+    # 5. Build result — only students with debt > 0
+    students = []
+    seen = set()
+    for enr in enr_qs:
+        sid = enr.student_id
+        if sid in seen or sid not in student_fees:
+            continue
+        seen.add(sid)
+        fee  = student_fees.get(sid, 0)
+        paid = student_paid.get(sid, 0)
+        debt = max(0, fee - paid)
+        if debt <= 0:
+            continue
+        u = enr.student
+        students.append({
+            'id':     sid,
+            'name':   f"{u.ism} {u.familya}".strip(),
+            'phone':  getattr(u, 'telefon1', '') or '',
+            'groups': ' + '.join(student_groups.get(sid, [])),
+            'debt':   debt,
+        })
+
+    students.sort(key=lambda x: x['name'])
+    return JsonResponse({'students': students})
 
 
 # education/views.py

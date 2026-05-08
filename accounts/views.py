@@ -856,6 +856,7 @@ def add_user(request):
         form_data or None,
         request=request,
         initial=initial,
+        allow_initial_group_assignment=(is_user_drawer and current_role == "student"),
         allowed_roles=(
             allowed_roles
             if is_user_drawer and allow_role_switch

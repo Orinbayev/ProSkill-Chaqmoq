@@ -37,6 +37,7 @@ urlpatterns = [
     path("tolov/update/<int:payment_id>/", views.payment_update, name="payment_update"),
     path("tolovlar/payment/<int:payment_id>/delete/", views.payment_delete, name="payment_delete"),
     path("tolovlar/student/<int:student_id>/groups/", views.student_groups_api, name="student_groups_api"),
+    path("tolovlar/students/with-debt/", views.students_with_debt_api, name="students_with_debt_api"),
     # 🔹 Guruhlar kategoriyasi bo‘yicha
     path("guruhlar/", views.groups_home, name="groups_home"),
     path("guruhlar/hammasi/", views.all_groups_overview, name="all_groups"),

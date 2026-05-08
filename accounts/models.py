@@ -475,6 +475,7 @@ class User(SoftDeleteMixin, AbstractUser):
     # ✅ Telegram bot
     telegram_id = models.CharField(_("Telegram ID"), max_length=50, null=True, blank=True)
     telegram_username = models.CharField(_("Telegram Username"), max_length=100, null=True, blank=True)
+    instagram_username = models.CharField(_("Instagram Username"), max_length=100, null=True, blank=True)
     is_telegram_linked = models.BooleanField(_("Telegram Ulangan"), default=False)
     parent_telegram_id = models.CharField(_("Parent Telegram ID"), max_length=50, null=True, blank=True, db_index=True)
     parent_telegram_username = models.CharField(_("Parent Telegram Username"), max_length=100, null=True, blank=True)

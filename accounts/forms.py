@@ -78,14 +78,14 @@ class AddUserForm(forms.ModelForm):
             "center", "role",
             "email", "password",
             "oqituvchi_foizi",
-            "birth_date", "gender", "passport_id", "jshr", "telegram_username", "address",
+            "birth_date", "gender", "passport_id", "jshr", "telegram_username", "instagram_username", "address",
         ]
         widgets = {
             "ism": forms.TextInput(attrs={"placeholder": "Ism", "class": "form-control uniform-input", "id": "id_ism"}),
             "familya": forms.TextInput(attrs={"placeholder": "Familya", "class": "form-control uniform-input", "id": "id_familya"}),
             "otchestvo": forms.TextInput(attrs={"placeholder": "Ota-onaning ismi", "class": "form-control uniform-input", "id": "id_otchestvo"}),
             "telefon1": forms.TextInput(attrs={"placeholder": "+998 99 384 58 54", "class": "form-control uniform-input", "id": "id_telefon1", "inputmode": "numeric", "autocomplete": "off"}),
-            "telefon2": forms.TextInput(attrs={"placeholder": "+998 99 384 58 54", "class": "form-control uniform-input", "id": "id_telefon2", "inputmode": "numeric", "autocomplete": "off"}),
+            "telefon2": forms.TextInput(attrs={"placeholder": "90 123-45-67", "class": "form-control uniform-input", "id": "id_telefon2", "inputmode": "numeric", "autocomplete": "off"}),
             "email": forms.TextInput(attrs={"placeholder": "Gmail avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_email"}),
             "password": forms.PasswordInput(attrs={"placeholder": "Parol avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_password"}),
             "role": forms.Select(attrs={"class": "form-control uniform-input", "id": "id_role"}),
@@ -95,6 +95,7 @@ class AddUserForm(forms.ModelForm):
             "passport_id": forms.TextInput(attrs={"placeholder": "AB1234567", "class": "form-control uniform-input", "id": "id_passport_id"}),
             "jshr": forms.TextInput(attrs={"placeholder": "External ID / JSHR", "class": "form-control uniform-input", "maxlength": "14", "id": "id_jshr"}),
             "telegram_username": forms.TextInput(attrs={"placeholder": "@username", "class": "form-control uniform-input", "id": "id_telegram_username"}),
+            "instagram_username": forms.TextInput(attrs={"placeholder": "@username", "class": "form-control uniform-input", "id": "id_instagram_username"}),
             "address": forms.Textarea(attrs={"placeholder": "Manzil", "class": "form-control uniform-input", "rows": 2, "id": "id_address"}),
         }
 

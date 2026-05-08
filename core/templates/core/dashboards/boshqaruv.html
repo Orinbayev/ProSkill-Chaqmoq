@@ -4,6 +4,7 @@
 {% block title %}Boshqaruv — {{ center.name }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
 <style>
 /* ══════════════════ VARIABLES ══════════════════ */
 :root {
@@ -230,118 +231,635 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   flex-shrink: 0;
   z-index: 8;
 }
+
+/* ── Toggle button ── */
 .bq-quick__toggle {
-  position: relative;
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid var(--bq-quick-btn-border);
+  border: none;
   border-radius: 12px;
-  background: var(--bq-quick-btn-bg);
-  color: var(--bq-quick-btn-color);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 15px;
   cursor: pointer;
-  box-shadow: var(--bq-quick-btn-shadow);
-  transition: transform .18s, border-color .2s, background .2s, color .2s, box-shadow .2s;
-}
-.bq-quick__toggle::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.03);
-  pointer-events: none;
-}
-.bq-quick__toggle:hover,
-.bq-quick.open .bq-quick__toggle,
-.bq-quick:focus-within .bq-quick__toggle {
-  transform: translateY(-1px);
-  border-color: var(--bq-quick-btn-hover-border);
-  background: var(--bq-quick-btn-hover-bg);
+  box-shadow: 0 3px 14px rgba(37,99,235,.38);
+  transition: box-shadow .15s ease;
 }
 .bq-quick__toggle:focus-visible {
   outline: none;
-  box-shadow: var(--bq-quick-btn-shadow), 0 0 0 3px rgba(34,211,238,.12);
+  box-shadow: 0 3px 14px rgba(37,99,235,.38), 0 0 0 3px rgba(37,99,235,.28);
 }
-.bq-quick__panel {
-  position: absolute;
-  top: calc(100% + 12px);
-  left: 0;
-  width: 198px;
-  padding: 8px;
-  border-radius: 18px;
-  border: 1px solid var(--bq-quick-panel-border);
-  background: var(--bq-quick-panel-bg);
-  box-shadow: var(--bq-quick-panel-shadow);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+.bq-quick.open .bq-quick__toggle {
+  box-shadow: 0 2px 8px rgba(37,99,235,.22);
 }
-.bq-quick__panel::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 18px;
-  width: 12px;
-  height: 12px;
-  background: var(--bq-quick-panel-arrow);
-  border-top: 1px solid var(--bq-quick-panel-border);
-  border-left: 1px solid var(--bq-quick-panel-border);
+.bq-quick__toggle i {
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+.bq-quick.open .bq-quick__toggle i {
   transform: rotate(45deg);
 }
-.bq-quick:hover .bq-quick__panel,
-.bq-quick.open .bq-quick__panel,
-.bq-quick:focus-within .bq-quick__panel {
+
+/* ── Dropdown panel ── */
+.bq-quick__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 216px;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(10,16,30,.97);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 48px rgba(0,0,0,.52), 0 0 0 1px rgba(37,99,235,.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(.97);
+  pointer-events: none;
+  transition: opacity .16s ease, transform .18s cubic-bezier(.22,.68,0,1.2), visibility .16s ease;
+}
+.bq-quick.open .bq-quick__panel {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
+
+/* ── Menu items ── */
 .bq-quick__link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 12px;
-  color: var(--bq-txt);
-  font-size: 13px;
-  font-weight: 700;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 11px;
   text-decoration: none;
   width: 100%;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
+  transition: background .12s ease;
 }
-.bq-quick__link + .bq-quick__link {
-  margin-top: 4px;
-}
-.bq-quick__link:hover {
-  background: var(--bq-quick-link-hover-bg);
-  color: var(--bq-quick-link-hover-color);
-  transform: translateX(1px);
-}
+.bq-quick__link + .bq-quick__link { margin-top: 2px; }
+.bq-quick__link:hover { background: rgba(255,255,255,.06); }
+
 .bq-quick__icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 11px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--bq-quick-icon-bg);
-  color: var(--bq-quick-icon-color);
+  flex-shrink: 0;
+  transition: transform .12s ease;
+}
+.bq-quick__link:hover .bq-quick__icon { transform: scale(1.08); }
+.bq-quick__icon i { font-size: 15px; }
+
+.bq-quick__icon--student {
+  background: rgba(56,189,248,.14);
+  color: #38bdf8;
+}
+.bq-quick__icon--payment {
+  background: rgba(52,211,153,.14);
+  color: #34d399;
+}
+
+.bq-quick__link-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.bq-quick__link-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.3;
+}
+.bq-quick__link-sub {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.3;
+}
+
+/* Light mode */
+html[data-role-theme="light"] .bq-quick__panel {
+  background: #ffffff;
+  border-color: rgba(148,163,184,.18);
+  box-shadow: 0 16px 40px rgba(15,23,42,.14), 0 0 0 1px rgba(37,99,235,.06);
+}
+html[data-role-theme="light"] .bq-quick__link:hover { background: rgba(37,99,235,.05); }
+html[data-role-theme="light"] .bq-quick__link-title { color: #1e293b; }
+html[data-role-theme="light"] .bq-quick__link-sub { color: #94a3b8; }
+html[data-role-theme="light"] .bq-quick__icon--student { background: rgba(37,99,235,.08); color: #2563eb; }
+html[data-role-theme="light"] .bq-quick__icon--payment { background: rgba(22,163,74,.08); color: #16a34a; }
+
+/* ─── Payment Modal ───────────────────────────────────────── */
+.bq-pm-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2,6,23,.56);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 20px;
+  animation: bqPMFadeIn .18s ease forwards;
+}
+@keyframes bqPMFadeIn { from{opacity:0} to{opacity:1} }
+
+.bq-pm {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 20px;
+  background: linear-gradient(160deg,rgba(13,20,38,.99),rgba(9,15,28,.99));
+  border: 1px solid rgba(148,163,184,.12);
+  box-shadow: 0 28px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(56,189,248,.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(14px) scale(.97);
+  animation: bqPMSlideIn .22s cubic-bezier(.22,.68,0,1.15) forwards;
+}
+@keyframes bqPMSlideIn { to{transform:translateY(0) scale(1)} }
+
+/* Header */
+.bq-pm__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid rgba(148,163,184,.1);
   flex-shrink: 0;
 }
-.bq-quick__icon i {
+.bq-pm__head-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: rgba(52,211,153,.12);
+  color: #34d399;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.bq-pm__head-title {
+  flex: 1;
   font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: .01em;
+}
+.bq-pm__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(148,163,184,.08);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  flex-shrink: 0;
+}
+.bq-pm__close:hover { background: rgba(248,113,113,.15); color: #f87171; }
+
+/* Search */
+.bq-pm__search-wrap {
+  position: relative;
+  padding: 14px 18px 10px;
+  flex-shrink: 0;
+}
+.bq-pm__search-ico {
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #475569;
+  font-size: 13px;
+  pointer-events: none;
+}
+.bq-pm__search-inp {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px 0 38px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(148,163,184,.16);
+  background: rgba(255,255,255,.04);
+  color: #e2e8f0;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+  box-sizing: border-box;
+}
+.bq-pm__search-inp::placeholder { color: #475569; }
+.bq-pm__search-inp:focus {
+  border-color: rgba(52,211,153,.4);
+  background: rgba(52,211,153,.03);
+}
+
+/* List */
+.bq-pm__list-wrap {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 2px 18px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148,163,184,.15) transparent;
+}
+.bq-pm__list-wrap::-webkit-scrollbar { width: 4px; }
+.bq-pm__list-wrap::-webkit-scrollbar-thumb { border-radius: 4px; background: rgba(148,163,184,.15); }
+.bq-pm__list { display: flex; flex-direction: column; gap: 3px; }
+
+.bq-pm__hint {
+  padding: 24px 0;
+  text-align: center;
+  color: #475569;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-style: italic;
+}
+.bq-pm__empty { padding: 18px 0; text-align: center; color: #475569; font-size: 13px; }
+
+.bq-pm__student-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,.03);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  text-align: left;
+  width: 100%;
+}
+.bq-pm__student-item:hover {
+  background: rgba(99,102,241,.08);
+  border-color: rgba(99,102,241,.22);
+}
+.bq-pm__item-ava {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(148,163,184,.1);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.bq-pm__item-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  flex: 1;
+}
+.bq-pm__item-meta {
+  font-size: 11.5px;
+  color: #475569;
+  flex: 1;
+}
+.bq-pm__item-debt {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f87171;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bq-pm__item-debt small { opacity: .65; font-weight: 500; font-size: 10px; }
+
+/* Payment form */
+.bq-pm__form {
+  padding: 0 18px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  overflow-y: auto;
+  max-height: 380px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148,163,184,.15) transparent;
+}
+.bq-pm__form::-webkit-scrollbar { width: 4px; }
+.bq-pm__form::-webkit-scrollbar-thumb { border-radius: 4px; background: rgba(148,163,184,.12); }
+
+/* Divider between search and form */
+.bq-pm__sep {
+  height: 1px;
+  background: rgba(148,163,184,.1);
+  margin: 2px 18px 0;
+  flex-shrink: 0;
+}
+
+/* Student badge */
+.bq-pm__student-badge {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  background: rgba(99,102,241,.09);
+  border: 1.5px solid rgba(99,102,241,.22);
+  margin-top: 12px;
+  animation: bqPMFadeIn .16s ease;
+}
+.bq-pm__student-ava {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(99,102,241,.15);
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.bq-pm__student-info { flex: 1; min-width: 0; }
+.bq-pm__student-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-pm__student-groups {
+  font-size: 11.5px;
+  color: #a5b4fc;
+  opacity: .85;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-pm__student-change {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(148,163,184,.1);
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s;
+  flex-shrink: 0;
+}
+.bq-pm__student-change:hover { background: rgba(148,163,184,.2); color: #94a3b8; }
+
+/* Payment type segmented */
+.bq-pm__type-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(148,163,184,.1);
+}
+.bq-pm__type-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background .14s, color .14s, box-shadow .14s;
+}
+.bq-pm__type-btn.is-active {
+  background: rgba(52,211,153,.15);
+  color: #34d399;
+  box-shadow: 0 1px 6px rgba(52,211,153,.12);
+}
+.bq-pm__type-btn[data-type="card"].is-active {
+  background: rgba(129,140,248,.15);
+  color: #a5b4fc;
+  box-shadow: 0 1px 6px rgba(129,140,248,.12);
+}
+.bq-pm__type-btn[data-type="mixed"].is-active {
+  background: rgba(251,191,36,.12);
+  color: #fbbf24;
+  box-shadow: 0 1px 6px rgba(251,191,36,.1);
+}
+
+/* Amount inputs */
+.bq-pm__amounts { display: flex; flex-direction: column; gap: 10px; }
+.bq-pm__amount-row { display: flex; flex-direction: column; gap: 5px; }
+.bq-pm__amount-row.two-col { flex-direction: row; gap: 10px; }
+.bq-pm__amount-row.two-col .bq-pm__amount-field { flex: 1; }
+.bq-pm__amount-field { display: flex; flex-direction: column; gap: 5px; }
+.bq-pm__amount-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.bq-pm__amount-inp-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.bq-pm__amount-inp {
+  width: 100%;
+  height: 44px;
+  padding: 0 52px 0 14px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(148,163,184,.16);
+  background: rgba(255,255,255,.04);
+  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s, background .15s;
+}
+.bq-pm__amount-inp:focus {
+  border-color: rgba(52,211,153,.4);
+  background: rgba(52,211,153,.03);
+}
+.bq-pm__amount-inp[data-currency="card"]:focus {
+  border-color: rgba(129,140,248,.4);
+  background: rgba(129,140,248,.03);
+}
+.bq-pm__amount-cur {
+  position: absolute;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  pointer-events: none;
+  letter-spacing: .04em;
+}
+
+/* Date row */
+.bq-pm__date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bq-pm__date-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.bq-pm__date-inp {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(148,163,184,.16);
+  background: rgba(255,255,255,.04);
+  color: #e2e8f0;
+  font-size: 13.5px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.bq-pm__date-inp:focus { border-color: rgba(56,189,248,.4); }
+
+/* Note */
+.bq-pm__note-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .12s;
+}
+.bq-pm__note-toggle:hover { color: #94a3b8; }
+.bq-pm__note-inp {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(148,163,184,.16);
+  background: rgba(255,255,255,.04);
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+  margin-top: 8px;
+  animation: bqPMFadeIn .15s ease;
+}
+.bq-pm__note-inp:focus { border-color: rgba(56,189,248,.3); }
+
+/* Footer */
+.bq-pm__foot {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px 16px;
+  border-top: 1px solid rgba(148,163,184,.1);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.bq-pm__btn-cancel {
+  flex: 1;
+  height: 42px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(148,163,184,.2);
+  background: rgba(255,255,255,.04);
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.bq-pm__btn-cancel:hover { background: rgba(148,163,184,.1); border-color: rgba(148,163,184,.32); }
+.bq-pm__btn-confirm {
+  flex: 1.6;
+  height: 42px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 3px 12px rgba(5,150,105,.3);
+  transition: opacity .13s, transform .1s, box-shadow .13s;
+}
+.bq-pm__btn-confirm:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); box-shadow: 0 5px 16px rgba(5,150,105,.38); }
+.bq-pm__btn-confirm:active:not(:disabled) { transform: translateY(0); }
+.bq-pm__btn-confirm:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+.bq-pm__btn-confirm.is-loading { opacity: .7; pointer-events: none; }
+.bq-pm__amount-inp--err {
+  border-color: rgba(248,113,113,.6) !important;
+  background: rgba(248,113,113,.05) !important;
+  animation: bqPMShake .3s ease;
+}
+@keyframes bqPMShake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+
+/* Light mode */
+html[data-role-theme="light"] .bq-pm {
+  background: #ffffff;
+  border-color: rgba(148,163,184,.2);
+  box-shadow: 0 24px 60px rgba(15,23,42,.16);
+}
+html[data-role-theme="light"] .bq-pm-ov { background: rgba(15,23,42,.4); }
+html[data-role-theme="light"] .bq-pm__head { border-bottom-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .bq-pm__head-title { color: #0f172a; }
+html[data-role-theme="light"] .bq-pm__search-inp { border-color: rgba(148,163,184,.22); background: #f8fafc; color: #0f172a; }
+html[data-role-theme="light"] .bq-pm__search-inp::placeholder { color: #94a3b8; }
+html[data-role-theme="light"] .bq-pm__search-inp:focus { border-color: rgba(99,102,241,.4); background: #fff; }
+html[data-role-theme="light"] .bq-pm__student-item { background: rgba(148,163,184,.05); }
+html[data-role-theme="light"] .bq-pm__student-item:hover { background: rgba(99,102,241,.07); border-color: rgba(99,102,241,.2); }
+html[data-role-theme="light"] .bq-pm__item-name { color: #1e293b; }
+html[data-role-theme="light"] .bq-pm__student-badge { background: rgba(79,70,229,.06); border-color: rgba(79,70,229,.22); }
+html[data-role-theme="light"] .bq-pm__student-name { color: #0f172a; }
+html[data-role-theme="light"] .bq-pm__student-groups { color: #4f46e5; }
+html[data-role-theme="light"] .bq-pm__type-row { background: #f1f5f9; border-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .bq-pm__type-btn { color: #94a3b8; }
+html[data-role-theme="light"] .bq-pm__amount-inp,
+html[data-role-theme="light"] .bq-pm__date-inp { border-color: rgba(148,163,184,.22); background: #f8fafc; color: #0f172a; }
+html[data-role-theme="light"] .bq-pm__amount-inp:focus { border-color: rgba(99,102,241,.4); background: #fff; }
+html[data-role-theme="light"] .bq-pm__note-inp { border-color: rgba(148,163,184,.22); background: #f8fafc; color: #0f172a; }
+html[data-role-theme="light"] .bq-pm__foot { border-top-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .bq-pm__sep { background: rgba(148,163,184,.14); }
+
+@media (max-width: 480px) {
+  .bq-pm { border-radius: 16px 16px 0 0; }
+  .bq-pm-ov { padding: 0; align-items: flex-end; }
 }
 
 /* filter */
@@ -3863,13 +4381,19 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
               id="bqQuickStudentOpen"
               data-drawer-url="{% url 'accounts:add_user' %}?role=student&drawer=1&next={{ request.get_full_path|urlencode }}"
               role="menuitem">
-              <span class="bq-quick__icon"><i class="fa-solid fa-user-plus"></i></span>
-              <span>Yangi talaba</span>
+              <span class="bq-quick__icon bq-quick__icon--student"><i class="fa-solid fa-user-plus"></i></span>
+              <div class="bq-quick__link-body">
+                <span class="bq-quick__link-title">Yangi talaba</span>
+                <span class="bq-quick__link-sub">O'quvchi qo'shish</span>
+              </div>
             </button>
-            <a href="{% url 'education:tolovlar_home' %}" class="bq-quick__link" role="menuitem">
-              <span class="bq-quick__icon"><i class="fa-solid fa-sack-dollar"></i></span>
-              <span>To'lov</span>
-            </a>
+            <button type="button" class="bq-quick__link" id="bqQuickPayOpen" role="menuitem">
+              <span class="bq-quick__icon bq-quick__icon--payment"><i class="fa-solid fa-sack-dollar"></i></span>
+              <div class="bq-quick__link-body">
+                <span class="bq-quick__link-title">To'lov</span>
+                <span class="bq-quick__link-sub">To'lov qo'shish</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -4593,6 +5117,97 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
     </div>
   </div>
 </aside>
+
+<!-- ══════════════════ PAYMENT MODAL ══════════════════ -->
+<div class="bq-pm-ov" id="bqPayModal" hidden
+     data-students-url="{% url 'education:students_with_debt_api' %}"
+     data-groups-tpl="{% url 'education:student_groups_api' student_id=0 %}"
+     data-create-url="{% url 'education:create_payment' %}"
+     data-redirect-url="{% url 'education:tolovlar_home' %}">
+  <div class="bq-pm">
+    <div class="bq-pm__head">
+      <div class="bq-pm__head-ico"><i class="fa-solid fa-sack-dollar"></i></div>
+      <div class="bq-pm__head-title">To'lov qilish</div>
+      <button type="button" class="bq-pm__close" id="bqPMClose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="bq-pm__search-wrap" id="bqPMSearchWrap">
+      <i class="fa-solid fa-magnifying-glass bq-pm__search-ico"></i>
+      <input type="text" class="bq-pm__search-inp" id="bqPMSearch"
+             placeholder="O'quvchi ismi yoki telefoni..." autocomplete="off">
+    </div>
+    <div class="bq-pm__list-wrap" id="bqPMListWrap">
+      <div class="bq-pm__list" id="bqPMList">
+        <div class="bq-pm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>
+      </div>
+    </div>
+
+    <div class="bq-pm__sep" id="bqPMSep" hidden></div>
+
+    <div class="bq-pm__form" id="bqPMForm" hidden>
+      <div class="bq-pm__student-badge" id="bqPMStudentBadge">
+        <div class="bq-pm__student-ava"><i class="fa-solid fa-user"></i></div>
+        <div class="bq-pm__student-info">
+          <div class="bq-pm__student-name" id="bqPMStudentName"></div>
+          <div class="bq-pm__student-groups" id="bqPMStudentGroups">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:10px"></i>
+          </div>
+        </div>
+        <button type="button" class="bq-pm__student-change" id="bqPMStudentChange" title="O'zgartirish">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+      </div>
+
+      <div class="bq-pm__type-row" id="bqPMTypeRow">
+        {% if not active_payment_methods or 'NAQD' in active_payment_methods %}
+        <button type="button" class="bq-pm__type-btn is-active" data-type="cash">
+          <i class="fa-solid fa-money-bills"></i> Naqt
+        </button>
+        {% endif %}
+        {% if not active_payment_methods or 'KARTA' in active_payment_methods or 'CLICK' in active_payment_methods or 'PAYME' in active_payment_methods %}
+        <button type="button" class="bq-pm__type-btn{% if active_payment_methods and 'NAQD' not in active_payment_methods %} is-active{% endif %}" data-type="card">
+          <i class="fa-solid fa-credit-card"></i> Karta
+        </button>
+        {% endif %}
+        {% if not active_payment_methods or 'NAQD' in active_payment_methods and 'KARTA' in active_payment_methods or 'CLICK' in active_payment_methods or 'PAYME' in active_payment_methods %}
+        <button type="button" class="bq-pm__type-btn" data-type="mixed">
+          <i class="fa-solid fa-shuffle"></i> Aralash
+        </button>
+        {% endif %}
+      </div>
+
+      <div class="bq-pm__amounts" id="bqPMAmounts"></div>
+
+      <div class="bq-pm__date-row">
+        <span class="bq-pm__date-label">Sana</span>
+        <input type="date" class="bq-pm__date-inp" id="bqPMDate">
+      </div>
+
+      <div class="bq-pm__note-wrap">
+        <button type="button" class="bq-pm__note-toggle" id="bqPMNoteToggle">
+          <i class="fa-regular fa-comment-dots"></i> Izoh qo'shish
+        </button>
+        <textarea class="bq-pm__note-inp" id="bqPMNote" placeholder="Izoh..." hidden></textarea>
+      </div>
+    </div>
+
+    <div class="bq-pm__foot">
+      <button type="button" class="bq-pm__btn-cancel" id="bqPMCancel">Bekor qilish</button>
+      <button type="button" class="bq-pm__btn-confirm" id="bqPMConfirm" disabled>
+        <i class="fa-solid fa-check"></i> To'lov qilish
+      </button>
+    </div>
+  </div>
+</div>
+<form id="bqPayForm" method="post" action="{% url 'education:create_payment' %}" style="display:none">
+  {% csrf_token %}
+  <input type="hidden" name="student_id" id="bqPFStudentId">
+  <input type="hidden" name="cash_amount" id="bqPFCash" value="0">
+  <input type="hidden" name="card_amount" id="bqPFCard" value="0">
+  <input type="hidden" name="paid_date" id="bqPFDate">
+  <input type="hidden" name="note" id="bqPFNote">
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+</form>
 
 <!-- ══════════════════ AI CHAT ══════════════════ -->
 <div class="bq-chat-overlay" id="chatOverlay"></div>
@@ -6508,14 +7123,14 @@ if(quickMenu && quickToggle){
     e.stopPropagation();
     setQuickMenu(!quickMenu.classList.contains('open'));
   });
-  quickMenu.addEventListener('mouseenter',()=>setQuickMenu(true));
-  quickMenu.addEventListener('mouseleave',()=>setQuickMenu(false));
-  quickMenu.addEventListener('focusin',()=>setQuickMenu(true));
   quickMenu.addEventListener('focusout',e=>{
     if(!quickMenu.contains(e.relatedTarget)) setQuickMenu(false);
   });
   document.addEventListener('click',e=>{
     if(!quickMenu.contains(e.target)) setQuickMenu(false);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape' && quickMenu.classList.contains('open')) setQuickMenu(false);
   });
 }
 
@@ -6550,7 +7165,7 @@ function formatDrawerPhoneValue(value){
   if(digits.slice(2,5)) parts.push(digits.slice(2,5));
   if(digits.slice(5,7)) parts.push(digits.slice(5,7));
   if(digits.slice(7,9)) parts.push(digits.slice(7,9));
-  return '+998' + (parts.length ? ` ${parts.join(' ')}` : ' ');
+  return parts.length ? parts.join(' ') : '';
 }
 
 function formatDrawerPassportValue(value){
@@ -6707,6 +7322,13 @@ function initStudentDrawerGroupPrice(){
 
   function setPriceVisible(visible){
     priceBlock.style.display = visible ? '' : 'none';
+    if(visible){
+      const dateInput=studentDrawerBody.querySelector('#id_group_start_date');
+      if(dateInput && !dateInput.value){
+        const t=new Date();
+        dateInput.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+      }
+    }
   }
 
   function groupPriceUrl(groupId){
@@ -6765,8 +7387,16 @@ function initStudentDrawerExtraFields(){
     toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
 
     if(visible){
-      row.querySelector('input, textarea, select')?.focus();
+      // For group section: focus the select, not hidden inputs
+      const firstVisible=Array.from(row.querySelectorAll('input:not([type="hidden"]), textarea, select')).find(el=>!el.closest('[style*="display:none"]') && !el.closest('[style*="display: none"]'));
+      firstVisible?.focus();
       return;
+    }
+
+    // Hide group price block when group section closes
+    if(fieldName==='group'){
+      const pb=studentDrawerBody.querySelector('[data-drawer-price-block]');
+      if(pb) pb.style.display='none';
     }
 
     clearField(row);
@@ -6839,6 +7469,280 @@ function initStudentDrawerOptionalSections(){
   });
 }
 
+function initStudentDrawerGroupModal(){
+  const MODAL_ID='bqGModal';
+  const existing=document.getElementById(MODAL_ID);
+  if(existing) existing.remove();
+
+  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
+  const selGrp=studentDrawerBody.querySelector('#id_group');
+  const openBtn=studentDrawerBody.querySelector('#bqGrpOpenBtn');
+  const btnText=studentDrawerBody.querySelector('#bqGrpBtnText');
+  const chipsContainer=studentDrawerBody.querySelector('#bqGrpChips');
+  const assignmentsField=studentDrawerBody.querySelector('#id_group_assignments');
+  if(!openBtn || !selGrp) return;
+
+  const priceTpl=form?.dataset.groupPriceTemplate||'';
+  const opts=Array.from(selGrp.options)
+    .filter(o=>o.value)
+    .map(o=>({value:o.value, label:o.text.trim()}));
+
+  let groups=[];   // [{value, label, price, date}]
+  let pickedNow=null; // group highlighted in current modal session
+
+  // ── Modal DOM ──
+  const ov=document.createElement('div');
+  ov.id=MODAL_ID;
+  ov.className='bq-gm-ov';
+  ov.hidden=true;
+  ov.innerHTML=
+    '<div class="bq-gm">'+
+      '<div class="bq-gm__head">'+
+        '<div class="bq-gm__head-ico"><i class="fa-solid fa-layer-group"></i></div>'+
+        '<div class="bq-gm__head-title">Guruh qo\'shish</div>'+
+        '<button type="button" class="bq-gm__close" id="bqGMClose"><i class="fa-solid fa-xmark"></i></button>'+
+      '</div>'+
+      '<div class="bq-gm__added" id="bqGMAdded" hidden>'+
+        '<div class="bq-gm__added-list" id="bqGMAddedList"></div>'+
+      '</div>'+
+      '<div class="bq-gm__search-wrap">'+
+        '<i class="fa-solid fa-magnifying-glass bq-gm__search-ico"></i>'+
+        '<input type="text" class="bq-gm__search-inp" id="bqGMSearch" placeholder="Guruh nomini yozing..." autocomplete="off">'+
+      '</div>'+
+      '<div class="bq-gm__list-wrap"><div class="bq-gm__list" id="bqGMList"></div></div>'+
+      '<div class="bq-gm__cascade" id="bqGMCascade" hidden>'+
+        '<div class="bq-gm__sel-badge">'+
+          '<i class="fa-solid fa-circle-check"></i>'+
+          '<span id="bqGMSelName"></span>'+
+          '<button type="button" class="bq-gm__desel-btn" id="bqGMDesel"><i class="fa-solid fa-xmark"></i></button>'+
+        '</div>'+
+        '<div class="bq-gm__cascade-row">'+
+          '<div class="bq-gm__cascade-field">'+
+            '<label>Kurs narxi <span class="bq-gm__cascade-opt">(so\'m)</span></label>'+
+            '<input type="number" id="bqGMPrice" placeholder="0" min="0">'+
+          '</div>'+
+          '<div class="bq-gm__cascade-field">'+
+            '<label>Qo\'shilish sanasi</label>'+
+            '<input type="date" id="bqGMDate">'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="bq-gm__foot">'+
+        '<button type="button" class="bq-gm__btn-cancel" id="bqGMClose2">Yopish</button>'+
+        '<button type="button" class="bq-gm__btn-confirm" id="bqGMConfirm" disabled>'+
+          '<i class="fa-solid fa-plus"></i> Qo\'shish'+
+        '</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+
+  const gmSearch=document.getElementById('bqGMSearch');
+  const gmList=document.getElementById('bqGMList');
+  const gmCascade=document.getElementById('bqGMCascade');
+  const gmSelName=document.getElementById('bqGMSelName');
+  const gmDesel=document.getElementById('bqGMDesel');
+  const gmPrice=document.getElementById('bqGMPrice');
+  const gmDate=document.getElementById('bqGMDate');
+  const gmClose=document.getElementById('bqGMClose');
+  const gmClose2=document.getElementById('bqGMClose2');
+  const gmConfirm=document.getElementById('bqGMConfirm');
+  const gmAdded=document.getElementById('bqGMAdded');
+  const gmAddedList=document.getElementById('bqGMAddedList');
+
+  function todayStr(){
+    const t=new Date();
+    return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  }
+
+  function fmtDate(s){
+    if(!s) return '';
+    const d=new Date(s);
+    return d.toLocaleDateString('uz-UZ',{day:'numeric',month:'long'});
+  }
+
+  function fetchPrice(id,cb){
+    if(!priceTpl) return cb('');
+    fetch(priceTpl.replace(/0\/?$/,id+'/'),{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.ok?r.json():{}).then(d=>cb(d.price||'')).catch(()=>cb(''));
+  }
+
+  function serialize(){
+    const payload=groups.map(g=>({
+      group_id:parseInt(g.value),
+      start_date:g.date,
+      course_price:g.price?parseInt(g.price):''
+    }));
+    if(assignmentsField) assignmentsField.value=groups.length?JSON.stringify(payload):'';
+    if(btnText) btnText.textContent=groups.length?'Guruh qo\'shish ('+groups.length+')':'Guruh qo\'shish';
+  }
+
+  function renderChips(){
+    if(!chipsContainer) return;
+    chipsContainer.innerHTML=groups.map((g,i)=>{
+      const meta=[];
+      if(g.price) meta.push(Number(g.price).toLocaleString()+" so'm");
+      if(g.date) meta.push(fmtDate(g.date));
+      return '<div class="bq-gtrg__chip">'+
+        '<span class="bq-gtrg__chip-ico"><i class="fa-solid fa-layer-group"></i></span>'+
+        '<div class="bq-gtrg__chip-body">'+
+          '<span class="bq-gtrg__chip-name">'+g.label+'</span>'+
+          (meta.length?'<span class="bq-gtrg__chip-meta">'+meta.join(' · ')+'</span>':'')+
+        '</div>'+
+        '<button type="button" class="bq-gtrg__chip-del" data-del-idx="'+i+'"><i class="fa-solid fa-xmark"></i></button>'+
+      '</div>';
+    }).join('');
+    chipsContainer.querySelectorAll('[data-del-idx]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        groups.splice(parseInt(btn.dataset.delIdx),1);
+        serialize();
+        renderChips();
+        renderAddedInModal();
+        refreshList();
+      });
+    });
+  }
+
+  function renderAddedInModal(){
+    if(!groups.length){ gmAdded.hidden=true; return; }
+    gmAdded.hidden=false;
+    gmAddedList.innerHTML=groups.map((g,i)=>
+      '<div class="bq-gm__added-item">'+
+        '<i class="fa-solid fa-check"></i>'+
+        '<span>'+g.label+'</span>'+
+        '<button type="button" class="bq-gm__added-del" data-modal-del="'+i+'">'+
+          '<i class="fa-solid fa-xmark"></i>'+
+        '</button>'+
+      '</div>'
+    ).join('');
+    gmAddedList.querySelectorAll('[data-modal-del]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        groups.splice(parseInt(btn.dataset.modalDel),1);
+        serialize();
+        renderChips();
+        renderAddedInModal();
+        refreshList();
+      });
+    });
+  }
+
+  function showHint(){
+    gmList.innerHTML='<div class="bq-gm__empty bq-gm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>';
+  }
+
+  function refreshList(){
+    const q=gmSearch.value.trim().toLowerCase();
+    if(q.length>=3){
+      const filtered=opts.filter(o=>o.label.toLowerCase().includes(q));
+      renderSearchResults(filtered);
+    } else if(q.length===0){
+      showHint();
+    }
+  }
+
+  function renderSearchResults(items){
+    gmList.innerHTML='';
+    if(!items.length){
+      gmList.innerHTML='<div class="bq-gm__empty">Guruh topilmadi</div>';
+      return;
+    }
+    items.forEach(item=>{
+      const alreadyAdded=groups.some(g=>g.value===item.value);
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='bq-gm__item'+(pickedNow&&pickedNow.value===item.value?' is-active':'')+(alreadyAdded?' is-added':'');
+      b.textContent=item.label;
+      if(alreadyAdded){ b.disabled=true; }
+      else { b.addEventListener('click',()=>pickGroup(item)); }
+      gmList.appendChild(b);
+    });
+  }
+
+  function pickGroup(item){
+    pickedNow=item;
+    gmSelName.textContent=item.label;
+    gmCascade.hidden=false;
+    gmConfirm.disabled=false;
+    gmDate.value=todayStr();
+    refreshList();
+    fetchPrice(item.value,p=>{ gmPrice.value=p; });
+  }
+
+  function clearPick(){
+    pickedNow=null;
+    gmCascade.hidden=true;
+    gmConfirm.disabled=true;
+    refreshList();
+  }
+
+  function addGroup(){
+    if(!pickedNow) return;
+    if(groups.some(g=>g.value===pickedNow.value)) return;
+    groups.push({value:pickedNow.value, label:pickedNow.label, price:gmPrice.value, date:gmDate.value});
+    serialize();
+    renderChips();
+    renderAddedInModal();
+    // Reset for next pick
+    pickedNow=null;
+    gmCascade.hidden=true;
+    gmConfirm.disabled=true;
+    gmSearch.value='';
+    showHint();
+    setTimeout(()=>gmSearch.focus(),60);
+  }
+
+  function openModal(){
+    ov.hidden=false;
+    document.body.style.overflow='hidden';
+    pickedNow=null;
+    gmCascade.hidden=true;
+    gmConfirm.disabled=true;
+    gmSearch.value='';
+    showHint();
+    renderAddedInModal();
+    setTimeout(()=>gmSearch.focus(),60);
+  }
+
+  function closeModal(){
+    ov.hidden=true;
+    document.body.style.overflow='';
+  }
+
+  gmSearch.addEventListener('input',function(){
+    if(this.value.trim().length===0){ showHint(); clearPick(); }
+  });
+  gmSearch.addEventListener('keydown',function(e){
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    const q=this.value.trim().toLowerCase();
+    if(q.length<3) return;
+    const filtered=opts.filter(o=>o.label.toLowerCase().includes(q));
+    renderSearchResults(filtered);
+  });
+
+  openBtn.addEventListener('click',openModal);
+  gmClose.addEventListener('click',closeModal);
+  gmClose2.addEventListener('click',closeModal);
+  gmDesel.addEventListener('click',clearPick);
+  gmConfirm.addEventListener('click',addGroup);
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeModal(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!ov.hidden) closeModal(); });
+
+  // Restore from group_assignments on re-render (validation errors)
+  if(assignmentsField&&assignmentsField.value){
+    try{
+      const parsed=JSON.parse(assignmentsField.value);
+      if(Array.isArray(parsed)){
+        parsed.forEach(item=>{
+          const opt=opts.find(o=>o.value===String(item.group_id));
+          if(opt) groups.push({value:opt.value, label:opt.label, price:item.course_price||'', date:item.start_date||''});
+        });
+        serialize();
+        renderChips();
+      }
+    }catch(e){}
+  }
+}
+
 function initStudentDrawerForm(){
   const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
   studentDrawerBody.querySelectorAll('[data-student-drawer-close]').forEach(btn=>{
@@ -6850,6 +7754,7 @@ function initStudentDrawerForm(){
   initStudentDrawerGroupPrice();
   initStudentDrawerExtraFields();
   initStudentDrawerOptionalSections();
+  initStudentDrawerGroupModal();
   if(!form) return;
 
   form.addEventListener('submit',async e=>{
@@ -7094,6 +7999,251 @@ new MutationObserver(rerenderChartsForTheme).observe(document.documentElement, {
 
 /* ── Boshlang'ich yuklanish ── */
 load(fromI.value,toI.value);
+
+/* ══════════════════ PAYMENT MODAL ══════════════════ */
+(function(){
+  const modal   = document.getElementById('bqPayModal');
+  const openBtn = document.getElementById('bqQuickPayOpen');
+  if(!modal || !openBtn) return;
+
+  const studentsUrl = modal.dataset.studentsUrl || '';
+  const redirectUrl = modal.dataset.redirectUrl || '';
+  const payForm     = document.getElementById('bqPayForm');
+
+  const pmClose         = document.getElementById('bqPMClose');
+  const pmCancel        = document.getElementById('bqPMCancel');
+  const pmSearch        = document.getElementById('bqPMSearch');
+  const pmList          = document.getElementById('bqPMList');
+  const pmListWrap      = document.getElementById('bqPMListWrap');
+  const pmSep           = document.getElementById('bqPMSep');
+  const pmForm          = document.getElementById('bqPMForm');
+  const pmStudentName   = document.getElementById('bqPMStudentName');
+  const pmStudentGroups = document.getElementById('bqPMStudentGroups');
+  const pmStudentChange = document.getElementById('bqPMStudentChange');
+  const pmTypeRow       = document.getElementById('bqPMTypeRow');
+  const pmAmounts       = document.getElementById('bqPMAmounts');
+  const pmDate          = document.getElementById('bqPMDate');
+  const pmNoteToggle    = document.getElementById('bqPMNoteToggle');
+  const pmNote          = document.getElementById('bqPMNote');
+  const pmConfirm       = document.getElementById('bqPMConfirm');
+
+  let cachedStudents = null;
+  let selectedStudent = null;
+  let payType = 'cash';
+
+  function todayStr(){
+    const t=new Date();
+    return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  }
+
+  function fmtMoney(n){
+    return Number(n).toLocaleString('uz-UZ');
+  }
+
+  // ── Show/hide phases ──
+  function showSearch(){
+    pmListWrap.hidden  = false;
+    pmSep.hidden       = true;
+    pmForm.hidden      = true;
+    pmConfirm.disabled = true;
+    pmSearch.value     = '';
+    renderHint();
+    setTimeout(()=>pmSearch.focus(), 60);
+  }
+
+  function renderHint(){
+    pmList.innerHTML = '<div class="bq-pm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>';
+  }
+
+  function firstAvailableType(){
+    const first = pmTypeRow.querySelector('.bq-pm__type-btn');
+    return first ? (first.dataset.type || 'cash') : 'cash';
+  }
+
+  function openModal(){
+    cachedStudents = null; // refresh on each open
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    selectedStudent = null;
+    payType = firstAvailableType();
+    setActiveType(payType);
+    showSearch();
+  }
+
+  function closeModal(){
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  // ── Fetch students with debt ──
+  async function fetchStudents(){
+    if(cachedStudents) return cachedStudents;
+    const res = await fetch(studentsUrl, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const data = await res.json();
+    cachedStudents = data.students || [];
+    return cachedStudents;
+  }
+
+  async function doSearch(q){
+    pmList.innerHTML = '<div class="bq-pm__hint"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+    let students;
+    try { students = await fetchStudents(); }
+    catch(e){ pmList.innerHTML='<div class="bq-pm__empty">Xatolik yuz berdi</div>'; return; }
+
+    const filtered = students.filter(s=>(s.name||'').toLowerCase().includes(q));
+    if(!filtered.length){
+      pmList.innerHTML='<div class="bq-pm__empty">Qarzdor o\'quvchi topilmadi</div>';
+      return;
+    }
+    pmList.innerHTML = '';
+    filtered.forEach(s=>{
+      const initials = (s.name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bq-pm__student-item';
+      btn.innerHTML =
+        '<div class="bq-pm__item-ava">'+initials+'</div>'+
+        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:1px">'+
+          '<span class="bq-pm__item-name">'+(s.name||'—')+'</span>'+
+          '<span class="bq-pm__item-meta">'+(s.groups||'')+'</span>'+
+        '</div>'+
+        '<span class="bq-pm__item-debt">'+fmtMoney(s.debt||0)+' <small>so\'m</small></span>';
+      btn.addEventListener('click', ()=>selectStudent(s));
+      pmList.appendChild(btn);
+    });
+  }
+
+  pmSearch.addEventListener('keydown', function(e){
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    const q = this.value.trim().toLowerCase();
+    if(q.length<3) return;
+    doSearch(q);
+  });
+  pmSearch.addEventListener('input', function(){
+    if(this.value.trim().length===0) renderHint();
+  });
+
+  // ── Select student ──
+  function selectStudent(s){
+    selectedStudent = s;
+    pmStudentName.textContent = s.name || '—';
+    pmStudentGroups.textContent = s.groups || '';
+    pmListWrap.hidden = true;
+    pmSep.hidden      = false;
+    pmForm.hidden     = false;
+    pmDate.value      = todayStr();
+    pmConfirm.disabled = false;
+    renderAmounts(s.debt || 0);
+    // Update form next URL to student payment history
+    const nextInp = payForm.querySelector('[name="next"]');
+    if(nextInp && redirectUrl){
+      nextInp.value = redirectUrl;
+    }
+  }
+
+  pmStudentChange.addEventListener('click', ()=>{
+    selectedStudent = null;
+    pmConfirm.disabled = true;
+    showSearch();
+  });
+
+  // ── Payment type ──
+  function setActiveType(type){
+    payType = type;
+    pmTypeRow.querySelectorAll('.bq-pm__type-btn').forEach(b=>b.classList.toggle('is-active', b.dataset.type===type));
+  }
+
+  pmTypeRow.querySelectorAll('.bq-pm__type-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setActiveType(btn.dataset.type);
+      renderAmounts(selectedStudent?.debt || 0);
+    });
+  });
+
+  function renderAmounts(debt){
+    const val = debt > 0 ? debt : '';
+    pmAmounts.innerHTML = '';
+    if(payType==='cash'){
+      pmAmounts.innerHTML =
+        '<div class="bq-pm__amount-row">'+
+          '<div class="bq-pm__amount-field">'+
+            '<div class="bq-pm__amount-label">Naqt summa</div>'+
+            '<div class="bq-pm__amount-inp-wrap">'+
+              '<input type="number" class="bq-pm__amount-inp" id="bqPMCash" placeholder="0" min="0" inputmode="numeric" value="'+val+'">'+
+              '<span class="bq-pm__amount-cur">UZS</span>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+    } else if(payType==='card'){
+      pmAmounts.innerHTML =
+        '<div class="bq-pm__amount-row">'+
+          '<div class="bq-pm__amount-field">'+
+            '<div class="bq-pm__amount-label">Karta summa</div>'+
+            '<div class="bq-pm__amount-inp-wrap">'+
+              '<input type="number" class="bq-pm__amount-inp" id="bqPMCard" placeholder="0" min="0" inputmode="numeric" data-currency="card" value="'+val+'">'+
+              '<span class="bq-pm__amount-cur">UZS</span>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+    } else {
+      pmAmounts.innerHTML =
+        '<div class="bq-pm__amount-row two-col">'+
+          '<div class="bq-pm__amount-field">'+
+            '<div class="bq-pm__amount-label">Naqt</div>'+
+            '<div class="bq-pm__amount-inp-wrap">'+
+              '<input type="number" class="bq-pm__amount-inp" id="bqPMCash" placeholder="0" min="0" inputmode="numeric">'+
+              '<span class="bq-pm__amount-cur">UZS</span>'+
+            '</div>'+
+          '</div>'+
+          '<div class="bq-pm__amount-field">'+
+            '<div class="bq-pm__amount-label">Karta</div>'+
+            '<div class="bq-pm__amount-inp-wrap">'+
+              '<input type="number" class="bq-pm__amount-inp" id="bqPMCard" placeholder="0" min="0" inputmode="numeric" data-currency="card">'+
+              '<span class="bq-pm__amount-cur">UZS</span>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+    }
+    const first = pmAmounts.querySelector('input');
+    if(first) setTimeout(()=>{ first.focus(); first.select(); }, 40);
+  }
+
+  // ── Note ──
+  pmNoteToggle.addEventListener('click', ()=>{
+    pmNote.hidden = !pmNote.hidden;
+    if(!pmNote.hidden) setTimeout(()=>pmNote.focus(), 40);
+  });
+
+  // ── Submit ──
+  pmConfirm.addEventListener('click', ()=>{
+    if(!selectedStudent) return;
+    const cashInp = document.getElementById('bqPMCash');
+    const cardInp = document.getElementById('bqPMCard');
+    const cash = cashInp ? (parseInt(cashInp.value)||0) : 0;
+    const card = cardInp ? (parseInt(cardInp.value)||0) : 0;
+    if(cash + card <= 0){
+      const bad = cashInp || cardInp;
+      if(bad){ bad.focus(); bad.classList.add('bq-pm__amount-inp--err'); setTimeout(()=>bad.classList.remove('bq-pm__amount-inp--err'),1200); }
+      return;
+    }
+    document.getElementById('bqPFStudentId').value = selectedStudent.id;
+    document.getElementById('bqPFCash').value       = cash;
+    document.getElementById('bqPFCard').value       = card;
+    document.getElementById('bqPFDate').value       = pmDate.value || todayStr();
+    document.getElementById('bqPFNote').value       = pmNote.value || '';
+    pmConfirm.classList.add('is-loading');
+    pmConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';
+    payForm.submit();
+  });
+
+  // ── Wiring ──
+  openBtn.addEventListener('click', ()=>{ setQuickMenu(false); openModal(); });
+  pmClose.addEventListener('click', closeModal);
+  pmCancel.addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) closeModal(); });
+})();
 
 /* Churn KPI cards olib tashlandi — endi "Xavfli O'quvchilar" Top 5 qatorida ko'rinadi.
    Kerak bo'lsa to'liq ro'yxat: /dashboard/students/low-activity/ */

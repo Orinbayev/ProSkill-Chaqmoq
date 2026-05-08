@@ -1,19 +1,28 @@
+{% load static %}
 {% if form.non_field_errors %}
 <div class="bq-sdrawer-alert">
-  {% for error in form.non_field_errors %}
-  <div>{{ error }}</div>
-  {% endfor %}
+  {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
 </div>
 {% endif %}
 
 {% if student_limit_state %}
 <div class="bq-sdrawer-limit{% if student_limit_state.is_at_limit %} is-at-limit{% endif %}">
-  <span class="bq-sdrawer-limit__label">Limit</span>
-  <strong>{{ student_limit_state.current_count }}/{{ student_limit_state.limit }}</strong>
+  <div class="bq-sdrawer-limit__row">
+    <span class="bq-sdrawer-limit__label">
+      <i class="fa-solid fa-users"></i>
+      O'quvchilar
+    </span>
+    <span class="bq-sdrawer-limit__nums">
+      <b>{{ student_limit_state.current_count }}</b><span>/{{ student_limit_state.limit }}</span>
+    </span>
+  </div>
+  <div class="bq-sdrawer-limit__track">
+    <div class="bq-sdrawer-limit__fill" style="width:{% widthratio student_limit_state.current_count student_limit_state.limit 100 %}%"></div>
+  </div>
   {% if student_limit_state.is_at_limit %}
-  <small>To'lgan</small>
+  <span class="bq-sdrawer-limit__tag bq-sdrawer-limit__tag--full">Limit to'lgan</span>
   {% else %}
-  <small>Qoldi {{ student_limit_state.remaining }} ta</small>
+  <span class="bq-sdrawer-limit__tag">{{ student_limit_state.remaining }} ta o'rin bor</span>
   {% endif %}
 </div>
 {% endif %}
@@ -21,163 +30,232 @@
 <form
   method="post"
   action="{% url 'accounts:add_user' %}?role=student&drawer=1{% if next_url %}&next={{ next_url|urlencode }}{% endif %}"
-  class="bq-sdrawer-form bq-sdrawer-form--student"
+  class="bq-sdrawer-form bq-sdrawer-form--student bq-sdrawer-pro"
   data-student-drawer-form
+  data-group-price-template="{% url 'education:group_price' pk=0 %}"
+  enctype="multipart/form-data"
   novalidate>
   {% csrf_token %}
   {{ form.duplicate_override }}
   <input type="hidden" name="role" value="student">
   {% if drawer_center_value %}
   <input type="hidden" name="center" value="{{ drawer_center_value }}">
-  {% else %}
-  {{ form.center }}
-  {% endif %}
-  {% if next_url %}
-  <input type="hidden" name="next" value="{{ next_url }}">
-  {% endif %}
+  {% else %}{{ form.center }}{% endif %}
+  {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
 
+  <p class="bq-sdrawer-pro__subtitle">O'quvchi ma'lumotlarini kiriting</p>
+
+  <!-- ── Ism + Familiya ── -->
   <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
-    <div class="bq-sdrawer-field bq-sdrawer-field--full">
-      <div class="bq-sdrawer-label-row">
-        <label for="{{ form.telefon1.id_for_label }}">Telefon</label>
-        <span class="bq-sdrawer-required">Majburiy</span>
-      </div>
-      {{ form.telefon1 }}
-      {% if form.telefon1.errors %}<div class="bq-sdrawer-error">{{ form.telefon1.errors|join:", " }}</div>{% endif %}
-    </div>
-
     <div class="bq-sdrawer-field">
       <div class="bq-sdrawer-label-row">
-        <label for="{{ form.ism.id_for_label }}">Ism</label>
-        <span class="bq-sdrawer-required">Majburiy</span>
+        <label for="{{ form.ism.id_for_label }}">Ism <span class="bq-sdrawer-pro__star">*</span></label>
       </div>
-      {{ form.ism }}
+      <div class="bq-sdrawer-pro__input-wrap">
+        <span class="bq-sdrawer-pro__input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        {{ form.ism }}
+      </div>
       {% if form.ism.errors %}<div class="bq-sdrawer-error">{{ form.ism.errors|join:", " }}</div>{% endif %}
     </div>
-
     <div class="bq-sdrawer-field">
       <div class="bq-sdrawer-label-row">
-        <label for="{{ form.familya.id_for_label }}">Familiya</label>
-        <span class="bq-sdrawer-required">Majburiy</span>
+        <label for="{{ form.familya.id_for_label }}">Familiya <span class="bq-sdrawer-pro__star">*</span></label>
       </div>
-      {{ form.familya }}
+      <div class="bq-sdrawer-pro__input-wrap">
+        <span class="bq-sdrawer-pro__input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        {{ form.familya }}
+      </div>
       {% if form.familya.errors %}<div class="bq-sdrawer-error">{{ form.familya.errors|join:", " }}</div>{% endif %}
     </div>
+  </div>
 
+  <!-- ── Telefon ── -->
+  <div class="bq-sdrawer-field bq-sdrawer-field--full">
+    <div class="bq-sdrawer-label-row">
+      <label for="{{ form.telefon1.id_for_label }}">Telefon <span class="bq-sdrawer-pro__star">*</span></label>
+    </div>
+    <div class="bq-sdrawer-pro__phone-wrap">
+      <span class="bq-sdrawer-pro__phone-prefix">
+        <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+        <span class="bq-sdrawer-pro__phone-code">+998</span>
+      </span>
+      {{ form.telefon1 }}
+    </div>
+    {% if form.telefon1.errors %}<div class="bq-sdrawer-error">{{ form.telefon1.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <!-- ── Tug'ilgan sana + Jins ── -->
+  <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
     <div class="bq-sdrawer-field">
       <label for="{{ form.birth_date.id_for_label }}">Tug'ilgan sana</label>
-      {{ form.birth_date }}
+      <div class="bq-sdrawer-pro__input-wrap">
+        <span class="bq-sdrawer-pro__input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        {{ form.birth_date }}
+      </div>
       {% if form.birth_date.errors %}<div class="bq-sdrawer-error">{{ form.birth_date.errors|join:", " }}</div>{% endif %}
     </div>
-
     <div class="bq-sdrawer-field">
       <label>Jins</label>
-      <div class="bq-sdrawer-gender">
-        {% for radio in form.gender %}
-        {% if radio.data.value %}
-        <label class="bq-sdrawer-gender__item" for="{{ radio.id_for_label }}">
-          {{ radio.tag }}
-          <span>{{ radio.choice_label }}</span>
+      <div class="bq-sdrawer-gender bq-sdrawer-gender--pro">
+        {% for radio in form.gender %}{% if radio.data.value %}
+        <label class="bq-sdrawer-gender__item bq-sdrawer-gender__item--pro">
+          <input type="radio" name="{{ radio.data.name }}" value="{{ radio.data.value }}" id="{{ radio.id_for_label }}" {% if radio.data.selected %}checked{% endif %} class="gender-radio">
+          <span>
+            {% if radio.choice_label == "Erkak" or radio.choice_label == "Male" %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="4"/><path d="M18 2l-5 5"/><path d="M16 2h2a2 2 0 0 1 2 2v2"/><path d="M2 21a6 6 0 0 1 12 0"/></svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M12 14v8"/><path d="M9 19h6"/></svg>
+            {% endif %}
+            {{ radio.choice_label }}
+          </span>
         </label>
-        {% endif %}
-        {% endfor %}
+        {% endif %}{% endfor %}
       </div>
       {% if form.gender.errors %}<div class="bq-sdrawer-error">{{ form.gender.errors|join:", " }}</div>{% endif %}
     </div>
   </div>
 
-  <div class="bq-sdrawer-card bq-sdrawer-card--compact">
-    <div class="bq-sdrawer-card__head">
-      <div>
-        <div class="bq-sdrawer-card__title">Qo'shimcha ma'lumotlar</div>
-        <p class="bq-sdrawer-card__note">Kerak bo'lsa ochib to'ldiring.</p>
-      </div>
-      <button
-        type="button"
-        class="bq-sdrawer-inline-toggle"
-        data-section-toggle="extra"
-        data-open-label="Ochish"
-        data-close-label="Yopish"
-        aria-expanded="{% if form.telefon2.value or form.telefon2.errors or form.telegram_username.value or form.telegram_username.errors or form.address.value or form.address.errors or form.passport_id.value or form.passport_id.errors or form.jshr.value or form.jshr.errors or form.otchestvo.value or form.otchestvo.errors %}true{% else %}false{% endif %}">
-        {% if form.telefon2.value or form.telefon2.errors or form.telegram_username.value or form.telegram_username.errors or form.address.value or form.address.errors or form.passport_id.value or form.passport_id.errors or form.jshr.value or form.jshr.errors or form.otchestvo.value or form.otchestvo.errors %}Yopish{% else %}Ochish{% endif %}
-      </button>
+  <!-- ── Hidden group form fields (submitted with form) ── -->
+  <div style="display:none">
+    {{ form.group }}
+    {{ form.kurs_narhi }}
+    {{ form.group_start_date }}
+    {{ form.group_assignments }}
+  </div>
+
+  <!-- ── GURUH trigger + multi-chips ── -->
+  <div class="bq-gtrg" id="bqGrpTrigger">
+    <button type="button" class="bq-gtrg__btn" id="bqGrpOpenBtn">
+      <span class="bq-gtrg__btn-icon"><i class="fa-solid fa-layer-group"></i></span>
+      <span class="bq-gtrg__btn-text" id="bqGrpBtnText">Guruh qo'shish</span>
+      <span class="bq-gtrg__btn-plus">+</span>
+    </button>
+    <div class="bq-gtrg__chips" id="bqGrpChips"></div>
+  </div>
+
+  <!-- ══════════ TOGGLED INLINE FIELDS ══════════ -->
+
+  <!-- ── VASIY ── -->
+  <div class="bq-sdrawer-toggled" data-extra-field="vasiy" hidden>
+    <div class="bq-sdrawer-vasiy-picker">
+      <label class="bq-sdrawer-vasiy-pill"><input type="radio" name="vasiy_tur" value="ota" checked><span>Ota</span></label>
+      <label class="bq-sdrawer-vasiy-pill"><input type="radio" name="vasiy_tur" value="ona"><span>Ona</span></label>
+      <label class="bq-sdrawer-vasiy-pill"><input type="radio" name="vasiy_tur" value="aka"><span>Aka</span></label>
+      <label class="bq-sdrawer-vasiy-pill"><input type="radio" name="vasiy_tur" value="opa"><span>Opa</span></label>
     </div>
-
-    <div
-      class="bq-sdrawer-optional-section"
-      data-optional-section="extra"
-      {% if not form.telefon2.value and not form.telefon2.errors and not form.telegram_username.value and not form.telegram_username.errors and not form.address.value and not form.address.errors and not form.passport_id.value and not form.passport_id.errors and not form.jshr.value and not form.jshr.errors and not form.otchestvo.value and not form.otchestvo.errors %}hidden{% endif %}>
-      <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
-        <div class="bq-sdrawer-field">
-          <label for="{{ form.telefon2.id_for_label }}">Qo'shimcha telefon</label>
-          {{ form.telefon2 }}
-          {% if form.telefon2.errors %}<div class="bq-sdrawer-error">{{ form.telefon2.errors|join:", " }}</div>{% endif %}
-        </div>
-
-        <div class="bq-sdrawer-field">
-          <label for="{{ form.telegram_username.id_for_label }}">Telegram</label>
-          {{ form.telegram_username }}
-          {% if form.telegram_username.errors %}<div class="bq-sdrawer-error">{{ form.telegram_username.errors|join:", " }}</div>{% endif %}
-        </div>
-
-        <div class="bq-sdrawer-field">
-          <label for="{{ form.passport_id.id_for_label }}">Passport / ID</label>
-          {{ form.passport_id }}
-          {% if form.passport_id.errors %}<div class="bq-sdrawer-error">{{ form.passport_id.errors|join:", " }}</div>{% endif %}
-        </div>
-
-        <div class="bq-sdrawer-field">
-          <label for="{{ form.jshr.id_for_label }}">JSHR / PINFL</label>
-          {{ form.jshr }}
-          {% if form.jshr.errors %}<div class="bq-sdrawer-error">{{ form.jshr.errors|join:", " }}</div>{% endif %}
-        </div>
-
-        <div class="bq-sdrawer-field">
-          <label for="{{ form.otchestvo.id_for_label }}">Ota-ona ismi</label>
+    <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+      <div class="bq-sdrawer-field">
+        <div class="bq-sdrawer-pro__input-wrap">
+          <span class="bq-sdrawer-pro__input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
           {{ form.otchestvo }}
-          {% if form.otchestvo.errors %}<div class="bq-sdrawer-error">{{ form.otchestvo.errors|join:", " }}</div>{% endif %}
         </div>
-
-        <div class="bq-sdrawer-field bq-sdrawer-field--full">
-          <label for="{{ form.address.id_for_label }}">Manzil</label>
-          {{ form.address }}
-          {% if form.address.errors %}<div class="bq-sdrawer-error">{{ form.address.errors|join:", " }}</div>{% endif %}
+        {% if form.otchestvo.errors %}<div class="bq-sdrawer-error">{{ form.otchestvo.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field">
+        <div class="bq-sdrawer-pro__phone-wrap">
+          <span class="bq-sdrawer-pro__phone-prefix">
+            <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+            <span class="bq-sdrawer-pro__phone-code">+998</span>
+          </span>
+          {{ form.telefon2 }}
         </div>
+        {% if form.telefon2.errors %}<div class="bq-sdrawer-error">{{ form.telefon2.errors|join:", " }}</div>{% endif %}
       </div>
     </div>
   </div>
 
-  <div class="bq-sdrawer-card bq-sdrawer-card--compact">
-    <div class="bq-sdrawer-card__head">
-      <div>
-        <div class="bq-sdrawer-card__title">Kirish ma'lumotlari</div>
-        <p class="bq-sdrawer-card__note">Gmail va parol avtomatik yaratiladi. Kerak bo'lsa yangilang.</p>
+  <!-- ── MANZIL ── -->
+  <div class="bq-sdrawer-toggled bq-sdrawer-field" data-extra-field="manzil" hidden>
+    {{ form.address }}
+    {% if form.address.errors %}<div class="bq-sdrawer-error">{{ form.address.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <!-- ── TELEGRAM ── -->
+  <div class="bq-sdrawer-toggled" data-extra-field="telegram" hidden>
+    <div class="bq-sdrawer-pro__social-input-wrap">
+      <span class="bq-sdrawer-pro__social-prefix bq-sdrawer-pro__social-prefix--telegram">
+        <i class="fa-brands fa-telegram"></i>
+      </span>
+      {{ form.telegram_username }}
+    </div>
+    {% if form.telegram_username.errors %}<div class="bq-sdrawer-error">{{ form.telegram_username.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <!-- ── INSTAGRAM ── -->
+  <div class="bq-sdrawer-toggled" data-extra-field="instagram" hidden>
+    <div class="bq-sdrawer-pro__social-input-wrap">
+      <span class="bq-sdrawer-pro__social-prefix bq-sdrawer-pro__social-prefix--instagram">
+        <i class="fa-brands fa-instagram"></i>
+      </span>
+      {{ form.instagram_username }}
+    </div>
+    {% if form.instagram_username.errors %}<div class="bq-sdrawer-error">{{ form.instagram_username.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <!-- ── PASSPORT / ID ── -->
+  <div class="bq-sdrawer-toggled" data-extra-field="passport" hidden>
+    <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+      <div class="bq-sdrawer-field">
+        <div class="bq-sdrawer-pro__input-wrap">
+          <span class="bq-sdrawer-pro__input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </span>
+          {{ form.passport_id }}
+        </div>
+        {% if form.passport_id.errors %}<div class="bq-sdrawer-error">{{ form.passport_id.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field">
+        <div class="bq-sdrawer-pro__input-wrap">
+          <span class="bq-sdrawer-pro__input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
+          </span>
+          {{ form.jshr }}
+        </div>
+        {% if form.jshr.errors %}<div class="bq-sdrawer-error">{{ form.jshr.errors|join:", " }}</div>{% endif %}
       </div>
     </div>
+  </div>
+
+  <!-- ── PAROL ── -->
+  <div class="bq-sdrawer-toggled" data-extra-field="parol" hidden>
+    <p class="bq-sdrawer-toggled__note">Gmail va parol avtomatik yaratiladi. Kerak bo'lsa yangilang.</p>
     <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
       <div class="bq-sdrawer-field">
         <div class="bq-sdrawer-field__top">
           <label for="{{ form.email.id_for_label }}">Gmail</label>
           <button type="button" class="bq-sdrawer-refresh" data-generate-email>
-            <i class="fa-solid fa-rotate-right"></i>
-            <span>Yangilash</span>
+            <i class="fa-solid fa-rotate-right"></i><span>Yangilash</span>
           </button>
         </div>
-        {{ form.email }}
+        <div class="bq-sdrawer-pro__input-wrap">
+          <span class="bq-sdrawer-pro__input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </span>
+          {{ form.email }}
+        </div>
         {% if form.email.errors %}<div class="bq-sdrawer-error">{{ form.email.errors|join:", " }}</div>{% endif %}
       </div>
-
       <div class="bq-sdrawer-field">
         <div class="bq-sdrawer-field__top">
           <label for="{{ form.password.id_for_label }}">Parol</label>
           <button type="button" class="bq-sdrawer-refresh" data-generate-password>
-            <i class="fa-solid fa-rotate-right"></i>
-            <span>Yangilash</span>
+            <i class="fa-solid fa-rotate-right"></i><span>Yangilash</span>
           </button>
         </div>
-        <div class="bq-sdrawer-password">
+        <div class="bq-sdrawer-password bq-sdrawer-pro__input-wrap">
+          <span class="bq-sdrawer-pro__input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
           {{ form.password }}
-          <button type="button" class="bq-sdrawer-eye" data-toggle-password aria-label="Parolni ko'rsatish">
+          <button type="button" class="bq-sdrawer-eye" data-toggle-password aria-label="Ko'rsatish">
             <i class="fa-regular fa-eye"></i>
           </button>
         </div>
@@ -186,13 +264,120 @@
     </div>
   </div>
 
-  <div class="bq-sdrawer-actions">
-    <button type="submit" class="bq-sdrawer-submit">
-      <i class="fa-solid fa-check"></i>
-      <span>Saqlash</span>
+  <!-- ══════════ ICON TUGMALAR QATORI ══════════ -->
+  <div class="bq-sdrawer-pro__icon-row">
+    <button type="button"
+      class="bq-sdrawer-extra-toggle"
+      data-extra-toggle="parol"
+      data-tooltip="Parol"
+      aria-pressed="false"
+      title="Kirish ma'lumotlari">
+      <i class="fa-solid fa-lock"></i>
     </button>
+
+    <button type="button"
+      class="bq-sdrawer-extra-toggle bq-sdrawer-extra-toggle--vasiy"
+      data-extra-toggle="vasiy"
+      data-tooltip="Vasiy"
+      aria-pressed="false"
+      title="Vasiy">
+      <i class="fa-solid fa-user-shield"></i>
+    </button>
+
+    <button type="button"
+      class="bq-sdrawer-extra-toggle"
+      data-extra-toggle="manzil"
+      data-tooltip="Manzil"
+      aria-pressed="false"
+      title="Manzil">
+      <i class="fa-solid fa-location-dot"></i>
+    </button>
+
+    <button type="button"
+      class="bq-sdrawer-extra-toggle bq-sdrawer-extra-toggle--telegram"
+      data-extra-toggle="telegram"
+      data-tooltip="Telegram"
+      aria-pressed="false"
+      title="Telegram">
+      <i class="fa-brands fa-telegram"></i>
+    </button>
+
+    <button type="button"
+      class="bq-sdrawer-extra-toggle bq-sdrawer-extra-toggle--instagram"
+      data-extra-toggle="instagram"
+      data-tooltip="Instagram"
+      aria-pressed="false"
+      title="Instagram">
+      <i class="fa-brands fa-instagram"></i>
+    </button>
+
+    <button type="button"
+      class="bq-sdrawer-extra-toggle"
+      data-extra-toggle="passport"
+      data-tooltip="Passport / ID"
+      aria-pressed="false"
+      title="Passport / ID">
+      <i class="fa-solid fa-id-card"></i>
+    </button>
+  </div>
+
+  <!-- ── Actions ── -->
+  <div class="bq-sdrawer-actions bq-sdrawer-actions--pro">
     <button type="button" class="bq-sdrawer-cancel" data-student-drawer-close>
       Bekor qilish
     </button>
+    <button type="submit" class="bq-sdrawer-submit bq-sdrawer-submit--pro">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Saqlash</span>
+    </button>
   </div>
 </form>
+
+<script>
+(function () {
+  var phoneInput = document.getElementById('id_telefon1');
+  if (phoneInput) {
+    phoneInput.setAttribute('placeholder', '90 123-45-67');
+    phoneInput.setAttribute('maxlength', '12');
+    phoneInput.setAttribute('inputmode', 'numeric');
+    phoneInput.setAttribute('autocomplete', 'off');
+
+    function applyPhoneMask(raw) {
+      var digits = raw.replace(/\D/g, '');
+      if (digits.length >= 12 && digits.startsWith('998')) digits = digits.substring(3);
+      else if (digits.length >= 11 && digits.startsWith('998')) digits = digits.substring(3);
+      digits = digits.substring(0, 9);
+      var out = '';
+      if (digits.length > 0) out += digits.substring(0, 2);
+      if (digits.length > 2) out += ' ' + digits.substring(2, 5);
+      if (digits.length > 5) out += '-' + digits.substring(5, 7);
+      if (digits.length > 7) out += '-' + digits.substring(7, 9);
+      return out;
+    }
+
+    if (phoneInput.value) phoneInput.value = applyPhoneMask(phoneInput.value);
+    phoneInput.addEventListener('input', function () { this.value = applyPhoneMask(this.value); });
+  }
+
+  var ismInput = document.getElementById('id_ism');
+  var familyaInput = document.getElementById('id_familya');
+  if (ismInput) ismInput.setAttribute('placeholder', 'Ism kiriting');
+  if (familyaInput) familyaInput.setAttribute('placeholder', 'Familiya kiriting');
+
+  ['id_telegram_username', 'id_instagram_username'].forEach(function(id) {
+    var inp = document.getElementById(id);
+    if (!inp) return;
+    inp.setAttribute('placeholder', '@username');
+    inp.addEventListener('input', function() {
+      if (this.value && !this.value.startsWith('@')) this.value = '@' + this.value;
+    });
+    inp.addEventListener('blur', function() {
+      if (this.value === '@') this.value = '';
+    });
+  });
+
+  var otchInp = document.getElementById('id_otchestvo');
+  if (otchInp) otchInp.setAttribute('placeholder', 'To\'liq ism kiriting');
+
+})();
+</script>
