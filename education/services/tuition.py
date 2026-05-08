@@ -899,6 +899,12 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
     teacher_share = full_billing["teacher_amount"]
     center_share = full_turnover - teacher_share
 
+    _UZBEK_MONTHS = {
+        1: "yanvar", 2: "fevral", 3: "mart", 4: "aprel", 5: "may", 6: "iyun",
+        7: "iyul", 8: "avgust", 9: "sentabr", 10: "oktabr", 11: "noyabr", 12: "dekabr"
+    }
+    month_label_uz = _UZBEK_MONTHS[month_start.month]
+
     return {
         "month": month_start,
         "start_date": start_date,
@@ -927,6 +933,8 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
         "center_share": int(center_share or 0),
         "center_share_rounded": round_money_to_thousand(center_share),
         "center_share_display": format_money(center_share),
+        "month_label_uz": month_label_uz,
+        "debt_label_uz": f"{month_label_uz.upper()} OYI QARZI",
     }
 
 
@@ -997,6 +1005,7 @@ def calculate_enrollment_debt_snapshots(
     months: Sequence[date],
     *,
     virtual_missing_months: Optional[Iterable[date]] = None,
+    cumulative_up_to: Optional[date] = None,
 ) -> dict[int, dict]:
     """
     Read-only qarzdorlik snapshoti.
@@ -1096,6 +1105,93 @@ def calculate_enrollment_debt_snapshots(
                 "lesson_count": lesson_count,
             }
 
+    # ── KUMULATIV QARZ (cumulative_up_to berilganda) ──────────────────────
+    # Har enrollment uchun enrollment.started_at dan cumulative_up_to gacha
+    # barcha oylar bo'yicha yig'indi qarzni hisoblaymiz.
+    # is_deleted=True (manual_cleared) bo'lgan oylar — fee=0 hisoblanadi.
+    if cumulative_up_to is not None:
+        cumulative_up_to_month = month_first_day(cumulative_up_to)
+
+        # Barcha relevant TuitionMonth'larni bir so'rovda olamiz
+        cum_fee_field = tuition_month_fee_field()
+        # Enrollment'lar uchun start oyidan cumulative_up_to gacha bo'lgan
+        # barcha TuitionMonth'larni (o'chirilganlari ham) yuklaymiz
+        all_cum_tms: dict[tuple[int, date], tuple[int, bool]] = {}  # (enr_id, month) -> (fee, is_deleted)
+        for row in (
+            TuitionMonth.all_objects
+            .filter(enrollment_id__in=enrollment_ids, month__lte=cumulative_up_to_month)
+            .values("enrollment_id", "month", cum_fee_field, "is_deleted")
+        ):
+            key = (row["enrollment_id"], row["month"])
+            all_cum_tms[key] = (int(row[cum_fee_field] or 0), bool(row["is_deleted"]))
+
+        # Kumulativ oylar uchun paid_map ham kerak — barcha oylar bo'yicha
+        all_cum_paid: dict[tuple[int, date], int] = {}
+        cum_alive_ids = [
+            # Faqat is_deleted=False bo'lgan TuitionMonth id'lari kerak
+        ]
+        for row in (
+            TuitionMonth.all_objects
+            .filter(enrollment_id__in=enrollment_ids, month__lte=cumulative_up_to_month, is_deleted=False)
+            .values("id", "enrollment_id", "month")
+        ):
+            cum_alive_ids.append((row["id"], row["enrollment_id"], row["month"]))
+
+        if cum_alive_ids:
+            tm_id_list = [x[0] for x in cum_alive_ids]
+            for row in (
+                PaymentAllocation.objects
+                .filter(
+                    tuition_month_id__in=tm_id_list,
+                    tuition_month__is_deleted=False,
+                    payment__is_deleted=False,
+                )
+                .values("tuition_month__enrollment_id", "tuition_month__month")
+                .annotate(paid=Coalesce(Sum("amount"), 0))
+            ):
+                k = (row["tuition_month__enrollment_id"], row["tuition_month__month"])
+                all_cum_paid[k] = int(row["paid"] or 0)
+
+        # credit_balance larni bir so'rovda yuklaymiz
+        credit_balance_map: dict[int, int] = {}
+        for row in Enrollment.objects.filter(pk__in=enrollment_ids).values("id", "credit_balance"):
+            credit_balance_map[row["id"]] = int(row["credit_balance"] or 0)
+
+        for enrollment in enrollment_list:
+            enr_start = month_first_day(enrollment_start_date(enrollment))
+            if enr_start > cumulative_up_to_month:
+                snapshots[enrollment.id]["cumulative_debt"] = 0
+                snapshots[enrollment.id]["previous_unpaid"] = 0
+                snapshots[enrollment.id]["credit_balance"] = credit_balance_map.get(enrollment.id, 0)
+                snapshots[enrollment.id]["net_cumulative_debt"] = 0
+                continue
+
+            cumulative_debt = 0
+            cur_m = enr_start
+            while cur_m <= cumulative_up_to_month:
+                tm_key = (enrollment.id, cur_m)
+                if tm_key in all_cum_tms:
+                    tm_fee, tm_deleted = all_cum_tms[tm_key]
+                    if tm_deleted:
+                        # manual_cleared — bu oy 0 qarz
+                        cur_m = add_month(cur_m, 1)
+                        continue
+                    tm_paid = all_cum_paid.get(tm_key, 0)
+                    month_debt = max(0, tm_fee - tm_paid)
+                else:
+                    # Virtual oy: prorated hisoblash
+                    month_debt = int(prorated_monthly_fee(enrollment, cur_m) or 0)
+                cumulative_debt += month_debt
+                cur_m = add_month(cur_m, 1)
+
+            current_month_debt = int(snapshots[enrollment.id].get("debt", 0) or 0)
+            credit = credit_balance_map.get(enrollment.id, 0)
+            net_cumulative_debt = max(0, cumulative_debt - credit)
+            snapshots[enrollment.id]["cumulative_debt"] = cumulative_debt
+            snapshots[enrollment.id]["previous_unpaid"] = max(0, cumulative_debt - current_month_debt)
+            snapshots[enrollment.id]["credit_balance"] = credit
+            snapshots[enrollment.id]["net_cumulative_debt"] = net_cumulative_debt
+
     return snapshots
 
 def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
@@ -1138,6 +1234,36 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
 
     if update_fields:
         tm.save(update_fields=update_fields)
+
+    # ── CREDIT BALANCE AUTO-APPLY ─────────────────────────────────────────────
+    # Yangi TuitionMonth yaratilganda (yoki fee yangilanganda), agar enrollment'da
+    # credit_balance mavjud bo'lsa, uni shu oyga avtomatik allocation sifatida yozamiz.
+    # Bu overpayment (ortiqcha to'lov) ni keyingi oyga ko'chirishni ta'minlaydi.
+    if created and fee > 0:
+        # Enrollment'ni DB'dan yangilaymiz (credit_balance aktual bo'lsin)
+        try:
+            enr_fresh = Enrollment.objects.filter(pk=enrollment.pk).only("credit_balance").first()
+            credit = int(getattr(enr_fresh, "credit_balance", 0) or 0) if enr_fresh else 0
+        except Exception:
+            credit = 0
+
+        if credit > 0:
+            use = min(fee, credit)
+            # Oxirgi to'lovni topamiz (PaymentAllocation uchun payment FK kerak)
+            last_payment = Payment.objects.filter(
+                enrollment=enrollment,
+                is_deleted=False,
+            ).order_by("-id").first()
+            if last_payment and use > 0:
+                PaymentAllocation.objects.create(
+                    center=getattr(enrollment, "center", None) or getattr(tm, "center", None),
+                    payment=last_payment,
+                    tuition_month=tm,
+                    amount=use,
+                )
+                Enrollment.objects.filter(pk=enrollment.pk).update(
+                    credit_balance=F("credit_balance") - use
+                )
 
     return tm
 
@@ -1435,17 +1561,11 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
             _allocate_to_tm(tm)
             next_month = add_month(next_month, 1)
 
-    # 12 oydan tashqari hali pul qolsa — credit sifatida oxirgi
-    # taqsimlangan oyga (yoki anchor start_month'ga) yoziladi.
+    # 12 oydan tashqari hali pul qolsa — Enrollment.credit_balance ga yoziladi.
+    # Keyingi oy ensure_tuition_month chaqirilganda credit_balance avtomatik ayiriladi.
     if remaining > 0:
-        anchor_tm = last_allocated_tm or (months_list[0] if months_list else None)
-        if anchor_tm is None:
-            anchor_tm = ensure_tuition_month(enrollment, cur)
-        PaymentAllocation.objects.create(
-            center=payment_center,
-            payment=payment,
-            tuition_month=anchor_tm,
-            amount=remaining,
+        Enrollment.objects.filter(pk=enrollment.pk).update(
+            credit_balance=F("credit_balance") + remaining
         )
 
 

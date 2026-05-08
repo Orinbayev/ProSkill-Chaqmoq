@@ -207,6 +207,9 @@
                                 <div class="cell-amount cell-amount--red"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %}>
                                     {{ row.debt|money_uz }}
                                 </div>
+                                {% if row.credit_balance %}
+                                <span class="cell-amount__sub" style="color:#10b981;">Hisobida: {{ row.credit_balance|intcomma }} so'm</span>
+                                {% endif %}
                                 {% if row.has_teacher_share_only %}
                                 <span class="cell-amount__sub cell-amount__sub--amber">O'qituvchi haqqi: {{ row.teacher_share_only_debt|money_uz }}</span>
                                 <span class="cell-amount__sub cell-amount__sub--strike">Umumiy: {{ row.teacher_share_only_full_total|money_uz }}</span>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block content %}
 
 <style>
@@ -1192,9 +1193,25 @@
 	            <span class="billing-value" id="editPreviewPerLesson">{{ pricing_preview.per_lesson_amount_display }}</span>
 	          </div>
 	          <div class="billing-metric highlight">
-	            <span class="billing-label">Shu oy qarzi</span>
+	            <span class="billing-label" id="editPreviewDebtLabel">{{ pricing_preview.debt_label_uz|default:"SHU OY QARZI" }}</span>
 	            <span class="billing-value" id="editPreviewFee">{{ pricing_preview.fee_amount_display }}</span>
 	          </div>
+	          {% if pricing_preview.previous_unpaid %}
+	          <div class="billing-metric" style="border-top:1px dashed var(--m-border,#e5e7eb);margin-top:4px;padding-top:4px;">
+	            <span class="billing-label" style="color:var(--m-amber,#f59e0b);">O'tgan oylardan</span>
+	            <span class="billing-value" style="color:var(--m-amber,#f59e0b);" id="editPreviewPrevUnpaid">{{ pricing_preview.previous_unpaid|intcomma }} so'm</span>
+	          </div>
+	          <div class="billing-metric">
+	            <span class="billing-label" style="font-weight:700;">Jami qarz</span>
+	            <span class="billing-value" id="editPreviewCumDebt">{{ pricing_preview.cumulative_debt|intcomma }} so'm</span>
+	          </div>
+	          {% endif %}
+	          {% if pricing_preview.credit_balance %}
+	          <div class="billing-metric">
+	            <span class="billing-label" style="color:#10b981;">Hisobida (overpay)</span>
+	            <span class="billing-value" style="color:#10b981;" id="editPreviewCredit">{{ pricing_preview.credit_balance|intcomma }} so'm</span>
+	          </div>
+	          {% endif %}
 	          <div class="billing-metric">
 	            <span class="billing-label">O'qituvchi</span>
 	            <span class="billing-value" id="editPreviewTeacher">{{ pricing_preview.teacher_share_display }}</span>
@@ -1490,6 +1507,10 @@
 	      document.getElementById('editPreviewLessons').textContent = `${data.lesson_count} ta`;
 	      document.getElementById('editPreviewPerLesson').textContent = money(data.per_lesson_amount);
 	      document.getElementById('editPreviewFee').textContent = money(data.fee_amount);
+	      if (data.debt_label_uz) {
+	        const lbl = document.getElementById('editPreviewDebtLabel');
+	        if (lbl) lbl.textContent = data.debt_label_uz;
+	      }
 	      document.getElementById('editPreviewTeacher').textContent = money(data.teacher_share);
 	      document.getElementById('editPreviewCenter').textContent = money(data.center_share);
 	      document.getElementById('editPreviewPatternHint').textContent = [

@@ -318,6 +318,8 @@ def _serialize_tuition_preview(preview: dict) -> dict:
         "teacher_share": int(preview["teacher_share"] or 0),
         "center_share": int(preview["center_share"] or 0),
         "full_turnover": int(preview["full_turnover"] or 0),
+        "month_label_uz": preview.get("month_label_uz", ""),
+        "debt_label_uz": preview.get("debt_label_uz", ""),
     }
 
 
@@ -1466,6 +1468,23 @@ def enrollment_edit(request, enrollment_id):
             active_enrollment,
             remaining_lessons_value,
         )
+        # Kumulativ qarz: preview_month gacha barcha oylar yig'indisi
+        if getattr(active_enrollment, "id", None):
+            _cum_snapshots = calculate_enrollment_debt_snapshots(
+                [active_enrollment],
+                [preview_month],
+                cumulative_up_to=preview_month,
+            )
+            _cum_snap = _cum_snapshots.get(active_enrollment.id, {})
+            pricing_preview["previous_unpaid"] = int(_cum_snap.get("previous_unpaid", 0) or 0)
+            pricing_preview["cumulative_debt"] = int(_cum_snap.get("cumulative_debt", pricing_preview.get("fee_amount", 0)) or 0)
+            pricing_preview["credit_balance"] = int(_cum_snap.get("credit_balance", 0) or 0)
+            pricing_preview["net_cumulative_debt"] = int(_cum_snap.get("net_cumulative_debt", pricing_preview["cumulative_debt"]) or 0)
+        else:
+            pricing_preview["previous_unpaid"] = 0
+            pricing_preview["cumulative_debt"] = int(pricing_preview.get("fee_amount", 0) or 0)
+            pricing_preview["credit_balance"] = 0
+            pricing_preview["net_cumulative_debt"] = int(pricing_preview.get("fee_amount", 0) or 0)
         return {
             "enr": active_enrollment,
             "groups": group_options,
@@ -2642,11 +2661,13 @@ def qarzdorlar_home(request):
     from education.services.tuition import preload_group_schedules
     preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
 
-    debt_snapshots = calculate_enrollment_debt_snapshots(enrollment_list, period_months)
+    debt_snapshots = calculate_enrollment_debt_snapshots(
+        enrollment_list, period_months, cumulative_up_to=_display_month
+    )
 
-    # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
+    # ─── JAMI QARZ SUMMASI (kumulativ) ───────────────────────────────────────
     total_center_debt = sum(
-        int(snapshot["debt"] or 0)
+        int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
         for snapshot in debt_snapshots.values()
     )
 
@@ -2656,10 +2677,13 @@ def qarzdorlar_home(request):
     for e in enrollment_list:
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
-        debt = int(snapshot.get("debt", 0) or 0)
+        # Kumulativ qarz: agar cumulative_debt mavjud bo'lsa uni ishlatamiz,
+        # aks holda oddiy oy qarzini ishlatamiz.
+        debt = int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
+        enr_credit = int(snapshot.get("credit_balance", 0) or 0)
         start_date = enrollment_start_date(e)
         pattern_value = enrollment_lesson_pattern(e)
         pattern_label = lesson_pattern_label(pattern_value)
@@ -2674,6 +2698,7 @@ def qarzdorlar_home(request):
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
+                "credit_balance": 0,
                 "lesson_count": 0,
                 "start_date":  start_date,
                 "enrollment_count": 0,
@@ -2696,6 +2721,7 @@ def qarzdorlar_home(request):
         row["total_fee"]  += f
         row["total_paid"] += p
         row["debt"]       += debt
+        row["credit_balance"] += enr_credit
         row["lesson_count"] += lesson_count
         if start_date and (not row.get("start_date") or start_date < row["start_date"]):
             row["start_date"] = start_date

@@ -351,11 +351,18 @@ class Enrollment(SoftDeleteMixin, models.Model):
         help_text="O‘quvchidan real olinadigan summa. Bo‘sh bo‘lsa, to‘liq kurs narxi olinadi.",
     )
 
-    # umumiy to‘langan (avto update bo‘ladi)
+    # umumiy to’langan (avto update bo’ladi)
     jami_tolangan = models.PositiveIntegerField(
         default=0,
         validators=[MinValueValidator(0)],
-        verbose_name="Jami to‘langan (so‘mda)",
+        verbose_name="Jami to’langan (so’mda)",
+    )
+
+    credit_balance = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Hisobidagi pul (so’m)",
+        help_text="Ortiqcha to’lov (overpayment) miqdori. Keyingi oy fee yozilganda avtomatik ayiriladi.",
     )
 
     class Meta:
