@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from billing.decorators import require_feature
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django.db.models import (
@@ -2554,6 +2555,7 @@ def group_month_attendance(request, group_id):
 # ==========================================
 
 @login_required
+@require_feature("finance")
 def qarzdorlar_home(request):
     from core.tenant import get_request_center, require_center
 
@@ -3644,6 +3646,7 @@ def _get_payment_dashboard_data(request):
 
 @login_required
 @require_http_methods(["GET"])
+@require_feature("finance")
 def payment_export_xlsx(request):
     if not user_can_manage_payments(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
@@ -7141,6 +7144,7 @@ def group_rollcall(request, pk):
     )
 
 @login_required
+@require_feature("finance")
 def teacher_salary_list(request):
     now = timezone.localdate()
     year = _get_int(request.GET, "year", now.year)
@@ -7265,6 +7269,7 @@ def _compute_teacher_salary_list_payload(year, month, center, support_feature_on
 
 # 🔹 Excel Export — O'qituvchi oyligi hisoboti
 @login_required
+@require_feature("finance")
 def teacher_salary_export(request):
     """
     Tanlangan oy/yil bo'yicha barcha o'qituvchilar oylik hisobotini
@@ -7623,6 +7628,7 @@ def teacher_salary_export(request):
 
 # 🔹 2. O'qituvchining barcha guruhlari
 @login_required
+@require_feature("finance")
 def teacher_groups(request, teacher_id):
     from core.tenant import get_request_center
     from education.services.support_teacher import (
@@ -7744,6 +7750,7 @@ def teacher_groups(request, teacher_id):
 
 
 @login_required
+@require_feature("finance")
 def teacher_salary_report(request, group_id):
     from core.tenant import get_request_center
     center = get_request_center(request)
@@ -7792,6 +7799,7 @@ def teacher_salary_report(request, group_id):
 
 
 @login_required
+@require_feature("finance")
 def teacher_salary_summary(request):
     """
     O'qituvchilar maoshi va markaz foydasini yil/oy bo'yicha hisoblaydi.
@@ -8093,6 +8101,7 @@ def _render_salary(request, selected_year, selected_month,
     })
 
 @login_required
+@require_feature("finance")
 def teacher_salary_redirect(request):
     group = None
 
@@ -8775,6 +8784,7 @@ def my_groups(request):
 
 
 @login_required
+@require_feature("finance")
 def teacher_income_dashboard(request):
     """
     O'qituvchining shaxsiy daromadlari panelini ko'rsatadi.
@@ -8847,6 +8857,7 @@ def teacher_income_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def close_finance_month_view(request):
     """View to close (lock) or open (unlock) a financial month for a center."""
     if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
@@ -8871,6 +8882,7 @@ def close_finance_month_view(request):
     return redirect(f"{reverse('education:teacher_salary_list')}?year={year}&month={month}")
 
 @login_required
+@require_feature("finance")
 def fix_all_incomes(request):
     """
     Global/Production muhitda o'tgan oydagi eski Attendance malumotlarini 
@@ -9033,6 +9045,7 @@ def _exam_entry_url(session_id: int, max_score) -> str:
 
 
 @login_required
+@require_feature("imtihon")
 def exam_settings_view(request):
     from core.tenant import get_request_center
     center = get_request_center(request)
@@ -9077,6 +9090,7 @@ def exam_settings_view(request):
 
 @login_required
 @require_POST
+@require_feature("imtihon")
 def exam_reminder_action(request, group_id: int):
     from core.tenant import get_request_center
     center = get_request_center(request)
@@ -9163,6 +9177,7 @@ def exam_reminder_action(request, group_id: int):
 
 
 @login_required
+@require_feature("imtihon")
 def exam_list(request):
     from core.tenant import get_request_center
     from education.models import ExamResult, ExamSession
@@ -9281,6 +9296,7 @@ def exam_list(request):
 
 
 @login_required
+@require_feature("imtihon")
 def exam_create(request, group_id=None):
     from core.tenant import get_request_center
     from education.models import ExamResult, ExamSession
@@ -9401,6 +9417,7 @@ def exam_create(request, group_id=None):
 
 
 @login_required
+@require_feature("imtihon")
 def exam_session_entry(request, session_id: int):
     from core.tenant import get_request_center
     from .forms import ExamResultRowForm
@@ -9636,6 +9653,7 @@ def exam_session_entry(request, session_id: int):
 
 
 @login_required
+@require_feature("imtihon")
 def group_exam_history(request, group_id: int):
     from core.tenant import get_request_center
     from education.models import ExamSession
@@ -9674,6 +9692,7 @@ def group_exam_history(request, group_id: int):
 
 
 @login_required
+@require_feature("imtihon")
 def teacher_exam_history(request):
     from core.tenant import get_request_center
     from education.models import ExamSession
@@ -9739,6 +9758,7 @@ def teacher_exam_history(request):
 
 
 @login_required
+@require_feature("imtihon")
 def exam_session_detail(request, session_id: int):
     from core.tenant import get_request_center
     from education.models import ExamResult, ExamSession
@@ -9779,6 +9799,7 @@ def exam_session_detail(request, session_id: int):
 
 
 @login_required
+@require_feature("imtihon")
 def failed_students_list(request):
     from core.tenant import get_request_center
     from .forms import ExamResultFollowUpForm
@@ -9923,6 +9944,7 @@ def failed_students_list(request):
 
 
 @login_required
+@require_feature("imtihon")
 def group_internal_ranking(request, group_id: int):
     from core.tenant import get_request_center
     from education.services.ranking_service import INTERNAL_RANKING_WEIGHTS, build_group_internal_ranking
@@ -9957,6 +9979,7 @@ def group_internal_ranking(request, group_id: int):
 
 
 @login_required
+@require_feature("imtihon")
 def group_completion_recommendations(request, group_id: int):
     from core.tenant import get_request_center
     from education.services.ranking_service import build_group_completion_recommendations
@@ -10006,6 +10029,7 @@ def group_completion_recommendations(request, group_id: int):
 
 @login_required
 @require_POST
+@require_feature("imtihon")
 def group_closure_action(request, group_id: int):
     from core.tenant import get_request_center
     from education.services.closure_service import apply_group_closure_action
@@ -10048,6 +10072,7 @@ def group_closure_action(request, group_id: int):
 
 
 @login_required
+@require_feature("sertifikat")
 def certificate_templates_view(request):
     from core.tenant import get_request_center
     from .forms import CertificateTemplateForm
@@ -10121,6 +10146,7 @@ def certificate_templates_view(request):
 
 @login_required
 @require_POST
+@require_feature("sertifikat")
 def certificate_template_activate(request, template_id: int):
     from core.tenant import get_request_center
     from education.models import CertificateTemplate
@@ -10159,6 +10185,7 @@ def certificate_template_activate(request, template_id: int):
 
 
 @login_required
+@require_feature("sertifikat")
 def group_certificate_candidates(request, group_id: int):
     from core.tenant import get_request_center
     from education.models import CertificateRecord
@@ -10227,6 +10254,7 @@ def group_certificate_candidates(request, group_id: int):
 
 @login_required
 @require_POST
+@require_feature("sertifikat")
 def issue_certificate_action(request, group_id: int, student_id: int):
     from core.tenant import get_request_center
     from .forms import CertificateIssueForm
@@ -10282,6 +10310,7 @@ def issue_certificate_action(request, group_id: int, student_id: int):
 
 
 @login_required
+@require_feature("sertifikat")
 def certificate_detail(request, certificate_id: int):
     from core.tenant import get_request_center
     from education.models import CertificateRecord
@@ -10314,6 +10343,7 @@ def certificate_detail(request, certificate_id: int):
 
 
 @login_required
+@require_feature("sertifikat")
 def certificate_download_pdf(request, certificate_id: int):
     from core.tenant import get_request_center
     from education.models import CertificateRecord
@@ -10427,6 +10457,7 @@ def student_exam_report(request, student_id: int):
 
 @login_required
 @require_GET
+@require_feature("finance")
 def month_preview(request):
     from core.tenant import get_request_center
 

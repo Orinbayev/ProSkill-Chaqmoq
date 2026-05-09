@@ -727,29 +727,32 @@ def center_create_api(request):
 def plan_list_api(request):
     if not is_superadmin(request.user):
         return HttpResponseForbidden("Faqat superadmin uchun")
-    
-    plans = SubscriptionPlan.objects.filter(active=True).order_by("monthly_price")
+
+    show_all = request.GET.get("all") == "1"
+    qs = SubscriptionPlan.objects.all() if show_all else SubscriptionPlan.objects.filter(active=True)
+    plans = qs.order_by("tier", "monthly_price")
     data = []
     for p in plans:
-        # M2M feature codes
-        feature_codes = list(p.plan_features.values_list("code", flat=True))
+        feature_codes = list(p.plan_features.filter(is_active=True).values_list("code", flat=True))
+        subs_count = p.centersubscription_set.filter(status="ACTIVE").count()
         data.append({
             "id": p.id,
             "code": p.code,
             "title": p.title,
+            "tier": p.tier,
             "monthly_price": p.monthly_price,
             "price_3m": p.price_3m,
             "price_6m": p.price_6m,
+            "price_9m": p.price_9m,
             "price_12m": p.price_12m,
             "max_students": p.max_students,
-            "max_branches": p.max_branches,   # 0=cheksiz filiallar
-            "max_groups": getattr(p, 'max_groups', 30),
-            "max_users": p.max_users,
+            "max_branches": p.max_branches,
             "is_popular": p.is_popular,
-            "discount_percent": p.discount_percent,
+            "is_recommended": getattr(p, "is_recommended", False),
             "caption": p.caption,
-            "features": p.features,          # legacy JSONField
-            "feature_codes": feature_codes,   # M2M feature codes
+            "feature_codes": feature_codes,
+            "active": p.active,
+            "active_subs": subs_count,
         })
     return JsonResponse({"plans": data})
 
@@ -757,42 +760,67 @@ def plan_list_api(request):
 @login_required
 @require_http_methods(["GET"])
 def features_list_api(request):
-    """Barcha PlanFeaturelarni kategoriyalar bo'yicha qaytaradi."""
+    """Faqat faol va tegishli PlanFeaturelarni kategoriyalar bo'yicha qaytaradi.
+    Legacy (ikonsiz) featurelar ko'rsatilmaydi."""
     if not is_superadmin(request.user):
         return HttpResponseForbidden("Faqat superadmin uchun")
-    
+
     from collections import defaultdict
-    features = PlanFeature.objects.all().order_by("category", "order", "name")
-    
+    # Faqat icon bor va is_active=True bo'lgan featurelar
+    features = (
+        PlanFeature.objects
+        .filter(is_active=True)
+        .exclude(icon="")
+        .order_by("category", "order", "name")
+    )
+
+    IMPL_LABELS = {
+        "READY":   "Tayyor",
+        "PARTIAL": "Qisman tayyor",
+        "PLANNED": "Rejada",
+    }
+    IMPL_COLORS = {
+        "READY":   "#22c55e",
+        "PARTIAL": "#f59e0b",
+        "PLANNED": "#6366f1",
+    }
+
     categories = defaultdict(list)
     for f in features:
         categories[f.category].append({
             "id": f.id,
             "code": f.code,
             "name": f.name,
-            "description": f.description,
+            "icon": f.icon,
+            "description": f.description_uz or f.description,
             "category": f.category,
             "category_display": f.get_category_display(),
             "is_core": f.is_core,
             "order": f.order,
+            "impl_status": f.implementation_status,
+            "impl_label": IMPL_LABELS.get(f.implementation_status, f.implementation_status),
+            "impl_color": IMPL_COLORS.get(f.implementation_status, "#6b7280"),
         })
-    
-    # Convert to ordered list of category groups
+
     CATEGORY_ORDER = ["core", "finance", "marketing", "team", "advanced"]
-    CATEGORY_LABELS = dict(PlanFeature.Category.choices)
+    CATEGORY_META = {
+        "core":      {"label": "🏠 Asosiy Modullar",      "desc": "Bepul — barcha tariflarda mavjud"},
+        "finance":   {"label": "💰 Moliya va Hisobot",    "desc": "STANDART tarifdan boshlab"},
+        "marketing": {"label": "🎯 Marketing va SMS",     "desc": "STANDART tarifdan boshlab"},
+        "team":      {"label": "👥 Jamoa va Filiallar",   "desc": "PREMIUM tarifdan boshlab"},
+        "advanced":  {"label": "⚡ Kengaytirilgan",       "desc": "PREMIUM / PRO tarifdan boshlab"},
+    }
     result = []
     for cat in CATEGORY_ORDER:
         if cat in categories:
+            meta = CATEGORY_META.get(cat, {"label": cat, "desc": ""})
             result.append({
                 "category": cat,
-                "label": CATEGORY_LABELS.get(cat, cat),
+                "label": meta["label"],
+                "desc": meta["desc"],
                 "items": categories[cat],
             })
-    # Append any categories not in CATEGORY_ORDER
-    for cat, items in categories.items():
-        if cat not in CATEGORY_ORDER:
-            result.append({"category": cat, "label": cat, "items": items})
-    
+
     return JsonResponse({"categories": result})
 
 
@@ -872,6 +900,8 @@ def plan_update_api(request, plan_id):
             data = request.POST
 
         plan.title = data.get('title', plan.title)
+        if data.get('tier') is not None:
+            plan.tier = int(data.get('tier') or plan.tier)
         plan.monthly_price = int(data.get('monthly_price') or 0)
         plan.price_3m = int(data.get('price_3m') or 0) if data.get('price_3m') else None
         plan.price_6m = int(data.get('price_6m') or 0) if data.get('price_6m') else None
@@ -887,7 +917,21 @@ def plan_update_api(request, plan_id):
         if isinstance(is_pop, str):
             plan.is_popular = (is_pop.lower() == 'true')
         else:
-             plan.is_popular = bool(is_pop)
+            plan.is_popular = bool(is_pop)
+
+        is_rec = data.get('is_recommended')
+        if is_rec is not None:
+            if isinstance(is_rec, str):
+                plan.is_recommended = (is_rec.lower() == 'true')
+            else:
+                plan.is_recommended = bool(is_rec)
+
+        active_val = data.get('active')
+        if active_val is not None:
+            if isinstance(active_val, str):
+                plan.active = (active_val.lower() == 'true')
+            else:
+                plan.active = bool(active_val)
 
         plan.discount_percent = int(data.get('discount_percent') or 0)
         plan.caption = data.get('caption', '')
@@ -927,14 +971,41 @@ def plan_update_api(request, plan_id):
 def plan_delete_api(request, plan_id):
     if not is_superadmin(request.user):
         return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
-    
+
     plan = get_object_or_404(SubscriptionPlan, pk=plan_id)
+
     try:
-        # Standard plans shouldn't be deleted usually, but user is boss.
-        # Check if used? 
-        plan.active = False # soft delete or deactivate
-        plan.save()
-        return JsonResponse({"success": True, "message": "Tarif o'chirildi (Active=False)"})
+        # Barcha PROTECT FK modellarini tekshir
+        center_subs  = plan.centersubscription_set.count()
+        user_subs    = plan.user_subscriptions.count()
+        orders       = plan.subscriptionorder_set.count()
+        requests     = plan.subscription_requests.count()
+        total_refs   = center_subs + user_subs + orders + requests
+        active_subs  = plan.centersubscription_set.filter(status="ACTIVE").count()
+
+        if total_refs > 0:
+            parts = []
+            if center_subs: parts.append(f"{center_subs} ta markaz obunasi")
+            if user_subs:   parts.append(f"{user_subs} ta foydalanuvchi obunasi")
+            if orders:      parts.append(f"{orders} ta buyurtma")
+            if requests:    parts.append(f"{requests} ta so'rov")
+            detail = ", ".join(parts)
+            return JsonResponse({
+                "success": False,
+                "blocked_permanent": True,
+                "total_refs": total_refs,
+                "active_subs": active_subs,
+                "detail": detail,
+                "message": (
+                    f"Bu tarifga bog'liq yozuvlar bor: {detail}. "
+                    "Bog'liq yozuvlari bor tarifni o'chirib bo'lmaydi. "
+                    "Tarifni \"To'xtatish\" orqali yashiring."
+                ),
+            }, status=409)
+
+        plan_title = plan.title
+        plan.delete()
+        return JsonResponse({"success": True, "message": f'"{plan_title}" tarifi o\'chirildi.'})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 

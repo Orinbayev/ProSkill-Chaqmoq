@@ -37,17 +37,38 @@ def require_feature(feature_name: str):
 
             center = getattr(request, "center", None)
             if not center:
+                if _is_api(request):
+                    return JsonResponse({"ok": False, "error": "Center topilmadi."}, status=403)
                 messages.error(request, "Center topilmadi.")
                 return redirect("core:home")
 
             flags = get_feature_flags(center)
             if feature_name not in flags:
-                messages.warning(request, "Bu bo‘lim faqat PRO tarifda mavjud. Tarifni yangilang.")
+                if _is_api(request):
+                    return JsonResponse(
+                        {"ok": False, "error": "Bu xususiyat sizning tarifingizda mavjud emas.",
+                         "feature": feature_name, "upgrade_url": "/billing/plans/"},
+                        status=403,
+                    )
+                messages.warning(
+                    request,
+                    "Bu bo’lim sizning tarifingizda mavjud emas. Tarifni yangilang."
+                )
                 return redirect("billing:plans")
 
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator
+
+
+def _is_api(request) -> bool:
+    """AJAX yoki JSON API so’rovmi?"""
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.headers.get("Accept", "").startswith("application/json")
+        or request.path.startswith("/api/")
+        or "/api/" in request.path
+    )
 
 
 def require_pro(view_func):

@@ -1,1069 +1,693 @@
 {% extends 'base.html' %}
 {% load static humanize %}
-
-{% block title %}Tariflar Boshqaruvi{% endblock %}
+{% block title %}Tarif Boshqaruvi{% endblock %}
 
 {% block content %}
 <style>
-    :root {
-        --bg-dark: #020617;
-        --card-bg: rgba(255, 255, 255, 0.03);
-        --border: rgba(255, 255, 255, 0.08);
-        --primary: #6366f1;
-        --primary-glow: rgba(99, 102, 241, 0.25);
-    }
+:root {
+  --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235; --surface3: #222d42;
+  --border: rgba(255,255,255,0.08); --text: #f1f5f9; --muted: #64748b;
+  --primary: #6366f1; --green: #22c55e; --amber: #f59e0b;
+  --red: #ef4444; --purple: #8b5cf6; --radius: 12px;
+}
+*{box-sizing:border-box}
+.pa-page{max-width:1280px;margin:0 auto;padding:32px 24px}
+.pa-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px}
+.pa-title{font-size:24px;font-weight:700;color:var(--text)}
+.pa-title span{color:var(--primary)}
+.pa-subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+.btn-new{padding:10px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s}
+.btn-new:hover{opacity:.85}
 
-    /* ── Modal & Overlay (Consistent with Promos) ──────── */
-    .sa-modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        z-index: 9999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
+/* Plans Grid */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;position:relative;transition:border-color .2s,box-shadow .2s}
+.plan-card:hover{border-color:rgba(99,102,241,.4);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.plan-card.popular{border-color:var(--amber)}
+.plan-card.paused{opacity:.55;border-style:dashed;border-color:rgba(245,158,11,.35)}
+.pc-badge{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+.pc-badge.popular{background:var(--amber);color:#000}
+.pc-badge.paused{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.pc-tier{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pc-name{font-size:22px;font-weight:800;margin-bottom:6px;color:var(--text)}
+.pc-price{font-size:28px;font-weight:800;color:var(--primary)}
+.pc-price sup{font-size:14px;font-weight:500;color:var(--muted)}
+.pc-price.custom{color:var(--purple);font-size:20px}
+.pc-divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.pc-limits{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.pc-limit{font-size:13px;color:var(--muted)}
+.pc-limit strong{color:var(--text)}
+.pc-features{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;min-height:28px}
+.pc-feat-tag{font-size:11px;padding:3px 8px;background:rgba(99,102,241,.12);color:var(--primary);border-radius:4px;border:1px solid rgba(99,102,241,.2)}
+.pc-feat-tag.core{background:rgba(100,116,139,.1);color:var(--muted);border-color:transparent}
+.pc-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-edit{flex:1;min-width:80px;padding:8px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn-edit:hover{opacity:.85}
+.btn-pause{flex:1;min-width:80px;padding:8px;background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-pause:hover{background:rgba(245,158,11,.22)}
+.btn-restore{flex:1;min-width:80px;padding:8px;background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-del{padding:8px 12px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:8px;font-size:13px;cursor:pointer;transition:background .15s;flex-shrink:0}
+.btn-del:hover{background:rgba(239,68,68,.22)}
 
-    .sa-modal-overlay.open {
-        display: flex;
-    }
+/* Drawer */
+.pp-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1040;display:none}
+.pp-drawer-overlay.open{display:block}
+.pp-drawer{position:fixed;top:0;right:0;bottom:0;width:620px;max-width:96vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;z-index:1045;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.pp-drawer.open{transform:translateX(0)}
+.pp-dhead{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface)}
+.pp-dhead-title{font-size:18px;font-weight:700;color:var(--text)}
+.pp-dclose{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1}
+.pp-dclose:hover{background:var(--surface2);color:var(--text)}
+.pp-dtabs{display:flex;gap:2px;padding:14px 24px 0;border-bottom:1px solid var(--border)}
+.pp-dtab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.pp-dtab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.pp-dbody{padding:24px;flex:1}
+.pp-tab{display:none}
+.pp-tab.active{display:block}
 
-    .sa-modal {
-        background: #0f172a;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 28px;
-        width: 480px;
-        max-width: 90vw;
-        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
-    }
+/* Form */
+.pp-fsec{margin-bottom:24px}
+.pp-fsec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.pp-frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pp-fg{margin-bottom:14px}
+.pp-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.pp-input{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.pp-input:focus{border-color:var(--primary)}
+.pp-input[readonly]{opacity:.5;cursor:not-allowed}
+.pp-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.pp-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.pp-tinfo{flex:1}
+.pp-tlabel{font-size:14px;font-weight:600;color:var(--text)}
+.pp-tdesc{font-size:12px;color:var(--muted);margin-top:2px}
+.pp-tswitch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.pp-tswitch input{opacity:0;width:0;height:0}
+.pp-tslider{position:absolute;inset:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:999px;transition:.2s}
+.pp-tslider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:.2s}
+.pp-tswitch input:checked + .pp-tslider{background:var(--primary);border-color:var(--primary)}
+.pp-tswitch input:checked + .pp-tslider:before{transform:translateX(20px);background:#fff}
 
-    .sa-modal-title {
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #f1f5f9;
-        margin-bottom: 22px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+/* Features */
+.pp-fcat{margin-bottom:20px}
+.pp-fcathead{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.pp-fcatdesc{font-size:11px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+.pp-fi{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:3px}
+.pp-fi:hover:not(.locked){background:var(--surface2)}
+.pp-fi.locked{opacity:.5;cursor:default}
+.pp-ficb{margin-top:2px;width:15px;height:15px;accent-color:var(--primary);flex-shrink:0;cursor:pointer}
+.pp-fiico{font-size:17px;flex-shrink:0;width:22px;text-align:center}
+.pp-fitxt{flex:1}
+.pp-finame{font-size:13px;font-weight:600;color:var(--text)}
+.pp-fidesc{font-size:11px;color:var(--muted);margin-top:1px}
+.pp-fibadge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;align-self:center}
+.pp-bepul{background:rgba(100,116,139,.15);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:4px}
 
-    .sa-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 9px 18px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        transition: all 0.18s;
-        white-space: nowrap;
-    }
+/* Drawer footer */
+.pp-dfooter{padding:16px 24px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:10px}
+.pp-btn-save{flex:1;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.pp-btn-save:hover{opacity:.85}
+.pp-btn-cancel{padding:12px 20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer}
+.pp-btn-cancel:hover{color:var(--text)}
 
-    .sa-btn-secondary {
-        background: rgba(255, 255, 255, 0.05);
-        color: #f1f5f9;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .sa-btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.09);
-        border-color: rgba(255, 255, 255, 0.14);
-        color: #fff;
-    }
-
-    .sa-red {
-        color: #ef4444;
-    }
-
-    .sa-red {
-        color: #ef4444;
-    }
-
-    select option {
-        background: #0f172a !important;
-        color: #f1f5f9 !important;
-    }
-
-    /* ── Page container ─────────────────────────── */
-    .plans-page {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    /* ── Table ──────────────────────────────────── */
-    .plans-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .plans-table th {
-        padding: 12px 16px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: #64748b;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .plans-table td {
-        padding: 14px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        vertical-align: middle;
-    }
-
-    .plans-table tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
-    }
-
-    .feature-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 20px;
-        background: rgba(99, 102, 241, 0.12);
-        color: #818cf8;
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        font-size: 0.7rem;
-        font-weight: 600;
-    }
-
-    /* ── Slide-over overlay ─────────────────────── */
-    .plan-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 9800;
-        backdrop-filter: blur(4px);
-    }
-
-    .plan-overlay.open {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* ── Modal panel ────────────────────────────── */
-    .plan-panel {
-        background: #0f172a;
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        width: 960px;
-        max-width: 96vw;
-        max-height: 92vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8);
-    }
-
-    .plan-panel-header {
-        padding: 1.5rem 2rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-shrink: 0;
-    }
-
-    .plan-panel-body {
-        display: flex;
-        flex: 1;
-        overflow: hidden;
-    }
-
-    /* Left col */
-    .plan-panel-left {
-        width: 340px;
-        flex-shrink: 0;
-        padding: 1.75rem;
-        border-right: 1px solid var(--border);
-        overflow-y: auto;
-    }
-
-    /* Right col */
-    .plan-panel-right {
-        flex: 1;
-        padding: 1.75rem;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .plan-panel-footer {
-        padding: 1.25rem 2rem;
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-shrink: 0;
-        background: rgba(0, 0, 0, 0.3);
-    }
-
-    /* ── Form controls ──────────────────────────── */
-    .fc-dark {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #fff;
-        border-radius: 10px;
-        padding: 10px 14px;
-        width: 100%;
-        font-size: 0.9rem;
-        transition: border-color 0.2s;
-    }
-
-    .fc-dark:focus {
-        outline: none;
-        border-color: var(--primary);
-        background: rgba(99, 102, 241, 0.05);
-    }
-
-    .fc-dark::placeholder {
-        color: #475569;
-    }
-
-    .fc-label {
-        display: block;
-        font-size: 0.75rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* ── Buttons ────────────────────────────────── */
-    .btn-cancel {
-        background: rgba(255, 255, 255, 0.05);
-        color: #94a3b8;
-        border: 1px solid transparent;
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .btn-cancel:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
-    }
-
-    .btn-save {
-        background: var(--primary);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        padding: 10px 28px;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-save:hover {
-        background: #4f46e5;
-        transform: translateY(-1px);
-    }
-
-    .btn-save:disabled {
-        opacity: 0.6;
-        transform: none;
-        cursor: wait;
-    }
-
-    /* ── Feature section (right) ────────────────── */
-    .feat-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
-        flex-shrink: 0;
-    }
-
-    .feat-ctrl-btn {
-        background: rgba(99, 102, 241, 0.1);
-        color: #818cf8;
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        border-radius: 8px;
-        padding: 4px 12px;
-        font-size: 0.72rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .feat-ctrl-btn:hover {
-        background: rgba(99, 102, 241, 0.2);
-    }
-
-    .feat-ctrl-btn-danger {
-        background: rgba(239, 68, 68, 0.08);
-        color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        border-radius: 8px;
-        padding: 4px 12px;
-        font-size: 0.72rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .feat-ctrl-btn-danger:hover {
-        background: rgba(239, 68, 68, 0.18);
-    }
-
-    .feat-search-wrap {
-        position: relative;
-        margin-bottom: 12px;
-        flex-shrink: 0;
-    }
-
-    .feat-search-wrap i {
-        position: absolute;
-        top: 50%;
-        left: 12px;
-        transform: translateY(-50%);
-        color: #475569;
-        font-size: 0.8rem;
-        pointer-events: none;
-    }
-
-    .feat-search {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #fff;
-        border-radius: 10px;
-        padding: 9px 12px 9px 34px;
-        width: 100%;
-        font-size: 0.85rem;
-        transition: border-color 0.2s;
-    }
-
-    .feat-search:focus {
-        outline: none;
-        border-color: var(--primary);
-    }
-
-    .feat-search::placeholder {
-        color: #475569;
-    }
-
-    .feat-scroll {
-        flex: 1;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-
-    .feat-scroll::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .feat-scroll::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .feat-scroll::-webkit-scrollbar-thumb {
-        background: rgba(99, 102, 241, 0.3);
-        border-radius: 4px;
-    }
-
-    .feat-cat-badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 20px;
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: rgba(99, 102, 241, 0.12);
-        color: #818cf8;
-        border: 1px solid rgba(99, 102, 241, 0.25);
-    }
-
-    .feat-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        background: rgba(255, 255, 255, 0.02);
-        margin-bottom: 6px;
-        cursor: pointer;
-        transition: all 0.18s;
-        user-select: none;
-    }
-
-    .feat-row:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(99, 102, 241, 0.35);
-        transform: translateX(2px);
-    }
-
-    .feat-row.checked {
-        background: rgba(99, 102, 241, 0.1);
-        border-color: rgba(99, 102, 241, 0.45);
-    }
-
-    .feat-row.checked .feat-name {
-        color: #a5b4fc;
-    }
-
-    .feat-name {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #e2e8f0;
-    }
-
-    .feat-desc {
-        font-size: 0.73rem;
-        color: #64748b;
-        margin-top: 1px;
-    }
-
-    /* Form switch override */
-    .feat-switch .form-check-input {
-        width: 36px;
-        height: 20px;
-        cursor: pointer;
-    }
-
-    .feat-switch .form-check-input:checked {
-        background-color: var(--primary);
-        border-color: var(--primary);
-    }
-
-    .feat-error {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-size: 0.85rem;
-        margin-top: 12px;
-        display: none;
-        flex-shrink: 0;
-    }
+/* Empty */
+.pp-empty{text-align:center;padding:60px 24px;color:var(--muted)}
+.pp-empty .pp-eico{font-size:48px;margin-bottom:16px}
 </style>
 
-<div class="plans-page">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 text-white mb-1">Tariflar (Plans)</h1>
-            <p class="text-secondary mb-0 small">SaaS obuna tariflarini boshqarish — modullar va huquqlar bilan</p>
+<div class="pa-page">
+  <div class="pa-header">
+    <div>
+      <div class="pa-title">Tarif <span>Boshqaruvi</span></div>
+      <div class="pa-subtitle">O'quv markazlar uchun tarif va modul sozlamalari</div>
+    </div>
+    <button class="btn-new" onclick="ppOpenCreate()">
+      <span style="font-size:18px">＋</span> Yangi tarif
+    </button>
+  </div>
+  <div class="plans-grid" id="ppGrid">
+    <div style="color:var(--muted);font-size:14px;padding:40px 0">Yuklanmoqda...</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<form id="ppCsrfForm" style="display:none">{% csrf_token %}</form>
+
+<!-- Drawer Overlay -->
+<div class="pp-drawer-overlay" id="ppOverlay" onclick="ppCloseDrawer()"></div>
+
+<!-- Edit / Create Drawer -->
+<div class="pp-drawer" id="ppDrawer">
+  <div class="pp-dhead">
+    <div class="pp-dhead-title" id="ppDrawerTitle">Tarif</div>
+    <button class="pp-dclose" onclick="ppCloseDrawer()">✕</button>
+  </div>
+  <div class="pp-dtabs">
+    <button class="pp-dtab active" onclick="ppTab('info',this)">Asosiy</button>
+    <button class="pp-dtab" onclick="ppTab('modules',this)">Modullar</button>
+    <button class="pp-dtab" onclick="ppTab('pricing',this)">Ko'p oylik</button>
+  </div>
+  <div class="pp-dbody">
+
+    <!-- Tab: Asosiy -->
+    <div class="pp-tab active" id="pp-tab-info">
+      <div class="pp-fsec">
+        <div class="pp-fsec-title">Tarif ma'lumotlari</div>
+        <div class="pp-frow">
+          <div class="pp-fg">
+            <label class="pp-label">Tarif Kodi * <span id="ppCodeHint" style="color:var(--amber);font-size:11px"></span></label>
+            <input class="pp-input" id="pp-code" placeholder="masalan: GOLD" style="text-transform:uppercase">
+            <div class="pp-hint" id="ppCodeHelp">Kichik harflar avtomatik katta bo&#x2019;ladi</div>
+          </div>
+          <div class="pp-fg">
+            <label class="pp-label">Tarif Nomi *</label>
+            <input class="pp-input" id="pp-title" placeholder="masalan: Gold">
+          </div>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Ortga
-            </a>
-            <button class="btn btn-primary btn-sm" onclick="openPlanForm()">
-                <i class="bi bi-plus-lg me-1"></i>Yangi Tarif
-            </button>
+        <div class="pp-frow">
+          <div class="pp-fg">
+            <label class="pp-label">Daraja (Tier)</label>
+            <input class="pp-input" id="pp-tier" type="number" min="1" placeholder="10, 20, 30...">
+            <div class="pp-hint">Kichik = past. 10=Standart, 20=Premium, 30=Pro</div>
+          </div>
+          <div class="pp-fg">
+            <label class="pp-label">Oylik narx (so'm) — 0 = Custom</label>
+            <input class="pp-input" id="pp-price" type="number" min="0" placeholder="400000">
+          </div>
         </div>
+      </div>
+      <div class="pp-fsec">
+        <div class="pp-fsec-title">Limitlar <span style="color:var(--green);font-weight:400;font-size:11px">(0 = cheksiz)</span></div>
+        <div class="pp-frow">
+          <div class="pp-fg">
+            <label class="pp-label">&#x1F469;&#x200D;&#x1F393; O'quvchilar limiti</label>
+            <input class="pp-input" id="pp-students" type="number" min="0" placeholder="200">
+            <div class="pp-hint">0 = cheksiz</div>
+          </div>
+          <div class="pp-fg">
+            <label class="pp-label">&#x1F3EB; Filiallar soni</label>
+            <input class="pp-input" id="pp-branches" type="number" min="0" placeholder="1">
+            <div class="pp-hint">0 = cheksiz · 1 = faqat asosiy</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);background:var(--surface2);padding:10px 12px;border-radius:8px">
+          &#x2139;&#xFE0F; Guruhlar va xodimlar <strong style="color:var(--text)">cheksiz</strong> — limit yo'q
+        </div>
+      </div>
+      <div class="pp-fsec">
+        <div class="pp-fsec-title">Ko'rinish</div>
+        <div class="pp-toggle-row">
+          <div class="pp-tinfo">
+            <div class="pp-tlabel">&#x1F525; Ommabop (Popular)</div>
+            <div class="pp-tdesc">Landing sahifasida "Eng ommabop" badge ko'rsatiladi</div>
+          </div>
+          <label class="pp-tswitch"><input type="checkbox" id="pp-popular"><span class="pp-tslider"></span></label>
+        </div>
+        <div class="pp-toggle-row" style="border-bottom:none">
+          <div class="pp-tinfo">
+            <div class="pp-tlabel">&#x2B50; Tavsiya etiladi</div>
+            <div class="pp-tdesc">Landing da "Tavsiya etiladi" belgisi</div>
+          </div>
+          <label class="pp-tswitch"><input type="checkbox" id="pp-recommended"><span class="pp-tslider"></span></label>
+        </div>
+      </div>
     </div>
 
-    <!-- Plans Table -->
-    <div class="card"
-        style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
-        <div class="table-responsive">
-            <table class="plans-table">
-                <thead>
-                    <tr>
-                        <th>CODE</th>
-                        <th>NOMI</th>
-                        <th>NARXI</th>
-                        <th>LIMITLAR</th>
-                        <th>MODULLAR</th>
-                        <th>STATUS</th>
-                        <th class="text-end">AMALLAR</th>
-                    </tr>
-                </thead>
-                <tbody id="plansTableBody">
-                    {% for p in db_plans %}
-                    <tr>
-                        <td><span class="font-monospace text-white fw-bold">{{ p.code }}</span></td>
-                        <td>
-                            <div class="text-white fw-semibold">{{ p.title }}</div>
-                            {% if p.is_popular %}<span class="badge bg-warning text-dark mt-1"
-                                style="font-size:0.6rem;">POPULAR</span>{% endif %}
-                        </td>
-                        <td class="text-white">{{ p.monthly_price|intcomma }} so'm</td>
-                        <td class="text-secondary small">
-                            <div class="d-flex flex-column gap-1">
-                                <span class="text-white" style="font-size: 0.95rem;">
-                                    <i class="bi bi-people-fill me-1" style="color: #60a5fa;"></i>
-                                    {% if p.max_students >= 9999 %}Cheksiz{% else %}{{ p.max_students }}{% endif %}
-                                    o'quvchi
-                                </span>
-                                <span style="font-size: 0.8rem; color:#94a3b8;">
-                                    <i class="bi bi-building me-1" style="color:#818cf8;"></i>
-                                    {% if p.max_branches == 0 %}Cheksiz filial{% elif p.max_branches == 1 %}Filial yo'q{% else %}{{ p.max_branches|add:"-1" }} filial{% endif %}
-                                </span>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="feature-pill">
-                                <i class="bi bi-key-fill"></i>
-                                {{ p.plan_features.count }} modul
-                            </span>
-                        </td>
-                        <td>
-                            {% if p.active %}
-                            <span class="badge"
-                                style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);">Active</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-info border-0 me-1" onclick="editPlan({{ p.id }})"
-                                title="Tahrirlash">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger border-0" onclick="deletePlan({{ p.id }})"
-                                title="O'chirish">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-secondary">
-                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                            Tariflar mavjud emas. Yangi tarif qo'shing.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Tab: Modullar -->
+    <div class="pp-tab" id="pp-tab-modules">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;padding:10px 12px;background:var(--surface2);border-radius:8px;line-height:1.6">
+        &#x1F4A1; <strong style="color:var(--text)">Bepul modullar</strong> — barcha tariflarda avtomatik yoqiq.<br>
+        Faqat <strong style="color:var(--primary)">premium modullarni</strong> ushbu tarif uchun tanlang.
+      </div>
+      <div id="ppFeatList">Yuklanmoqda...</div>
     </div>
+
+    <!-- Tab: Ko'p oylik -->
+    <div class="pp-tab" id="pp-tab-pricing">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Uzoq muddatli obunalar uchun chegirma narxlar (ixtiyoriy)</div>
+      <div class="pp-frow">
+        <div class="pp-fg"><label class="pp-label">3 oylik</label><input class="pp-input" id="pp-p3" type="number" min="0" placeholder="1 200 000"></div>
+        <div class="pp-fg"><label class="pp-label">6 oylik</label><input class="pp-input" id="pp-p6" type="number" min="0" placeholder="2 200 000"></div>
+      </div>
+      <div class="pp-frow">
+        <div class="pp-fg"><label class="pp-label">9 oylik</label><input class="pp-input" id="pp-p9" type="number" min="0" placeholder="3 100 000"></div>
+        <div class="pp-fg"><label class="pp-label">12 oylik</label><input class="pp-input" id="pp-p12" type="number" min="0" placeholder="4 000 000"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pp-dfooter">
+    <button class="pp-btn-cancel" onclick="ppCloseDrawer()">Bekor qilish</button>
+    <button class="pp-btn-save" id="ppSaveBtn" onclick="ppSave()">&#x1F4BE; Saqlash</button>
+  </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!--    PLAN FORM MODAL (Create / Edit with Features)    -->
-<!-- ═══════════════════════════════════════════════════ -->
-<div id="planFormOverlay" class="plan-overlay" onclick="if(event.target===this) closePlanModal()">
-    <div class="plan-panel">
-
-        <!-- Header -->
-        <div class="plan-panel-header">
-            <div>
-                <h5 class="text-white m-0 fw-bold" id="planFormTitle">Yangi Tarif</h5>
-                <small class="text-secondary">Tarif axborotlari va modullari</small>
-            </div>
-            <button type="button" class="btn-close btn-close-white" onclick="closePlanModal()"></button>
-        </div>
-
-        <!-- Body: LEFT + RIGHT -->
-        <div class="plan-panel-body">
-
-            <!-- LEFT: Basic Info + Limits -->
-            <div class="plan-panel-left">
-                <form id="planForm" onsubmit="event.preventDefault(); submitPlan();">
-                    <input type="hidden" id="planId">
-
-                    <div class="mb-3">
-                        <label class="fc-label">Tarif Kodi <span class="text-danger">*</span></label>
-                        <input type="text" id="p_code" class="fc-dark font-monospace text-uppercase" placeholder="GOLD"
-                            required maxlength="20">
-                        <div class="mt-1" id="codeHint" style="font-size:0.72rem; color:#64748b;">Unikal kod
-                            (o'zgartirib bo'lmaydi)</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="fc-label">Tarif Nomi <span class="text-danger">*</span></label>
-                        <input type="text" id="p_title" class="fc-dark" placeholder="Gold Plan" required>
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-12">
-                            <label class="fc-label">Narxi (1 oy) <span class="text-danger">*</span></label>
-                            <input type="number" id="p_price" class="fc-dark" placeholder="400000" min="0">
-                        </div>
-                    </div>
-
-                    <p class="text-secondary mt-3"
-                        style="font-size:0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
-                        KO'P OYLIK NARXLAR (SAAS)</p>
-                    <div class="row g-2 mb-3">
-                        <div class="col-3">
-                            <label class="fc-label">3 oylik</label>
-                            <input type="number" id="p_price_3m" class="fc-dark" placeholder="1050000">
-                        </div>
-                        <div class="col-3">
-                            <label class="fc-label">6 oylik</label>
-                            <input type="number" id="p_price_6m" class="fc-dark" placeholder="1800000">
-                        </div>
-                        <div class="col-3">
-                            <label class="fc-label">9 oylik</label>
-                            <input type="number" id="p_price_9m" class="fc-dark" placeholder="2300000">
-                        </div>
-                        <div class="col-3">
-                            <label class="fc-label">12 oylik</label>
-                            <input type="number" id="p_price_12m" class="fc-dark" placeholder="2760000">
-                        </div>
-                    </div>
-
-                    <div class="mb-3 p-3 rounded-3"
-                        style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="p_popular" style="cursor:pointer;">
-                            <label class="form-check-label text-warning small fw-semibold" for="p_popular">
-                                🔥 Ommabop (Popular Badge)
-                            </label>
-                        </div>
-                    </div>
-
-                    <hr style="border-color: rgba(255,255,255,0.07); margin: 1rem 0;">
-                    <p class="text-secondary"
-                        style="font-size:0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
-                        Limitlar</p>
-
-                    <div class="mb-3">
-                        <label class="fc-label">👥 O'quvchi limiti</label>
-                        <input type="number" id="p_students" class="fc-dark" value="100" min="0">
-                        <div class="mt-1" style="font-size:0.65rem; color:#64748b;">Guruhlar va adminlar soni cheksiz
-                            (limitlanmagan)</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="fc-label">🏢 Filiallar soni limiti</label>
-                        <input type="number" id="p_branches" class="fc-dark" value="0" min="0">
-                        <div class="mt-1" style="font-size:0.65rem; color:#64748b;">0 = cheksiz filiallar. 1 = faqat asosiy markaz (filial qo'shib bo'lmaydi). 3 = asosiy + 2 filial.</div>
-                    </div>
-
-                    <div class="mb-2">
-                        <label class="fc-label">Tavsif</label>
-                        <textarea id="p_caption" class="fc-dark" rows="2" placeholder="Qisqacha tavsif..."></textarea>
-                    </div>
-                </form>
-            </div>
-
-            <!-- RIGHT: Features / Permissions -->
-            <div class="plan-panel-right">
-
-                <!-- Header row -->
-                <div class="feat-header">
-                    <div>
-                        <div class="text-white fw-bold mb-1">Modullar va Huquqlar</div>
-                        <div id="featStats" class="text-secondary" style="font-size:0.78rem;">0 / 0 modul tanlandi</div>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1">
-                        <button type="button" class="feat-ctrl-btn" onclick="toggleAllFeats(true)">
-                            <i class="bi bi-check2-all me-1"></i>Barchasi
-                        </button>
-                        <button type="button" class="feat-ctrl-btn" onclick="toggleCoreFeats()">
-                            <i class="bi bi-star me-1"></i>Faqat asosiy
-                        </button>
-                        <button type="button" class="feat-ctrl-btn-danger" onclick="toggleAllFeats(false)">
-                            <i class="bi bi-x me-1"></i>Tozalash
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Search -->
-                <div class="feat-search-wrap">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="feat-search" id="featSearchInput" placeholder="Modul qidirish..."
-                        oninput="onFeatSearch()">
-                </div>
-
-                <!-- Features list -->
-                <div class="feat-scroll" id="featContainer">
-                    <div class="text-center py-4 text-secondary small">
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                        Yuklanmoqda...
-                    </div>
-                </div>
-
-                <!-- Error -->
-                <div class="feat-error" id="featError">
-                    <i class="bi bi-exclamation-triangle me-1"></i>
-                    Kamida bitta modul tanlang!
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="plan-panel-footer">
-            <div class="text-secondary small" id="featFooterStats">—</div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn-cancel" onclick="closePlanModal()">Bekor qilish</button>
-                <button type="button" class="btn-save" id="savePlanBtn" onclick="submitPlan()">
-                    <i class="bi bi-check-lg"></i>Saqlash
-                </button>
-            </div>
-        </div>
+<!-- Delete Confirm Modal -->
+<div id="ppDeleteModal" style="display:none;position:fixed;inset:0;z-index:1060;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#111827;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;width:440px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.6)">
+    <div style="font-size:44px;text-align:center;margin-bottom:14px">&#x1F5D1;&#xFE0F;</div>
+    <div id="ppDelTitle" style="font-size:18px;font-weight:700;text-align:center;margin-bottom:10px;color:#f1f5f9"></div>
+    <div id="ppDelMsg" style="font-size:13px;color:#64748b;text-align:center;margin-bottom:28px;line-height:1.7"></div>
+    <div style="display:flex;gap:10px">
+      <button id="ppDelCancelBtn" onclick="ppCloseDelete()" style="flex:1;padding:12px;background:#1a2235;color:#64748b;border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:14px;cursor:pointer">Bekor qilish</button>
+      <button id="ppDelConfirmBtn" style="flex:1;padding:12px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Ha, o'chirish</button>
     </div>
+  </div>
 </div>
 
-<!-- ── Delete Confirmation Modal ──────────────────────── -->
-<div id="deleteConfirmModal" class="sa-modal-overlay">
-    <div class="sa-modal" style="width: 400px; text-align: center;">
-        <div style="font-size: 3rem; color: #ef4444; margin-bottom: 16px; opacity: 0.8;">
-            <i class="bi bi-exclamation-octagon"></i>
-        </div>
-        <h4 style="color: #f1f5f9; font-weight: 800; margin-bottom: 10px;">Tasdiqlaysizmi?</h4>
-        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 24px;">
-            Haqiqatan ham ushbu tarifni o'chirib tashlamoqchimisiz?<br>
-            Bu amalni ortga qaytarib bo'lmaydi!
-        </p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <button class="sa-btn" id="confirmDeleteBtn" style="background: #ef4444; color: white; padding: 10px 24px;">
-                <i class="bi bi-trash"></i> O'chirish
-            </button>
-            <button class="sa-btn sa-btn-secondary" onclick="closeDeleteModal()" style="padding: 10px 24px;">
-                Bekor qilish
-            </button>
-        </div>
+<!-- Pause Confirm Modal -->
+<div id="ppPauseModal" style="display:none;position:fixed;inset:0;z-index:1060;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#111827;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;width:440px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.6)">
+    <div style="font-size:44px;text-align:center;margin-bottom:14px">&#x23F8;&#xFE0F;</div>
+    <div id="ppPauseTitle" style="font-size:18px;font-weight:700;text-align:center;margin-bottom:10px;color:#f1f5f9"></div>
+    <div id="ppPauseMsg" style="font-size:13px;color:#64748b;text-align:center;margin-bottom:28px;line-height:1.7"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="ppClosePause()" style="flex:1;padding:12px;background:#1a2235;color:#64748b;border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:14px;cursor:pointer">Bekor qilish</button>
+      <button id="ppPauseConfirmBtn" style="flex:1;padding:12px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">&#x23F8; Ha, to'xtatish</button>
     </div>
+  </div>
 </div>
 
+<!-- Loader -->
+<div id="ppLoader" style="display:none;position:fixed;inset:0;z-index:1070;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="width:42px;height:42px;border:3px solid rgba(255,255,255,.1);border-top-color:#6366f1;border-radius:50%;animation:ppSpin .7s linear infinite"></div>
+</div>
+
+<!-- Toast -->
+<div id="ppToast" style="position:fixed;bottom:28px;right:28px;z-index:1080;padding:13px 22px;border-radius:10px;font-size:14px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none"></div>
+
+<style>
+@keyframes ppSpin{to{transform:rotate(360deg)}}
+</style>
 
 <script>
-    // ── State ──────────────────────────────────────────────────────────────────
-    let _featCats = [];   // [{category, label, items:[...]}]
+// ── State ──────────────────────────────────────────────────────────
+let ppPlans = [];
+let ppCategories = [];
+let ppCurrentId = null;
+let ppDeleteId  = null;
+let ppDeleteForce = false;
+let ppPauseId   = null;
 
-    // ── Load features from API ─────────────────────────────────────────────────
-    async function loadFeatureCategories() {
-        if (_featCats.length) return _featCats;
-        try {
-            const r = await fetch("{% url 'accounts:api_features_list' %}");
-            const d = await r.json();
-            _featCats = d.categories || [];
-        } catch (e) {
-            console.error('Feature load error:', e);
-            _featCats = [];
-        }
-        return _featCats;
+// ── Boot ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await Promise.all([ppLoadPlans(), ppLoadFeatures()]);
+    ppRenderPlans();
+    ppRenderFeatures();
+  } catch(e) {
+    document.getElementById('ppGrid').innerHTML =
+      '<div style="color:#ef4444;padding:20px">Xato: ' + e.message + '</div>';
+  }
+
+  document.getElementById('pp-code').addEventListener('input', e => {
+    const pos = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    e.target.setSelectionRange(pos, pos);
+  });
+});
+
+// ── API Helpers ────────────────────────────────────────────────────
+function ppCsrf() {
+  const el = document.querySelector('#ppCsrfForm [name=csrfmiddlewaretoken]');
+  if (el) return el.value;
+  return document.cookie.split(';').map(c=>c.trim())
+    .find(c=>c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+async function ppLoadPlans() {
+  const r = await fetch("{% url 'platform_global:api_plan_list' %}?all=1");
+  if (!r.ok) throw new Error('Plan API ' + r.status);
+  const d = await r.json();
+  ppPlans = d.plans || [];
+}
+
+async function ppLoadFeatures() {
+  const r = await fetch("{% url 'platform_global:api_features_list' %}");
+  if (!r.ok) throw new Error('Features API ' + r.status);
+  const d = await r.json();
+  ppCategories = d.categories || [];
+}
+
+// ── Render Plans ───────────────────────────────────────────────────
+function ppRenderPlans() {
+  const grid = document.getElementById('ppGrid');
+  if (!ppPlans.length) {
+    grid.innerHTML = '<div class="pp-empty"><div class="pp-eico">&#x1F4CB;</div><div>Tarif yo\'q. Yangi tarif yarating.</div></div>';
+    return;
+  }
+  const TIER_COLORS = {10:'#3b82f6', 20:'#8b5cf6', 30:'#f59e0b'};
+  grid.innerHTML = ppPlans.map(p => {
+    const isPaused = !p.active;
+    const col = TIER_COLORS[p.tier] || '#6366f1';
+    const priceHtml = !p.monthly_price
+      ? '<div class="pc-price custom">&#x1F48E; Custom narx</div>'
+      : '<div class="pc-price">' + ppFmt(p.monthly_price) + ' <sup>so\'m/oy</sup></div>';
+    const students = p.max_students === 0 ? '&#x267E;' : ppFmt(p.max_students);
+    const branches = p.max_branches === 0 ? '&#x267E;' : p.max_branches;
+    const allFeats  = ppCategories.flatMap(c => c.items || []);
+    const coreFeats = allFeats.filter(f => f.is_core).slice(0,3);
+    const premFeats = allFeats.filter(f => !f.is_core && (p.feature_codes||[]).includes(f.code)).slice(0,5);
+    const totalExtra = (p.feature_codes||[]).length + allFeats.filter(f=>f.is_core).length;
+    const shownCount = coreFeats.length + premFeats.length;
+    const tags = [
+      ...coreFeats.map(f => '<span class="pc-feat-tag core">' + f.icon + ' ' + f.name + '</span>'),
+      ...premFeats.map(f => '<span class="pc-feat-tag">' + f.icon + ' ' + f.name + '</span>'),
+      totalExtra > shownCount ? '<span class="pc-feat-tag" style="color:var(--muted)">+' + (totalExtra-shownCount) + ' ta</span>' : '',
+    ].join('');
+    const badge = isPaused
+      ? '<div class="pc-badge paused">&#x23F8; To\'xtatilgan</div>'
+      : p.is_popular ? '<div class="pc-badge popular">&#x1F525; Ommabop</div>' : '';
+    const titleEsc = p.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    let actions;
+    if (isPaused) {
+      actions = `
+        <button class="btn-edit"    onclick="ppOpenEdit(${p.id})">&#x270F;&#xFE0F; Tahrirlash</button>
+        <button class="btn-restore" onclick="ppConfirmRestore(${p.id},'${titleEsc}')">&#x267B;&#xFE0F; Faollashtirish</button>
+        <button class="btn-del"     onclick="ppConfirmDelete(${p.id},'${titleEsc}',${p.active_subs||0})" title="O'chirish">&#x1F5D1;&#xFE0F;</button>`;
+    } else {
+      actions = `
+        <button class="btn-edit"  onclick="ppOpenEdit(${p.id})">&#x270F;&#xFE0F; Tahrirlash</button>
+        <button class="btn-pause" onclick="ppConfirmPause(${p.id},'${titleEsc}',${p.active_subs||0})">&#x23F8; To'xtatish</button>
+        <button class="btn-del"   onclick="ppConfirmDelete(${p.id},'${titleEsc}',${p.active_subs||0})" title="O'chirish">&#x1F5D1;&#xFE0F;</button>`;
     }
-
-    // ── Render feature checkboxes ──────────────────────────────────────────────
-    function renderFeats(enabledCodes = []) {
-        const container = document.getElementById('featContainer');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (!_featCats.length) {
-            container.innerHTML = `
-      <div class="text-center py-4 text-secondary small">
-        <i class="bi bi-database me-1"></i> Featurelar yuklanmadi.
-        <a href="#" onclick="initFeatPanel(currentCodes())" class="text-primary ms-1">Qayta urinish</a>
+    return `
+      <div class="plan-card${p.is_popular&&!isPaused?' popular':''}${isPaused?' paused':''}">
+        ${badge}
+        <div class="pc-tier" style="color:${col}">Tier ${p.tier||'—'} &middot; ${p.code}</div>
+        <div class="pc-name">${p.title}</div>
+        ${priceHtml}
+        <hr class="pc-divider">
+        <div class="pc-limits">
+          <div class="pc-limit">&#x1F469;&#x200D;&#x1F393; <strong>${students}</strong> o'quvchi</div>
+          <div class="pc-limit">&#x1F3EB; <strong>${branches}</strong> filial</div>
+          <div class="pc-limit">&#x1F4DA; <strong>&#x267E;</strong> guruh</div>
+        </div>
+        <div class="pc-features">${tags}</div>
+        <div class="pc-actions">${actions}</div>
       </div>`;
-            return;
-        }
+  }).join('');
+}
 
-        const enabledSet = new Set(enabledCodes);
-        const q = (document.getElementById('featSearchInput')?.value || '').toLowerCase().trim();
+// ── Render Features ────────────────────────────────────────────────
+function ppRenderFeatures() {
+  const c = document.getElementById('ppFeatList');
+  if (!ppCategories.length) { c.innerHTML = '<div style="color:var(--muted);font-size:13px">Modullar topilmadi.</div>'; return; }
+  c.innerHTML = ppCategories.map(cat => {
+    const rows = cat.items.map(f => f.is_core
+      ? `<div class="pp-fi locked">
+           <span class="pp-bepul" style="flex-shrink:0">&#x267E;</span>
+           <div class="pp-fiico">${f.icon}</div>
+           <div class="pp-fitxt"><div class="pp-finame">${f.name}</div><div class="pp-fidesc">${f.description||'Barcha tariflarda bepul'}</div></div>
+           <span class="pp-bepul">Bepul</span>
+         </div>`
+      : `<div class="pp-fi" onclick="ppToggle('${f.code}',this)">
+           <input type="checkbox" class="pp-ficb" data-code="${f.code}" onclick="event.stopPropagation()">
+           <div class="pp-fiico">${f.icon}</div>
+           <div class="pp-fitxt"><div class="pp-finame">${f.name}</div><div class="pp-fidesc">${f.description||''}</div></div>
+           <span class="pp-fibadge" style="background:${f.impl_color}22;color:${f.impl_color}">${f.impl_label}</span>
+         </div>`
+    ).join('');
+    return `<div class="pp-fcat">
+      <div class="pp-fcathead"><span>${cat.label}</span><span class="pp-fcatdesc">${cat.desc||''}</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
 
-        _featCats.forEach(cat => {
-            const items = q
-                ? cat.items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q))
-                : cat.items;
-            if (!items.length) return;
+function ppToggle(code, row) {
+  const cb = row.querySelector('.pp-ficb');
+  if (cb) cb.checked = !cb.checked;
+}
+function ppSetCodes(codes) {
+  const s = new Set(codes||[]);
+  document.querySelectorAll('.pp-ficb').forEach(cb => { cb.checked = s.has(cb.dataset.code); });
+}
+function ppGetCodes() {
+  return Array.from(document.querySelectorAll('.pp-ficb:checked')).map(cb => cb.dataset.code);
+}
 
-            const checked = items.filter(i => enabledSet.has(i.code)).length;
+// ── Drawer Open/Close ──────────────────────────────────────────────
+function ppOpenCreate() {
+  ppCurrentId = null;
+  document.getElementById('ppDrawerTitle').textContent = 'Yangi tarif yaratish';
+  document.getElementById('ppSaveBtn').textContent = 'Yaratish';
+  document.getElementById('pp-code').removeAttribute('readonly');
+  document.getElementById('ppCodeHint').textContent = '';
+  document.getElementById('pp-code').value = '';
+  document.getElementById('pp-title').value = '';
+  document.getElementById('pp-tier').value = '';
+  document.getElementById('pp-price').value = '';
+  document.getElementById('pp-students').value = '';
+  document.getElementById('pp-branches').value = '';
+  document.getElementById('pp-popular').checked = false;
+  document.getElementById('pp-recommended').checked = false;
+  document.getElementById('pp-p3').value = '';
+  document.getElementById('pp-p6').value = '';
+  document.getElementById('pp-p9').value = '';
+  document.getElementById('pp-p12').value = '';
+  ppSetCodes([]);
+  ppTab('info', document.querySelector('.pp-dtab'));
+  ppShowDrawer();
+}
 
-            const section = document.createElement('div');
-            section.className = 'mb-3';
-            section.innerHTML = `
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <span class="feat-cat-badge">${cat.label}</span>
-        <span class="text-secondary" style="font-size:0.68rem;">${checked}/${items.length}</span>
-      </div>
-      <div class="feat-items"></div>
-    `;
+function ppOpenEdit(planId) {
+  const p = ppPlans.find(x => x.id === planId);
+  if (!p) return;
+  ppCurrentId = planId;
+  document.getElementById('ppDrawerTitle').textContent = '"' + p.title + '" — Tahrirlash';
+  document.getElementById('ppSaveBtn').textContent = 'Saqlash';
+  document.getElementById('pp-code').setAttribute('readonly', true);
+  document.getElementById('ppCodeHint').textContent = '(o\'zgartirib bo\'lmaydi)';
+  document.getElementById('pp-code').value = p.code;
+  document.getElementById('pp-title').value = p.title;
+  document.getElementById('pp-tier').value = p.tier || '';
+  document.getElementById('pp-price').value = p.monthly_price || '';
+  document.getElementById('pp-students').value = p.max_students;
+  document.getElementById('pp-branches').value = p.max_branches;
+  document.getElementById('pp-popular').checked = !!p.is_popular;
+  document.getElementById('pp-recommended').checked = !!p.is_recommended;
+  document.getElementById('pp-p3').value  = p.price_3m  || '';
+  document.getElementById('pp-p6').value  = p.price_6m  || '';
+  document.getElementById('pp-p9').value  = p.price_9m  || '';
+  document.getElementById('pp-p12').value = p.price_12m || '';
+  ppSetCodes(p.feature_codes || []);
+  ppTab('info', document.querySelector('.pp-dtab'));
+  ppShowDrawer();
+}
 
-            const list = section.querySelector('.feat-items');
-            items.forEach(item => {
-                const isChecked = enabledSet.has(item.code);
-                const row = document.createElement('div');
-                row.className = 'feat-row' + (isChecked ? ' checked' : '');
-                row.dataset.code = item.code;
-                row.dataset.isCore = item.is_core;
-                row.innerHTML = `
-        <div>
-          <div class="feat-name">
-            ${item.is_core ? '<span class="badge me-1" style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.55rem;vertical-align:middle;">ASOSIY</span>' : ''}
-            ${item.name}
-          </div>
-          <div class="feat-desc">${item.description || ''}</div>
-        </div>
-        <div class="form-check form-switch feat-switch m-0 ms-3">
-          <input class="form-check-input feat-chk"
-                 type="checkbox"
-                 id="fc_${item.code}"
-                 data-code="${item.code}"
-                 data-is-core="${item.is_core}"
-                 ${isChecked ? 'checked' : ''}
-                 onclick="event.stopPropagation()">
-        </div>
-      `;
-                row.addEventListener('click', function (e) {
-                    if (e.target.tagName === 'INPUT') return;
-                    const chk = this.querySelector('.feat-chk');
-                    if (chk) { chk.checked = !chk.checked; onFeatChange(chk); }
-                });
-                row.querySelector('.feat-chk').addEventListener('change', function () {
-                    onFeatChange(this);
-                });
-                list.appendChild(row);
-            });
+function ppShowDrawer() {
+  document.getElementById('ppDrawer').classList.add('open');
+  document.getElementById('ppOverlay').classList.add('open');
+}
+function ppCloseDrawer() {
+  document.getElementById('ppDrawer').classList.remove('open');
+  document.getElementById('ppOverlay').classList.remove('open');
+}
 
-            container.appendChild(section);
-        });
+// ── Tab switch ─────────────────────────────────────────────────────
+function ppTab(name, btn) {
+  document.querySelectorAll('.pp-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.pp-dtab').forEach(el => el.classList.remove('active'));
+  document.getElementById('pp-tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
 
-        updateFeatStats();
-    }
-
-    function onFeatChange(chk) {
-        const row = chk.closest('.feat-row');
-        if (chk.checked) {
-            row.classList.add('checked');
-            document.getElementById('featError').style.display = 'none';
-        } else {
-            row.classList.remove('checked');
-        }
-        updateFeatStats();
-    }
-
-    function updateFeatStats() {
-        const total = document.querySelectorAll('.feat-chk').length;
-        const checked = document.querySelectorAll('.feat-chk:checked').length;
-        const stats = `${checked} / ${total} modul tanlandi`;
-        const el1 = document.getElementById('featStats');
-        const el2 = document.getElementById('featFooterStats');
-        if (el1) el1.textContent = stats;
-        if (el2) el2.textContent = stats;
-    }
-
-    function currentCodes() {
-        return Array.from(document.querySelectorAll('.feat-chk:checked')).map(c => c.dataset.code);
-    }
-
-    async function initFeatPanel(enabledCodes = []) {
-        const c = document.getElementById('featContainer');
-        if (c) c.innerHTML = '<div class="text-center py-4 text-secondary small"><span class="spinner-border spinner-border-sm me-2"></span>Yuklanmoqda...</div>';
-        await loadFeatureCategories();
-        renderFeats(enabledCodes);
-    }
-
-    function toggleAllFeats(state) {
-        document.querySelectorAll('.feat-chk').forEach(chk => {
-            chk.checked = state;
-            onFeatChange(chk);
-        });
-    }
-
-    function toggleCoreFeats() {
-        document.querySelectorAll('.feat-chk').forEach(chk => {
-            chk.checked = (chk.dataset.isCore === 'true');
-            onFeatChange(chk);
-        });
-    }
-
-    function onFeatSearch() {
-        const codes = currentCodes();
-        renderFeats(codes);
-    }
-
-    // ── Modal open / close ─────────────────────────────────────────────────────
-    function onPriceUpdate() {
-        const p1 = parseInt(document.getElementById('p_price').value) || 0;
-        if (p1 <= 0) return;
-
-        // Multipliers based on Standard plan (400k -> 1.05m / 1.8m / 2.3m / 2.76m)
-        document.getElementById('p_price_3m').value = Math.round(p1 * 2.625);
-        document.getElementById('p_price_6m').value = Math.round(p1 * 4.5);
-        document.getElementById('p_price_9m').value = Math.round(p1 * 5.75);
-        document.getElementById('p_price_12m').value = Math.round(p1 * 6.9);
-    }
-
-    document.getElementById('p_price').addEventListener('input', onPriceUpdate);
-
-    function openPlanForm() {
-        document.getElementById('planId').value = '';
-        document.getElementById('planForm').reset();
-        document.getElementById('p_code').disabled = false;
-        document.getElementById('codeHint').textContent = 'Unikal kod (keyinchalik o\'zgartirib bo\'lmaydi)';
-        document.getElementById('p_students').value = 100;
-        document.getElementById('p_branches').value = 0;
-        document.getElementById('p_price').value = '';
-        document.getElementById('p_price_3m').value = '';
-        document.getElementById('p_price_6m').value = '';
-        document.getElementById('p_price_9m').value = '';
-        document.getElementById('p_price_12m').value = '';
-        document.getElementById('p_popular').checked = false;
-        document.getElementById('planFormTitle').textContent = 'Yangi Tarif';
-        document.getElementById('featError').style.display = 'none';
-        document.getElementById('featSearchInput').value = '';
-        document.getElementById('planFormOverlay').classList.add('open');
-        document.body.style.overflow = 'hidden';
-        initFeatPanel([]);
-    }
-
-    function closePlanModal() {
-        document.getElementById('planFormOverlay').classList.remove('open');
-        document.body.style.overflow = '';
-    }
-
-    // Close modal on overlay click
-    document.getElementById('planFormOverlay').addEventListener('click', function (e) {
-        if (e.target === this) closePlanModal();
+// ── Save ───────────────────────────────────────────────────────────
+async function ppSave() {
+  const code  = document.getElementById('pp-code').value.trim().toUpperCase();
+  const title = document.getElementById('pp-title').value.trim();
+  if (!code)  { ppToast('Tarif kodi kiritilmagan!', 'err'); return; }
+  if (!title) { ppToast('Tarif nomi kiritilmagan!',  'err'); return; }
+  const payload = {
+    code, title,
+    tier:          parseInt(document.getElementById('pp-tier').value)     || 10,
+    monthly_price: parseInt(document.getElementById('pp-price').value)    || 0,
+    max_students:  parseInt(document.getElementById('pp-students').value) || 0,
+    max_branches:  parseInt(document.getElementById('pp-branches').value) || 0,
+    is_popular:    document.getElementById('pp-popular').checked,
+    is_recommended:document.getElementById('pp-recommended').checked,
+    price_3m:  document.getElementById('pp-p3').value  || null,
+    price_6m:  document.getElementById('pp-p6').value  || null,
+    price_9m:  document.getElementById('pp-p9').value  || null,
+    price_12m: document.getElementById('pp-p12').value || null,
+    feature_codes: ppGetCodes(),
+  };
+  ppLoad(true);
+  try {
+    const url = ppCurrentId
+      ? '/platform/api/plans/' + ppCurrentId + '/update/'
+      : "{% url 'platform_global:api_plan_create' %}";
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': ppCsrf()},
+      body: JSON.stringify(payload),
     });
-    document.getElementById('deleteConfirmModal').addEventListener('click', function (e) {
-        if (e.target === this) closeDeleteModal();
+    const d = await r.json();
+    if (d.success) {
+      ppToast(ppCurrentId ? 'Tarif saqlandi!' : 'Yangi tarif yaratildi!', 'ok');
+      await ppLoadPlans(); ppRenderPlans(); ppCloseDrawer();
+    } else {
+      ppToast(d.error || 'Xato yuz berdi', 'err');
+    }
+  } catch(e) { ppToast('Server xatosi: ' + e.message, 'err'); }
+  finally { ppLoad(false); }
+}
+
+// ── Delete ─────────────────────────────────────────────────────────
+function ppConfirmDelete(planId, planTitle, activeSubs) {
+  ppDeleteId = planId;
+  ppDeleteForce = false;
+  document.getElementById('ppDelTitle').textContent = '"' + planTitle + '" ni o\'chirish';
+  document.getElementById('ppDelMsg').textContent = activeSubs > 0
+    ? 'Bu tarifda ' + activeSubs + ' ta faol obuna bor. Server tekshiruvi o\'tkaziladi.'
+    : 'Ushbu tarif butunlay o\'chiriladi. Bu amalni bekor qilib bo\'lmaydi.';
+  document.getElementById('ppDelConfirmBtn').onclick = ppDoDelete;
+  ppModalShow('ppDeleteModal');
+}
+function ppCloseDelete() {
+  ppModalHide('ppDeleteModal');
+  ppDeleteId = null;
+  // Reset modal to default state
+  const confirmBtn = document.getElementById('ppDelConfirmBtn');
+  const cancelBtn  = document.getElementById('ppDelCancelBtn');
+  if (confirmBtn) confirmBtn.style.display = '';
+  if (cancelBtn)  cancelBtn.textContent = 'Bekor qilish';
+}
+
+async function ppDoDelete() {
+  if (!ppDeleteId) return;
+  const id = ppDeleteId;
+  ppCloseDelete();
+  ppLoad(true);
+  try {
+    const r = await fetch('/platform/api/plans/' + id + '/delete/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': ppCsrf()},
     });
-
-    async function editPlan(id) {
-        try {
-            const r = await fetch("{% url 'accounts:api_plan_list' %}");
-            const d = await r.json();
-            const p = d.plans.find(x => x.id == id);
-            if (!p) { alert('Tarif topilmadi'); return; }
-
-            document.getElementById('planId').value = p.id;
-            document.getElementById('p_code').value = p.code;
-            document.getElementById('p_code').disabled = true;
-            document.getElementById('codeHint').textContent = 'Kod o\'zgartirib bo\'lmaydi';
-            document.getElementById('p_title').value = p.title;
-            document.getElementById('p_price').value = p.monthly_price;
-            document.getElementById('p_price_3m').value = p.price_3m || '';
-            document.getElementById('p_price_6m').value = p.price_6m || '';
-            document.getElementById('p_price_9m').value = p.price_9m || '';
-            document.getElementById('p_price_12m').value = p.price_12m || '';
-            document.getElementById('p_students').value = p.max_students || 0;
-            document.getElementById('p_branches').value = p.max_branches ?? 0;
-            document.getElementById('p_popular').checked = p.is_popular;
-            document.getElementById('p_caption').value = p.caption || '';
-            document.getElementById('planFormTitle').textContent = 'Tarifni Tahrirlash: ' + p.title;
-            document.getElementById('featError').style.display = 'none';
-            document.getElementById('featSearchInput').value = '';
-            document.getElementById('planFormOverlay').classList.add('open');
-            document.body.style.overflow = 'hidden';
-
-            const enabledCodes = p.feature_codes || [];
-            await initFeatPanel(enabledCodes);
-        } catch (e) {
-            alert('Xatolik: ' + e.message);
-        }
+    const d = await r.json();
+    if (d.success) {
+      ppToast('Tarif o\'chirildi!', 'ok');
+      await ppLoadPlans(); ppRenderPlans();
+    } else if (d.blocked_permanent) {
+      ppShowPermanentBlock(id, d);
+    } else {
+      ppToast(d.error || 'Xato', 'err');
     }
+  } catch(e) { ppToast('Server xatosi', 'err'); }
+  finally { ppLoad(false); }
+}
 
-    // ── Submit ─────────────────────────────────────────────────────────────────
-    async function submitPlan() {
-        const planId = document.getElementById('planId').value;
-        const code = document.getElementById('p_code').value.trim().toUpperCase();
-        const title = document.getElementById('p_title').value.trim();
+function ppShowPermanentBlock(planId, data) {
+  const plan  = ppPlans.find(x => x.id === planId);
+  const title = plan ? plan.title : '';
+  document.getElementById('ppDelTitle').textContent = 'O\'chirib bo\'lmaydi';
+  document.getElementById('ppDelMsg').innerHTML =
+    '<strong style="color:#f1f5f9">"' + title + '"</strong> tarifiga bog\'liq yozuvlar bor:<br><br>' +
+    '<span style="color:#ef4444">&#x26A0;&#xFE0F; ' + (data.detail || data.message) + '</span><br><br>' +
+    '<span style="color:#f59e0b">&#x23F8; "To\'xtatish" tugmasini ishlating</span> — ' +
+    'yangi obunalar to\'xtatiladi, lekin tarix va ma\'lumotlar saqlanadi.';
+  document.getElementById('ppDelConfirmBtn').style.display = 'none';
+  document.getElementById('ppDelCancelBtn').textContent = 'Yopish';
+  ppModalShow('ppDeleteModal');
+}
 
-        if (!code) { document.getElementById('p_code').focus(); return; }
-        if (!title) { document.getElementById('p_title').focus(); return; }
+// ── Pause ──────────────────────────────────────────────────────────
+function ppConfirmPause(planId, planTitle, activeSubs) {
+  ppPauseId = planId;
+  document.getElementById('ppPauseTitle').textContent = '"' + planTitle + '" ni to\'xtatish';
+  document.getElementById('ppPauseMsg').textContent = activeSubs > 0
+    ? 'Bu tarifda ' + activeSubs + ' ta faol obuna bor. To\'xtatilsa yangi obunalar qabul qilinmaydi, ammo mavjud obunalar davom etadi.'
+    : 'Tarif to\'xtatiladi. Yangi markazlar bu tarifga obuna bo\'la olmaydi. Istalgan vaqt qayta faollashtiriladi.';
+  document.getElementById('ppPauseConfirmBtn').onclick = ppDoPause;
+  ppModalShow('ppPauseModal');
+}
+function ppClosePause() { ppModalHide('ppPauseModal'); ppPauseId = null; }
 
-        // Collect M2M feature codes (ixtiyoriy)
-        const featureCodes = currentCodes();
-        document.getElementById('featError').style.display = 'none';
-
-        // Build legacy features map for backward compat
-        const featuresObj = {};
-        document.querySelectorAll('.feat-chk').forEach(chk => {
-            featuresObj[chk.dataset.code] = chk.checked;
-        });
-
-        const data = {
-            code: code,
-            title: title,
-            monthly_price: parseInt(document.getElementById('p_price').value) || 0,
-            price_3m: parseInt(document.getElementById('p_price_3m').value) || null,
-            price_6m: parseInt(document.getElementById('p_price_6m').value) || null,
-            price_9m: parseInt(document.getElementById('p_price_9m').value) || null,
-            price_12m: parseInt(document.getElementById('p_price_12m').value) || null,
-            max_students: parseInt(document.getElementById('p_students').value) || 0,
-            max_branches: parseInt(document.getElementById('p_branches').value) || 0,
-            is_popular: document.getElementById('p_popular').checked,
-            caption: document.getElementById('p_caption').value,
-            feature_codes: featureCodes,    // M2M
-            features: featuresObj,     // legacy JSONField
-        };
-
-        const url = planId
-            ? `/platform/api/plans/${planId}/update/`
-            : "{% url 'accounts:api_plan_create' %}";
-
-        const btn = document.getElementById('savePlanBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saqlanmoqda...';
-
-        try {
-            const r = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify(data)
-            });
-            const res = await r.json();
-            if (res.success) {
-                closePlanModal();
-                location.reload();
-            } else {
-                alert('Xatolik: ' + (res.error || res.message || 'Noma\'lum xato'));
-            }
-        } catch (e) {
-            alert('Server bilan aloqa xatosi: ' + e.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check-lg"></i>Saqlash';
-        }
-    }
-
-    // ── Delete ─────────────────────────────────────────────────────────────────
-    function deletePlan(id) {
-        const modal = document.getElementById('deleteConfirmModal');
-        const confirmBtn = document.getElementById('confirmDeleteBtn');
-
-        modal.classList.add('open');
-
-        confirmBtn.onclick = async function () {
-            try {
-                const r = await fetch(`/platform/api/plans/${id}/delete/`, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-                });
-                const res = await r.json();
-                if (res.success) {
-                    closeDeleteModal();
-                    location.reload();
-                } else {
-                    alert('Xatolik: ' + res.error);
-                }
-            } catch (e) {
-                alert('Xatolik: ' + e.message);
-            }
-        };
-    }
-
-    function closeDeleteModal() {
-        document.getElementById('deleteConfirmModal').classList.remove('open');
-    }
-
-    // ── ESC to close ───────────────────────────────────────────────────────────
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closePlanModal();
+async function ppDoPause() {
+  if (!ppPauseId) return;
+  const id = ppPauseId;
+  ppClosePause();
+  const p = ppPlans.find(x => x.id === id);
+  if (!p) return;
+  ppLoad(true);
+  try {
+    const r = await fetch('/platform/api/plans/' + id + '/update/', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': ppCsrf()},
+      body: JSON.stringify({
+        title: p.title, monthly_price: p.monthly_price,
+        max_students: p.max_students, max_branches: p.max_branches,
+        is_popular: p.is_popular, is_recommended: p.is_recommended,
+        active: false, feature_codes: p.feature_codes || [],
+      }),
     });
+    const d = await r.json();
+    if (d.success) {
+      ppToast('Tarif to\'xtatildi!', 'warn');
+      await ppLoadPlans(); ppRenderPlans();
+    } else {
+      ppToast(d.error || 'Xato', 'err');
+    }
+  } catch(e) { ppToast('Server xatosi', 'err'); }
+  finally { ppLoad(false); }
+}
+
+// ── Restore ────────────────────────────────────────────────────────
+function ppConfirmRestore(planId, planTitle) {
+  if (!confirm('"' + planTitle + '" tarifini faollashtirish?')) return;
+  ppDoRestore(planId);
+}
+async function ppDoRestore(planId) {
+  const p = ppPlans.find(x => x.id === planId);
+  if (!p) return;
+  ppLoad(true);
+  try {
+    const r = await fetch('/platform/api/plans/' + planId + '/update/', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': ppCsrf()},
+      body: JSON.stringify({
+        title: p.title, monthly_price: p.monthly_price,
+        max_students: p.max_students, max_branches: p.max_branches,
+        is_popular: p.is_popular, is_recommended: p.is_recommended,
+        active: true, feature_codes: p.feature_codes || [],
+      }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      ppToast('Tarif faollashtirildi!', 'ok');
+      await ppLoadPlans(); ppRenderPlans();
+    } else {
+      ppToast(d.error || 'Xato', 'err');
+    }
+  } catch(e) { ppToast('Server xatosi', 'err'); }
+  finally { ppLoad(false); }
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────
+function ppModalShow(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+}
+function ppModalHide(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'none';
+}
+
+// ── Utils ──────────────────────────────────────────────────────────
+function ppFmt(n) { return Number(n).toLocaleString('ru-RU'); }
+function ppLoad(on) {
+  document.getElementById('ppLoader').style.display = on ? 'flex' : 'none';
+}
+function ppToast(msg, type) {
+  const t = document.getElementById('ppToast');
+  const COLORS = { ok:'#22c55e', err:'#ef4444', warn:'#f59e0b' };
+  t.textContent = msg;
+  t.style.background = COLORS[type] || '#6366f1';
+  t.style.color = type === 'warn' ? '#000' : '#fff';
+  t.style.transform = 'translateY(0)';
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 3200);
+}
 </script>
 {% endblock %}

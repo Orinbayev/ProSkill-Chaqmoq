@@ -1,8 +1,10 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
+@ensure_csrf_cookie
 def plans_list_view(request):
     """Render the Plans Management Page (HTML)"""
     # Fetch initial data if needed, or let JS fetch it.

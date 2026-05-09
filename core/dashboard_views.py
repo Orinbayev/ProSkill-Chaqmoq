@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
+from billing.decorators import require_feature
 from django.core.cache import cache
 from django.db.models import Avg, Count, F, Q, Sum
 from django.db.models.functions import TruncMonth
@@ -1352,6 +1353,7 @@ def _overview_payload(center, d_from, d_to):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def financial_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1364,6 +1366,7 @@ def financial_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def financial_api(request):
     center = _get_center(request)
     if not center:
@@ -1384,6 +1387,7 @@ def financial_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def student_performance_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1396,6 +1400,7 @@ def student_performance_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def student_performance_api(request):
     center = _get_center(request)
     if not center:
@@ -1416,6 +1421,7 @@ def student_performance_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def teacher_performance_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1428,6 +1434,7 @@ def teacher_performance_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def teacher_performance_api(request):
     center = _get_center(request)
     if not center:
@@ -1448,6 +1455,7 @@ def teacher_performance_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def groups_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1480,6 +1488,7 @@ def groups_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def billing_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1512,6 +1521,7 @@ def billing_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def marketing_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1524,6 +1534,7 @@ def marketing_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def marketing_api(request):
     center = _get_center(request)
     if not center:
@@ -1544,6 +1555,7 @@ def marketing_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("finance")
 def inventory_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1556,6 +1568,7 @@ def inventory_dashboard(request):
 
 
 @login_required
+@require_feature("finance")
 def inventory_api(request):
     center = _get_center(request)
     if not center:
@@ -1576,6 +1589,7 @@ def inventory_api(request):
 # ══════════════════════════════════════════════════════════════════
 
 @login_required
+@require_feature("analytics")
 def analytics_dashboard(request):
     center = _get_center(request)
     if not center:
@@ -1588,6 +1602,7 @@ def analytics_dashboard(request):
 
 
 @login_required
+@require_feature("analytics")
 def analytics_api(request):
     center = _get_center(request)
     if not center:

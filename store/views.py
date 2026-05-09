@@ -28,6 +28,7 @@ def lead_detail(request, pk):
 
 # ✅ Mahsulotlar ro‘yxati
 @login_required
+@require_feature("store")
 def products(request):
     """Mahsulotlar ro‘yxati va tanlab o‘chirish funksiyasi"""
     from core.tenant import get_request_center
@@ -65,6 +66,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 @login_required
+@require_feature("store")
 def product_detail(request, pk):
     center = require_center(request)
     item = get_object_or_404(Product, pk=pk, center=center)
@@ -102,6 +104,7 @@ def product_detail(request, pk):
 
 
 @login_required
+@require_feature("store")
 def add_comment(request, pk):
     if request.method == 'POST':
         item = get_object_or_404(Product, pk=pk)
@@ -114,6 +117,7 @@ def add_comment(request, pk):
 
 
 @login_required
+@require_feature("store")
 def reply_comment(request, cid):
     parent = get_object_or_404(Comment, pk=cid)
     if request.method == 'POST':
@@ -133,6 +137,7 @@ from django.db import transaction
 # ✅ Mahsulotga so‘rov yuborish (student uchun)
 # ✅ Mahsulotga so‘rov yuborish (student uchun)
 @login_required
+@require_feature("store")
 def create_request(request, pk):
     """O‘quvchi mahsulot uchun so‘rov yuboradi"""
     product = get_object_or_404(Product, pk=pk)
@@ -183,6 +188,7 @@ def create_request(request, pk):
 
 # ✅ Manager/Direktor uchun so‘rovlar ro‘yxati
 @login_required
+@require_feature("store")
 def request_list(request):
     center = require_center(request)
     if request.user.role not in ('manager', 'director'):
@@ -194,6 +200,7 @@ def request_list(request):
 
 # ✅ So‘rovni tasdiqlash
 @login_required
+@require_feature("store")
 def request_approve(request, pk):
     if request.user.role not in ('manager', 'director'):
         messages.error(request, 'Ruxsat yo‘q.')
@@ -208,6 +215,7 @@ def request_approve(request, pk):
 
 
 @login_required
+@require_feature("store")
 def request_reject(request, pk):
     if request.user.role not in ('manager', 'director'):
         messages.error(request, 'Ruxsat yo‘q.')
@@ -222,6 +230,7 @@ def request_reject(request, pk):
 
 # ✅ Mahsulot qo‘shish
 @login_required
+@require_feature("store")
 def product_create(request):
     if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
         messages.error(request, 'Ruxsat yo‘q.')
@@ -246,6 +255,7 @@ def product_create(request):
 
 
 @login_required
+@require_feature("store")
 def product_list(request):
     if request.method == "POST":
         return products(request)
@@ -254,6 +264,7 @@ def product_list(request):
 
 # ✅ Mahsulotni tahrirlash
 @login_required
+@require_feature("store")
 def product_edit(request, pk):
     if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
         messages.error(request, 'Ruxsat yo‘q.')
@@ -278,6 +289,7 @@ def product_edit(request, pk):
 
 # ✅ Mahsulotni o‘chirish
 @login_required
+@require_feature("store")
 def product_delete(request, pk):
     if request.user.role not in ('director',) and not request.user.is_superuser:
         messages.error(request, 'Ruxsat yo‘q.')
@@ -294,6 +306,7 @@ def product_delete(request, pk):
 
 
 @login_required
+@require_feature("store")
 def delete_product_image(request, pk):
     if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
         return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
@@ -649,6 +662,7 @@ from .models import Expense
 from django.db.models import Sum
 
 @login_required
+@require_feature("xarajatlar")
 def expenses(request):
     center = require_center(request)
     if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
@@ -792,6 +806,7 @@ def expenses(request):
 
 
 @login_required
+@require_feature("xarajatlar")
 def expenses_export_xlsx(request):
     """Xarajatlarni filtrlar bo'yicha Excel (.xlsx) formatda yuklab berish."""
     from django.http import HttpResponse
@@ -966,6 +981,7 @@ def _user_can_manage_expenses(user) -> bool:
 
 
 @login_required
+@require_feature("xarajatlar")
 def expense_create(request):
     """
     Yangi xarajat qo'shish
@@ -1031,6 +1047,7 @@ def expense_create(request):
 
 
 @login_required
+@require_feature("xarajatlar")
 def expense_category_create(request):
     """
     Yangi xarajat toifasi (category) qo'shish
@@ -1053,6 +1070,7 @@ def expense_category_create(request):
     return redirect('store:expenses')
 
 @login_required
+@require_feature("xarajatlar")
 def expense_edit(request, pk):
     if not _user_can_manage_expenses(request.user):
         messages.error(request, "Ruxsat yo'q")
@@ -1117,6 +1135,7 @@ def expense_edit(request, pk):
     return redirect('store:expenses')
 
 @login_required
+@require_feature("xarajatlar")
 def expense_delete(request, pk):
     if not _user_can_manage_expenses(request.user):
         messages.error(request, "Ruxsat yo'q")
@@ -1133,6 +1152,7 @@ def expense_delete(request, pk):
 
 
 @login_required
+@require_feature("xarajatlar")
 def expense_comment(request, pk):
     """
     Faqat izohni o'zgartirish (Comment funksiyasi uchun)
@@ -1169,6 +1189,7 @@ def _ensure_default_payment_methods(center):
 
 
 @login_required
+@require_feature("finance")
 def payment_methods(request):
     from .models import PaymentMethod
     center = require_center(request)
@@ -1182,6 +1203,7 @@ def payment_methods(request):
 
 
 @login_required
+@require_feature("finance")
 def payment_method_create(request):
     from .models import PaymentMethod
     center = require_center(request)
@@ -1206,6 +1228,7 @@ def payment_method_create(request):
 
 
 @login_required
+@require_feature("finance")
 def payment_method_update(request, pk):
     from .models import PaymentMethod
     center = require_center(request)
@@ -1230,6 +1253,7 @@ def payment_method_update(request, pk):
 
 
 @login_required
+@require_feature("finance")
 def payment_method_toggle(request, pk):
     from .models import PaymentMethod
     center = require_center(request)
@@ -1247,6 +1271,7 @@ def payment_method_toggle(request, pk):
 
 
 @login_required
+@require_feature("finance")
 def payment_method_delete(request, pk):
     from .models import PaymentMethod
     center = require_center(request)

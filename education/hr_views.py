@@ -5,6 +5,7 @@ import secrets
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from billing.decorators import require_feature
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
@@ -413,6 +414,7 @@ def _sync_teacher_availability(*, user, center, payload: dict):
 
 
 @login_required
+@require_feature("hr")
 def hr_dashboard(request):
     center = _require_hr_access(request)
     context = {

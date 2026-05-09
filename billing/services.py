@@ -451,12 +451,26 @@ def calculate_upgrade_preview(
 # (after the new paying tenant is onboarded and verified on v2).
 # DO NOT add new entries here.
 FEATURES_BY_PLAN = {
-    "FREE": set(),
-    "STANDARD": {"finance", "tasks"},
-    "PREMIUM": {"finance", "tasks", "leads"},
-    "PRO": {"finance", "tasks", "leads", "kpi", "store", "sms"},
-    "START": set(),
+    "FREE":      set(),
+    # Legacy plan codes (backward compat — DO NOT remove)
+    "STANDARD":  {"finance", "tasks"},
+    "PREMIUM":   {"finance", "tasks", "leads"},
+    "PRO":       {"finance", "tasks", "leads", "kpi", "store", "sms"},
+    "START":     set(),
     "ENTERPRISE": {"finance", "tasks", "leads", "kpi", "store", "sms"},
+    # v2 plan codes (active)
+    "STANDART":  {"leads", "finance", "xarajatlar", "excel_eksport"},
+    "PREMIUM_V2": {
+        "leads", "finance", "xarajatlar", "excel_eksport",
+        "support_teacher_enabled", "filial_qoshish", "store",
+        "imtihon", "sertifikat", "sms",
+    },
+    "PRO_V2": {
+        "leads", "finance", "xarajatlar", "excel_eksport",
+        "support_teacher_enabled", "filial_qoshish", "store",
+        "imtihon", "sertifikat", "sms",
+        "chaqmoq_bonus", "hr", "analytics",
+    },
 }
 
 @dataclass
