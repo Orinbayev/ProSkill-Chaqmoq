@@ -1,0 +1,376 @@
+{% comment %}
+Premium Upgrade Modal — aqlli tarif taklifi.
+JS API:
+  openPremiumModal(featureCode, requiredPlan, featureLabel, featureIcon)
+  closePremiumModal()
+Joriy tarif < kerakli tarif → kerakli tarifni ko'rsatadi.
+Joriy tarif >= kerakli tarif → keyingi (yuqori) tarifni ko'rsatadi.
+{% endcomment %}
+
+<div id="pumOverlay" class="pum-overlay" role="dialog" aria-modal="true" aria-labelledby="pumTitle">
+  <div class="pum-box" id="pumBox">
+
+    <!-- ── Chap panel: xususiyat tavsifi ───────────────────── -->
+    <div class="pum-left">
+      <div class="pum-feature-icon is-pro" id="pumIcon">
+        <i class="fa-solid fa-lock" id="pumIconI"></i>
+      </div>
+
+      <div class="pum-left-content">
+        <div class="pum-feature-label" id="pumFeatureLabel">Xususiyat</div>
+        <div class="pum-feature-benefit" id="pumFeatureBenefit">Markazingiz samaradorligini oshiring</div>
+        <ul class="pum-benefit-list" id="pumBenefitList">
+          <li>Tezkor kirish</li>
+          <li>Kengaytirilgan imkoniyatlar</li>
+          <li>Avtomatlashtirish</li>
+          <li>Batafsil hisobot</li>
+        </ul>
+      </div>
+
+      <div class="pum-social-proof" id="pumSocialProof">
+        <strong>Yetakchi o'quv markazlar</strong> ushbu xususiyatdan foydalanmoqda
+      </div>
+    </div>
+
+    <!-- ── O'ng panel: tarif va CTA ────────────────────────── -->
+    <div class="pum-right">
+      <button class="pum-close" onclick="closePremiumModal()" aria-label="Yopish" type="button">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="pum-current-plan" id="pumCurrentPlanTag">
+        <i class="fa-solid fa-lock" style="font-size:10px;"></i>
+        <span id="pumCurrentPlanText">Joriy tarifda mavjud emas</span>
+      </div>
+
+      <div class="pum-right-title" id="pumTitle">
+        Tarifingizni yangilang
+      </div>
+
+      <div class="pum-plan-card is-pro" id="pumPlanCard">
+        <div class="pum-plan-card__glow"></div>
+        <div class="pum-plan-card__header">
+          <div>
+            <div class="pum-plan-card__name" id="pumPlanName">PRO</div>
+            <div class="pum-plan-card__tagline" id="pumPlanTagline">O'sish va kengayish uchun</div>
+          </div>
+          <div class="pum-plan-card__price" id="pumPlanPrice">
+            399,000 <span>so'm/oy</span>
+          </div>
+        </div>
+        <ul class="pum-plan-card__features" id="pumPlanFeatures">
+          <li>CRM / Leadlar tizimi</li>
+          <li>Kengaytirilgan analitika</li>
+          <li>Imtihon va sertifikatlar</li>
+        </ul>
+      </div>
+
+      <a href="{% url 'billing:plans' %}" class="pum-cta is-pro" id="pumCtaBtn">
+        <i class="fa-solid fa-bolt-lightning"></i>
+        PRO ga o'tish
+      </a>
+
+      <a href="{% url 'billing:plans' %}" class="pum-cta-secondary">
+        Barcha tariflarni solishtirish →
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Joriy foydalanuvchi tarifi (Django context'dan) ─────── */
+  var CURRENT_PLAN_TIER = parseInt("{{ current_plan_tier|default:1 }}", 10) || 1;
+
+  /* ── Tarif daraja raqamlari ──────────────────────────────── */
+  var TIER = { STANDARD: 10, PRO: 20, PREMIUM: 30 };
+
+  /* Joriy tier → keyingi tarifga o'tish tartib */
+  var NEXT_PLAN = { 1: 'STANDARD', 10: 'PRO', 20: 'PREMIUM', 30: null };
+
+  /* Joriy tierga mos tarif nomi */
+  var TIER_NAME = { 1: 'FREE', 10: 'STANDARD', 20: 'PRO', 30: 'PREMIUM' };
+
+  /* ── Xususiyatlar ma'lumoti ──────────────────────────────── */
+  var FEATURE_DATA = {
+    'hr': {
+      label: "Xodimlar boshqaruvi (HR)",
+      icon: 'fa-id-badge',
+      benefit: "Xodimlaringizni professional darajada boshqaring",
+      social: "HR tizimi bilan oylik ish haqini hisoblashga ketadigan vaqt <strong>10x qisqaradi</strong>",
+      benefits: [
+        "Oylik maosh avtomatik hisoblanadi",
+        "Xodimlar ish jadvali va dars soatlari nazorati",
+        "Samaradorlik KPI va bonus hisoblash",
+        "Xodim hujjatlari va shartnomalar boshqaruvi",
+      ]
+    },
+    'leads': {
+      label: "Leadlar va CRM tizimi",
+      icon: 'fa-phone-volume',
+      benefit: "Potensial o'quvchilarni sistematik kuzating va yo'qotmang",
+      social: "CRM tizimi bilan o'rtacha konversiya <strong>2.5x oshadi</strong>",
+      benefits: [
+        "Har bir murojaat avtomatik qayd etiladi",
+        "Menejer vazifalarini belgilash va kuzatish",
+        "Qaysi kanaldan ko'proq o'quvchi kelayotganini ko'ring",
+        "Avtomatik eslatma va follow-up xabarlari",
+      ]
+    },
+    'analytics': {
+      label: "Hisobot va Analitika",
+      icon: 'fa-chart-pie',
+      benefit: "Markazingiz haqida to'liq rasm — son-sanoqsiz grafik va jadvallar",
+      social: "Directorlar analitika bilan qarorlarni <strong>3x tezroq qabul qiladi</strong>",
+      benefits: [
+        "Oylik, choraklik, yillik daromad taqqoslash",
+        "Har bir o'qituvchi samaradorligi reytingi",
+        "O'quvchilar dinamikasi va qolish foizi",
+        "Qarzdorlar va to'lov prognozi hisoboti",
+      ]
+    },
+    'ai': {
+      label: "AI Yordamchi",
+      icon: 'fa-robot',
+      benefit: "ChatGPT texnologiyasi — sizning markaz ma'lumotlaringiz bilan ishlaydi",
+      social: "AI yordamchi bilan savollarga javob <strong>10 marta tezroq</strong>",
+      benefits: [
+        "Natural til bilan savol bering — aniq javob oling",
+        "\"Bu oy daromad qancha?\" — bir zumda ko'ring",
+        "O'quvchilar va guruhlar bo'yicha tahlil",
+        "7/24 ishlaydi, hech qachon charchamaydi",
+      ]
+    },
+    'sms': {
+      label: "SMS Xabarnoma tizimi",
+      icon: 'fa-comment-sms',
+      benefit: "Ota-onalar va o'quvchilarga avtomatik SMS — siz heч narsa qilmasdan",
+      social: "SMS eslatma bilan to'lov kechikishi <strong>60% kamayadi</strong>",
+      benefits: [
+        "To'lov muddati yaqinlashsa avtomatik SMS ketadi",
+        "Davomat: bola kelmasa ota-onasiga xabar",
+        "Guruh o'zgarishlari va dars bekor qilish xabarlari",
+        "Ommaviy SMS — barcha ota-onalarga bir vaqtda",
+      ]
+    },
+    'exams': {
+      label: "Imtihon Sessiyalar",
+      icon: 'fa-pen-to-square',
+      benefit: "Professional imtihon tizimi — natijalar avtomatik hisoblanadi",
+      social: "Imtihon tizimi bilan baholash vaqti <strong>4x qisqaradi</strong>",
+      benefits: [
+        "Sessiya yaratish va o'quvchilarga bog'lash",
+        "Online test yoki offline baholash",
+        "Natijalar avtomatik hisoblanadi va saqlanadi",
+        "O'quvchi kuchli/zaif tomonlari tahlili",
+      ]
+    },
+    'certificates': {
+      label: "Sertifikatlar",
+      icon: 'fa-award',
+      benefit: "Professional sertifikat chiqarish — shablondan boshlab PDF gacha",
+      social: "Sertifikat tizimi o'quvchi motivatsiyasini <strong>40% oshiradi</strong>",
+      benefits: [
+        "Chiroyli shablon yaratish va sozlash",
+        "O'quvchi ismi, sanasi avtomatik to'ldiriladi",
+        "QR kod bilan sertifikat tekshirish imkoniyati",
+        "PDF formatda chop etish va yuborish",
+      ]
+    },
+    'branches': {
+      label: "Filiallar boshqaruvi",
+      icon: 'fa-code-branch',
+      benefit: "Bir nechta filialni bitta paneldan boshqaring",
+      social: "Filial tizimi bilan boshqaruv xarajatlari <strong>35% kamayadi</strong>",
+      benefits: [
+        "Cheksiz filial qo'shish imkoniyati",
+        "Barcha filiallar umumiy statistikasi",
+        "Har filial uchun alohida hisobot",
+        "Markazlashgan xodimlar va moliya boshqaruvi",
+      ]
+    },
+    'debtors': {
+      label: "Qarzdorlar tizimi",
+      icon: 'fa-user-minus',
+      benefit: "To'lamaganlarni aniqla, eslatma yubor, muammoni hal qil",
+      social: "Qarzdorlar tizimi bilan o'rtacha yig'im foizi <strong>25% oshadi</strong>",
+      benefits: [
+        "Barcha qarzdorlar bir ro'yxatda — ko'rish oson",
+        "Avtomatik eslatma SMS yoki xabar yuborish",
+        "Qarz tarixi va to'lov dinamikasi grafigi",
+        "Excel'ga eksport — ota-onalarga yuborish",
+      ]
+    },
+    'schedule': {
+      label: "Haftalik Dars Jadvali",
+      icon: 'fa-calendar-week',
+      benefit: "O'qituvchi va guruhlar uchun qulay jadval tizimi",
+      social: "Jadval tizimi bilan dars konfliktlari <strong>sifirga tushadi</strong>",
+      benefits: [
+        "Drag & drop bilan jadval tuzish",
+        "Konflikt (to'qnashuv) avtomatik aniqlanadi",
+        "O'quvchilarga shaxsiy jadval ko'rsatiladi",
+        "Jadvaldan PDF yoki Excel eksport",
+      ]
+    },
+  };
+
+  /* ── Tariflar ma'lumoti (kuchli copy) ──────────────────── */
+  var PLAN_INFO = {
+    STANDARD: {
+      title:    'STANDARD',
+      tagline:  'Kichik markaz uchun barcha zaruriy vositalar',
+      price:    '199,000',
+      cls:      'is-standard',
+      features: [
+        "Xodimlar boshqaruvi va maosh hisoblash",
+        "To'lovlar, qarzdorlar va moliya nazorati",
+        "Davomat tizimi va guruhlar boshqaruvi",
+        "Chaqmoq gamifikatsiya — o'quvchilar rag'batlantirish",
+        "O'quvchilar va ota-onalar statistikasi",
+      ]
+    },
+    PRO: {
+      title:    'PRO',
+      tagline:  'O\'sish uchun marketing va chuqur tahlil',
+      price:    'Maxsus narx',
+      cls:      'is-pro',
+      features: [
+        "CRM tizimi — leadlarni yo'qotmang",
+        "Kengaytirilgan analitika va daromad prognozi",
+        "Imtihon sessiyalar va sertifikat tizimi",
+        "Haftalik dars jadvali (drag & drop)",
+        "O'qituvchi KPI va samaradorlik hisoboti",
+        "STANDARD tarifning barcha imkoniyatlari",
+      ]
+    },
+    PREMIUM: {
+      title:    'PREMIUM',
+      tagline:  'To\'liq avtomatlashtirish va sun\'iy intellekt',
+      price:    '699,000',
+      cls:      'is-premium',
+      features: [
+        "AI Yordamchi — 7/24 ChatGPT texnologiyasi",
+        "SMS avtomatik — to'lov, davomat, eslatmalar",
+        "Cheksiz filiallar — hammasini bir paneldan",
+        "Ustuvor texnik qo'llab-quvvatlash (SLA)",
+        "PRO tarifning barcha imkoniyatlari",
+      ]
+    },
+  };
+
+  /* ── Aqlli upgrade target hisoblash ─────────────────────── */
+  function getUpgradeTarget(requiredPlanCode) {
+    var reqTier = TIER[requiredPlanCode] || 1;
+    if (CURRENT_PLAN_TIER >= reqTier) {
+      /* Allaqachon shu yoki yuqori tarifda, lekin feature yo'q
+         → keyingi yuqori tarifni taklif qilish */
+      return NEXT_PLAN[CURRENT_PLAN_TIER] || requiredPlanCode;
+    }
+    return requiredPlanCode;
+  }
+
+  /* ── DOM refs ─────────────────────────────────────────────── */
+  var overlay    = document.getElementById('pumOverlay');
+  var pumIcon    = document.getElementById('pumIcon');
+  var pumIconI   = document.getElementById('pumIconI');
+  var pumLabel   = document.getElementById('pumFeatureLabel');
+  var pumBenefit = document.getElementById('pumFeatureBenefit');
+  var pumList    = document.getElementById('pumBenefitList');
+  var pumSocial  = document.getElementById('pumSocialProof');
+  var pumCard    = document.getElementById('pumPlanCard');
+  var pumName    = document.getElementById('pumPlanName');
+  var pumTagline = document.getElementById('pumPlanTagline');
+  var pumPrice   = document.getElementById('pumPlanPrice');
+  var pumFeats   = document.getElementById('pumPlanFeatures');
+  var pumCta     = document.getElementById('pumCtaBtn');
+  var pumTitle   = document.getElementById('pumTitle');
+  var pumCurrTag = document.getElementById('pumCurrentPlanTag');
+  var pumCurrTxt = document.getElementById('pumCurrentPlanText');
+
+  /* ── Modal ochish ─────────────────────────────────────────── */
+  window.openPremiumModal = function (featureCode, requiredPlan, featureLabel, featureIcon) {
+    var upgradeTarget = getUpgradeTarget(requiredPlan);
+    var plan = PLAN_INFO[upgradeTarget] || PLAN_INFO['PRO'];
+    var feat = FEATURE_DATA[featureCode] || {};
+
+    var label   = featureLabel || feat.label   || 'Bu xususiyat';
+    var icon    = featureIcon  || feat.icon    || 'fa-lock';
+    var benefit = feat.benefit || "Markazingiz samaradorligini oshiring";
+    var social  = feat.social  || "Yetakchi markazlar bu xususiyatdan foydalanmoqda";
+    var bens    = feat.benefits || ["Tezkor kirish", "Kengaytirilgan imkoniyatlar", "Avtomatlashtirish", "Batafsil hisobot"];
+
+    /* Joriy tarif tegi */
+    var currName = TIER_NAME[CURRENT_PLAN_TIER] || 'FREE';
+    pumCurrTxt.innerHTML = '<i class="fa-solid fa-lock" style="font-size:9px;margin-right:3px;"></i> Joriy tarif: <strong>' + currName + '</strong>';
+
+    /* Chap panel */
+    pumIcon.className  = 'pum-feature-icon ' + plan.cls;
+    pumIconI.className = 'fa-solid ' + icon;
+    pumLabel.textContent   = label;
+    pumBenefit.textContent = benefit;
+    pumList.innerHTML = bens.map(function(b){ return '<li>' + b + '</li>'; }).join('');
+    pumSocial.innerHTML = social;
+
+    /* O'ng panel — sarlavha */
+    if (upgradeTarget !== requiredPlan) {
+      /* Foydalanuvchi allaqachon kerakli tarifda, lekin feature yo'q */
+      pumTitle.innerHTML = '<span style="color:rgba(255,255,255,0.45);font-size:13px;font-weight:500">Tarifingizni yangilasangiz — bu va yana ko\'p narsa ochiladi</span>';
+    } else {
+      pumTitle.textContent = '"' + label + '" — ' + plan.title + ' tarifida mavjud';
+    }
+
+    /* Plan card */
+    pumCard.className = 'pum-plan-card ' + plan.cls;
+    pumName.textContent = plan.title;
+    pumTagline.textContent = plan.tagline;
+    pumPrice.innerHTML = plan.price + (plan.price !== 'Maxsus narx' ? ' <span>so\'m/oy</span>' : '');
+    pumFeats.innerHTML = plan.features.map(function(f){ return '<li>' + f + '</li>'; }).join('');
+
+    /* CTA tugmasi */
+    pumCta.className = 'pum-cta ' + plan.cls;
+    pumCta.innerHTML = '<i class="fa-solid fa-bolt-lightning"></i> ' + plan.title + ' ga o\'tish';
+
+    overlay.setAttribute('data-plan', upgradeTarget);
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ pumCta.focus(); }, 80);
+  };
+
+  /* ── Modal yopish ─────────────────────────────────────────── */
+  window.closePremiumModal = function () {
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
+  /* ── Orqaga mos kelish uchun alias ────────────────────────── */
+  window.openUpgradeModal = function (featureLabel, requiredPlan, featureIcon) {
+    var codeMap = {
+      'AI Yordamchi':               'ai',
+      'Leadlar (CRM)':              'leads',
+      'Leadlar':                    'leads',
+      'Hisobot va Analitika':       'analytics',
+      'SMS Xabarnoma':              'sms',
+      'Imtihonlar va Sertifikatlar':'exams',
+      'Imtihonlar':                 'exams',
+      'Xodimlar':                   'hr',
+      'Xodimlar (HR)':              'hr',
+      'Qarzdorlar':                 'debtors',
+      'Filiallar':                  'branches',
+    };
+    window.openPremiumModal(codeMap[featureLabel] || 'leads', requiredPlan, featureLabel, featureIcon);
+  };
+  window.closeUpgradeModal = window.closePremiumModal;
+
+  /* ── Tashqariga bosish va ESC ──────────────────────────────── */
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) window.closePremiumModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) window.closePremiumModal();
+  });
+})();
+</script>

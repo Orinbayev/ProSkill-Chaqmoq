@@ -302,3 +302,114 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   });
 })();
 </script>
+
+{% comment %}── Demo mode overlay (injected when window.AIW_DEMO_MODE = true) ──{% endcomment %}
+<script>
+(function(){
+  'use strict';
+  if(!window.AIW_DEMO_MODE) return;
+
+  /* Canned demo responses */
+  var DEMO_REPLIES = [
+    "Demo rejimda ishlayapman. Haqiqiy ma'lumotlaringizni ko'rish uchun PREMIUM tarifga o'ting. Masalan: bu oy daromadingiz 12,500,000 so'm bo'lishi mumkin (haqiqiy raqamlar PREMIUM tarifda ko'rinadi).",
+    "Yana bir demo javob: sizning markazingizda taxminan 85% davomat ko'rsatkichi mavjud bo'lishi mumkin. To'liq AI tahlili uchun PREMIUM tarifni faollashtiring."
+  ];
+  var demoCount = 0;
+  var limitShown = false;
+
+  var LIMIT_WALL_HTML = '<div class="aiw-limit-wall">' +
+    '<div class="aiw-limit-icon">✨</div>' +
+    '<div class="aiw-limit-title">Demo rejim tugadi</div>' +
+    '<div class="aiw-limit-desc">AI Yordamchining to\'liq versiyasini ochish uchun PREMIUM tarifga o\'ting</div>' +
+    '<button onclick="openPremiumModal && openPremiumModal(\'ai\', \'PREMIUM\', \'AI Yordamchi\', \'fa-robot\')" class="aiw-limit-btn">PREMIUM ga o\'tish →</button>' +
+    '<div class="aiw-limit-hint">Cheksiz savol • Haqiqiy ma\'lumotlaringiz • 7/24</div>' +
+    '</div>';
+
+  /* Wait for the main script to initialize, then patch sendMsg */
+  function patchWidget(){
+    var fab   = document.getElementById('aiwFab');
+    var msgs  = document.getElementById('aiwMsgs');
+    var input = document.getElementById('aiwInput');
+    var send  = document.getElementById('aiwSend');
+    if(!fab || !msgs || !input || !send) return;
+
+    /* Disable history loading in demo mode */
+    window._aiwHistoryLoaded = true;
+
+    /* Intercept send button */
+    function demoSend(q){
+      if(!q || !q.trim()) return;
+      if(limitShown) return;
+
+      /* Add user message */
+      var userDiv = document.createElement('div');
+      userDiv.className = 'aiw-msg aiw-msg--user';
+      userDiv.innerHTML = '<div class="aiw-msg__ava">A</div><div class="aiw-msg__bub">' + q.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }) + '</div>';
+      msgs.appendChild(userDiv);
+      msgs.scrollTop = msgs.scrollHeight;
+      input.value = '';
+      input.style.height = 'auto';
+
+      demoCount++;
+
+      if(demoCount <= DEMO_REPLIES.length){
+        /* Show typing then canned reply */
+        var tyDiv = document.createElement('div');
+        tyDiv.id = 'demoTyping';
+        tyDiv.className = 'aiw-msg';
+        tyDiv.innerHTML = '<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub"><div class="aiw-typing"><span></span><span></span><span></span></div></div>';
+        msgs.appendChild(tyDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        setTimeout(function(){
+          var ty = document.getElementById('demoTyping');
+          if(ty) ty.remove();
+          var reply = document.createElement('div');
+          reply.className = 'aiw-msg';
+          reply.innerHTML = '<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub">' + (DEMO_REPLIES[demoCount-1] || DEMO_REPLIES[0]) + '</div>';
+          msgs.appendChild(reply);
+          msgs.scrollTop = msgs.scrollHeight;
+
+          /* After last canned reply, show limit wall */
+          if(demoCount >= DEMO_REPLIES.length && !limitShown){
+            limitShown = true;
+            setTimeout(function(){
+              var wall = document.createElement('div');
+              wall.innerHTML = LIMIT_WALL_HTML;
+              msgs.appendChild(wall.firstChild);
+              msgs.scrollTop = msgs.scrollHeight;
+              send.disabled = true;
+              input.disabled = true;
+              input.placeholder = 'Demo tugadi — PREMIUM ga o\'ting';
+            }, 600);
+          }
+        }, 1200);
+      }
+    }
+
+    /* Override send events */
+    var newSend = send.cloneNode(true);
+    send.parentNode.replaceChild(newSend, send);
+    newSend.addEventListener('click', function(){ demoSend(input.value.trim()); });
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); demoSend(input.value.trim()); }
+    });
+    document.querySelectorAll('.aiw-prompt').forEach(function(b){
+      b.addEventListener('click', function(){
+        var panel = document.getElementById('aiwPanel');
+        if(panel && !panel.classList.contains('open')){
+          document.getElementById('aiwFab').click();
+        }
+        demoSend(this.dataset.q);
+      });
+    });
+  }
+
+  /* Run after DOM is fully painted */
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', patchWidget);
+  } else {
+    setTimeout(patchWidget, 0);
+  }
+})();
+</script>

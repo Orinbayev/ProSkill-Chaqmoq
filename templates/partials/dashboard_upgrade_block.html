@@ -1,0 +1,74 @@
+{% comment %}
+Dashboard upgrade block — shown when effective_plan_tier < tier_pro.
+Encourages directors to upgrade with a premium, informative card.
+{% endcomment %}
+<div class="dup-block" role="complementary" aria-label="Tarif yangilash taklifi">
+
+  <div class="dup-header">
+    <div class="dup-headline">
+      <span class="dup-headline-icon">✦</span>
+      <div class="dup-headline-text">
+        <span>PRO</span> bilan markaz samaradorligini 3x oshiring
+      </div>
+    </div>
+  </div>
+
+  <div class="dup-features-grid">
+
+    <div class="dup-feature-chip" onclick="openPremiumModal('analytics','PRO','Hisobot va Analitika','fa-chart-pie')" role="button" tabindex="0" title="Analitika — PRO">
+      <div class="dup-feature-chip__icon is-pro"><i class="fa-solid fa-chart-pie"></i></div>
+      <div class="dup-feature-chip__text">
+        <span class="dup-feature-chip__name">Analitika</span>
+        <span class="dup-feature-chip__tier is-pro">PRO</span>
+      </div>
+    </div>
+
+    <div class="dup-feature-chip" onclick="openPremiumModal('ai','PREMIUM','AI Yordamchi','fa-robot')" role="button" tabindex="0" title="AI Yordamchi — PREMIUM">
+      <div class="dup-feature-chip__icon is-premium"><i class="fa-solid fa-robot"></i></div>
+      <div class="dup-feature-chip__text">
+        <span class="dup-feature-chip__name">AI Yordamchi</span>
+        <span class="dup-feature-chip__tier is-premium">PREMIUM</span>
+      </div>
+    </div>
+
+    <div class="dup-feature-chip" onclick="openPremiumModal('sms','PREMIUM','SMS Xabarnoma','fa-comment-sms')" role="button" tabindex="0" title="SMS — PREMIUM">
+      <div class="dup-feature-chip__icon is-premium"><i class="fa-solid fa-comment-sms"></i></div>
+      <div class="dup-feature-chip__text">
+        <span class="dup-feature-chip__name">SMS Auto</span>
+        <span class="dup-feature-chip__tier is-premium">PREMIUM</span>
+      </div>
+    </div>
+
+    <div class="dup-feature-chip" onclick="openPremiumModal('leads','PRO','Leadlar (CRM)','fa-phone-volume')" role="button" tabindex="0" title="CRM — PRO">
+      <div class="dup-feature-chip__icon is-pro"><i class="fa-solid fa-phone-volume"></i></div>
+      <div class="dup-feature-chip__text">
+        <span class="dup-feature-chip__name">CRM / Leadlar</span>
+        <span class="dup-feature-chip__tier is-pro">PRO</span>
+      </div>
+    </div>
+
+    <div class="dup-feature-chip" onclick="openPremiumModal('exams','PRO','Imtihon Sessiyalar','fa-pen-to-square')" role="button" tabindex="0" title="Imtihonlar — PRO">
+      <div class="dup-feature-chip__icon is-pro"><i class="fa-solid fa-pen-to-square"></i></div>
+      <div class="dup-feature-chip__text">
+        <span class="dup-feature-chip__name">Imtihonlar</span>
+        <span class="dup-feature-chip__tier is-pro">PRO</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="dup-quote">
+    "94% directorlar <strong>Hisobot va Analitikani</strong> eng foydali xususiyat deb topishadi"
+  </div>
+
+  <div class="dup-footer">
+    <div class="dup-time-save">
+      Haftada <strong>12 soat</strong> tejashingiz mumkin
+    </div>
+    <a href="{% url 'billing:plans' %}" class="dup-cta">
+      <i class="fa-solid fa-bolt-lightning"></i>
+      Tarifga o'tish
+    </a>
+  </div>
+
+</div>

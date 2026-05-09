@@ -634,6 +634,10 @@
 
   </div>
 
+  {% if not feature_kpi and not feature_leads %}
+  {% include "partials/dashboard_upgrade_block.html" %}
+  {% endif %}
+
   <!-- Quick navigation links -->
   <nav class="director-quicklinks" aria-label="Tezkor havolalar">
 
@@ -690,6 +694,14 @@
   </nav>
 
 </section>
+
+{# AI Widget — PREMIUM tarifda to'liq, boshqalarda demo rejim #}
+{% if feature_ai %}
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Director yordamchisi" ai_widget_greet="markaz statistikasi, moliya va o'quvchilar haqida" aiw_prompt_1="Bu oy daromad qancha?" aiw_prompt_2="Qancha qarzdor bor?" aiw_prompt_3="O'quvchilar soni qanday o'zgarmoqda?" aiw_prompt_4="Eng faol guruhlar qaysilar?" %}
+{% else %}
+<script>window.AIW_DEMO_MODE = true;</script>
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Demo rejim — PREMIUM tarifda to'liq ochiladi" ai_widget_greet="AI Yordamchi" aiw_prompt_1="Bu oy daromad qancha?" aiw_prompt_2="Qancha qarzdor bor?" aiw_prompt_3="O'quvchilar soni?" aiw_prompt_4="Eng faol guruhlar?" %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

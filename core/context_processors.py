@@ -20,6 +20,13 @@ logger = logging.getLogger(__name__)
 
 _SUPERADMIN_ALL_FEATURES = frozenset({"leads", "finance", "kpi", "store", "tasks", "sms"})
 
+_PREVIEW_PLAN_SESSION_KEY = "preview_plan_tier"
+
+
+def _clear_stale_preview_session(request):
+    """Eski preview_plan session'larini tozalaydi."""
+    request.session.pop(_PREVIEW_PLAN_SESSION_KEY, None)
+
 
 def tenant_context(request):
     user = getattr(request, "user", None)
@@ -98,6 +105,20 @@ def tenant_context(request):
         except Exception as e:
             logger.warning("tenant_context subscription error: %s", e)
 
+    # Eski preview session'ni tozalash (test bar olib tashlandi)
+    _clear_stale_preview_session(request)
+
+    # ── Joriy tarif darajasi ───────────────────────────────────
+    from billing.plan_tiers import get_plan_tier_from_subscription, TIER_FREE
+    current_plan_tier = TIER_FREE
+    if center:
+        try:
+            from billing.services import get_active_subscription as _get_active_sub
+            _root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+            current_plan_tier = get_plan_tier_from_subscription(_get_active_sub(_root))
+        except Exception as e:
+            logger.warning("current_plan_tier error: %s", e)
+
     # ── Feature flags ──────────────────────────────────────────
     if is_super:
         res = {
@@ -112,6 +133,9 @@ def tenant_context(request):
             "feature_store": True,
             "feature_tasks": True,
             "feature_sms": True,
+            "feature_ai": True,
+            "feature_hr": True,
+            "current_plan_tier": 30,
         }
     else:
         res = {
@@ -120,12 +144,15 @@ def tenant_context(request):
             "sub_ui": sub_ui,
             "user_subscription": user_subscription_data,
             "feature_flags": features,
-            "feature_leads": "leads" in features,
+            "feature_leads":   "leads" in features or "lidlar" in features,
             "feature_finance": "finance" in features,
-            "feature_kpi": "kpi" in features or "analytics" in features,
-            "feature_store": "store" in features or "roles" in features,
-            "feature_tasks": "tasks" in features or "branches" in features,
-            "feature_sms": "sms" in features,
+            "feature_kpi":     "kpi" in features or "analytics" in features,
+            "feature_store":   "store" in features or "roles" in features,
+            "feature_tasks":   "tasks" in features or "branches" in features,
+            "feature_sms":     "sms" in features,
+            "feature_ai":      "ai_assistant" in features,
+            "feature_hr":      "hr" in features,
+            "current_plan_tier": current_plan_tier,
         }
 
     res.update(get_center_ui_feature_map(center))

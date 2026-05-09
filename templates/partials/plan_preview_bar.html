@@ -1,0 +1,40 @@
+{% comment %}
+Test rejim paneli — director/superadmin uchun.
+?preview_plan=FREE|STANDARD|PRO|PREMIUM → tarif preview.
+{% endcomment %}
+{% if request.user.is_superuser or request.user.role == 'director' %}
+<div class="plan-preview-bar" id="planPreviewBar">
+  <span class="ppb-label">🔧 Tarif testi:</span>
+
+  <a href="?preview_plan=FREE"
+     class="ppb-btn free {% if plan_tier_label == 'FREE' and preview_plan_active %}active free{% endif %}">
+    FREE
+  </a>
+  <a href="?preview_plan=STANDARD"
+     class="ppb-btn std {% if plan_tier_label == 'STANDARD' and preview_plan_active %}active std{% endif %}">
+    STANDARD
+  </a>
+  <a href="?preview_plan=PRO"
+     class="ppb-btn pro {% if plan_tier_label == 'PRO' and preview_plan_active %}active pro{% endif %}">
+    PRO
+  </a>
+  <a href="?preview_plan=PREMIUM"
+     class="ppb-btn prem {% if plan_tier_label == 'PREMIUM' and preview_plan_active %}active prem{% endif %}">
+    PREMIUM
+  </a>
+
+  <span class="ppb-sep"></span>
+
+  {% if preview_plan_active %}
+  <a href="?preview_plan_clear=1" class="ppb-btn" style="color:#f87171;border-color:rgba(239,68,68,0.3)">
+    <i class="fa-solid fa-xmark"></i> Testni yop
+  </a>
+  {% else %}
+  <span style="font-size:11px;color:rgba(255,255,255,0.3);">Hozirgi: {{ plan_tier_label }}</span>
+  {% endif %}
+
+  <button class="ppb-close" onclick="document.getElementById('planPreviewBar').style.display='none'" title="Panelni yashirish">
+    <i class="fa-solid fa-minus"></i>
+  </button>
+</div>
+{% endif %}

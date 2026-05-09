@@ -323,6 +323,8 @@
     </a>
 
     {% else %}
+    {# ── Director / Manager / Admin sidebar menyu ── #}
+
     {% if request.user.role == 'manager' %}
     <a href="{% url 'core:home' %}" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}" data-title="Boshqaruv">
       <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
@@ -335,18 +337,30 @@
     </a>
     {% endif %}
 
+    {# O'quvchilar — har doim #}
     <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
       data-title="O'quvchilar">
       <span class="si-ico"><i class="fa-solid fa-user-graduate"></i></span>
       <span class="si-text">O'quvchilar</span>
     </a>
 
+    {# Xodimlar — feature_hr bo'lsa ochiq, bo'lmasa qulflangan #}
+    {% if feature_hr or request.user.is_superuser %}
     <a href="{% url 'education:hr_dashboard' %}" class="sidebar-item {% if vn == 'education:hr_dashboard' %}active{% endif %}"
       data-title="Xodimlar">
       <span class="si-ico"><i class="fa-solid fa-id-badge"></i></span>
       <span class="si-text">Xodimlar</span>
     </a>
+    {% else %}
+    <div class="sidebar-item si-locked" data-title="Xodimlar"
+      onclick="openPremiumModal('hr', 'STANDARD', 'Xodimlar (HR)', 'fa-id-badge')">
+      <span class="si-ico"><i class="fa-solid fa-id-badge"></i></span>
+      <span class="si-text">Xodimlar</span>
+      <span class="si-tier-badge is-standard">STD</span>
+    </div>
+    {% endif %}
 
+    {# Leadlar — feature_leads bo'lsa ochiq, bo'lmasa qulflangan #}
     {% if feature_leads or request.user.is_superuser %}
     <a href="{% url 'store:lead_list' %}"
       class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_detail' %}active{% endif %}"
@@ -354,30 +368,55 @@
       <span class="si-ico"><i class="fa-solid fa-phone-volume"></i></span>
       <span class="si-text">Leadlar</span>
     </a>
+    {% else %}
+    <div class="sidebar-item si-locked" data-title="Leadlar (CRM)"
+      onclick="openPremiumModal('leads', 'PRO', 'Leadlar (CRM)', 'fa-phone-volume')">
+      <span class="si-ico"><i class="fa-solid fa-phone-volume"></i></span>
+      <span class="si-text">Leadlar</span>
+      <span class="si-tier-badge is-pro">PRO</span>
+    </div>
     {% endif %}
 
+    {# Hisobot — feature_kpi bo'lsa ochiq, bo'lmasa qulflangan #}
     {% if feature_kpi or request.user.is_superuser %}
     <a href="{% url 'education:teacher_salary_summary' %}"
       class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}" data-title="Hisobot">
       <span class="si-ico"><i class="fa-solid fa-chart-pie"></i></span>
       <span class="si-text">Hisobot</span>
     </a>
+    {% else %}
+    <div class="sidebar-item si-locked" data-title="Hisobot va Analitika"
+      onclick="openPremiumModal('analytics', 'PRO', 'Hisobot va Analitika', 'fa-chart-pie')">
+      <span class="si-ico"><i class="fa-solid fa-chart-pie"></i></span>
+      <span class="si-text">Hisobot</span>
+      <span class="si-tier-badge is-pro">PRO</span>
+    </div>
     {% endif %}
 
+    {# Bo'limlar — har doim #}
     <a href="{% url 'education:groups_home' %}"
       class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}" data-title="Bo'limlar">
       <span class="si-ico"><i class="fa-solid fa-layer-group"></i></span>
       <span class="si-text">Bo'limlar</span>
     </a>
 
+    {# Qarzdorlar — feature_store bo'lsa ochiq, bo'lmasa qulflangan #}
     {% if feature_store or request.user.is_superuser %}
     <a href="{% url 'education:qarzdorlar_home' %}" class="sidebar-item {% if vn == 'education:qarzdorlar_home' %}active{% endif %}"
       data-title="Qarzdorlar">
       <span class="si-ico"><i class="fa-solid fa-user-minus"></i></span>
       <span class="si-text">Qarzdorlar</span>
     </a>
+    {% else %}
+    <div class="sidebar-item si-locked" data-title="Qarzdorlar"
+      onclick="openPremiumModal('debtors', 'STANDARD', 'Qarzdorlar', 'fa-user-minus')">
+      <span class="si-ico"><i class="fa-solid fa-user-minus"></i></span>
+      <span class="si-text">Qarzdorlar</span>
+      <span class="si-tier-badge is-standard">STD</span>
+    </div>
     {% endif %}
 
+    {# Imtihonlar — UI feature bo'lsa ko'rsatamiz #}
     {% if feature_exam_sessions_ui or feature_failed_students_ui or feature_certificates_ui %}
     <div class="sidebar-item-group">
       <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}open{% endif %}"
@@ -394,11 +433,13 @@
         <a href="{% url 'education:failed_students_list' %}" class="sidebar-subitem {% if vn == 'education:failed_students_list' %}active{% endif %}">Zaif o'quvchilar</a>
         {% endif %}
         {% if feature_certificates_ui %}
-        <a href="{% url 'education:certificate_templates' %}" class="sidebar-subitem {% if vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}active{% endif %}">🎓 Sertifikatlar</a>
+        <a href="{% url 'education:certificate_templates' %}" class="sidebar-subitem {% if vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}active{% endif %}">Sertifikatlar</a>
         {% endif %}
       </div>
     </div>
     {% endif %}
+
+    {# SMS va AI — sidebar'da ko'rsatilmaydi (dashboard upgrade block'da ko'rinadi) #}
 
     <div class="sidebar-item-group">
       <div class="sidebar-item" id="manageMenuBtn" onclick="toggleManageMenu(this)" data-title="Boshqarish">

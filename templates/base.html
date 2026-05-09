@@ -498,6 +498,9 @@
   {% endif %}
   <link rel="stylesheet" href="{% static 'css/chart-tooltip.css' %}?v=20260504-chart-tooltip-1">
   <script defer src="{% static 'js/chart-tooltip.js' %}?v=20260504-chart-tooltip-1"></script>
+  {% if request.user.is_authenticated and request.center %}
+  <link rel="stylesheet" href="{% static 'css/plan-features.css' %}?v=20260509-plan-features-1">
+  {% endif %}
 </head>
 
 <body
@@ -511,6 +514,12 @@
   {% if request.user.is_authenticated %}
   {% include "partials/sidebar.html" %}
   {% endif %}
+
+  {# ✅ Upgrade modal — barcha sahifalar uchun (center bo'lsa) #}
+  {% if request.user.is_authenticated and request.center %}
+  {% include "partials/upgrade_modal.html" %}
+  {% endif %}
+
 
   {# ✅ Login kabi sahifalar uchun: layoutdan oldin maxsus section #}
   {% block pre_layout %}{% endblock %}
