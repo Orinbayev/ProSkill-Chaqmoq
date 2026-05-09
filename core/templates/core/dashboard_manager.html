@@ -1919,6 +1919,29 @@ html[data-role-theme="light"] .bq-sdrawer-field textarea:focus {
 }
 html[data-role-theme="light"] .bq-sdrawer-field input::placeholder,
 html[data-role-theme="light"] .bq-sdrawer-field textarea::placeholder { color:#94a3b8; -webkit-text-fill-color:#94a3b8; }
+
+/* ── Tug'ilgan sana: icon-left date wrapper ── */
+.bq-sdrawer-date{position:relative;display:flex;align-items:stretch;overflow:hidden;border:1px solid rgba(148,163,184,.24);border-radius:14px;background:rgba(7,13,26,.82);transition:border-color .18s ease,box-shadow .18s ease;}
+.bq-sdrawer-date:focus-within{border-color:rgba(56,189,248,.54);box-shadow:0 0 0 4px rgba(56,189,248,.12);}
+.bq-sdrawer-date__icon{width:46px;min-width:46px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-right:1px solid rgba(148,163,184,.24);color:#38bdf8;background:rgba(56,189,248,.08);font-size:.95rem;}
+.bq-sdrawer-date input[type="date"]{flex:1;min-height:46px;height:46px;padding:0 14px;border:0!important;background:transparent!important;box-shadow:none!important;outline:none;color:#e2e8f0!important;-webkit-text-fill-color:#e2e8f0!important;caret-color:#e2e8f0;color-scheme:dark;cursor:pointer;font-size:.94rem;font-weight:500;width:100%;-webkit-appearance:none;appearance:none;}
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit{display:flex;align-items:center;padding:0;line-height:1;}
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-fields-wrapper{padding:0;}
+.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;filter:invert(.7) brightness(2);padding:0;margin-right:10px;width:15px;height:15px;}
+.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
+html[data-role-theme="light"] .bq-sdrawer-date{background:rgba(255,255,255,.98);border-color:rgba(148,163,184,.3);}
+html[data-role-theme="light"] .bq-sdrawer-date:focus-within{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1);}
+html[data-role-theme="light"] .bq-sdrawer-date__icon{background:rgba(37,99,235,.06);border-right-color:rgba(148,163,184,.28);color:#2563eb;}
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]{color:#0f172a!important;-webkit-text-fill-color:#0f172a!important;caret-color:#0f172a;color-scheme:light;}
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator{filter:none;opacity:.45;}
+/* ── Floating-label modifier ── */
+.bq-sdrawer-date--fl{flex-direction:column;}
+.bq-sdrawer-field .bq-sdrawer-date__flabel{display:block;width:100%;text-align:center;padding:7px 12px 6px;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#38bdf8;border-bottom:1px solid rgba(148,163,184,.24);line-height:1;cursor:pointer;background:rgba(56,189,248,.04);transition:color .16s;}
+.bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(56,189,248,.07);}
+html[data-role-theme="light"] .bq-sdrawer-field .bq-sdrawer-date__flabel{color:#2563eb;background:rgba(37,99,235,.04);border-bottom-color:rgba(148,163,184,.28);}
+html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(37,99,235,.07);}
+.bq-sdrawer-date__body{display:flex;align-items:stretch;flex:1;min-width:0;}
+.bq-sdrawer-date--fl .bq-sdrawer-date__body input[type="date"]{height:42px;min-height:42px;}
 </style>
 {% endblock %}
 
@@ -2637,8 +2660,10 @@ function initStudentDrawerInputFormatting(){
   studentDrawerBody.querySelectorAll('#id_telefon1,#id_telefon2').forEach(input=>{
     function applyPhoneMask(){ input.value=formatDrawerPhoneValue(input.value); }
     applyPhoneMask();
+    setTimeout(applyPhoneMask,200);
     input.addEventListener('focus',applyPhoneMask);
     input.addEventListener('input',applyPhoneMask);
+    input.addEventListener('change',applyPhoneMask);
     input.addEventListener('blur',()=>{ const d=input.value.replace(/\D/g,'').replace(/^998/,''); input.value=d?formatDrawerPhoneValue(input.value):''; });
   });
   studentDrawerBody.querySelectorAll('#id_passport_id').forEach(input=>{

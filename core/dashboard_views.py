@@ -1809,45 +1809,65 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     # ── Chart 1 & 2: 12 oylik moliyaviy + o'quvchilar ──────────
     # Doim today dan orqaga 12 oy — filter d_from/d_to faqat KPI ga ta'sir qiladi
     monthly_labels   = []
-    monthly_turnover = []   # Umumiy aylanma  = barcha kirim to'lovlar
-    monthly_expenses = []   # Qarzdorlik/chiqim = barcha xarajatlar
-    monthly_profit   = []   # Sof foyda = aylanma - xarajat
-    monthly_students = []   # Yangi kelgan o'quvchilar
-    monthly_left     = []   # Markazni tark etgan o'quvchilar
+    monthly_turnover = []
+    monthly_expenses = []
+    monthly_profit   = []
+    monthly_students = []
+    monthly_left     = []
 
-    for ms, me, lbl in _month_range_list(today, 12):
+    months_list = _month_range_list(today, 12)
+    chart_start  = months_list[0][0]
+    chart_end    = months_list[-1][1]
+
+    # ── Pre-aggregate student joins & leaves (24 queries → 3) ──
+    _join_map = {
+        (r["y"], r["m"]): r["cnt"]
+        for r in students_history_qs
+        .filter(date_joined__date__range=(chart_start, chart_end))
+        .values(y=F("date_joined__year"), m=F("date_joined__month"))
+        .annotate(cnt=Count("id"))
+    }
+    _arch_map = {
+        (r["y"], r["m"]): r["cnt"]
+        for r in students_history_qs
+        .filter(
+            Q(archived_at__date__range=(chart_start, chart_end))
+            | Q(deleted_at__date__range=(chart_start, chart_end))
+        )
+        .values(y=F("archived_at__year"), m=F("archived_at__month"))
+        .annotate(cnt=Count("id"))
+    }
+    _legacy_archived = students_history_qs.filter(
+        is_archived=True, archived_at__isnull=True, deleted_at__isnull=True
+    ).count()
+
+    for ms, me, lbl in months_list:
         monthly_labels.append(lbl)
-
-        # Umumiy aylanma — o'sha oyda qabul qilingan barcha to'lovlar
         m_turn = _monthly_turnover_for_scope(center, ms, me, branch)
         monthly_turnover.append(m_turn)
-
-        # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar
         m_exp = _monthly_expenses_for_center(center, ms, me)
         monthly_expenses.append(m_exp)
-
-        # Sof foyda — markazda qoladigan
         monthly_profit.append(m_turn - m_exp)
 
-        # Yangi kelgan o'quvchilar
-        monthly_students.append(
-            students_history_qs.filter(date_joined__date__range=(ms, me)).count()
-        )
+        monthly_students.append(_join_map.get((ms.year, ms.month), 0))
 
-        # Markazni tark etgan o'quvchilar — arxiv yoki soft delete qilingan studentlar.
-        # Legacy arxivlangan userlarda archived_at bo'sh bo'lishi mumkin; ularni joriy oyga qo'shamiz.
-        left_filter = Q(archived_at__date__range=(ms, me)) | Q(deleted_at__date__range=(ms, me))
+        left_cnt = _arch_map.get((ms.year, ms.month), 0)
         if ms.year == today.year and ms.month == today.month:
-            left_filter |= Q(is_archived=True, archived_at__isnull=True)
-        monthly_left.append(
-            students_history_qs.filter(left_filter).count()
-        )
+            left_cnt += _legacy_archived
+        monthly_left.append(left_cnt)
 
-    # ── Chart 3: Guruh to'ldirilganlik ─────────────────────────
-    group_fill = []
-    for g in groups_qs.filter(is_closed=False).select_related("oqituvchi"):
-        enrolled = Enrollment.objects.filter(group=g, is_active=True).count()
-        group_fill.append({"name": g.nom, "enrolled": enrolled})
+    # ── Chart 3: Guruh to'ldirilganlik (N+1 → 2 queries) ──────
+    _open_groups_qs = groups_qs.filter(is_closed=False).only("id", "nom")
+    _fill_enroll_map = dict(
+        Enrollment.objects.filter(
+            group__in=_open_groups_qs,
+            is_active=True,
+        ).values("group_id").annotate(cnt=Count("id")).values_list("group_id", "cnt")
+    )
+    group_fill = [
+        {"name": g.nom, "enrolled": _fill_enroll_map.get(g.id, 0)}
+        for g in _open_groups_qs
+    ]
     group_fill.sort(key=lambda x: -x["enrolled"])
 
     # ── Chart 4: Guruhlar davomat ranking ────────────────────────
@@ -2059,23 +2079,42 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         except Exception:
             return timezone.now()
 
-    # ── Top 5 guruh ────────────────────────────────────────────
+    # ── Top 5 guruh (4N+1 → 4 bulk queries) ───────────────────
     top_groups = []
-    group_rows = groups_qs.filter(is_closed=False).select_related("oqituvchi", "category_obj")
-    for g in group_rows:
-        enrolled = Enrollment.objects.filter(
-            group=g,
+    group_rows = list(groups_qs.filter(is_closed=False).select_related("oqituvchi", "category_obj"))
+    _group_ids = [g.id for g in group_rows]
+
+    _tg_enroll_map = dict(
+        Enrollment.objects.filter(
+            group_id__in=_group_ids,
             is_active=True,
             student__is_archived=False,
-        ).count()
+        ).values("group_id").annotate(cnt=Count("id")).values_list("group_id", "cnt")
+    )
+    _tg_rev_map = dict(
+        pay_qs.filter(group_id__in=_group_ids)
+        .values("group_id").annotate(s=Sum("summa")).values_list("group_id", "s")
+    )
+    _tg_att_map = {
+        row["group_id"]: row
+        for row in Attendance.objects.filter(
+            group_id__in=_group_ids,
+            date__range=(d_from, d_to),
+        ).values("group_id").annotate(
+            tot=Count("id"),
+            pres=Count("id", filter=present_filter),
+        )
+    }
+
+    for g in group_rows:
+        enrolled = _tg_enroll_map.get(g.id, 0)
         raw_capacity = int(getattr(g, "max_students", 0) or 0)
         capacity = max(raw_capacity, enrolled) if (raw_capacity or enrolled) else 0
         fill_percent = round(enrolled / capacity * 100, 1) if capacity else 0
-        revenue_sum = int(pay_qs.filter(group=g).aggregate(s=Sum("summa"))["s"] or 0)
-        g_att_tot = Attendance.objects.filter(group=g, date__range=(d_from, d_to)).count()
-        g_att_pre = Attendance.objects.filter(
-            group=g, date__range=(d_from, d_to)
-        ).filter(present_filter).count()
+        revenue_sum = int(_tg_rev_map.get(g.id) or 0)
+        _att = _tg_att_map.get(g.id, {})
+        g_att_tot = _att.get("tot", 0)
+        g_att_pre = _att.get("pres", 0)
         if fill_percent >= 95:
             status = "To'ldirilgan"
         elif enrolled:

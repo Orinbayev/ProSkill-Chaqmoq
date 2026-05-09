@@ -401,8 +401,8 @@ def manager_dashboard_api(request):
                 ),
                 revenue=Coalesce(
                     Sum(
-                        "payments__summa",
-                        filter=Q(payments__paid_date__range=(d_from, d_to)),
+                        "group_payments__summa",
+                        filter=Q(group_payments__paid_date__range=(d_from, d_to)),
                     ),
                     0,
                 ),

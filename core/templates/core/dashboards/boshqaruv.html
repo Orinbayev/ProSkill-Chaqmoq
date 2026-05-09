@@ -1386,43 +1386,85 @@ html[data-role-theme="light"] .bq-pm__sep { background: rgba(148,163,184,.14); }
 .bq-sdrawer-date {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   overflow: hidden;
   border: 1px solid var(--bq-drawer-input-border);
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--bq-drawer-input-bg), rgba(255,255,255,.06));
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  border-radius: 14px;
+  background: var(--bq-drawer-input-bg);
+  transition: border-color .16s ease, box-shadow .16s ease;
 }
 .bq-sdrawer-date:focus-within {
-  border-color: rgba(34,211,238,.34);
-  box-shadow: 0 0 0 4px rgba(34,211,238,.08);
+  border-color: rgba(34,211,238,.44);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.1);
 }
 .bq-sdrawer-date__icon {
-  width: 56px;
-  min-width: 56px;
-  align-self: stretch;
+  width: 46px;
+  min-width: 46px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-right: 1px solid var(--bq-drawer-input-border);
   color: var(--bq-cyan);
-  background: rgba(34,211,238,.08);
+  background: rgba(34,211,238,.07);
+  font-size: .95rem;
 }
 .bq-sdrawer-date input[type="date"] {
+  flex: 1;
   min-height: 46px;
-  padding: 0 16px;
+  height: 46px;
+  padding: 0 14px;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: var(--bq-txt);
+  outline: none;
+  color: var(--bq-txt) !important;
+  -webkit-text-fill-color: var(--bq-txt) !important;
+  caret-color: var(--bq-txt);
+  color-scheme: dark;
+  cursor: pointer;
+  font-size: .94rem;
+  font-weight: 500;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"] {
+  color-scheme: light;
+}
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+}
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
 }
 .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: .76;
+  opacity: .55;
+  filter: invert(.7) brightness(2);
+  padding: 0;
+  margin-right: 10px;
+  width: 15px;
+  height: 15px;
+}
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: .45;
 }
 .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+/* ── Floating-label modifier ── */
+.bq-sdrawer-date--fl{flex-direction:column;}
+.bq-sdrawer-field .bq-sdrawer-date__flabel{display:block;width:100%;text-align:center;padding:7px 12px 6px;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--bq-cyan);border-bottom:1px solid var(--bq-drawer-input-border);line-height:1;cursor:pointer;background:rgba(34,211,238,.04);transition:color .16s;}
+.bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(34,211,238,.07);}
+html[data-role-theme="light"] .bq-sdrawer-field .bq-sdrawer-date__flabel{background:rgba(37,99,235,.04);border-bottom-color:var(--bq-drawer-input-border);}
+html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(37,99,235,.07);}
+.bq-sdrawer-date__body{display:flex;align-items:stretch;flex:1;min-width:0;}
+.bq-sdrawer-date--fl .bq-sdrawer-date__body input[type="date"]{height:42px;min-height:42px;}
 .bq-sdrawer-password {
   position: relative;
 }
@@ -7182,8 +7224,10 @@ function initStudentDrawerInputFormatting(){
     }
 
     applyPhoneMask();
+    setTimeout(applyPhoneMask, 200);
     input.addEventListener('focus', applyPhoneMask);
     input.addEventListener('input', applyPhoneMask);
+    input.addEventListener('change', applyPhoneMask);
     input.addEventListener('blur', ()=>{
       const digits=input.value.replace(/\D/g,'').replace(/^998/,'');
       input.value = digits ? formatDrawerPhoneValue(input.value) : '';

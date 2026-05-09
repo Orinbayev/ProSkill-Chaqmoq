@@ -1112,50 +1112,171 @@ html[data-role-theme="light"] .bq-sdrawer-field input:-webkit-autofill:focus {
   box-shadow: 0 10px 20px rgba(14, 165, 233, 0.14);
 }
 
+/* ── Date of birth field: icon-left panel style ── */
 .bq-sdrawer-date {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   overflow: hidden;
-  border: 1px solid #d1d5db;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border: 1px solid var(--sd-border-strong);
+  border-radius: 14px;
+  background: rgba(7, 13, 26, 0.82);
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .bq-sdrawer-date:focus-within {
-  border-color: rgba(251, 146, 60, 0.7);
-  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.12);
+  border-color: rgba(56, 189, 248, 0.54);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.12);
 }
 
 .bq-sdrawer-date__icon {
-  width: 62px;
-  min-width: 62px;
+  width: 46px;
+  min-width: 46px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
-  border-right: 1px solid #e5e7eb;
-  color: #fb923c;
-  background: rgba(255, 247, 237, 0.8);
+  border-right: 1px solid var(--sd-border-strong);
+  color: var(--sd-primary);
+  background: rgba(56, 189, 248, 0.08);
+  font-size: 0.95rem;
 }
 
 .bq-sdrawer-date input[type="date"] {
-  min-height: 58px;
-  padding: 0 18px;
+  flex: 1;
+  min-height: 46px;
+  height: 46px;
+  padding: 0 14px;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #111827;
+  outline: none;
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #e2e8f0;
+  color-scheme: dark;
+  cursor: pointer;
+  font-size: 0.94rem;
+  font-weight: 500;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
+/* Fix vertical centering of day/month/year parts in Chrome */
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-text {
+  color: rgba(148, 163, 184, 0.6);
+  padding: 0 1px;
+}
+
+/* Calendar icon — make visible in dark mode */
 .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.5;
+  filter: invert(0.7) brightness(2);
+  padding: 0;
+  margin-right: 10px;
+  width: 15px;
+  height: 15px;
 }
 
 .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* Light mode overrides */
+html[data-role-theme="light"] .bq-sdrawer-date {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date__icon {
+  background: rgba(37, 99, 235, 0.06);
+  border-right-color: rgba(148, 163, 184, 0.28);
+  color: #2563eb;
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"] {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
+  color-scheme: light;
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-text {
+  color: rgba(100, 116, 139, 0.7);
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.45;
+}
+
+/* ── Floating-label date variant ── */
+.bq-sdrawer-date--fl {
+  flex-direction: column;
+}
+
+/* Higher specificity (0,2,0) overrides .bq-sdrawer-field label (0,1,1) */
+.bq-sdrawer-field .bq-sdrawer-date__flabel {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 7px 12px 6px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sd-primary);
+  border-bottom: 1px solid var(--sd-border-strong);
+  line-height: 1;
+  cursor: pointer;
+  background: rgba(56, 189, 248, 0.04);
+  transition: color 0.16s ease;
+}
+
+.bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel {
+  color: var(--sd-primary);
+  background: rgba(56, 189, 248, 0.07);
+}
+
+html[data-role-theme="light"] .bq-sdrawer-field .bq-sdrawer-date__flabel {
+  color: var(--sd-primary);
+  background: rgba(37, 99, 235, 0.04);
+  border-bottom-color: var(--sd-border-strong);
+}
+
+html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel {
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.bq-sdrawer-date__body {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Compact input height in fl-variant — 42px matches other form fields */
+.bq-sdrawer-date--fl .bq-sdrawer-date__body input[type="date"] {
+  height: 42px;
+  min-height: 42px;
 }
 
 .bq-sdrawer-password {

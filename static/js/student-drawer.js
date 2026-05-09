@@ -91,7 +91,7 @@
     if (digits.slice(2, 5)) parts.push(digits.slice(2, 5));
     if (digits.slice(5, 7)) parts.push(digits.slice(5, 7));
     if (digits.slice(7, 9)) parts.push(digits.slice(7, 9));
-    return "+998" + (parts.length ? " " + parts.join(" ") : " ");
+    return parts.join(" ");
   }
 
   function formatPassportValue(value) {

@@ -91,10 +91,12 @@
   <!-- ── Tug'ilgan sana + Jins ── -->
   <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
     <div class="bq-sdrawer-field">
-      <label for="{{ form.birth_date.id_for_label }}">Tug'ilgan sana</label>
-      <div class="bq-sdrawer-pro__input-wrap">
-        <span class="bq-sdrawer-pro__input-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div class="bq-sdrawer-label-row">
+        <label for="{{ form.birth_date.id_for_label }}">Tug'ilgan sana</label>
+      </div>
+      <div class="bq-sdrawer-date">
+        <span class="bq-sdrawer-date__icon">
+          <i class="fa-regular fa-calendar-days"></i>
         </span>
         {{ form.birth_date }}
       </div>
@@ -344,8 +346,7 @@
 
     function applyPhoneMask(raw) {
       var digits = raw.replace(/\D/g, '');
-      if (digits.length >= 12 && digits.startsWith('998')) digits = digits.substring(3);
-      else if (digits.length >= 11 && digits.startsWith('998')) digits = digits.substring(3);
+      if (digits.length >= 11 && digits.startsWith('998')) digits = digits.substring(3);
       digits = digits.substring(0, 9);
       var out = '';
       if (digits.length > 0) out += digits.substring(0, 2);
