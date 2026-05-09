@@ -146,9 +146,12 @@ MIDDLEWARE = [
     "core.middleware_rbac.RoleBasedAccessMiddleware",  # ✅ RBAC kirish nazorati
 ]
 
-# PERF: Slow request log threshold (ms). Override via env var.
-SLOW_REQUEST_MS = int(os.environ.get("SLOW_REQUEST_MS", "500"))
+# PERF: Performance logging settings — override via Render environment variables.
+# SLOW_REQUEST_MS  — bu'dan sekin so'rovlar [SLOW]/[CRITICAL] tegi oladi (default: 800ms)
+# PERF_LOG_ALL     — True: har request loglanadi | False: faqat sekin/high-query
+SLOW_REQUEST_MS = int(os.environ.get("SLOW_REQUEST_MS", "800"))
 SLOW_REQUEST_LOG_QUERIES = os.environ.get("SLOW_REQUEST_LOG_QUERIES", "1") == "1"
+PERF_LOG_ALL = os.environ.get("PERF_LOG_ALL", "1") == "1"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
