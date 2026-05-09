@@ -337,16 +337,9 @@
 
 <script>
 (function () {
-  var phoneInput = document.getElementById('id_telefon1');
-  if (phoneInput) {
-    phoneInput.setAttribute('placeholder', '90 123-45-67');
-    phoneInput.setAttribute('maxlength', '12');
-    phoneInput.setAttribute('inputmode', 'numeric');
-    phoneInput.setAttribute('autocomplete', 'off');
-
-    function applyPhoneMask(raw) {
+  function applyPhoneMask(raw) {
       var digits = raw.replace(/\D/g, '');
-      if (digits.length >= 11 && digits.startsWith('998')) digits = digits.substring(3);
+      if (digits.startsWith('998')) digits = digits.substring(3);
       digits = digits.substring(0, 9);
       var out = '';
       if (digits.length > 0) out += digits.substring(0, 2);
@@ -354,11 +347,42 @@
       if (digits.length > 5) out += '-' + digits.substring(5, 7);
       if (digits.length > 7) out += '-' + digits.substring(7, 9);
       return out;
+  }
+
+  ['id_telefon1', 'id_telefon2'].forEach(function (id) {
+    var phoneInput = document.getElementById(id);
+    if (!phoneInput) return;
+    phoneInput.setAttribute('placeholder', '90 123-45-67');
+    phoneInput.setAttribute('maxlength', '12');
+    phoneInput.setAttribute('inputmode', 'numeric');
+    phoneInput.setAttribute('autocomplete', 'off');
+
+    function syncPhoneValue() {
+      phoneInput.value = applyPhoneMask(phoneInput.value);
     }
 
-    if (phoneInput.value) phoneInput.value = applyPhoneMask(phoneInput.value);
-    phoneInput.addEventListener('input', function () { this.value = applyPhoneMask(this.value); });
-  }
+    function schedulePhoneSync() {
+      syncPhoneValue();
+      requestAnimationFrame(syncPhoneValue);
+      [0, 30, 80, 150, 300, 600, 1000, 2000, 4000].forEach(function (delay) {
+        setTimeout(syncPhoneValue, delay);
+      });
+    }
+
+    schedulePhoneSync();
+    phoneInput.addEventListener('pointerdown', schedulePhoneSync);
+    phoneInput.addEventListener('click', schedulePhoneSync);
+    phoneInput.addEventListener('focus', schedulePhoneSync);
+    phoneInput.addEventListener('input', syncPhoneValue);
+    phoneInput.addEventListener('change', syncPhoneValue);
+    phoneInput.addEventListener('paste', function () {
+      schedulePhoneSync();
+    });
+    phoneInput.addEventListener('keyup', syncPhoneValue);
+    phoneInput.addEventListener('blur', function () {
+      this.value = this.value.replace(/\D/g, '').replace(/^998/, '') ? applyPhoneMask(this.value) : '';
+    });
+  });
 
   var ismInput = document.getElementById('id_ism');
   var familyaInput = document.getElementById('id_familya');

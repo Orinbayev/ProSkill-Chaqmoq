@@ -116,9 +116,24 @@
         input.value = formatPhoneValue(input.value);
       }
 
-      applyPhoneMask();
-      input.addEventListener("focus", applyPhoneMask);
+      function schedulePhoneMask() {
+        applyPhoneMask();
+        requestAnimationFrame(applyPhoneMask);
+        [0, 30, 80, 150, 300, 600, 1000, 2000, 4000].forEach(function (delay) {
+          setTimeout(applyPhoneMask, delay);
+        });
+      }
+
+      schedulePhoneMask();
+      input.addEventListener("pointerdown", schedulePhoneMask);
+      input.addEventListener("click", schedulePhoneMask);
+      input.addEventListener("focus", schedulePhoneMask);
       input.addEventListener("input", applyPhoneMask);
+      input.addEventListener("change", applyPhoneMask);
+      input.addEventListener("paste", function () {
+        schedulePhoneMask();
+      });
+      input.addEventListener("keyup", applyPhoneMask);
       input.addEventListener("blur", function () {
         const digits = input.value.replace(/\D/g, "").replace(/^998/, "");
         input.value = digits ? formatPhoneValue(input.value) : "";

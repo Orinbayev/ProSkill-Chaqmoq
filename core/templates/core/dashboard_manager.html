@@ -2659,11 +2659,19 @@ function formatDrawerPassportValue(value){
 function initStudentDrawerInputFormatting(){
   studentDrawerBody.querySelectorAll('#id_telefon1,#id_telefon2').forEach(input=>{
     function applyPhoneMask(){ input.value=formatDrawerPhoneValue(input.value); }
-    applyPhoneMask();
-    setTimeout(applyPhoneMask,200);
-    input.addEventListener('focus',applyPhoneMask);
+    function schedulePhoneMask(){
+      applyPhoneMask();
+      requestAnimationFrame(applyPhoneMask);
+      [0,30,80,150,300,600,1000,2000,4000].forEach(delay=>setTimeout(applyPhoneMask,delay));
+    }
+    schedulePhoneMask();
+    input.addEventListener('pointerdown',schedulePhoneMask);
+    input.addEventListener('click',schedulePhoneMask);
+    input.addEventListener('focus',schedulePhoneMask);
     input.addEventListener('input',applyPhoneMask);
     input.addEventListener('change',applyPhoneMask);
+    input.addEventListener('paste',schedulePhoneMask);
+    input.addEventListener('keyup',applyPhoneMask);
     input.addEventListener('blur',()=>{ const d=input.value.replace(/\D/g,'').replace(/^998/,''); input.value=d?formatDrawerPhoneValue(input.value):''; });
   });
   studentDrawerBody.querySelectorAll('#id_passport_id').forEach(input=>{
