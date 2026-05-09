@@ -129,10 +129,9 @@ JAZZMIN_SETTINGS = {
 
 # ===== Middleware =====
 MIDDLEWARE = [
-    # PERF: birinchi bo'lib o'rnatamiz — barcha keyingi middleware'lar
-    # vaqti ham hisoblanadi.
-    "core.middleware_perf.SlowRequestLoggingMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # PERF: performance logging — SecurityMiddleware dan keyin
+    "core.middleware_perf.SlowRequestLoggingMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",

@@ -1612,7 +1612,7 @@ def dashboard_hub(request):
     center = _get_center(request)
     if not center:
         return redirect("core:home")
-    return render(request, "core/dashboard_director.html", {
+    return render(request, "core/dashboards/hub.html", {
         "center": center,
         "page_title": "Dashboard Markazi",
         "active_dash": "hub",

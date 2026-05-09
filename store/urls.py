@@ -13,14 +13,13 @@ urlpatterns = [
     path('mahsulotlar/', views.product_list, name='product_list'),
     path("so'rovlar/", views.request_list, name='requests'),
     path("so'rovlar/<int:pk>/tasdiqlash/", views.request_approve, name='request_approve'),
-    path("so'rovlar/<int:pk>/tasdiqlash/", views.request_approve, name="request_approve"),
     path("so'rovlar/<int:pk>/rad_etish/", views.request_reject, name="request_reject"),
 
     # CRUD (director/manager)
     path('product/create/', views.product_create, name='product_create'),
     path('product/<int:pk>/edit/', views.product_edit, name='product_edit'),
     path('product/<int:pk>/delete/', views.product_delete, name='product_delete'),
-    path("so'rovlar/<int:pk>/rad/", views.request_reject, name='request_reject'),
+    path('product/image/<int:pk>/delete/', views.delete_product_image, name='delete_product_image'),
     path('leads/', crm_views.lead_list, name='lead_list'),
     path('api/leads/', crm_views.leads_api, name='leads_api'),
     path('api/leads/<int:pk>/', crm_views.lead_api_detail, name='lead_api_detail'),

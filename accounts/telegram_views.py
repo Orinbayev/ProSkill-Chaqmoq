@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from django.conf import settings
 import secrets
 import string
 from datetime import timedelta
@@ -20,5 +21,5 @@ def connect_telegram(request):
     
     return render(request, "accounts/connect_telegram.html", {
         "code": code,
-        "bot_username": "ChaqmoqAppBot" # Replace with actual bot username
+        "bot_username": settings.TELEGRAM_BOT_USERNAME
     })

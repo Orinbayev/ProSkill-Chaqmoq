@@ -77,8 +77,6 @@ class Center(SoftDeleteMixin, models.Model):
         return active_subs[0]
 
     max_users = models.PositiveIntegerField(default=50)
-
-    max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
     max_students = models.PositiveIntegerField(default=100)
     capacity_limit = models.IntegerField(default=100, verbose_name="O'quvchilar limiti")

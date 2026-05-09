@@ -51,8 +51,8 @@ urlpatterns = [
     path("guruh/yaratish/it/", views.group_create, {"category": Group.IT}, name="group_create_it"),
 
     path("guruh/<int:pk>/tahrirlash/", views.group_edit, name="group_edit"),
-    path("guruh/<int:pk>/o‘chirish/", views.group_delete, name="group_delete"),
-    path('guruhlar/', views.groups_hub, name='groups_hub'),
+    path("guruh/<int:pk>/o’chirish/", views.group_delete, name="group_delete"),
+    path('guruhlar/hub/', views.groups_hub, name='groups_hub'),
 
     # === 👥 GURUHLAR ===
     path("guruh/<int:pk>/", views.group_detail, name="group_detail"),
@@ -66,8 +66,8 @@ urlpatterns = [
     path('guruh/<int:pk>/pause/', views.group_toggle_close, name='group_toggle_close'),
     path("groups/", views.group_list, name="groups"),
     path("groups/add/", views.group_add, name="group_add"),
-    path("groups/<int:pk>/edit/", views.group_edit, name="group_edit"),
-    path("groups/<int:pk>/delete/", views.group_delete, name="group_delete"),
+    path("groups/<int:pk>/edit/", views.group_edit, name="group_edit_en"),
+    path("groups/<int:pk>/delete/", views.group_delete, name="group_delete_en"),
 
     # === 📅 DAVOMAT va BALLAR ===
     path("guruh/<int:pk>/attendance_today/", views.attendance_today, name="attendance_today"),

@@ -118,9 +118,6 @@ def _staff_only(request) -> bool:
     return bool(u and (u.is_superuser or getattr(u, "role", None) in ("manager", "director")))
 
 
-    return center
-
-
 @login_required
 def branch_list_api(request):
     """GET: center uchun barcha filiallar JSON."""

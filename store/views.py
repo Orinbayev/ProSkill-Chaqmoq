@@ -1,6 +1,7 @@
 from .models import Product, PurchaseRequest, Comment
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
 from django.contrib import messages
 from .models import Product, ProductImage, PurchaseRequest
 from .services import approve_purchase, reject_purchase
@@ -290,6 +291,18 @@ def product_delete(request, pk):
         return redirect('store:products')
 
     return render(request, 'accounts/logout_confirm.html', {})
+
+
+@login_required
+def delete_product_image(request, pk):
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({"ok": False, "error": "POST kerak"}, status=405)
+    center = require_center(request)
+    image = get_object_or_404(ProductImage, pk=pk, product__center=center)
+    image.delete()
+    return JsonResponse({"ok": True})
 
 
 # 🔒 Talabaning balansini tekshirish

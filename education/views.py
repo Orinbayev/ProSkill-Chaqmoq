@@ -4283,9 +4283,10 @@ def payment_history(request, student_id):
 
 
 
+@login_required
 def tolov_oqituvchilar(request):
-    # whatever you already show for teachers (your groups_home, etc.)
-    return render(request, "education/groups_home.html", {})  # or your real context
+    from django.shortcuts import redirect as _redirect
+    return _redirect("education:teacher_salary_list")
 
 
 
