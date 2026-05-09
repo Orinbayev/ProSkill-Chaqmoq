@@ -160,9 +160,11 @@ def serialize_lead_status_choices(center) -> list[dict]:
 
 
 def serialize_lead_group(lead_group: LeadGroup) -> dict:
-    lead_count = getattr(lead_group, "lead_count", None)
-    confirmed_count = getattr(lead_group, "confirmed_count", None)
-    if lead_count is None:
+    ann_lead = getattr(lead_group, "ann_lead_count", None)
+    if ann_lead is not None:
+        lead_count = ann_lead
+        confirmed_count = getattr(lead_group, "ann_confirmed_count", 0)
+    else:
         member_qs = lead_group.leads.filter(is_archived=False)
         lead_count = member_qs.count()
         confirmed_count = member_qs.filter(is_confirmed=True).count()

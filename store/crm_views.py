@@ -105,10 +105,10 @@ def _base_lead_groups_qs(center, *, archived=False, annotate_counts=False):
     )
     if annotate_counts:
         queryset = queryset.annotate(
-            lead_count=Count(
+            ann_lead_count=Count(
                 "leads", filter=Q(leads__is_archived=False), distinct=True
             ),
-            confirmed_count=Count(
+            ann_confirmed_count=Count(
                 "leads",
                 filter=Q(leads__is_archived=False, leads__is_confirmed=True),
                 distinct=True,
