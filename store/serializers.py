@@ -160,9 +160,12 @@ def serialize_lead_status_choices(center) -> list[dict]:
 
 
 def serialize_lead_group(lead_group: LeadGroup) -> dict:
-    member_qs = lead_group.leads.filter(is_archived=False)
-    lead_count = member_qs.count()
-    confirmed_count = member_qs.filter(is_confirmed=True).count()
+    lead_count = getattr(lead_group, "lead_count", None)
+    confirmed_count = getattr(lead_group, "confirmed_count", None)
+    if lead_count is None:
+        member_qs = lead_group.leads.filter(is_archived=False)
+        lead_count = member_qs.count()
+        confirmed_count = member_qs.filter(is_confirmed=True).count()
     created_at = timezone.localtime(lead_group.created_at) if lead_group.created_at else None
     archived_at = timezone.localtime(lead_group.archived_at) if lead_group.archived_at else None
     return {

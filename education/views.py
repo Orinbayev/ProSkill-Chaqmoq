@@ -2383,12 +2383,17 @@ def attendance_groups(request):
         
     teachers = teacher_qs
 
-    # ✅ Base queryset
+    # ✅ Base queryset — attendance_count limited to last 90 days for speed
+    _att_since = date.today() - timedelta(days=90)
     groups = (
         Group.objects.filter(is_archived=False)
         .select_related("center", "oqituvchi")
         .annotate(
-            attendance_count=Count("attendances", distinct=True),
+            attendance_count=Count(
+                "attendances",
+                filter=Q(attendances__date__gte=_att_since),
+                distinct=True,
+            ),
             last_attendance=Max("attendances__date"),
         )
         .annotate(
@@ -7893,6 +7898,23 @@ def _compute_teacher_salary_summary_payload(
     users_qs = User.objects.filter(id__in=all_ids, is_archived=False).order_by("ism", "familya", "id")
     support_user_ids_set = list_support_user_ids(center=center) if support_feature_on else set()
 
+    # ── Batch-compute closed months once for all teachers ──────────
+    _fin_months_qs = FinancialMonth.objects.filter(year=selected_year, is_closed=True)
+    if center:
+        _fin_months_qs = _fin_months_qs.filter(center=center)
+    _closed_months_cache = {}
+    for _fm in _fin_months_qs:
+        _closed_months_cache[_fm.month] = _fm
+
+    # ── Batch-fetch all salary snapshots for all teachers at once ──
+    _snapshots_by_teacher = {}
+    if _closed_months_cache and all_ids:
+        for _snap in TeacherSalarySnapshot.objects.filter(
+            teacher_id__in=all_ids,
+            financial_month__in=_closed_months_cache.values(),
+        ).select_related("financial_month"):
+            _snapshots_by_teacher.setdefault(_snap.teacher_id, []).append(_snap)
+
     # ── N+1 yo'q qilish: har teacher uchun group_set.count() o'rniga
     # bir martalik aggregate query bilan barcha teacher'larning guruh sonini olamiz.
     from django.db.models import Count, Q as _Q
@@ -7938,7 +7960,9 @@ def _compute_teacher_salary_summary_payload(
         # Asosiy o'qituvchi sifatida
         if teacher.id in teacher_ids:
             yearly_stats = HistoricalFinanceService.get_yearly_teacher_stats(
-                teacher, selected_year, center
+                teacher, selected_year, center,
+                _closed_months=_closed_months_cache,
+                _snapshots=_snapshots_by_teacher.get(teacher.id, []),
             )
             for m in range(12):
                 chart_teacher_income[m] += yearly_stats[m]['salary']

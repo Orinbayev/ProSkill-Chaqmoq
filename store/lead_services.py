@@ -166,22 +166,23 @@ def ensure_default_lead_subjects(center):
     if not center:
         return []
 
+    names = [name for name, _ in DEFAULT_SUBJECT_CATALOG]
+    existing = {
+        s.nom: s for s in Yonalish.objects.filter(center=center, nom__in=names)
+    }
     subjects = []
     for name, color in DEFAULT_SUBJECT_CATALOG:
-        subject, created = Yonalish.objects.get_or_create(
-            center=center,
-            nom=name,
-            defaults={
-                "color": color,
-                "is_active": True,
-            },
-        )
-        changed = False
-        if not subject.color:
-            subject.color = color
-            changed = True
-        if changed and not created:
-            subject.save(update_fields=["color"])
+        subject = existing.get(name)
+        if subject:
+            if not subject.color:
+                subject.color = color
+                subject.save(update_fields=["color"])
+        else:
+            subject, _ = Yonalish.objects.get_or_create(
+                center=center,
+                nom=name,
+                defaults={"color": color, "is_active": True},
+            )
         subjects.append(subject)
     return subjects
 
@@ -455,8 +456,13 @@ def ensure_default_lead_catalog(center) -> None:
     if not center:
         return
 
+    # Batch: check all sources in one query, only create missing ones
+    existing_sources = set(
+        Manba.objects.filter(center=center, nom__in=DEFAULT_SOURCES).values_list("nom", flat=True)
+    )
     for source_name in DEFAULT_SOURCES:
-        Manba.objects.get_or_create(center=center, nom=source_name)
+        if source_name not in existing_sources:
+            Manba.objects.get_or_create(center=center, nom=source_name)
 
     # Backfill code for legacy statuses first.
     for item in LeadStatus.objects.filter(center=center, code=""):
@@ -465,14 +471,18 @@ def ensure_default_lead_catalog(center) -> None:
             item.code = resolved
             item.save(update_fields=["code"])
 
+    # Batch: fetch all default statuses in one query
+    default_codes = [code for code, _, _ in DEFAULT_STATUS_CATALOG]
+    existing_statuses = {
+        s.code: s
+        for s in LeadStatus.objects.filter(center=center, code__in=default_codes)
+    }
+
     for code, name, order in DEFAULT_STATUS_CATALOG:
-        status = LeadStatus.objects.filter(center=center, code=code).first()
+        status = existing_statuses.get(code)
         if status:
-            changed = False
             if status.order != order:
                 status.order = order
-                changed = True
-            if changed:
                 status.save(update_fields=["order"])
             continue
 

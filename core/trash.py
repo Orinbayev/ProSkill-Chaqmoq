@@ -75,6 +75,8 @@ def deleted_items_list(request):
             elif key == 'products':
                 qs = qs.filter(nom__icontains=search_query)
 
+        qs = qs.select_related('deleted_by')
+
         for item in qs:
             name = ""
             if hasattr(item, 'full_name'):

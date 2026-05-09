@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -47,7 +47,7 @@ from .lead_services import (
     sync_lead_group_status,
     sync_lead_group_statuses,
 )
-from .models import Lead, LeadActivity, LeadGroup, LeadStatus, TrialLesson, Yonalish
+from .models import Lead, LeadActivity, LeadGroup, LeadStatus, Manba, TrialLesson, Yonalish
 from .serializers import (
     serialize_department,
     serialize_group,
@@ -98,11 +98,22 @@ def _base_leads_qs(center, *, archived=False):
     return queryset.order_by("-qoshilgan_sana", "-id")
 
 
-def _base_lead_groups_qs(center, *, archived=False):
+def _base_lead_groups_qs(center, *, archived=False, annotate_counts=False):
     queryset = (
         LeadGroup.objects.filter(center=center, is_archived=archived)
         .select_related("subject", "department", "created_by", "converted_group")
     )
+    if annotate_counts:
+        queryset = queryset.annotate(
+            lead_count=Count(
+                "leads", filter=Q(leads__is_archived=False), distinct=True
+            ),
+            confirmed_count=Count(
+                "leads",
+                filter=Q(leads__is_archived=False, leads__is_confirmed=True),
+                distinct=True,
+            ),
+        )
     if archived:
         return queryset.order_by("-archived_at", "-updated_at", "-id")
     return queryset.order_by("-created_at", "-id")
@@ -240,14 +251,22 @@ def _lead_status_choices(center):
 
 
 def _lead_group_payload(center, *, lead_group=None, archived=False, status_code=200):
-    queryset = _base_lead_groups_qs(center, archived=archived)
-    results = [serialize_lead_group(item) for item in queryset]
+    queryset = _base_lead_groups_qs(center, archived=archived, annotate_counts=True)
+    groups_list = list(queryset)
+    results = [serialize_lead_group(item) for item in groups_list]
+    if archived:
+        options = [
+            serialize_lead_group_option(item)
+            for item in _base_lead_groups_qs(center, archived=False)
+        ]
+    else:
+        options = [serialize_lead_group_option(item) for item in groups_list]
     payload = {
         "results": results,
         "count": len(results),
         "total_count": len(results),
         "archived": bool(archived),
-        "options": _lead_group_options(center),
+        "options": options,
     }
     if lead_group is not None:
         payload["lead_group"] = serialize_lead_group(lead_group)
@@ -584,7 +603,6 @@ def lead_list(request):
     if not center:
         return redirect("core:home")
 
-    ensure_default_lead_subjects(center)
     filter_form = LeadApiFilterForm(request.GET or None, center=center)
     filter_form.is_valid()
     initial_filters = {

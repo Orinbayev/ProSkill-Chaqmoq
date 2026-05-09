@@ -290,25 +290,30 @@ class HistoricalFinanceService:
         return [row["salary"] for row in stats]
 
     @staticmethod
-    def get_yearly_teacher_stats(teacher, year, center=None):
+    def get_yearly_teacher_stats(teacher, year, center=None, _closed_months=None, _snapshots=None):
         results = [
             {"salary": 0, "center_profit": 0, "turnover": 0, "lessons": 0}
             for _ in range(12)
         ]
 
-        fin_months = FinancialMonth.objects.filter(year=year, is_closed=True)
-        if center:
-            fin_months = fin_months.filter(center=center)
-
-        closed_months = {}
-        for fin_month in fin_months:
-            closed_months[fin_month.month] = fin_month
+        if _closed_months is not None:
+            closed_months = _closed_months
+        else:
+            fin_months = FinancialMonth.objects.filter(year=year, is_closed=True)
+            if center:
+                fin_months = fin_months.filter(center=center)
+            closed_months = {}
+            for fin_month in fin_months:
+                closed_months[fin_month.month] = fin_month
 
         if closed_months:
-            snapshots = TeacherSalarySnapshot.objects.filter(
-                teacher=teacher,
-                financial_month__in=closed_months.values(),
-            ).select_related("financial_month")
+            if _snapshots is not None:
+                snapshots = _snapshots
+            else:
+                snapshots = TeacherSalarySnapshot.objects.filter(
+                    teacher=teacher,
+                    financial_month__in=closed_months.values(),
+                ).select_related("financial_month")
             for snap in snapshots:
                 month_index = snap.financial_month.month - 1
                 if not 0 <= month_index < 12:

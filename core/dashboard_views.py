@@ -1841,20 +1841,35 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         is_archived=True, archived_at__isnull=True, deleted_at__isnull=True
     ).count()
 
-    for ms, me, lbl in months_list:
-        monthly_labels.append(lbl)
-        m_turn = _monthly_turnover_for_scope(center, ms, me, branch)
-        monthly_turnover.append(m_turn)
-        m_exp = _monthly_expenses_for_center(center, ms, me)
-        monthly_expenses.append(m_exp)
-        monthly_profit.append(m_turn - m_exp)
-
-        monthly_students.append(_join_map.get((ms.year, ms.month), 0))
-
-        left_cnt = _arch_map.get((ms.year, ms.month), 0)
-        if ms.year == today.year and ms.month == today.month:
-            left_cnt += _legacy_archived
-        monthly_left.append(left_cnt)
+    if branch is None:
+        month_pairs = [(ms, me) for ms, me, _ in months_list]
+        _bulk_turn = _bulk_monthly_turnover(center, month_pairs)
+        _bulk_exp = _bulk_monthly_expenses(center, month_pairs)
+        for ms, me, lbl in months_list:
+            monthly_labels.append(lbl)
+            m_turn = _bulk_turn.get((ms.year, ms.month), 0)
+            m_exp = _bulk_exp.get((ms.year, ms.month), 0)
+            monthly_turnover.append(m_turn)
+            monthly_expenses.append(m_exp)
+            monthly_profit.append(m_turn - m_exp)
+            monthly_students.append(_join_map.get((ms.year, ms.month), 0))
+            left_cnt = _arch_map.get((ms.year, ms.month), 0)
+            if ms.year == today.year and ms.month == today.month:
+                left_cnt += _legacy_archived
+            monthly_left.append(left_cnt)
+    else:
+        for ms, me, lbl in months_list:
+            monthly_labels.append(lbl)
+            m_turn = _monthly_turnover_for_scope(center, ms, me, branch)
+            monthly_turnover.append(m_turn)
+            m_exp = _monthly_expenses_for_center(center, ms, me)
+            monthly_expenses.append(m_exp)
+            monthly_profit.append(m_turn - m_exp)
+            monthly_students.append(_join_map.get((ms.year, ms.month), 0))
+            left_cnt = _arch_map.get((ms.year, ms.month), 0)
+            if ms.year == today.year and ms.month == today.month:
+                left_cnt += _legacy_archived
+            monthly_left.append(left_cnt)
 
     # ── Chart 3: Guruh to'ldirilganlik (N+1 → 2 queries) ──────
     _open_groups_qs = groups_qs.filter(is_closed=False).only("id", "nom")
