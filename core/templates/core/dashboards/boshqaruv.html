@@ -173,6 +173,28 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   box-shadow: 0 12px 24px rgba(37,99,235,.12);
 }
 
+/* ── O'tgan oyga nisbatan foiz badge'lari — light mode ── */
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-badge--up {
+  color: #15803d;
+  background: rgba(22,163,74,.10);
+  border-color: rgba(22,163,74,.22);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-badge--down {
+  color: #b91c1c;
+  background: rgba(220,38,38,.10);
+  border-color: rgba(220,38,38,.22);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-badge--flat {
+  color: #475569;
+  background: rgba(100,116,139,.09);
+  border-color: rgba(100,116,139,.18);
+}
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-badge--hot {
+  color: #92400e;
+  background: rgba(217,119,6,.12);
+  border-color: rgba(217,119,6,.28);
+}
+
 /* ══════════════════ LAYOUT ══════════════════ */
 .bq {
   margin-left: 0;
@@ -2097,14 +2119,20 @@ html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__fl
 .bq-main { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
 
 /* ══════════════════ KPI GRID ══════════════════ */
-.bq-kgrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: 12px;
+.bq-krows { display: flex; flex-direction: column; gap: 12px; }
+.bq-kgrid { display: grid; gap: 12px; }
+.bq-kgrid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bq-kgrid--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media(max-width:1280px){
+  .bq-kgrid--4 { grid-template-columns: repeat(4, minmax(0,1fr)); gap:10px; }
+  .bq-kgrid--5 { grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
 }
-@media(max-width:1280px){ .bq-kgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } }
-@media(max-width:720px) { .bq-kgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:460px) { .bq-kgrid{ grid-template-columns:1fr; } }
+@media(max-width:720px){
+  .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media(max-width:460px){
+  .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: 1fr; }
+}
 
 .bq-kpi {
   position: relative; overflow: hidden;
@@ -3900,6 +3928,15 @@ html:not([data-role-theme="light"]) body.director-boshqaruv-page .bq-activity-it
 .bq-kpi__val--orange { color: #fb923c; }
 .bq-kpi__val--teal   { color: #2dd4bf; }
 
+/* ── Do'kon so'rovlari KPI rang ── */
+.bq-kpi--indigo { --bq-accent: #6366f1; --bq-kpi-glow: rgba(99,102,241,.08); }
+.bq-kpi--indigo::before { background:linear-gradient(90deg,#6366f1,transparent); opacity:.85; }
+.bq-kpi--indigo .bq-kpi__icon { background:linear-gradient(135deg, rgba(99,102,241,.18), rgba(99,102,241,.08)); color:#6366f1; border-color:rgba(99,102,241,.18); }
+.bq-kpi__val--indigo { color: #6366f1; }
+
+/* ── Kutilayotgan so'rovlar badge ── */
+.bq-badge--hot { color:#fbbf24; background:rgba(245,158,11,.16); border:1px solid rgba(245,158,11,.30); font-weight:600; }
+
 /* ── Section icon (violet) ── */
 .bq-sec__ico--violet {
   background: rgba(139,92,246,.12);
@@ -4235,17 +4272,18 @@ html[data-role-theme="light"] .bq-monitor-stat__lbl { color: #94A3B8; }
 
 /* ── Mobile responsive ── */
 @media (max-width: 1024px) {
-  .bq-kgrid { grid-template-columns: repeat(3, 1fr) !important; }
+  .bq-kgrid--4 { grid-template-columns: repeat(3, 1fr) !important; }
+  .bq-kgrid--5 { grid-template-columns: repeat(3, 1fr) !important; }
   .bq-funnel__row { grid-template-columns: 80px 1fr 48px; }
 }
 @media (max-width: 768px) {
-  .bq-kgrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: repeat(2, 1fr) !important; }
   .bq-g--2, .bq-g--13 { grid-template-columns: 1fr !important; }
   .bq-toolbar__inner { flex-wrap: wrap; gap: 8px; }
   .bq-last-sync { font-size: 11px; }
 }
 @media (max-width: 480px) {
-  .bq-kgrid { grid-template-columns: 1fr !important; }
+  .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: 1fr !important; }
   .bq-funnel__row { grid-template-columns: 70px 1fr 44px; gap: 8px; }
 }
 
@@ -4539,95 +4577,120 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
     <div class="bq-main">
 
       <!-- ── KPI kartalar ── -->
-      <div class="bq-kgrid">
+      <div class="bq-krows">
 
-        <!-- 1. Daromad -->
-        <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-sack-dollar"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k1d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Daromad</div>
-          <div class="bq-kpi__val" id="k1v" style="color:var(--bq-green)">—</div>
-          <div class="bq-kpi__sub" id="k1s">Yuklanmoqda...</div>
-        </a>
+        <!-- Yuqori qator: 4 ta moliyaviy ko'rsatkich -->
+        <div class="bq-kgrid bq-kgrid--4">
 
-        <!-- 2. Qarzdorlar -->
-        <a class="bq-kpi bq-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k7d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Qarzdorlar</div>
-          <div class="bq-kpi__val bq-kpi__val--orange" id="k7v">—</div>
-          <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
-        </a>
+          <!-- 1. Daromad -->
+          <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-sack-dollar"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k1d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Daromad</div>
+            <div class="bq-kpi__val" id="k1v" style="color:var(--bq-green)">—</div>
+            <div class="bq-kpi__sub" id="k1s">Yuklanmoqda...</div>
+          </a>
 
-        <!-- 3. O'qituvchi maoshi -->
-        <div class="bq-kpi bq-kpi--teal">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k8d">—</span>
+          <!-- 2. Qarzdorlar -->
+          <a class="bq-kpi bq-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k7d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Qarzdorlar</div>
+            <div class="bq-kpi__val bq-kpi__val--orange" id="k7v">—</div>
+            <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
+          </a>
+
+          <!-- 3. O'qituvchi maoshi -->
+          <div class="bq-kpi bq-kpi--teal">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k8d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
+            <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
+            <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
           </div>
-          <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
-          <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
-          <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
+
+          <!-- 4. Sof Foyda -->
+          <div class="bq-kpi bq-kpi--cyan">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k2d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Sof Foyda</div>
+            <div class="bq-kpi__val" id="k2v" style="color:var(--bq-cyan)">—</div>
+            <div class="bq-kpi__sub" id="k2s">—</div>
+          </div>
+
         </div>
 
-        <!-- 4. Sof Foyda -->
-        <div class="bq-kpi bq-kpi--cyan">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k2d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Sof Foyda</div>
-          <div class="bq-kpi__val" id="k2v" style="color:var(--bq-cyan)">—</div>
-          <div class="bq-kpi__sub" id="k2s">—</div>
+        <!-- Quyi qator: 5 ta faoliyat ko'rsatkichi -->
+        <div class="bq-kgrid bq-kgrid--5">
+
+          <!-- 5. Faol O'quvchi -->
+          <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k3d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Faol O'quvchi</div>
+            <div class="bq-kpi__val" id="k3v" style="color:var(--bq-blue)">—</div>
+            <div class="bq-kpi__sub" id="k3s">—</div>
+          </a>
+
+          <!-- 6. O'qituvchilar -->
+          <a class="bq-kpi bq-kpi--violet" href="{% url 'core:teacher_list' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k4d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">O'qituvchilar</div>
+            <div class="bq-kpi__val" id="k4v" style="color:var(--bq-violet)">—</div>
+            <div class="bq-kpi__sub" id="k4s">Faol o'qituvchilar</div>
+          </a>
+
+          <!-- 7. Managerlar -->
+          <a class="bq-kpi bq-kpi--amber" href="{% url 'core:stat_managers' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-user-tie"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k5d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Managerlar</div>
+            <div class="bq-kpi__val" id="k5v" style="color:var(--bq-amber)">—</div>
+            <div class="bq-kpi__sub" id="k5s">Faol managerlar</div>
+          </a>
+
+          <!-- 8. Lidlar -->
+          <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-phone-volume"></i></div>
+              <span class="bq-badge bq-badge--flat" id="k6d">—</span>
+            </div>
+            <div class="bq-kpi__lbl">Lidlar</div>
+            <div class="bq-kpi__val" id="k6v" style="color:var(--bq-rose)">—</div>
+            <div class="bq-kpi__sub" id="k6s">—</div>
+          </a>
+
+          <!-- 9. Do'kon So'rovlari -->
+          <a class="bq-kpi bq-kpi--indigo" href="{% url 'store:requests' %}">
+            <div class="bq-kpi__head">
+              <div class="bq-kpi__icon"><i class="fa-solid fa-cart-shopping"></i></div>
+              {% if pending_purchase_requests_count %}
+                <span class="bq-badge bq-badge--hot"><i class="fa-solid fa-fire"></i> {{ pending_purchase_requests_count }}</span>
+              {% else %}
+                <span class="bq-badge bq-badge--flat">—</span>
+              {% endif %}
+            </div>
+            <div class="bq-kpi__lbl">Do'kon So'rovlari</div>
+            <div class="bq-kpi__val bq-kpi__val--indigo">{{ pending_purchase_requests_count|default:"0" }}</div>
+            <div class="bq-kpi__sub">Kutilayotgan so'rovlar</div>
+          </a>
+
         </div>
-
-        <!-- 5. Faol O'quvchi -->
-        <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k3d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Faol O'quvchi</div>
-          <div class="bq-kpi__val" id="k3v" style="color:var(--bq-blue)">—</div>
-          <div class="bq-kpi__sub" id="k3s">—</div>
-        </a>
-
-        <!-- 6. O'qituvchilar -->
-        <a class="bq-kpi bq-kpi--violet" href="{% url 'core:teacher_list' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k4d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">O'qituvchilar</div>
-          <div class="bq-kpi__val" id="k4v" style="color:var(--bq-violet)">—</div>
-          <div class="bq-kpi__sub" id="k4s">Faol o'qituvchilar</div>
-        </a>
-
-        <!-- 7. Managerlar -->
-        <a class="bq-kpi bq-kpi--amber" href="{% url 'core:stat_managers' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-user-tie"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k5d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Managerlar</div>
-          <div class="bq-kpi__val" id="k5v" style="color:var(--bq-amber)">—</div>
-          <div class="bq-kpi__sub" id="k5s">Faol managerlar</div>
-        </a>
-
-        <!-- 8. Lidlar -->
-        <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-phone-volume"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k6d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Lidlar</div>
-          <div class="bq-kpi__val" id="k6v" style="color:var(--bq-rose)">—</div>
-          <div class="bq-kpi__sub" id="k6s">—</div>
-        </a>
 
       </div>
 
@@ -6903,6 +6966,21 @@ function render(d){
       options:{
         responsive:true, maintainAspectRatio:false,
         interaction:{mode:'index', intersect:false},
+        animation:{
+          duration: 1100,
+          easing: 'easeOutQuart',
+        },
+        animations:{
+          y:{
+            duration: 1100,
+            easing: 'easeOutQuart',
+            from: (ctx) => {
+              const yScale = ctx.chart.scales && ctx.chart.scales.y;
+              return yScale ? yScale.getPixelForValue(0) : 0;
+            },
+          },
+          x:{ duration: 0 },
+        },
         plugins:{
           legend:{display:false},
           tooltip:tooltipConfig({
