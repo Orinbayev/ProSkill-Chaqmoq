@@ -1184,8 +1184,15 @@ def _ensure_default_payment_methods(center):
     from .models import PaymentMethod
     if not center:
         return
+    # Har page loadda 5 get_or_create (5q) ni cache bilan kamaytiramiz.
+    # Birinchi marta yaratilganidan keyin 1 soat davomida DB query yo'q.
+    from django.core.cache import cache as _cache
+    _ck = f"store:pm_seeded:v1:{center.pk}"
+    if _cache.get(_ck):
+        return
     for nom in DEFAULT_PAYMENT_METHODS:
         PaymentMethod.objects.get_or_create(center=center, nom=nom, defaults={"is_active": True})
+    _cache.set(_ck, 1, timeout=3600)
 
 
 @login_required

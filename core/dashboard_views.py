@@ -2628,7 +2628,20 @@ def director_boshqaruv_api(request):
             branch = Branch.objects.get(pk=int(branch_id), center=center)
         except (Branch.DoesNotExist, ValueError, TypeError):
             branch = None
-    data = _boshqaruv_payload(center, d_from, d_to, branch=branch)
+
+    from core.perf_cache import TTL_MEDIUM, perf_cache_get_or_set, versioned_cache_key
+    _cache_key = versioned_cache_key(
+        "boshqaruv_api",
+        getattr(center, "id", None),
+        d_from.isoformat() if d_from else "",
+        d_to.isoformat() if d_to else "",
+        branch_id or "",
+    )
+    data = perf_cache_get_or_set(
+        _cache_key,
+        lambda: _boshqaruv_payload(center, d_from, d_to, branch=branch),
+        ttl=TTL_MEDIUM,
+    )
     return JsonResponse(data)
 
 

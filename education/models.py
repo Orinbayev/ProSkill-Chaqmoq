@@ -485,7 +485,18 @@ class Enrollment(SoftDeleteMixin, models.Model):
             kwargs["update_fields"] = set(update_fields) | {"course"}
         if self._state.adding:
             self._ensure_pricing_snapshot()
-        return super().save(*args, **kwargs)
+        result = super().save(*args, **kwargs)
+        # PERF: o'quvchi soni o'zgarganda boshqaruv_api cache'ni bekor qilamiz
+        try:
+            from core.perf_cache import invalidate_center
+            cid = self.center_id
+            if not cid and self.group_id:
+                cid = getattr(self.group, "center_id", None)
+            if cid:
+                invalidate_center(cid, prefix="boshqaruv_api")
+        except Exception:
+            pass
+        return result
     
 
     
@@ -588,6 +599,15 @@ class Payment(SoftDeleteMixin, models.Model):
         # 4) Enrollment jami_tolangan ni yangilaymiz
         agg = Payment.objects.filter(enrollment_id=self.enrollment_id).aggregate(s=Sum("summa"))
         Enrollment.objects.filter(pk=self.enrollment_id).update(jami_tolangan=agg["s"] or 0)
+
+        # PERF: boshqaruv_api cache'ni bekor qilamiz — daromad o'zgardi
+        try:
+            from core.perf_cache import invalidate_center
+            cid = self.center_id
+            if cid:
+                invalidate_center(cid, prefix="boshqaruv_api")
+        except Exception:
+            pass
 
         # 5) ✅ PAYMENT BONUS: 100% to'lov bo'lsa chaqmoq bonus bering
         if self.enrollment_id:

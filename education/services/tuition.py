@@ -494,10 +494,15 @@ def lesson_pattern_weekdays(
 ) -> tuple[int, ...]:
     normalized = normalize_lesson_pattern(pattern)
     if normalized == LESSON_PATTERN_GROUP:
-        from education.models import GroupSchedule
-
-        if not getattr(group, "id", None):
+        gid = getattr(group, "id", None)
+        if not gid:
             return ()
+        # Preloaded cache'dan o'qiymiz (preload_group_schedules chaqirilgan bo'lsa)
+        cached = _get_cached_group_weekdays(gid)
+        if cached is not None:
+            return tuple(sorted(int(w) for w in cached))
+        # Fallback: cache yo'q — DB query
+        from education.models import GroupSchedule
         weekdays = (
             GroupSchedule.objects.filter(group=group)
             .order_by("weekday")

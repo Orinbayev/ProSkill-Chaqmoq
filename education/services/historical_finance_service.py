@@ -108,8 +108,11 @@ class HistoricalFinanceService:
         return att_lookup
 
     @staticmethod
-    def _build_dynamic_teacher_salary(teacher, year, month, center=None):
-        groups = HistoricalFinanceService._teacher_groups(teacher, center=center)
+    def _build_dynamic_teacher_salary(
+        teacher, year, month, center=None,
+        *, _groups=None, _yearly_att=None, _history=None,
+    ):
+        groups = _groups if _groups is not None else HistoricalFinanceService._teacher_groups(teacher, center=center)
         group_ids = [group.id for group in groups]
         month_start, month_end = HistoricalFinanceService._month_bounds(year, month)
 
@@ -123,8 +126,14 @@ class HistoricalFinanceService:
                 "daily_breakdown": [0] * 31,
             }
 
-        att_lookup = HistoricalFinanceService._attendance_lookup(group_ids, year, month)
-        history_lookup = HistoricalFinanceService._history_lookup(group_ids)
+        if _yearly_att is not None:
+            att_lookup = {
+                gid: _yearly_att.get(gid, {}).get(month, {})
+                for gid in group_ids
+            }
+        else:
+            att_lookup = HistoricalFinanceService._attendance_lookup(group_ids, year, month)
+        history_lookup = _history if _history is not None else HistoricalFinanceService._history_lookup(group_ids)
 
         enr_lookup = {}
         for group in groups:
@@ -290,7 +299,10 @@ class HistoricalFinanceService:
         return [row["salary"] for row in stats]
 
     @staticmethod
-    def get_yearly_teacher_stats(teacher, year, center=None, _closed_months=None, _snapshots=None):
+    def get_yearly_teacher_stats(
+        teacher, year, center=None, _closed_months=None, _snapshots=None,
+        *, _teacher_groups=None, _yearly_att=None, _history=None,
+    ):
         results = [
             {"salary": 0, "center_profit": 0, "turnover": 0, "lessons": 0}
             for _ in range(12)
@@ -344,6 +356,9 @@ class HistoricalFinanceService:
                 year,
                 month,
                 center=center,
+                _groups=_teacher_groups,
+                _yearly_att=_yearly_att,
+                _history=_history,
             )
             results[month - 1] = {
                 "salary": int(monthly["salary"]),

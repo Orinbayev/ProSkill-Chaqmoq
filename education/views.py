@@ -7946,6 +7946,48 @@ def _compute_teacher_salary_summary_payload(
             .values_list('support_teacher_id', 'c')
         )
 
+    # ── PERF: Batch-fetch all groups/attendance/history for all teachers ──────
+    # Har teacher × har ochiq oy uchun alohida _teacher_groups / _attendance_lookup /
+    # _history_lookup chaqiruvi o'rniga bir martalik query — N+1 ni yo'q qiladi.
+    from django.db.models import Prefetch as _Prefetch
+    _all_main_groups: list = []
+    _groups_by_teacher: dict = {}
+    if teacher_ids:
+        _grp_qs = Group.objects.filter(oqituvchi_id__in=teacher_ids, is_archived=False)
+        if center:
+            _grp_qs = _grp_qs.filter(center=center)
+        _all_main_groups = list(
+            _grp_qs.prefetch_related(
+                _Prefetch(
+                    "enrollments",
+                    queryset=Enrollment.all_objects.select_related("student"),
+                    to_attr="all_enrollments",
+                )
+            )
+        )
+        for _g in _all_main_groups:
+            _groups_by_teacher.setdefault(_g.oqituvchi_id, []).append(_g)
+
+    _all_main_group_ids = [_g.id for _g in _all_main_groups]
+
+    _yearly_att: dict = {}
+    if _all_main_group_ids:
+        for _row in Attendance.objects.filter(
+            group_id__in=_all_main_group_ids,
+            date__year=selected_year,
+        ).filter(HistoricalFinanceService._billable_attendance_filter()).values(
+            "group_id", "student_id", "date__month", "date__day"
+        ):
+            _gid, _sid, _m, _d = (
+                _row["group_id"], _row["student_id"], _row["date__month"], _row["date__day"]
+            )
+            _yearly_att.setdefault(_gid, {}).setdefault(_m, {}).setdefault(_sid, []).append(_d)
+
+    _all_main_history = (
+        HistoricalFinanceService._history_lookup(_all_main_group_ids)
+        if _all_main_group_ids else {}
+    )
+
     # ================================
     # Grafik uchun bo'sh massivlar (12 oy)
     # ================================
@@ -7972,6 +8014,9 @@ def _compute_teacher_salary_summary_payload(
                 teacher, selected_year, center,
                 _closed_months=_closed_months_cache,
                 _snapshots=_snapshots_by_teacher.get(teacher.id, []),
+                _teacher_groups=_groups_by_teacher.get(teacher.id, []),
+                _yearly_att=_yearly_att,
+                _history=_all_main_history,
             )
             for m in range(12):
                 chart_teacher_income[m] += yearly_stats[m]['salary']
