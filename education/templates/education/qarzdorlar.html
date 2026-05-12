@@ -140,7 +140,7 @@
                     </thead>
                     <tbody>
                         {% for row in page_obj %}
-                        <tr data-student-id="{{ row.student.id }}"{% if row.is_deferred %} class="row-deferred"{% endif %}>
+                        <tr data-student-id="{{ row.student.id }}"{% if row.is_deferred %} class="row-deferred"{% endif %} data-main-row="true">
                             <td>
                                 <div class="cell-stack">
                                     <span class="cell-stack__primary">{{ row.student.get_full_name }}</span>
@@ -223,6 +223,14 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <!-- TASK 2: Oylik breakdown expand tugmasi -->
+                                    <button type="button"
+                                        class="action-btn js-expand-breakdown"
+                                        title="Oylik taqsimotni ko'rish"
+                                        data-student-id="{{ row.student.id }}"
+                                        data-target="breakdown-{{ row.student.id }}">
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </button>
                                     <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
                                         data-student-id="{{ row.student.id }}"
                                         data-enrollment-id="{% if row.has_teacher_share_only %}{{ row.teacher_share_only_payment_enrollment_id|default:'' }}{% else %}{{ row.payment_enrollment_id|default:'' }}{% endif %}"
@@ -268,6 +276,16 @@
                                     {% else %}
                                     <span class="pill-badge pill-badge--ghost">—</span>
                                     {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- TASK 2: Per-student breakdown row (hidden by default) -->
+                        <tr id="breakdown-{{ row.student.id }}" class="breakdown-row" hidden>
+                            <td colspan="7" class="breakdown-cell">
+                                <div class="breakdown-inner" id="breakdown-content-{{ row.student.id }}">
+                                    <div class="breakdown-loading">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -507,6 +525,67 @@ tr.row-deferred {
     background: rgba(245,158,11,0.10);
     border-color: rgba(245,158,11,0.45);
 }
+
+/* ── TASK 2: Breakdown row ── */
+.breakdown-row td.breakdown-cell {
+    padding: 0 !important;
+    background: var(--m-bg-card, rgba(255,255,255,0.02));
+    border-bottom: 1px solid var(--m-border);
+}
+.breakdown-inner {
+    padding: 14px 20px;
+}
+.breakdown-loading {
+    color: var(--m-text-muted);
+    font-size: 13px;
+    padding: 10px 0;
+}
+.breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.breakdown-table th {
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--m-text-muted);
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--m-border);
+}
+.breakdown-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--m-text);
+    vertical-align: middle;
+}
+.breakdown-table tr:last-child td { border-bottom: none; }
+.breakdown-status--paid { color: #10b981; font-weight: 700; }
+.breakdown-status--partial { color: #f59e0b; font-weight: 700; }
+.breakdown-status--debtor { color: #ef4444; font-weight: 700; }
+.breakdown-edit-btn {
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1.5px solid var(--m-border);
+    background: transparent;
+    color: var(--m-text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    transition: border-color .15s, color .15s;
+}
+.breakdown-edit-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+[data-role-theme="light"] .breakdown-table td { border-bottom-color: #f1f5f9; }
+[data-role-theme="light"] .breakdown-table th { color: #64748b; }
+
+/* ── TASK 3: Edit fee modal ── */
+#editFeeModal .modal-dialog { max-width: 400px; }
+#editFeeModal .modal-content { border-radius: 20px; border: 1px solid var(--m-border); overflow: hidden; }
+.ef-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--m-border); display: flex; align-items: center; justify-content: space-between; }
+.ef-header__title { font-size: 16px; font-weight: 700; color: var(--m-text); margin: 0; }
+.ef-body { padding: 18px 22px; }
+.ef-footer { padding: 12px 22px 18px; border-top: 1px solid var(--m-border); display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 </style>
 
 {% now "Y-m-d" as default_payment_date %}
@@ -586,6 +665,13 @@ tr.row-deferred {
                             <label class="pv2-label">To'lov sanasi</label>
                             <input type="date" class="pv2-input" id="pv2SingleDate" value="{{ default_payment_date }}">
                         </div>
+                        <!-- TASK 1: Qaysi oy uchun to'lov? -->
+                        <div class="pv2-field" id="pv2MonthForPaymentWrap">
+                            <label class="pv2-label">Qaysi oy uchun to'lov?</label>
+                            <select class="pv2-input" id="pv2MonthForPayment" name="month_for_payment">
+                                <!-- JS tomonidan to'ldiriladi -->
+                            </select>
+                        </div>
                         <div id="pv2SingleCashWrap" class="pv2-field">
                             <label class="pv2-label">Naqd (so'm)</label>
                             <input type="number" class="pv2-input" id="pv2SingleCash" placeholder="0" min="0">
@@ -628,6 +714,8 @@ tr.row-deferred {
                 <input type="hidden" name="card_amount" id="pv2HidCard">
                 <input type="hidden" name="note" id="pv2HidNote">
                 <input type="hidden" name="payment_method" id="pv2HidMethod">
+                <!-- TASK 1: Qaysi oy uchun to'lov? -->
+                <input type="hidden" name="month_for_payment" id="pv2HidMonthForPayment">
             </form>
         </div>
     </div>
@@ -665,6 +753,40 @@ tr.row-deferred {
             <div class="modal-footer justify-content-center gap-2">
                 <button type="button" class="btn delete-cancel-btn" data-bs-dismiss="modal">Bekor qilish</button>
                 <button type="button" class="btn delete-submit-btn" id="confirmDeleteBtn">Ha, o'chirish</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- TASK 3: Edit TuitionMonth fee modal -->
+<div class="modal fade glass-modal" id="editFeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="ef-header">
+                <h5 class="ef-header__title">
+                    <i class="fa-solid fa-pen me-2" style="color:#f59e0b;"></i>Oylik to'lovni tahrirlash
+                </h5>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="ef-body">
+                <div class="pv2-field">
+                    <label class="pv2-label" id="efMonthLabel">Oy</label>
+                </div>
+                <div class="pv2-field">
+                    <label class="pv2-label">Yangi to'lov summasi (so'm)</label>
+                    <input type="number" class="pv2-input" id="efNewFee" placeholder="0" min="0">
+                </div>
+                <div class="pv2-field">
+                    <label class="pv2-label">Izoh (ixtiyoriy)</label>
+                    <input type="text" class="pv2-input" id="efNote" placeholder="Sabab, izoh...">
+                </div>
+                <div class="pv2-hint" id="efHint"></div>
+            </div>
+            <div class="ef-footer">
+                <button type="button" class="pv2-btn-cancel" data-bs-dismiss="modal">Bekor qilish</button>
+                <button type="button" class="pv2-btn-save" id="efSaveBtn" disabled>
+                    <i class="fa-solid fa-spinner fa-spin pv2-spinner"></i>
+                    <span class="pv2-btn-text">Saqlash</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1052,6 +1174,9 @@ tr.row-deferred {
 
                     pv2Reset();
 
+                    // TASK 1: oylar ro'yxatini to'ldirish
+                    populateMonthSelector();
+
                     // Auto-fill single cash with full debt
                     document.getElementById('pv2SingleCash').value = debtRaw || '';
                     pv2Validate();
@@ -1090,6 +1215,9 @@ tr.row-deferred {
                     const note = document.getElementById('pv2SingleNote').value || '';
                     const date = document.getElementById('pv2SingleDate').value || '';
 
+                    // TASK 1: tanlangan oyni hidden input'ga yozamiz
+                    const selectedMonth = document.getElementById('pv2MonthForPayment')?.value || '';
+
                     document.getElementById('pv2HidStudentId').value    = pv2State.studentId;
                     document.getElementById('pv2HidEnrollmentId').value = pv2State.enrollmentId;
                     document.getElementById('pv2HidScope').value        = pv2State.paymentScope;
@@ -1098,6 +1226,7 @@ tr.row-deferred {
                     document.getElementById('pv2HidCard').value         = card;
                     document.getElementById('pv2HidNote').value         = note;
                     document.getElementById('pv2HidMethod').value       = mode;
+                    document.getElementById('pv2HidMonthForPayment').value = selectedMonth;
 
                     pv2SaveBtn.disabled = true;
                     pv2SaveBtn.classList.add('loading');
@@ -1149,6 +1278,230 @@ tr.row-deferred {
                     keepInput.value = (keepCb && keepCb.checked) ? '1' : '0';
 
                     activeDeleteForm.submit();
+                });
+            }
+
+            // ====================================================
+            // TASK 1: "Qaysi oy uchun to'lov?" — oylar ro'yxatini hosil qilish
+            // ====================================================
+            const UZ_MONTHS = {
+                1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May", 6: "Iyun",
+                7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr"
+            };
+
+            function populateMonthSelector() {
+                const sel = document.getElementById('pv2MonthForPayment');
+                if (!sel) return;
+                sel.innerHTML = '';
+                const now = new Date();
+                // 3 oy oldin -> joriy oy (jami 4 ta variant)
+                for (let i = 3; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const y = d.getFullYear();
+                    const m = d.getMonth() + 1;
+                    const val = `${y}-${String(m).padStart(2,'0')}`;
+                    const label = `${UZ_MONTHS[m]} ${y}`;
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = label;
+                    // Joriy oy default tanlansin
+                    if (i === 0) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+            }
+
+            // ====================================================
+            // TASK 2: Per-student oylik breakdown (expand row)
+            // ====================================================
+            const breakdownCache = {}; // student_id -> data
+
+            function renderBreakdown(studentId, data) {
+                const container = document.getElementById(`breakdown-content-${studentId}`);
+                if (!container) return;
+
+                if (!data.months || data.months.length === 0) {
+                    container.innerHTML = '<p style="color:var(--m-text-muted);font-size:13px;padding:8px 0;">Oylik ma\'lumot topilmadi.</p>';
+                    return;
+                }
+
+                let html = `<table class="breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Oy</th>
+                            <th>Oylik to'lov</th>
+                            <th>To'langan</th>
+                            <th>Qolgan qarz</th>
+                            <th>Holati</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                data.months.forEach(function (m) {
+                    const statusLabel = m.status === 'paid' ? 'To\'landi' : (m.status === 'partial' ? 'Qisman' : 'Qarzdor');
+                    const statusCls = `breakdown-status--${m.status}`;
+                    const editBtn = m.tm_id
+                        ? `<button type="button" class="breakdown-edit-btn js-edit-fee"
+                                title="Oylik to'lovni tahrirlash"
+                                data-student-id="${studentId}"
+                                data-month="${m.month}"
+                                data-month-label="${m.month_label}"
+                                data-current-fee="${m.fee}"
+                                data-tm-id="${m.tm_id}">
+                                <i class="fa-solid fa-pen"></i>
+                           </button>`
+                        : '';
+                    html += `<tr data-tm-month="${m.month}" data-student-id="${studentId}">
+                        <td>${m.month_label}</td>
+                        <td>${formatUzMoney(m.fee)}</td>
+                        <td>${formatUzMoney(m.paid)}</td>
+                        <td style="color:${m.debt > 0 ? '#ef4444' : '#10b981'}">${formatUzMoney(m.debt)}</td>
+                        <td><span class="${statusCls}">${statusLabel}</span></td>
+                        <td>${editBtn}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+
+                if (data.total_debt > 0) {
+                    html += `<div style="margin-top:8px;text-align:right;font-size:12px;color:var(--m-text-muted);">
+                        Jami qarz: <strong style="color:#ef4444;">${formatUzMoney(data.total_debt)}</strong>
+                    </div>`;
+                }
+                container.innerHTML = html;
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-expand-breakdown');
+                if (!btn) return;
+
+                const studentId = btn.getAttribute('data-student-id');
+                const targetId = btn.getAttribute('data-target');
+                const row = document.getElementById(targetId);
+                if (!row) return;
+
+                const isHidden = row.hasAttribute('hidden');
+                if (!isHidden) {
+                    // Yopish
+                    row.setAttribute('hidden', '');
+                    btn.querySelector('i').className = 'fa-solid fa-chevron-down';
+                    return;
+                }
+
+                // Ochish
+                row.removeAttribute('hidden');
+                btn.querySelector('i').className = 'fa-solid fa-chevron-up';
+
+                // Cache'da bor bo'lsa qayta yuklamaymiz
+                if (breakdownCache[studentId]) {
+                    renderBreakdown(studentId, breakdownCache[studentId]);
+                    return;
+                }
+
+                // AJAX
+                fetch(buildTenantPath(`/talim/api/student/${studentId}/monthly-breakdown/`))
+                    .then(r => r.json())
+                    .then(data => {
+                        breakdownCache[studentId] = data;
+                        renderBreakdown(studentId, data);
+                    })
+                    .catch(() => {
+                        const container = document.getElementById(`breakdown-content-${studentId}`);
+                        if (container) container.innerHTML = '<p style="color:#ef4444;font-size:13px;">Ma\'lumotni yuklab bo\'lmadi.</p>';
+                    });
+            });
+
+            // ====================================================
+            // TASK 3: TuitionMonth fee tahrirlash modal
+            // ====================================================
+            let efState = { studentId: null, month: null, tmId: null };
+
+            const editFeeModalEl = document.getElementById('editFeeModal');
+            const efSaveBtn = document.getElementById('efSaveBtn');
+            const efNewFeeInput = document.getElementById('efNewFee');
+
+            if (efNewFeeInput) {
+                efNewFeeInput.addEventListener('input', function () {
+                    const val = parseInt(efNewFeeInput.value || 0, 10) || 0;
+                    efSaveBtn.disabled = val < 0;
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-edit-fee');
+                if (!btn) return;
+
+                efState.studentId = btn.getAttribute('data-student-id');
+                efState.month = btn.getAttribute('data-month');
+                efState.tmId = btn.getAttribute('data-tm-id') || null;
+                const monthLabel = btn.getAttribute('data-month-label');
+                const currentFee = parseInt(btn.getAttribute('data-current-fee') || 0, 10) || 0;
+
+                document.getElementById('efMonthLabel').textContent = monthLabel;
+                if (efNewFeeInput) efNewFeeInput.value = currentFee || '';
+                document.getElementById('efNote').value = '';
+                document.getElementById('efHint').textContent = '';
+                if (efSaveBtn) efSaveBtn.disabled = false;
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editFeeModal'));
+                bsModal.show();
+            });
+
+            if (efSaveBtn) {
+                efSaveBtn.addEventListener('click', function () {
+                    if (efSaveBtn.disabled) return;
+                    const newFee = parseInt(efNewFeeInput.value || 0, 10) || 0;
+                    const note = document.getElementById('efNote').value || '';
+
+                    if (newFee < 0) {
+                        document.getElementById('efHint').textContent = 'Summa manfiy bo\'lishi mumkin emas.';
+                        return;
+                    }
+                    if (!efState.tmId) {
+                        document.getElementById('efHint').textContent = 'TuitionMonth topilmadi. Sahifani yangilang.';
+                        return;
+                    }
+
+                    efSaveBtn.disabled = true;
+                    efSaveBtn.classList.add('loading');
+                    document.getElementById('efHint').textContent = '';
+
+                    const fd = new FormData();
+                    fd.append('new_fee', newFee);
+                    fd.append('note', note);
+                    fd.append('csrfmiddlewaretoken', getCsrfToken());
+
+                    fetch(buildTenantPath(`/talim/tuition-month/${efState.tmId}/edit-fee/`), {
+                        method: 'POST',
+                        body: fd,
+                    })
+                    .then(r => r.json())
+                    .then(result => {
+                        if (result.ok) {
+                            // Cache tozalaymiz
+                            delete breakdownCache[efState.studentId];
+                            const bsModal = bootstrap.Modal.getInstance(document.getElementById('editFeeModal'));
+                            if (bsModal) bsModal.hide();
+                            // Breakdown row ochiq bo'lsa qayta yuklaymiz
+                            const brow = document.getElementById(`breakdown-${efState.studentId}`);
+                            if (brow && !brow.hasAttribute('hidden')) {
+                                fetch(buildTenantPath(`/talim/api/student/${efState.studentId}/monthly-breakdown/`))
+                                    .then(r => r.json())
+                                    .then(nd => {
+                                        breakdownCache[efState.studentId] = nd;
+                                        renderBreakdown(efState.studentId, nd);
+                                    });
+                            }
+                        } else {
+                            document.getElementById('efHint').textContent = result.error || 'Xatolik.';
+                        }
+                        efSaveBtn.disabled = false;
+                        efSaveBtn.classList.remove('loading');
+                    })
+                    .catch(() => {
+                        document.getElementById('efHint').textContent = 'Server xatosi.';
+                        efSaveBtn.disabled = false;
+                        efSaveBtn.classList.remove('loading');
+                    });
                 });
             }
 

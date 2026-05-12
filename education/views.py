@@ -1069,7 +1069,7 @@ def create_payment(request):
         return redirect("education:tolovlar_home")
 
     next_url = request.POST.get("next") or "education:tolovlar_home"
-    
+
     enrollment_id = request.POST.get("enrollment_id")
     student_id = request.POST.get("student_id")
     payment_scope = (request.POST.get("payment_scope") or "").strip()
@@ -1081,7 +1081,11 @@ def create_payment(request):
     start_month = parse_month_str(month_str)
     if start_month is None:
         start_month = _get_month_from_next(next_url, fallback)
-    
+
+    # TASK 4: "Qaysi oy uchun?" — manager tomonidan tanlangan oy
+    month_for_payment_str = (request.POST.get("month_for_payment") or "").strip()
+    month_for_payment = parse_month_str(month_for_payment_str)  # None bo'lsa avtomatik tanlaydi
+
     cash_amount = int(Decimal(request.POST.get("cash_amount") or "0"))
     card_amount = int(Decimal(request.POST.get("card_amount") or "0"))
     note = (request.POST.get("note") or "").strip()
@@ -1126,7 +1130,7 @@ def create_payment(request):
                     cash_amount=cash_amount,
                     card_amount_som=card_amount,
                     created_by=request.user,
-                    start_month=None,  # eng eski to'lanmagan oydan boshlasin
+                    start_month=month_for_payment,  # TASK 4: manager tanlagan oy; None bo'lsa eng eski to'lanmagan oydan
                     paid_at=selected_paid_at,
                     note=note,
                     payment_type=infer_payment_type(cash_amount, card_amount),
@@ -1198,18 +1202,28 @@ def create_payment(request):
 
                 remaining_sum = cash_amount + card_amount
 
-                # Har enrollment uchun: eng eski to'lanmagan oydan boshlab
-                # barcha qarzlarni yopamiz (o'tgan + joriy oylar ham qoplanadi).
+                # Har enrollment uchun to'lovni taqsimlash.
+                # Agar menejer month_for_payment tanlagan bo'lsa — faqat shu oyga;
+                # aks holda eng eski to'lanmagan oydan boshlaymiz.
                 for e in enrollments:
                     if remaining_sum <= 0:
                         break
 
-                    # O'tgan + joriy oylardagi umumiy qarz (DB'da hamma rekord mavjud)
-                    past_tms = TuitionMonth.objects.filter(
-                        enrollment=e,
-                        month__lte=start_month,
-                        is_deleted=False,
-                    ).order_by("month")
+                    if month_for_payment:
+                        # Menejer aniq oy tanlagan — faqat shu oyning qarzini olamiz
+                        past_tms = TuitionMonth.objects.filter(
+                            enrollment=e,
+                            month=month_for_payment,
+                            is_deleted=False,
+                        ).order_by("month")
+                    else:
+                        # Avtomatik: o'tgan + joriy oylardagi barcha qarz
+                        past_tms = TuitionMonth.objects.filter(
+                            enrollment=e,
+                            month__lte=start_month,
+                            is_deleted=False,
+                        ).order_by("month")
+
                     total_debt = sum(
                         max(0, int(getattr(tm, "fee_amount", 0) or 0) - int(get_month_paid(e, tm.month) or 0))
                         for tm in past_tms
@@ -1220,25 +1234,29 @@ def create_payment(request):
 
                     take = min(remaining_sum, total_debt)
 
-                    # Eng eski to'lanmagan oydan alloca qilish
-                    earliest_tm = find_earliest_unpaid_month(e)
-                    earliest_start = earliest_tm.month if earliest_tm else start_month
+                    # Tanlangan oydan yoki eng eski to'lanmagan oydan boshlaymiz
+                    if month_for_payment:
+                        allocation_start = month_for_payment
+                    else:
+                        earliest_tm = find_earliest_unpaid_month(e)
+                        allocation_start = earliest_tm.month if earliest_tm else start_month
 
                     _allocate_amount_forward(
                         enrollment=e,
                         payment=main_payment,
                         amount=take,
-                        start_month=earliest_start,
+                        start_month=allocation_start,
                     )
                     remaining_sum -= take
 
                 # Ortiqcha to'lov (kredit) — 1-enrollment uchun kelgusi oyga
                 if remaining_sum > 0:
+                    overflow_start = month_for_payment or start_month
                     _allocate_amount_forward(
                         enrollment=enrollments[0],
                         payment=main_payment,
                         amount=remaining_sum,
-                        start_month=start_month,
+                        start_month=overflow_start,
                     )
             
             messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to'lov saqlandi!")
@@ -10599,3 +10617,175 @@ def month_preview(request):
             "selected_group_id": group_id,
         },
     )
+
+
+# ============================================================
+# TASK 3: TuitionMonth fee_amount ni tahrirlash (ruchka tugma)
+# ============================================================
+
+_UZ_MONTHS = {
+    1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May", 6: "Iyun",
+    7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr",
+}
+
+
+@require_POST
+@login_required
+def edit_tuition_month_fee(request, tm_id):
+    """
+    TuitionMonth.fee_amount ni yangilaydi.
+    Multi-tenant: TuitionMonth faqat joriy markazga tegishli bo'lsa ruxsat.
+    """
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    center = get_active_center(request)
+    qs = TuitionMonth.objects.select_related("enrollment", "enrollment__group")
+    if center:
+        from django.db.models import Q as _Q
+        qs = qs.filter(
+            _Q(center=center)
+            | _Q(enrollment__center=center)
+            | _Q(enrollment__group__center=center)
+        )
+    tm = get_object_or_404(qs, id=tm_id)
+
+    new_fee_raw = (request.POST.get("new_fee") or "").strip()
+    note = (request.POST.get("note") or "").strip()
+
+    try:
+        new_fee = int(Decimal(new_fee_raw or "0"))
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri summa."}, status=400)
+
+    if new_fee < 0:
+        return JsonResponse({"ok": False, "error": "Summa manfiy bo'lishi mumkin emas."}, status=400)
+
+    fee_field = tuition_month_fee_field()
+    setattr(tm, fee_field, new_fee)
+    update_fields = [fee_field]
+    if note:
+        # Note ni TuitionMonth'da saqlash uchun note maydoni bo'lsa
+        from education.services.tuition import _model_has_field as _mhf
+        if _mhf(TuitionMonth, "note"):
+            tm.note = note
+            update_fields.append("note")
+    tm.save(update_fields=update_fields)
+
+    month_label = f"{_UZ_MONTHS.get(tm.month.month, tm.month.month)} {tm.month.year}"
+    return JsonResponse({
+        "ok": True,
+        "new_fee": new_fee,
+        "new_fee_display": format_money(new_fee),
+        "month_label": month_label,
+    })
+
+
+# ============================================================
+# TASK 5: O'quvchi oylik breakdown (AJAX endpoint)
+# ============================================================
+
+@login_required
+def student_monthly_breakdown(request, student_id):
+    """
+    O'quvchi barcha enrollments bo'yicha oylik to'lov breakdown'ini JSON formatida qaytaradi.
+    """
+    center = get_active_center(request)
+
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+    student = get_object_or_404(user_qs, id=student_id)
+
+    enrollments = Enrollment.objects.filter(student=student, is_active=True).select_related("group")
+    if center:
+        from django.db.models import Q as _Q
+        enrollments = enrollments.filter(
+            _Q(center=center)
+            | _Q(center__isnull=True, group__center=center)
+            | _Q(center__isnull=True, student__center=center)
+        )
+
+    fee_field = tuition_month_fee_field()
+
+    # Barcha TuitionMonth'larni yig'amiz
+    all_tms = (
+        TuitionMonth.objects
+        .filter(enrollment__in=enrollments, is_deleted=False)
+        .select_related("enrollment__group")
+        .order_by("month")
+        .prefetch_related(
+            Prefetch(
+                "allocations",
+                queryset=PaymentAllocation.objects.filter(
+                    payment__is_deleted=False,
+                ).select_related("payment"),
+                to_attr="active_allocations",
+            )
+        )
+    )
+
+    # Oylar bo'yicha grupplaymiz
+    from collections import defaultdict
+    # tm_id_map: m_key -> list of (tm_id, enrollment_id) — fee tahrirlash uchun
+    month_map = defaultdict(lambda: {"fee": 0, "paid": 0, "payments": [], "enrollments": [], "tm_ids": []})
+
+    for tm in all_tms:
+        m_key = tm.month.strftime("%Y-%m")
+        fee = int(getattr(tm, fee_field, 0) or 0)
+        paid = sum(int(a.amount or 0) for a in tm.active_allocations)
+        month_map[m_key]["fee"] += fee
+        month_map[m_key]["paid"] += paid
+        month_map[m_key]["enrollments"].append(tm.enrollment_id)
+        month_map[m_key]["tm_ids"].append(tm.id)
+
+        group_name = tm.enrollment.group.nom if tm.enrollment and tm.enrollment.group else ""
+        for alloc in tm.active_allocations:
+            p = alloc.payment
+            p_note = getattr(p, "note", "") or ""
+            month_map[m_key]["payments"].append({
+                "amount": int(alloc.amount or 0),
+                "note": p_note,
+                "group": group_name,
+            })
+
+    months_result = []
+    total_debt = 0
+    for m_key in sorted(month_map.keys()):
+        entry = month_map[m_key]
+        year, month_num = int(m_key[:4]), int(m_key[5:7])
+        month_label = f"{_UZ_MONTHS.get(month_num, month_num)} {year}"
+        fee = entry["fee"]
+        paid = entry["paid"]
+        debt = max(0, fee - paid)
+        total_debt += debt
+
+        if fee <= 0:
+            status = "paid"
+        elif paid <= 0:
+            status = "debtor"
+        elif paid >= fee:
+            status = "paid"
+        else:
+            status = "partial"
+
+        # tm_id: birinchi TuitionMonth ID (fee tahrirlash uchun; enrollment_id bilan birga ishlatiladi)
+        tm_ids = entry.get("tm_ids", [])
+        tm_id = tm_ids[0] if tm_ids else None
+
+        months_result.append({
+            "month": m_key,
+            "month_label": month_label,
+            "fee": fee,
+            "paid": paid,
+            "debt": debt,
+            "status": status,
+            "payments": entry["payments"],
+            "tm_id": tm_id,
+            "tm_ids": tm_ids,
+        })
+
+    return JsonResponse({
+        "months": months_result,
+        "total_debt": total_debt,
+    })
