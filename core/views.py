@@ -466,7 +466,7 @@ def home(request):
     if u.is_superuser:
         return redirect("platform_global:superadmin_dashboard")
 
-    if role == "director":
+    if role in ("director", "manager"):
         return redirect("core:director_boshqaruv")
 
     if role == "parent":
@@ -474,35 +474,6 @@ def home(request):
 
     # Lazy center — faqat template {{ center }} ishlatgani uchun kerak.
     center = _get_center(request)
-
-    # Skeleton context: stats/low_activity/balance/last_actions bo'sh.
-    # Template'dagi {{ stats.X|default:0 }} 0 ko'rsatadi, JS keyin to'ldiradi.
-    skeleton_ctx = {
-        "stats": {},
-        "center": center,
-        "deferred": True,
-    }
-
-    if role == "manager":
-        skeleton_ctx["low_activity_list"] = []
-        try:
-            from core.dashboard_views import _build_pending_purchase_requests
-            pr = _build_pending_purchase_requests(center)
-            skeleton_ctx["pending_purchase_requests"] = pr["recent"]
-            skeleton_ctx["pending_purchase_requests_count"] = pr["count"]
-        except Exception:
-            skeleton_ctx["pending_purchase_requests"] = []
-            skeleton_ctx["pending_purchase_requests_count"] = 0
-        try:
-            from store.models import PaymentMethod as _PM
-            from store.views import _ensure_default_payment_methods as _seed_pm
-            _seed_pm(center)
-            skeleton_ctx["active_payment_methods"] = list(
-                _PM.objects.filter(center=center, is_active=True).values_list('nom', flat=True).order_by('nom')
-            )
-        except Exception:
-            skeleton_ctx["active_payment_methods"] = []
-        return render(request, "core/dashboard_manager.html", skeleton_ctx)
 
     if role == "teacher":
         return render(request, "core/dashboard_teacher.html", skeleton_ctx)

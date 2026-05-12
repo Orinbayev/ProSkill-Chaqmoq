@@ -1,2911 +1,766 @@
 {% extends 'base.html' %}
-{% load static humanize %}
-{% block body_class %}manager-dashboard-page{% endblock %}
+{% block body_class %}director-dashboard-page{% endblock %}
 
-{% block title %}Manager Paneli — ChaqmoqApp{% endblock %}
+{% block title %}Manager Dashboard — {{ center.name|default:"ChaqmoqApp" }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
 <style>
-:root {
-  --mg-bg:        #070d1a;
-  --mg-surf:      #0d1526;
-  --mg-card:      rgba(13,21,38,.88);
-  --mg-br:        rgba(255,255,255,.07);
-  --mg-br2:       rgba(255,255,255,.13);
-  --mg-txt:       #e2e8f0;
-  --mg-muted:     #94a3b8;
-  --mg-soft:      #475569;
-  --mg-cyan:      #22d3ee;
-  --mg-green:     #34d399;
-  --mg-amber:     #fbbf24;
-  --mg-rose:      #f43f5e;
-  --mg-violet:    #818cf8;
-  --mg-blue:      #60a5fa;
-  --mg-orange:    #fb923c;
-  --mg-teal:      #2dd4bf;
-}
+  /* ── Manager Home Page ─────────────────────────────── */
+  .director-home {
+    min-height: calc(100vh - 44px);
+    padding: 8px 0 24px;
+    overflow: visible;
+  }
 
-body.manager-dashboard-page { background: var(--mg-bg); }
+  /* ── Navbar ─────────────────────────────────────────── */
+  .director-navbar {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    overflow: visible;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(8, 13, 24, 0.96), rgba(11, 18, 32, 0.92));
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
 
-.mg {
-  margin-left: 0;
-  min-height: 100vh;
-  padding: 0 clamp(14px, 1.35vw, 22px) 80px;
-  background:
-    radial-gradient(ellipse 60% 35% at 8% 0%,  rgba(34,211,238,.07) 0%, transparent 55%),
-    radial-gradient(ellipse 45% 30% at 92% 5%, rgba(129,140,248,.08) 0%, transparent 50%),
-    linear-gradient(180deg, #070d1a 0%, #0d1526 100%);
-  color: var(--mg-txt);
-  font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
-}
-.mg-shell { max-width: 1400px; margin: 0 auto; padding-top: 18px; display: flex; flex-direction: column; gap: 18px; }
+  .director-navbar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 32%);
+  }
 
-/* ── HEADER ─────────────────────────────────────────────────────── */
-.mg-header {
-  display:flex; align-items:center; gap:14px;
-  padding:14px 18px; border-radius:16px;
-  border:1px solid var(--mg-br);
-  background: linear-gradient(135deg, rgba(7,13,26,.96), rgba(13,21,38,.9));
-  -webkit-backdrop-filter: blur(22px);
-  backdrop-filter: blur(22px);
-  box-shadow: 0 14px 36px rgba(0,0,0,.28);
-}
-.mg-brand { display:flex; align-items:center; gap:12px; min-width:0; }
-.mg-brand__icon {
-  width:44px; height:44px; border-radius:13px;
-  display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,146,60,.18));
-  border: 1px solid rgba(251,191,36,.22);
-  color: var(--mg-amber);
-  font-size: 17px;
-}
-.mg-brand__kicker { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--mg-amber); }
-.mg-brand__title  { font-size:15.5px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
-.mg-header__sync  {
-  margin-left:auto; display:flex; align-items:center; gap:6px;
-  font-size:11.5px; color:var(--mg-muted); font-weight:600;
-}
-.mg-header__sync .dot { width:7px; height:7px; border-radius:50%; background:var(--mg-green); box-shadow:0 0 8px var(--mg-green); }
-.mg-header__refresh {
-  height:38px; min-width:38px; padding:0 10px; border-radius:11px;
-  display:inline-flex; align-items:center; gap:7px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.04); color: var(--mg-txt);
-  font-size:12.5px; font-weight:700; cursor:pointer;
-  transition: transform .18s, border-color .2s, background .2s;
-}
-.mg-header__refresh:hover { transform: translateY(-1px); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
+  .director-navbar > * {
+    position: relative;
+    z-index: 1;
+  }
 
-/* ── KPI GRID ───────────────────────────────────────────────────── */
-.mg-kgrid {
-  display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
-  gap:12px;
-}
-@media(max-width:1100px){ .mg-kgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:460px) { .mg-kgrid{ grid-template-columns:1fr; } }
+  /* ── Brand (left) ───────────────────────────────────── */
+  .director-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
-/* ── SANA FILTERI ─────────────────────────────────────────────── */
-.mg-filter {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  padding:12px 16px; border-radius:14px;
-  border:1px solid var(--mg-br);
-  background: linear-gradient(135deg, rgba(7,13,26,.96), rgba(13,21,38,.9));
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-}
-.mg-field {
-  position:relative;
-  display:flex; flex-direction:column; gap:3px;
-  min-width:160px;
-}
-.mg-field__lbl {
-  font-size:9.5px; font-weight:800; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--mg-soft);
-}
-.mg-field input[type="date"] {
-  height:38px; padding:0 12px;
-  border-radius:10px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.04);
-  color: var(--mg-txt); font-size:13px; font-weight:600;
-  font-family:inherit;
-  outline:none; cursor:pointer;
-  transition:border-color .2s, background .2s, box-shadow .2s;
-  color-scheme: dark;
-}
-.mg-field input[type="date"]:hover {
-  border-color: var(--mg-br2); background: rgba(255,255,255,.06);
-}
-.mg-field input[type="date"]:focus {
-  border-color: var(--mg-cyan);
-  box-shadow: 0 0 0 3px rgba(34,211,238,.10);
-}
-.mg-presets { display:flex; gap:6px; flex-wrap:wrap; }
-.mg-preset {
-  height:34px; padding:0 12px;
-  border-radius:999px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.03);
-  color: var(--mg-muted); font-size:11.5px; font-weight:700;
-  cursor:pointer;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.mg-preset:hover { color: var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
-.mg-preset.is-active {
-  color: var(--mg-cyan); border-color: rgba(34,211,238,.35);
-  background: rgba(34,211,238,.10);
-}
-.mg-filter__spacer { flex:1; }
-.mg-filter__reset {
-  height:34px; padding:0 12px; border-radius:10px;
-  border:1px solid var(--mg-br); background: rgba(255,255,255,.03);
-  color: var(--mg-muted); font-size:12px; font-weight:700;
-  cursor:pointer; display:inline-flex; align-items:center; gap:6px;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.mg-filter__reset:hover { color: var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
+  .director-brand-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #facc15, #f59e0b);
+    color: #0b1220;
+    font-size: 16px;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.2);
+  }
 
-.mg-kpi {
-  position:relative; overflow:hidden;
-  padding: 16px 16px 14px; border-radius:16px;
-  border: 1px solid var(--mg-br);
-  background: var(--mg-card);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  display:flex; flex-direction:column; gap:10px;
-  transition: transform .22s, border-color .22s, box-shadow .22s;
-  text-decoration:none; color:inherit; cursor:pointer;
-}
-.mg-kpi:hover { transform: translateY(-3px); border-color: var(--mg-br2); box-shadow: 0 18px 40px rgba(0,0,0,.32); }
-.mg-kpi::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:2px;
-  border-radius: 16px 16px 0 0; opacity:.85;
-}
-.mg-kpi--blue::before   { background:linear-gradient(90deg,var(--mg-blue),transparent); }
-.mg-kpi--green::before  { background:linear-gradient(90deg,var(--mg-green),transparent); }
-.mg-kpi--cyan::before   { background:linear-gradient(90deg,var(--mg-cyan),transparent); }
-.mg-kpi--amber::before  { background:linear-gradient(90deg,var(--mg-amber),transparent); }
-.mg-kpi--rose::before   { background:linear-gradient(90deg,var(--mg-rose),transparent); }
-.mg-kpi--violet::before { background:linear-gradient(90deg,var(--mg-violet),transparent); }
-.mg-kpi--orange::before { background:linear-gradient(90deg,var(--mg-orange),transparent); }
-.mg-kpi--teal::before   { background:linear-gradient(90deg,var(--mg-teal),transparent); }
+  .director-brand-copy {
+    min-width: 0;
+  }
 
-.mg-kpi__head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
-.mg-kpi__icon {
-  width:36px; height:36px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; flex-shrink:0;
-  border:1px solid rgba(255,255,255,.07);
-}
-.mg-kpi--blue   .mg-kpi__icon { background:linear-gradient(135deg, rgba(96,165,250,.18), rgba(96,165,250,.08));  color:var(--mg-blue);   border-color:rgba(96,165,250,.18); }
-.mg-kpi--green  .mg-kpi__icon { background:linear-gradient(135deg, rgba(52,211,153,.18), rgba(52,211,153,.08));  color:var(--mg-green);  border-color:rgba(52,211,153,.18); }
-.mg-kpi--cyan   .mg-kpi__icon { background:linear-gradient(135deg, rgba(34,211,238,.18), rgba(34,211,238,.08));  color:var(--mg-cyan);   border-color:rgba(34,211,238,.18); }
-.mg-kpi--amber  .mg-kpi__icon { background:linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.08));  color:var(--mg-amber);  border-color:rgba(251,191,36,.18); }
-.mg-kpi--rose   .mg-kpi__icon { background:linear-gradient(135deg, rgba(244,63,94,.18), rgba(244,63,94,.08));    color:var(--mg-rose);   border-color:rgba(244,63,94,.18); }
-.mg-kpi--violet .mg-kpi__icon { background:linear-gradient(135deg, rgba(129,140,248,.18), rgba(129,140,248,.08));color:var(--mg-violet); border-color:rgba(129,140,248,.18); }
-.mg-kpi--orange .mg-kpi__icon { background:linear-gradient(135deg, rgba(251,146,60,.18), rgba(251,146,60,.08));  color:var(--mg-orange); border-color:rgba(251,146,60,.18); }
-.mg-kpi--teal   .mg-kpi__icon { background:linear-gradient(135deg, rgba(45,212,191,.18), rgba(45,212,191,.08));  color:var(--mg-teal);   border-color:rgba(45,212,191,.18); }
+  .director-brand-kicker {
+    display: block;
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.7);
+  }
 
-.mg-badge {
-  display:inline-flex; align-items:center; gap:4px;
-  padding:3px 9px; border-radius:999px;
-  font-size:10px; font-weight:800; white-space:nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.mg-badge--up   { color:#86efac; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.24); }
-.mg-badge--down { color:#fda4af; background:rgba(244,63,94,.14); border:1px solid rgba(244,63,94,.24); }
-.mg-badge--flat { color:var(--mg-muted); background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.14); }
+  .director-brand-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-.mg-kpi__lbl { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--mg-soft); }
-.mg-kpi__val { font-size:clamp(1.25rem,1.9vw,1.7rem); font-weight:800; letter-spacing:-.045em; line-height:1.05; color:var(--mg-txt); margin-top:2px; font-variant-numeric: tabular-nums; }
-.mg-kpi__sub { font-size:11px; color:var(--mg-muted); line-height:1.4; font-weight:500; }
+  .director-brand-subtitle {
+    margin: 2px 0 0;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: rgba(148, 163, 184, 0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-/* ── SECTION ────────────────────────────────────────────────────── */
-.mg-sec { display:flex; flex-direction:column; gap:10px; }
-.mg-sec__hd { display:flex; align-items:center; gap:10px; }
-.mg-sec__ico {
-  width:32px; height:32px; border-radius:9px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:13px; flex-shrink:0;
-  border:1px solid rgba(255,255,255,.07);
-}
-.mg-sec__title { margin:0; font-size:clamp(.95rem,1.35vw,1.1rem); font-weight:800; letter-spacing:-.03em; }
-.mg-sec__sub { margin:2px 0 0; font-size:11px; color:var(--mg-soft); }
-.mg-sec__link {
-  margin-left:auto; padding:7px 12px; border-radius:999px;
-  font-size:11.5px; font-weight:700; color:var(--mg-muted);
-  border:1px solid var(--mg-br); background: rgba(255,255,255,.03);
-  text-decoration:none;
-  transition: color .2s, border-color .2s, background .2s;
-}
-.mg-sec__link:hover { color:var(--mg-txt); border-color: var(--mg-br2); background: rgba(255,255,255,.06); }
-.mg-sec__ico--cyan   { background:rgba(34,211,238,.12);  color:var(--mg-cyan);   border-color:rgba(34,211,238,.18); }
-.mg-sec__ico--green  { background:rgba(52,211,153,.12);  color:var(--mg-green);  border-color:rgba(52,211,153,.18); }
-.mg-sec__ico--rose   { background:rgba(244,63,94,.12);   color:var(--mg-rose);   border-color:rgba(244,63,94,.18); }
-.mg-sec__ico--violet { background:rgba(129,140,248,.12); color:var(--mg-violet); border-color:rgba(129,140,248,.18); }
-.mg-sec__ico--amber  { background:rgba(251,191,36,.12);  color:var(--mg-amber);  border-color:rgba(251,191,36,.18); }
-.mg-skel--row    { width:100%; height:42px; }
-.mg-skel--row + .mg-skel--row { margin-top:8px; }
-.mg-skel--card   { width:100%; height:60px; }
-.mg-skel--card + .mg-skel--card { margin-top:8px; }
-.mg-skel--group  { width:100%; height:48px; }
-.mg-skel--group + .mg-skel--group { margin-top:8px; }
-.mg-skel--feed   { width:100%; height:54px; }
-.mg-skel--feed + .mg-skel--feed { margin-top:8px; }
+  /* ── Actions (right) ─────────────────────────────────── */
+  .director-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-/* ── CARD ───────────────────────────────────────────────────────── */
-.mg-card {
-  padding:16px; border-radius:16px;
-  border:1px solid var(--mg-br);
-  background: var(--mg-card);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-}
+  /* ── Center chip ─────────────────────────────────────── */
+  .director-center-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
 
-/* ── GRID HELPERS ───────────────────────────────────────────────── */
-.mg-g { display:grid; gap:14px; }
-.mg-g--2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
-.mg-g--3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
-@media(max-width:1100px){ .mg-g--2, .mg-g--3 { grid-template-columns:1fr; } }
+  .director-center-chip__dot {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #facc15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
+  }
 
-/* ── CHART ──────────────────────────────────────────────────────── */
-.mg-ch { position:relative; height:230px; }
-.mg-ch--sm { height:180px; }
+  .director-center-chip__body {
+    min-width: 0;
+  }
 
-/* ── BUGUNGI DARSLAR LIST ───────────────────────────────────────── */
-.mg-list { display:flex; flex-direction:column; gap:8px; max-height: 380px; overflow-y:auto; }
-.mg-list::-webkit-scrollbar { width:6px; }
-.mg-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:3px; }
+  .director-center-chip__label {
+    display: block;
+    margin-bottom: 1px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.65);
+  }
 
-.mg-row {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 12px; border-radius:12px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.025);
-  transition: background .2s, border-color .2s, transform .15s;
-  text-decoration:none; color:inherit;
-}
-.mg-row:hover { background: rgba(255,255,255,.05); border-color: var(--mg-br2); transform: translateX(2px); }
+  .director-center-chip strong {
+    display: block;
+    max-width: 160px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-.mg-row__time {
-  width:48px; flex-shrink:0;
-  font-size:12.5px; font-weight:800; color:var(--mg-cyan);
-  letter-spacing:-.02em;
-  font-variant-numeric: tabular-nums;
-}
-.mg-row__main { flex:1; min-width:0; }
-.mg-row__title { font-size:13px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mg-row__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; }
-.mg-row__status {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:4px 9px; border-radius:999px;
-  font-size:10px; font-weight:800; white-space:nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.mg-row__status--ok    { color:#86efac; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.24); }
-.mg-row__status--wait  { color:#fcd34d; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.24); }
+  /* ── Profile dock ────────────────────────────────────── */
+  .director-profile-dock {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 20;
+  }
 
-/* ── ATTENTION (faolligi past) ──────────────────────────────────── */
-.mg-attn-row {
-  display:flex; align-items:center; gap:12px;
-  padding:10px; border-radius:12px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.025);
-  transition: background .2s, border-color .2s;
-  text-decoration:none; color:inherit;
-}
-.mg-attn-row + .mg-attn-row { margin-top:8px; }
-.mg-attn-row:hover { background: rgba(255,255,255,.05); border-color: var(--mg-br2); }
-.mg-attn__avatar {
-  width:40px; height:40px; border-radius:50%; flex-shrink:0;
-  background:linear-gradient(135deg, rgba(96,165,250,.22), rgba(129,140,248,.18));
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; font-weight:800; color:var(--mg-blue);
-  border:1px solid rgba(96,165,250,.22);
-  text-transform:uppercase;
-  background-size:cover; background-position:center;
-}
-.mg-attn__main { flex:1; min-width:0; }
-.mg-attn__name { font-size:13px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mg-attn__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; }
-.mg-attn__rate {
-  font-size:12.5px; font-weight:800; padding:5px 10px; border-radius:999px;
-  background: rgba(244,63,94,.14); color:#fda4af; border:1px solid rgba(244,63,94,.24);
-  font-variant-numeric: tabular-nums; flex-shrink:0;
-}
+  .director-profile-toggle {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
 
-/* ── ACTIVITY FEED ──────────────────────────────────────────────── */
-.mg-feed { display:flex; flex-direction:column; gap:8px; max-height: 420px; overflow-y:auto; }
-.mg-feed::-webkit-scrollbar { width:6px; }
-.mg-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:3px; }
+  .director-profile-toggle:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+  }
 
-.mg-feed__row {
-  display:flex; align-items:flex-start; gap:11px;
-  padding:10px 11px; border-radius:11px;
-  background: rgba(255,255,255,.02);
-  border:1px solid rgba(255,255,255,.04);
-}
-.mg-feed__icon {
-  width:32px; height:32px; flex-shrink:0;
-  border-radius:9px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:12px;
-}
-.mg-feed__row[data-tone="green"]  .mg-feed__icon { background: rgba(52,211,153,.14); color: var(--mg-green); }
-.mg-feed__row[data-tone="rose"]   .mg-feed__icon { background: rgba(244,63,94,.14);  color: var(--mg-rose); }
-.mg-feed__row[data-tone="blue"]   .mg-feed__icon { background: rgba(96,165,250,.14); color: var(--mg-blue); }
-.mg-feed__row[data-tone="violet"] .mg-feed__icon { background: rgba(129,140,248,.14); color: var(--mg-violet); }
-.mg-feed__main { flex:1; min-width:0; }
-.mg-feed__title { font-size:12.5px; font-weight:700; color:var(--mg-txt); }
-.mg-feed__sub { font-size:11px; color:var(--mg-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mg-feed__time { font-size:10.5px; color:var(--mg-soft); white-space:nowrap; flex-shrink:0; padding-top:3px; }
+  .director-profile-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12);
+  }
 
-/* ── FUNNEL ─────────────────────────────────────────────────────── */
-.mg-funnel { display:flex; flex-direction:column; gap:9px; }
-.mg-funnel__row {
-  display:flex; align-items:center; gap:10px;
-}
-.mg-funnel__lbl { width:130px; flex-shrink:0; font-size:12px; font-weight:700; color:var(--mg-txt); }
-.mg-funnel__bar { flex:1; position:relative; height:26px; border-radius:8px; background: rgba(255,255,255,.04); overflow:hidden; }
-.mg-funnel__fill {
-  position:absolute; inset:0;
-  border-radius:8px;
-  transition: width .6s cubic-bezier(.16,.84,.36,1);
-}
-.mg-funnel__row[data-stage="0"] .mg-funnel__fill { background: linear-gradient(90deg,#60a5fa,#818cf8); }
-.mg-funnel__row[data-stage="1"] .mg-funnel__fill { background: linear-gradient(90deg,#818cf8,#a78bfa); }
-.mg-funnel__row[data-stage="2"] .mg-funnel__fill { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
-.mg-funnel__row[data-stage="3"] .mg-funnel__fill { background: linear-gradient(90deg,#10b981,#34d399); }
-.mg-funnel__val {
-  width:55px; flex-shrink:0; text-align:right;
-  font-size:13px; font-weight:800; color:var(--mg-txt);
-  font-variant-numeric: tabular-nums;
-}
+  .director-profile-toggle img {
+    width: 34px !important;
+    height: 34px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 999px;
+    object-fit: cover;
+  }
 
-/* ── TOP GROUPS ─────────────────────────────────────────────────── */
-.mg-grp { display:flex; flex-direction:column; gap:8px; }
-.mg-grp__row {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 12px; border-radius:12px;
-  border:1px solid var(--mg-br);
-  background: rgba(255,255,255,.025);
-}
-.mg-grp__main { flex:1; min-width:0; }
-.mg-grp__name { font-size:12.5px; font-weight:700; color:var(--mg-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mg-grp__teacher { font-size:10.5px; color:var(--mg-muted); margin-top:2px; }
-.mg-grp__meter {
-  flex:1.5; height:7px; border-radius:5px;
-  background: rgba(255,255,255,.05); overflow:hidden;
-}
-.mg-grp__meter > span {
-  display:block; height:100%;
-  background: linear-gradient(90deg,#22d3ee,#34d399);
-  border-radius:5px;
-}
-.mg-grp__pct {
-  width:60px; text-align:right;
-  font-size:12px; font-weight:800; color:var(--mg-cyan);
-  font-variant-numeric: tabular-nums;
-}
+  .director-profile-toggle .avatar-trigger {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 13px;
+    font-weight: 800;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: linear-gradient(135deg, #facc15, #f59e0b) !important;
+    color: #0b1220 !important;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-/* ── QUICK ACTIONS ──────────────────────────────────────────────── */
-.mg-qa-grid { display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:10px; }
-@media(max-width:1100px){ .mg-qa-grid { grid-template-columns: repeat(3, 1fr); } }
-@media(max-width:560px) { .mg-qa-grid { grid-template-columns: repeat(2, 1fr); } }
+  /* ── Profile dropdown panel ──────────────────────────── */
+  .director-profile-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 210px;
+    padding: 8px;
+    border-radius: 14px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+  }
 
-.mg-qa {
-  display:flex; align-items:center; gap:11px;
-  padding:13px; border-radius:14px;
-  border:1px solid var(--mg-br);
-  background: var(--mg-card);
-  text-decoration:none; color:inherit;
-  transition: transform .2s, border-color .2s, background .2s, box-shadow .2s;
-}
-.mg-qa:hover { transform: translateY(-2px); border-color: var(--mg-br2); box-shadow: 0 12px 28px rgba(0,0,0,.3); }
-.mg-qa__icon {
-  width:38px; height:38px; flex-shrink:0;
-  border-radius:11px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px;
-  border:1px solid rgba(255,255,255,.07);
-}
-.mg-qa--blue   .mg-qa__icon { background: linear-gradient(135deg, rgba(96,165,250,.2), rgba(96,165,250,.08));  color:var(--mg-blue);   border-color:rgba(96,165,250,.2); }
-.mg-qa--green  .mg-qa__icon { background: linear-gradient(135deg, rgba(52,211,153,.2), rgba(52,211,153,.08));  color:var(--mg-green);  border-color:rgba(52,211,153,.2); }
-.mg-qa--amber  .mg-qa__icon { background: linear-gradient(135deg, rgba(251,191,36,.2), rgba(251,191,36,.08));  color:var(--mg-amber);  border-color:rgba(251,191,36,.2); }
-.mg-qa--violet .mg-qa__icon { background: linear-gradient(135deg, rgba(129,140,248,.2), rgba(129,140,248,.08));color:var(--mg-violet); border-color:rgba(129,140,248,.2); }
-.mg-qa--rose   .mg-qa__icon { background: linear-gradient(135deg, rgba(244,63,94,.2), rgba(244,63,94,.08));    color:var(--mg-rose);   border-color:rgba(244,63,94,.2); }
-.mg-qa__txt { min-width:0; }
-.mg-qa__title { font-size:12.5px; font-weight:800; color:var(--mg-txt); }
-.mg-qa__sub { font-size:10.5px; color:var(--mg-muted); margin-top:2px; }
+  .director-profile-dock.is-open .director-profile-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
 
-/* ── LOADING STATE ──────────────────────────────────────────────── */
-.mg-skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.03) 100%);
-  background-size: 200% 100%;
-  animation: mgShimmer 1.4s infinite;
-  border-radius: 8px;
-  height: 14px; width: 80%;
-}
-@keyframes mgShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .director-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 4px;
+  }
 
-.mg-empty {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding: 36px 16px; gap: 10px; color: var(--mg-muted); text-align:center;
-}
-.mg-empty i { font-size: 28px; color: var(--mg-soft); opacity:.6; }
-.mg-empty p { margin:0; font-size: 12.5px; }
+  .director-profile-avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0b1220;
+    background: linear-gradient(135deg, #facc15, #f59e0b);
+  }
 
-/* ══════════════════ ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK ══════════
- * Director "boshqaruv" panelidagi ikki sectionning 1:1 nusxasi,
- * faqat manager uchun dark variantida sozlangan. */
-.mg-groups-activity-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2.05fr) minmax(360px, 1fr);
-  gap: 14px;
-}
-.mg-best-card,
-.mg-activity-card {
-  min-height: 340px;
-  border-radius: 18px;
-  border: 1px solid var(--mg-br);
-  background: var(--mg-card);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  color: var(--mg-txt);
-  overflow: hidden;
-}
-.mg-best-card__head,
-.mg-activity-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 22px 14px;
-}
-.mg-best-card__title,
-.mg-activity-card__title {
-  margin: 0;
-  color: var(--mg-txt);
-  font-size: 17px;
-  line-height: 1.1;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-.mg-best-card__sub,
-.mg-activity-card__sub {
-  margin: 6px 0 0;
-  color: var(--mg-soft);
-  font-size: 12.5px;
-  line-height: 1.2;
-  font-weight: 500;
-}
-.mg-best-card__link,
-.mg-activity-card__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--mg-muted);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--mg-br);
-  background: rgba(255,255,255,.03);
-  transition: color .2s, border-color .2s, background .2s;
-}
-.mg-best-card__link:hover,
-.mg-activity-card__link:hover {
-  color: var(--mg-cyan);
-  border-color: var(--mg-br2);
-  background: rgba(34,211,238,.08);
-}
-.mg-best-table-wrap { overflow-x: auto; }
-.mg-best-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-}
-.mg-best-table thead { background: rgba(255,255,255,.03); }
-.mg-best-table th {
-  height: 38px;
-  padding: 0 22px;
-  color: var(--mg-soft);
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-align: left;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.mg-best-table th:nth-child(3) { text-align: center; }
-.mg-best-table td {
-  height: 54px;
-  padding: 0 22px;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  color: var(--mg-muted);
-  font-size: 13.5px;
-  vertical-align: middle;
-}
-.mg-best-table tr:last-child td { border-bottom: 0; }
-.mg-best-table tbody tr { transition: background .15s ease; }
-.mg-best-table tbody tr:hover { background: rgba(255,255,255,.025); }
+  .director-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+  }
 
-.mg-best-group {
-  display: flex; align-items: center; gap: 12px; min-width: 0;
-}
-.mg-best-avatar {
-  width: 36px; height: 36px; border-radius: 10px;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 14px; font-weight: 800;
-}
-.mg-best-name { min-width: 0; }
-.mg-best-name strong {
-  display: block; max-width: 220px; overflow: hidden;
-  color: var(--mg-txt); font-size: 13.5px; font-weight: 800; line-height: 1.2;
-  text-overflow: ellipsis; white-space: nowrap;
-}
-.mg-best-name small {
-  display: block; margin-top: 2px;
-  color: var(--mg-soft); font-size: 11.5px; font-weight: 500;
-}
-.mg-best-teacher {
-  display: inline-block; max-width: 180px; overflow: hidden;
-  color: var(--mg-muted); font-weight: 600;
-  text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
-}
-.mg-best-count,
-.mg-best-revenue {
-  color: var(--mg-txt); font-size: 13.5px; font-weight: 800;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.mg-best-count { text-align: center; }
-.mg-best-fill {
-  display: grid; grid-template-columns: minmax(120px, 1fr) 46px;
-  align-items: center; gap: 12px;
-}
-.mg-best-fill__track {
-  height: 6px; border-radius: 999px;
-  background: rgba(255,255,255,.06); overflow: hidden;
-}
-.mg-best-fill__bar {
-  display: block; height: 100%; border-radius: inherit;
-  transition: width .35s ease;
-}
-.mg-best-fill__pct {
-  color: var(--mg-muted); font-size: 12.5px; font-weight: 800; text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.mg-best-empty,
-.mg-activity-empty {
-  height: 150px;
-  color: var(--mg-soft); font-size: 13px; font-weight: 600;
-  text-align: center;
-  display:flex; align-items:center; justify-content:center; gap:8px;
-}
+  .director-profile-meta {
+    min-width: 0;
+  }
 
-.mg-activity-list {
-  max-height: 320px;
-  overflow-y: auto;
-  border-top: 1px solid rgba(255,255,255,.05);
-}
-.mg-activity-list::-webkit-scrollbar { width: 7px; }
-.mg-activity-list::-webkit-scrollbar-thumb {
-  border-radius: 999px; background: rgba(255,255,255,.10);
-}
-.mg-activity-item {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: center; gap: 12px;
-  min-height: 56px;
-  padding: 9px 18px 9px 22px;
-  border-bottom: 1px solid rgba(255,255,255,.04);
-  transition: background .15s ease;
-}
-.mg-activity-item:last-child { border-bottom: 0; }
-.mg-activity-item:hover { background: rgba(255,255,255,.025); }
-.mg-activity-icon {
-  width: 34px; height: 34px; border-radius: 10px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13.5px;
-}
-.mg-activity-icon--payment { background: rgba(52,211,153,.16);  color: #6ee7b7; }
-.mg-activity-icon--lead    { background: rgba(96,165,250,.16);  color: #93c5fd; }
-.mg-activity-icon--absence { background: rgba(244,63,94,.16);   color: #fda4af; }
-.mg-activity-icon--demo    { background: rgba(124,58,237,.18);  color: #c4b5fd; }
-.mg-activity-icon--leave   { background: rgba(220,38,38,.18);   color: #fca5a5; }
-.mg-activity-icon--reward  { background: rgba(217,119,6,.18);   color: #fcd34d; }
-.mg-activity-info { min-width: 0; }
-.mg-activity-title {
-  overflow: hidden; color: var(--mg-txt);
-  font-size: 13.5px; font-weight: 700; line-height: 1.25;
-  text-overflow: ellipsis; white-space: nowrap;
-}
-.mg-activity-meta {
-  margin-top: 3px; overflow: hidden;
-  color: var(--mg-soft); font-size: 12px; font-weight: 500;
-  text-overflow: ellipsis; white-space: nowrap;
-}
-.mg-activity-amount {
-  color: #6ee7b7; font-size: 13px; font-weight: 800; white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.mg-activity-amount--negative { color: #fda4af; }
+  .director-profile-name {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-/* ── 3-nuqta menyu (director 1:1 nusxasi) ───────────────────────── */
-.mg-best-more {
-  width: 28px; height: 28px;
-  border: 0; border-radius: 8px;
-  background: transparent; color: var(--mg-soft);
-  cursor: pointer;
-  transition: background-color .15s ease, color .15s ease;
-}
-.mg-best-more:hover,
-.mg-best-more.is-open {
-  background: rgba(255,255,255,.06);
-  color: var(--mg-txt);
-}
-.mg-best-menu {
-  position: fixed;
-  z-index: 10000;
-  min-width: 220px;
-  max-width: 260px;
-  padding: 6px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, .98);
-  border: 1px solid rgba(255, 255, 255, .08);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
-  opacity: 0;
-  transform: translateY(-4px) scale(.98);
-  pointer-events: none;
-  transition: opacity .14s ease, transform .14s ease;
-}
-.mg-best-menu.is-open {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-.mg-best-menu__item {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 9px 12px;
-  border-radius: 8px;
-  color: #e2e8f0;
-  font-size: 13px; font-weight: 600;
-  text-decoration: none;
-  background: transparent; border: 0;
-  text-align: left; cursor: pointer;
-}
-.mg-best-menu__item:hover {
-  background: rgba(59, 130, 246, .16);
-  color: #ffffff;
-  text-decoration: none;
-}
-.mg-best-menu__item i {
-  width: 16px; font-size: 13px; color: var(--mg-muted);
-}
-.mg-best-menu__divider {
-  height: 1px;
-  margin: 4px 6px;
-  background: rgba(255, 255, 255, .08);
-}
+  .director-profile-role {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: rgba(148, 163, 184, 0.75);
+  }
 
-@media(max-width:1180px){
-  .mg-groups-activity-grid { grid-template-columns: 1fr; }
-  .mg-activity-list { max-height: 340px; }
-}
-@media(max-width:720px){
-  .mg-best-card__head,
-  .mg-activity-card__head { padding: 16px; }
-  .mg-best-card__title,
-  .mg-activity-card__title { font-size: 16px; }
-  .mg-best-card__link,
-  .mg-activity-card__link { font-size: 12.5px; }
-  .mg-activity-item { padding: 10px 14px; grid-template-columns: 34px minmax(0, 1fr); }
-  .mg-activity-amount { grid-column: 2; justify-self: start; margin-top: -4px; }
-}
+  .director-profile-divider {
+    height: 1px;
+    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.07);
+  }
 
-/* ══════════════════ AI CHAT (manager) ══════════════════ */
-.mg-ai-btn {
-  height: 38px; padding: 0 14px; border-radius: 11px;
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid rgba(129,140,248,.32);
-  background: linear-gradient(135deg, rgba(129,140,248,.18), rgba(244,63,94,.10));
-  color: #c4b5fd; font-size: 12.5px; font-weight: 700; cursor: pointer;
-  transition: transform .18s, box-shadow .2s;
-}
-.mg-ai-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(129,140,248,.18); }
-.mg-ai-btn__dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #34d399; box-shadow: 0 0 8px #34d399;
-  animation: mg-ai-pulse 1.6s ease-in-out infinite;
-}
-@keyframes mg-ai-pulse {
-  0%, 100% { opacity: .5; transform: scale(.8); }
-  50%      { opacity: 1;  transform: scale(1.1); }
-}
+  .director-profile-item {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    text-decoration: none;
+    transition: background 0.16s ease, color 0.16s ease;
+    cursor: pointer;
+  }
 
-.mg-chat-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  backdrop-filter: blur(2px); z-index: 998;
-  opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s;
-}
-.mg-chat-overlay.open { opacity: 1; visibility: visible; }
+  .director-profile-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+  }
 
-.mg-chat {
-  position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(420px, 96vw);
-  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
-  border-left: 1px solid var(--mg-br2);
-  box-shadow: -16px 0 40px rgba(0,0,0,.4);
-  display: flex; flex-direction: column;
-  transform: translateX(100%); transition: transform .25s ease;
-  z-index: 999;
-}
-/* ══════════ bq-sdrawer shell (student drawer) ══════════ */
-.bq-sdrawer-overlay{position:fixed;inset:0;z-index:920;background:rgba(2,6,23,.56);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
-.bq-sdrawer-overlay.open{opacity:1;visibility:visible;}
-.bq-sdrawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,calc(100vw - 14px));z-index:930;display:flex;flex-direction:column;background:linear-gradient(180deg,rgba(7,13,26,.98),rgba(13,21,38,.96));border-left:1px solid rgba(255,255,255,.08);box-shadow:-24px 0 60px rgba(2,6,23,.4);transform:translateX(100%);transition:transform .26s cubic-bezier(.4,0,.2,1);}
-.bq-sdrawer.open{transform:translateX(0);}
-html[data-role-theme="light"] .bq-sdrawer{background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(247,250,255,.99));border-left-color:rgba(148,163,184,.22);}
-html[data-role-theme="light"] .bq-sdrawer-overlay{background:rgba(15,23,42,.18);}
-.bq-sdrawer__header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;}
-html[data-role-theme="light"] .bq-sdrawer__header{border-bottom-color:rgba(148,163,184,.22);}
-.bq-sdrawer__title{margin:0;font-size:24px;font-weight:800;line-height:1.05;color:#e2e8f0;letter-spacing:-.03em;}
-html[data-role-theme="light"] .bq-sdrawer__title{color:#0f172a;}
-.bq-sdrawer__close{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#e2e8f0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .16s,background .16s,border-color .16s;}
-.bq-sdrawer__close:hover{transform:translateY(-1px);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18);}
-html[data-role-theme="light"] .bq-sdrawer__close{background:rgba(37,99,235,.06);border-color:rgba(148,163,184,.22);color:#0f172a;}
-.bq-sdrawer__body{flex:1;overflow-y:auto;padding:18px 20px 24px;}
-.bq-sdrawer__body::-webkit-scrollbar{width:6px;}
-.bq-sdrawer__body::-webkit-scrollbar-thumb{background:rgba(148,163,184,.24);border-radius:999px;}
-.bq-sdrawer-loading{min-height:240px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#94a3b8;font-size:13px;}
-.bq-sdrawer-loading i{font-size:22px;opacity:.6;}
+  .director-profile-item i {
+    font-size: 13px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
 
-/* ══════════ Manager Profile Dock ══════════ */
-.mg-profile { flex-shrink:0; }
-.mg-profile__btn {
-  width:40px; height:40px; padding:0; border-radius:50%;
-  border:1.5px solid rgba(255,255,255,.12);
-  background:linear-gradient(135deg,rgba(129,140,248,.18),rgba(99,102,241,.14));
-  display:inline-flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:background .16s,border-color .16s,transform .16s;
-}
-.mg-profile__btn:hover { background:rgba(99,102,241,.26); border-color:rgba(129,140,248,.32); transform:translateY(-1px); }
-.mg-profile__ava {
-  width:30px; height:30px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-size:12px; font-weight:800;
-  background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff;
-}
-.mg-profile__ava img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
-.mg-profile__panel {
-  position:fixed; z-index:9998; width:220px; padding:8px; border-radius:16px;
-  background:linear-gradient(160deg,rgba(11,17,32,.99),rgba(7,12,24,.99));
-  border:1px solid rgba(255,255,255,.10);
-  box-shadow:0 24px 56px rgba(0,0,0,.68),0 0 0 1px rgba(99,102,241,.08),inset 0 1px 0 rgba(255,255,255,.06);
-  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-  opacity:0; visibility:hidden; transform:translateY(-6px) scale(.97); pointer-events:none;
-  transition:opacity .16s,transform .18s cubic-bezier(.22,.68,0,1.2),visibility .16s;
-}
-.mg-profile__panel.open { opacity:1; visibility:visible; transform:translateY(0) scale(1); pointer-events:auto; }
-.mg-profile__head { display:flex; align-items:center; gap:10px; padding:8px 10px 10px; }
-.mg-profile__head-ava {
-  width:36px; height:36px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:13px; font-weight:800;
-  background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff;
-}
-.mg-profile__head-ava img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
-.mg-profile__name { margin:0; font-size:13px; font-weight:700; color:#f1f5f9; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mg-profile__role { margin:2px 0 0; font-size:10.5px; color:#64748b; }
-.mg-profile__div { height:1px; background:rgba(255,255,255,.07); margin:4px 4px; }
-.mg-profile__item {
-  width:100%; padding:8px 10px; font-size:13px; font-weight:600; color:#f1f5f9;
-  display:flex; align-items:center; gap:8px; border:0; border-radius:10px;
-  background:transparent; text-decoration:none; cursor:pointer;
-  transition:background .13s,color .13s;
-}
-.mg-profile__item:hover { background:rgba(255,255,255,.06); color:#fff; }
-.mg-profile__item i { font-size:13px; width:16px; text-align:center; flex-shrink:0; }
-.mg-profile__item--logout { color:#f87171; }
-.mg-profile__item--logout:hover { background:rgba(239,68,68,.09); color:#fca5a5; }
-.mg-profile__form { margin:0; }
-html[data-role-theme="light"] .mg-profile__btn { background:rgba(99,102,241,.1); border-color:rgba(99,102,241,.2); }
-html[data-role-theme="light"] .mg-profile__panel { background:#fff; border-color:rgba(15,23,42,.10); box-shadow:0 20px 52px rgba(15,23,42,.18),0 0 0 1px rgba(99,102,241,.08); }
-html[data-role-theme="light"] .mg-profile__name { color:#0f172a; }
-html[data-role-theme="light"] .mg-profile__role { color:#94a3b8; }
-html[data-role-theme="light"] .mg-profile__div { background:rgba(15,23,42,.08); }
-html[data-role-theme="light"] .mg-profile__item { color:#0f172a; }
-html[data-role-theme="light"] .mg-profile__item:hover { background:rgba(37,99,235,.06); color:#1e3a8a; }
-html[data-role-theme="light"] .mg-profile__item--logout { color:#dc2626; }
-html[data-role-theme="light"] .mg-profile__item--logout:hover { background:rgba(220,38,38,.06); color:#b91c1c; }
+  .director-profile-item--logout {
+    color: #f87171;
+  }
 
-/* ══════════ Manager Quick Menu ══════════ */
-.mg-quick { position:relative; flex-shrink:0; }
+  .director-profile-item--logout:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #fca5a5;
+  }
 
-/* Toggle button — same size/shape as mg-brand__icon */
-.mg-quick__toggle {
-  width:44px; height:44px; padding:0;
-  border-radius:13px; border:none; cursor:pointer;
-  display:inline-flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-  box-shadow:0 4px 16px rgba(37,99,235,.45), inset 0 1px 0 rgba(255,255,255,.18);
-  transition:box-shadow .15s, transform .15s;
-  flex-shrink:0;
-}
-.mg-quick__toggle:hover { box-shadow:0 6px 20px rgba(37,99,235,.55); transform:translateY(-1px); }
-.mg-quick__plus-ico {
-  font-size:17px; color:#fff;
-  transition:transform .24s cubic-bezier(.34,1.56,.64,1);
-}
-.mg-quick.open .mg-quick__plus-ico,
-.mg-quick__toggle.open .mg-quick__plus-ico { transform:rotate(45deg); }
+  .director-profile-form {
+    margin: 0;
+  }
 
-/* Panel — FIXED so it escapes every stacking context */
-.mg-quick__panel {
-  position:fixed;
-  z-index:9999;
-  width:264px;
-  padding:8px;
-  border-radius:18px;
-  background:linear-gradient(160deg, rgba(11,17,32,.99) 0%, rgba(7,12,24,.99) 100%);
-  border:1px solid rgba(255,255,255,.11);
-  box-shadow:0 28px 64px rgba(0,0,0,.72), 0 0 0 1px rgba(37,99,235,.1),
-             inset 0 1px 0 rgba(255,255,255,.07);
-  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-  opacity:0; visibility:hidden;
-  transform:translateY(-6px) scale(.97);
-  pointer-events:none;
-  transition:opacity .18s ease, transform .2s cubic-bezier(.22,.68,0,1.2), visibility .18s ease;
-}
-.mg-quick__panel.open {
-  opacity:1; visibility:visible; transform:translateY(0) scale(1); pointer-events:auto;
-}
-.mg-quick__panel-head {
-  font-size:9.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
-  color:rgba(148,163,184,.45); padding:4px 12px 8px;
-}
+  .director-profile-form .director-profile-item {
+    text-align: left;
+  }
 
-/* Items */
-.mg-quick__link {
-  display:flex; align-items:center; gap:10px;
-  padding:8px 10px 8px 8px; border-radius:11px;
-  width:100%; border:0; background:transparent; text-align:left; cursor:pointer;
-  transition:background .13s, transform .12s;
-}
-.mg-quick__link:hover { background:rgba(255,255,255,.07); transform:translateX(3px); }
-.mg-quick__ico {
-  width:34px; height:34px; border-radius:10px;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:14px; flex-shrink:0; transition:transform .13s;
-}
-.mg-quick__link:hover .mg-quick__ico { transform:scale(1.08); }
-.mg-quick__ico--student {
-  background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(59,130,246,.16));
-  color:#38bdf8; border:1px solid rgba(56,189,248,.22);
-}
-.mg-quick__ico--payment {
-  background:linear-gradient(135deg,rgba(52,211,153,.2),rgba(16,185,129,.16));
-  color:#34d399; border:1px solid rgba(52,211,153,.22);
-}
-.mg-quick__link-body { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
-.mg-quick__title { font-size:13px; font-weight:700; color:#f1f5f9; line-height:1.3; display:block; }
-.mg-quick__sub   { font-size:10.5px; color:#64748b; line-height:1.3; display:block; }
-.mg-quick__arr   { margin-left:auto; font-size:10px; color:#334155; flex-shrink:0; transition:transform .12s,color .12s; }
-.mg-quick__link:hover .mg-quick__arr { transform:translateX(2px); color:#64748b; }
-.mg-quick__divider { height:1px; background:rgba(255,255,255,.07); margin:5px 8px; }
+  /* ── Quick-links grid ────────────────────────────────── */
+  .director-quicklinks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
 
-/* Light mode */
-html[data-role-theme="light"] .mg-quick__panel {
-  background:#ffffff; border-color:rgba(15,23,42,.10);
-  box-shadow:0 20px 52px rgba(15,23,42,.18), 0 0 0 1px rgba(37,99,235,.08);
-}
-html[data-role-theme="light"] .mg-quick__panel-head { color:rgba(100,116,139,.6); }
-html[data-role-theme="light"] .mg-quick__link:hover { background:rgba(37,99,235,.06); transform:translateX(3px); }
-html[data-role-theme="light"] .mg-quick__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-quick__sub   { color:#94a3b8; }
-html[data-role-theme="light"] .mg-quick__ico--student { background:rgba(37,99,235,.10); color:#2563eb; border-color:rgba(37,99,235,.15); }
-html[data-role-theme="light"] .mg-quick__ico--payment { background:rgba(22,163,74,.10); color:#16a34a; border-color:rgba(22,163,74,.15); }
-html[data-role-theme="light"] .mg-quick__arr   { color:#cbd5e1; }
-html[data-role-theme="light"] .mg-quick__divider { background:rgba(15,23,42,.08); }
+  .director-ql-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
 
-/* ── Payment modal ── */
-.bq-pm-ov {
-  position:fixed; inset:0; z-index:1600; display:flex; align-items:center; justify-content:center;
-  background:rgba(2,6,23,.56); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  padding:20px; animation:bqPMFadeIn .18s ease forwards;
-}
-@keyframes bqPMFadeIn { from{opacity:0} to{opacity:1} }
-.bq-pm {
-  width:100%; max-width:440px; border-radius:20px;
-  background:linear-gradient(160deg,rgba(13,20,38,.99),rgba(9,15,28,.99));
-  border:1px solid rgba(148,163,184,.12);
-  box-shadow:0 28px 64px rgba(0,0,0,.6),0 0 0 1px rgba(56,189,248,.05);
-  display:flex; flex-direction:column; overflow:hidden;
-  transform:translateY(14px) scale(.97);
-  animation:bqPMSlideIn .2s cubic-bezier(.22,.68,0,1.15) forwards;
-}
-@keyframes bqPMSlideIn { to{transform:translateY(0) scale(1)} }
-.bq-pm__head {
-  display:flex; align-items:center; gap:10px; padding:14px 16px 12px;
-  border-bottom:1px solid rgba(148,163,184,.08);
-}
-.bq-pm__head-ico { width:32px; height:32px; border-radius:10px; background:rgba(52,211,153,.12); color:#34d399; display:flex; align-items:center; justify-content:center; font-size:14px; }
-.bq-pm__head-title { flex:1; font-size:15px; font-weight:800; color:#f1f5f9; letter-spacing:-.01em; }
-.bq-pm__close { width:28px; height:28px; border-radius:8px; border:none; background:rgba(148,163,184,.08); color:#64748b; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .12s; }
-.bq-pm__close:hover { background:rgba(148,163,184,.16); color:#94a3b8; }
-.bq-pm__search-wrap { display:flex; align-items:center; gap:9px; padding:10px 16px 6px; }
-.bq-pm__search-ico { color:#475569; font-size:13px; flex-shrink:0; }
-.bq-pm__search-inp {
-  flex:1; height:38px; border-radius:10px; border:1px solid rgba(148,163,184,.12);
-  background:rgba(255,255,255,.04); color:#e2e8f0; font-size:13px; padding:0 12px;
-  outline:none; transition:border-color .15s,background .15s;
-}
-.bq-pm__search-inp::placeholder { color:#334155; }
-.bq-pm__search-inp:focus { border-color:rgba(99,102,241,.35); background:rgba(99,102,241,.06); }
-.bq-pm__list-wrap { padding:4px 8px 6px; max-height:240px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(148,163,184,.12) transparent; }
-.bq-pm__list { display:flex; flex-direction:column; gap:3px; }
-.bq-pm__hint { padding:24px 0; text-align:center; color:#475569; font-size:13px; display:flex; align-items:center; justify-content:center; gap:7px; font-style:italic; }
-.bq-pm__empty { padding:18px 0; text-align:center; color:#475569; font-size:13px; }
-.bq-pm__student-item {
-  display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:10px;
-  border:1px solid transparent; background:rgba(255,255,255,.03); cursor:pointer;
-  transition:background .12s,border-color .12s; text-align:left; width:100%;
-}
-.bq-pm__student-item:hover { background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.22); }
-.bq-pm__item-ava { width:32px; height:32px; border-radius:50%; background:rgba(148,163,184,.1); color:#64748b; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
-.bq-pm__item-name { font-size:13.5px; font-weight:600; color:#e2e8f0; flex:1; }
-.bq-pm__item-meta { font-size:11.5px; color:#475569; flex:1; }
-.bq-pm__item-debt { font-size:12px; font-weight:700; color:#f87171; white-space:nowrap; flex-shrink:0; }
-.bq-pm__item-debt small { opacity:.65; font-weight:500; font-size:10px; }
-.bq-pm__sep { height:1px; background:rgba(148,163,184,.1); margin:2px 18px 0; flex-shrink:0; }
-.bq-pm__form { padding:0 18px 4px; display:flex; flex-direction:column; gap:13px; overflow-y:auto; max-height:380px; scrollbar-width:thin; scrollbar-color:rgba(148,163,184,.15) transparent; }
-.bq-pm__student-badge { display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:13px; background:rgba(99,102,241,.09); border:1.5px solid rgba(99,102,241,.22); margin-top:12px; animation:bqPMFadeIn .16s ease; }
-.bq-pm__student-ava { width:38px; height:38px; border-radius:50%; background:rgba(99,102,241,.15); color:#818cf8; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-.bq-pm__student-info { flex:1; min-width:0; }
-.bq-pm__student-name { font-size:13.5px; font-weight:700; color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.bq-pm__student-groups { font-size:11.5px; color:#a5b4fc; opacity:.85; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.bq-pm__student-change { width:28px; height:28px; border-radius:8px; border:none; background:rgba(148,163,184,.1); color:#64748b; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .12s; flex-shrink:0; }
-.bq-pm__student-change:hover { background:rgba(148,163,184,.2); color:#94a3b8; }
-.bq-pm__type-row { display:flex; gap:6px; padding:4px; border-radius:13px; background:rgba(255,255,255,.04); border:1px solid rgba(148,163,184,.1); }
-.bq-pm__type-btn { flex:1; height:38px; border-radius:10px; border:none; background:transparent; color:#64748b; font-size:12.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:background .14s,color .14s,box-shadow .14s; }
-.bq-pm__type-btn.is-active { background:rgba(52,211,153,.15); color:#34d399; box-shadow:0 1px 6px rgba(52,211,153,.12); }
-.bq-pm__type-btn[data-type="card"].is-active { background:rgba(129,140,248,.15); color:#a5b4fc; box-shadow:0 1px 6px rgba(129,140,248,.12); }
-.bq-pm__type-btn[data-type="mixed"].is-active { background:rgba(251,191,36,.12); color:#fbbf24; box-shadow:0 1px 6px rgba(251,191,36,.1); }
-.bq-pm__amounts { display:flex; flex-direction:column; gap:10px; }
-.bq-pm__amount-row { display:flex; flex-direction:column; gap:5px; }
-.bq-pm__amount-row.two-col { flex-direction:row; gap:10px; }
-.bq-pm__amount-row.two-col .bq-pm__amount-field { flex:1; }
-.bq-pm__amount-field { display:flex; flex-direction:column; gap:5px; }
-.bq-pm__amount-label { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#475569; }
-.bq-pm__amount-inp-wrap { position:relative; }
-.bq-pm__amount-inp { width:100%; height:42px; border-radius:11px; border:1px solid rgba(148,163,184,.12); background:rgba(255,255,255,.04); color:#f1f5f9; font-size:15px; font-weight:700; padding:0 44px 0 14px; outline:none; transition:border-color .15s,background .15s; }
-.bq-pm__amount-inp:focus { border-color:rgba(99,102,241,.35); background:rgba(99,102,241,.06); }
-.bq-pm__amount-inp--err { border-color:#f87171 !important; animation:bqShake .3s ease; }
-.bq-pm__amount-cur { position:absolute; right:13px; top:50%; transform:translateY(-50%); font-size:11px; font-weight:700; color:#334155; letter-spacing:.04em; }
-.bq-pm__date-row { display:flex; align-items:center; gap:12px; }
-.bq-pm__date-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#475569; white-space:nowrap; }
-.bq-pm__date-inp { flex:1; height:38px; border-radius:10px; border:1px solid rgba(148,163,184,.12); background:rgba(255,255,255,.04); color:#e2e8f0; font-size:13px; padding:0 12px; outline:none; transition:border-color .15s; }
-.bq-pm__date-inp:focus { border-color:rgba(99,102,241,.35); }
-.bq-pm__note-toggle { background:none; border:none; color:#475569; font-size:12.5px; cursor:pointer; padding:2px 0; display:flex; align-items:center; gap:6px; transition:color .12s; }
-.bq-pm__note-toggle:hover { color:#94a3b8; }
-.bq-pm__note-inp { width:100%; border-radius:10px; border:1px solid rgba(148,163,184,.12); background:rgba(255,255,255,.04); color:#e2e8f0; font-size:13px; padding:9px 12px; outline:none; resize:none; min-height:60px; transition:border-color .15s; }
-.bq-pm__note-inp:focus { border-color:rgba(99,102,241,.35); }
-.bq-pm__foot { display:flex; gap:8px; padding:12px 16px; border-top:1px solid rgba(148,163,184,.08); flex-shrink:0; }
-.bq-pm__btn-cancel { flex:1; height:40px; border-radius:11px; border:1px solid rgba(148,163,184,.1); background:transparent; color:#475569; font-size:13px; font-weight:600; cursor:pointer; transition:background .12s,color .12s; }
-.bq-pm__btn-cancel:hover { background:rgba(148,163,184,.08); color:#94a3b8; }
-.bq-pm__btn-confirm { flex:2; height:40px; border-radius:11px; border:none; background:linear-gradient(135deg,#2563eb,#4f46e5); color:#fff; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:opacity .12s,transform .12s; box-shadow:0 4px 14px rgba(37,99,235,.28); }
-.bq-pm__btn-confirm:disabled { opacity:.38; cursor:not-allowed; }
-.bq-pm__btn-confirm.is-loading { opacity:.7; pointer-events:none; }
-@keyframes bqShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-@media (max-width:480px) { .bq-pm { border-radius:16px 16px 0 0; } .bq-pm-ov { padding:0; align-items:flex-end; } }
-html[data-role-theme="light"] .bq-pm { background:#fff; border-color:rgba(148,163,184,.2); }
-html[data-role-theme="light"] .bq-pm__head-title { color:#0f172a; }
-html[data-role-theme="light"] .bq-pm__search-inp { border-color:rgba(148,163,184,.22); background:#f8fafc; color:#0f172a; }
-html[data-role-theme="light"] .bq-pm__search-inp:focus { border-color:rgba(99,102,241,.4); background:#fff; }
-html[data-role-theme="light"] .bq-pm__student-item { background:rgba(148,163,184,.05); }
-html[data-role-theme="light"] .bq-pm__student-item:hover { background:rgba(99,102,241,.07); border-color:rgba(99,102,241,.2); }
-html[data-role-theme="light"] .bq-pm__item-name { color:#1e293b; }
-html[data-role-theme="light"] .bq-pm__student-badge { background:rgba(79,70,229,.06); border-color:rgba(79,70,229,.22); }
-html[data-role-theme="light"] .bq-pm__student-name { color:#0f172a; }
-html[data-role-theme="light"] .bq-pm__student-groups { color:#4f46e5; }
-html[data-role-theme="light"] .bq-pm__type-row { background:#f1f5f9; border-color:rgba(148,163,184,.15); }
-html[data-role-theme="light"] .bq-pm__type-btn { color:#94a3b8; }
-html[data-role-theme="light"] .bq-pm__amount-inp { border-color:rgba(148,163,184,.22); background:#f8fafc; color:#0f172a; }
-html[data-role-theme="light"] .bq-pm__amount-inp:focus { border-color:rgba(99,102,241,.4); background:#fff; }
-html[data-role-theme="light"] .bq-pm__foot { border-top-color:rgba(148,163,184,.15); }
+  .director-ql-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(34, 211, 238, 0.28);
+    color: #f8fafc;
+    transform: translateY(-2px);
+  }
 
-.mg-chat.open { transform: translateX(0); }
+  .director-ql-card i {
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.05);
+  }
 
-.mg-chat__header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; border-bottom: 1px solid var(--mg-br);
-}
-.mg-chat__hicon {
-  width: 36px; height: 36px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, rgba(129,140,248,.18), rgba(244,63,94,.10));
-  border: 1px solid rgba(129,140,248,.22); color: #c4b5fd;
-}
-.mg-chat__htitle { font-size: 13.5px; font-weight: 800; color: var(--mg-txt); flex:1; }
-.mg-chat__hsub   { font-size: 10.5px; color: var(--mg-muted); margin-top: 2px; }
-.mg-chat__close  {
-  width: 32px; height: 32px; border-radius: 9px;
-  background: transparent; border: 1px solid var(--mg-br); color: var(--mg-muted);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background .15s, color .15s;
-}
-.mg-chat__close:hover { background: rgba(255,255,255,.06); color: var(--mg-txt); }
+  .director-ql-card span {
+    flex: 1;
+  }
 
-.mg-chat__messages {
-  flex: 1; overflow-y: auto; padding: 14px;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.mg-chat__messages::-webkit-scrollbar { width: 4px; }
-.mg-chat__messages::-webkit-scrollbar-track { background: transparent; }
-.mg-chat__messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+  /* ── Responsive ─────────────────────────────────────── */
 
-.mg-msg { display: flex; gap: 8px; align-items: flex-start; max-width: 100%; }
-.mg-msg--user { flex-direction: row-reverse; }
-.mg-msg__ava {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; font-weight: 800; flex-shrink: 0;
-  background: rgba(129,140,248,.16); color: #c4b5fd;
-  border: 1px solid rgba(129,140,248,.22);
-}
-.mg-msg--user .mg-msg__ava { background: rgba(34,211,238,.16); color: #67e8f9; border-color: rgba(34,211,238,.22); }
-.mg-msg__bubble {
-  padding: 9px 12px; border-radius: 12px;
-  background: rgba(255,255,255,.04); border: 1px solid var(--mg-br);
-  color: var(--mg-txt); font-size: 12.5px; line-height: 1.55;
-  max-width: calc(100% - 36px); word-wrap: break-word;
-}
-.mg-msg--user .mg-msg__bubble { background: rgba(34,211,238,.10); border-color: rgba(34,211,238,.20); }
-.mg-msg__typing { display: inline-flex; gap: 3px; padding: 4px 0; }
-.mg-msg__typing span {
-  width: 5px; height: 5px; border-radius: 50%; background: var(--mg-muted);
-  animation: mg-typing-bounce 1.2s ease-in-out infinite;
-}
-.mg-msg__typing span:nth-child(2) { animation-delay: .15s; }
-.mg-msg__typing span:nth-child(3) { animation-delay: .3s; }
-@keyframes mg-typing-bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: .5; }
-  30%           { transform: translateY(-3px); opacity: 1; }
-}
+  /* Tablet */
+  @media (max-width: 820px) {
+    .director-navbar {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-.mg-chat__prompts {
-  display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap;
-  border-top: 1px solid var(--mg-br);
-}
-.mg-chat__prompt {
-  padding: 6px 10px; border-radius: 9px;
-  background: rgba(129,140,248,.08); border: 1px solid rgba(129,140,248,.18);
-  color: var(--mg-txt); font-size: 11.5px; font-weight: 600; cursor: pointer;
-}
-.mg-chat__prompt:hover { background: rgba(129,140,248,.14); }
+    .director-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
 
-.mg-chat__footer { padding: 12px 14px; border-top: 1px solid var(--mg-br); }
-.mg-chat__inputrow { display: flex; gap: 8px; align-items: flex-end; }
-.mg-chat__input {
-  flex: 1; min-height: 40px; max-height: 120px; padding: 10px 12px;
-  border-radius: 11px; border: 1px solid var(--mg-br); resize: none;
-  background: rgba(255,255,255,.04); color: var(--mg-txt);
-  font-family: inherit; font-size: 13px; line-height: 1.4;
-  outline: none; transition: border-color .15s, box-shadow .15s;
-}
-.mg-chat__input::placeholder { color: var(--mg-soft); }
-.mg-chat__input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.07); }
-.mg-chat__send {
-  width: 40px; height: 40px; border-radius: 11px;
-  display: flex; align-items: center; justify-content: center;
-  border: none; cursor: pointer; flex-shrink: 0;
-  background: linear-gradient(135deg, #818cf8, #f43f5e);
-  color: white; transition: transform .15s;
-}
-.mg-chat__send:hover { transform: scale(1.05); }
-.mg-chat__send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .director-center-chip strong {
+      max-width: 200px;
+    }
+  }
+
+  /* Mobile L (≤560px) */
+  @media (max-width: 560px) {
+    .director-home {
+      padding: 6px 0 20px;
+    }
+
+    .director-navbar {
+      padding: 12px 14px;
+      border-radius: 16px;
+      gap: 10px;
+    }
+
+    .director-brand {
+      width: 100%;
+      gap: 10px;
+    }
+
+    .director-brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      font-size: 15px;
+    }
+
+    .director-brand-title {
+      font-size: 14px;
+    }
+
+    .director-brand-subtitle {
+      white-space: normal;
+      font-size: 11px;
+    }
+
+    .director-center-chip {
+      padding: 6px 10px;
+      border-radius: 11px;
+    }
+
+    .director-center-chip strong {
+      max-width: 120px;
+      font-size: 12px;
+    }
+
+    .director-profile-toggle {
+      width: 40px;
+      height: 40px;
+    }
+
+    .director-profile-toggle img,
+    .director-profile-toggle .avatar-trigger {
+      width: 32px !important;
+      height: 32px !important;
+    }
+
+    .director-quicklinks {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .director-ql-card {
+      padding: 12px;
+      font-size: 12px;
+      gap: 10px;
+    }
+
+    .director-ql-card i {
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+    }
+  }
+
+  /* Mobile S (≤380px) */
+  @media (max-width: 380px) {
+    .director-navbar {
+      padding: 10px 12px;
+    }
+
+    .director-brand-title {
+      font-size: 13px;
+    }
+
+    .director-center-chip strong {
+      max-width: 90px;
+    }
+
+    .director-quicklinks {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mg">
-  <div class="mg-shell">
+<section class="director-home">
 
-    <!-- HEADER -->
-    <header class="mg-header">
-      <div class="mg-brand">
-        <!-- + toggle button only — panel lives at body level to escape backdrop-filter stacking context -->
-        <div class="mg-quick" id="mgQuickMenu">
-          <button class="mg-quick__toggle" id="mgQuickToggle" type="button"
-                  aria-haspopup="true" aria-expanded="false" aria-label="Tezkor menyu">
-            <i class="fa-solid fa-plus mg-quick__plus-ico"></i>
-          </button>
-        </div>
+  <!-- Navbar -->
+  <header class="director-navbar" aria-label="Manager navbar">
+    <div class="director-brand">
+      <div class="director-brand-icon">
+        <i class="fa-solid fa-bolt-lightning"></i>
+      </div>
 
-        <div>
-          <div class="mg-brand__kicker">Manager paneli</div>
-          <div class="mg-brand__title">{{ center.name|default:"Markaz" }}</div>
+      <div class="director-brand-copy">
+        <span class="director-brand-kicker">Manager Dashboard</span>
+        <p class="director-brand-title">{{ center.name|default:"ChaqmoqApp" }}</p>
+        <p class="director-brand-subtitle">Boshqaruv paneli</p>
+      </div>
+    </div>
+
+    <div class="director-actions">
+      <div class="director-center-chip">
+        <span class="director-center-chip__dot" aria-hidden="true"></span>
+        <div class="director-center-chip__body">
+          <span class="director-center-chip__label">Faol markaz</span>
+          <strong>{{ center.name|default:"Markaz aniqlanmagan" }}</strong>
         </div>
       </div>
 
-      <div class="mg-header__sync">
-        <span class="dot"></span>
-        <span>Yangilandi <span id="mgSyncTime">—</span></span>
-      </div>
-
-      <button type="button" class="mg-ai-btn" id="mgAiOpen">
-        <span class="mg-ai-btn__dot"></span>
-        <i class="fa-solid fa-robot"></i>
-        AI Chat
-      </button>
-      <button type="button" class="mg-header__refresh" id="mgRefreshBtn">
-        <i class="fa-solid fa-arrows-rotate"></i> Yangilash
-      </button>
-
-      <button type="button"
-              class="mg-header__refresh js-role-theme-toggle"
-              data-theme-role="manager"
-              aria-pressed="false"
-              title="Tema almashtirish (Qoʻngʻiroq/Yorug')">
+      <button
+        type="button"
+        class="director-profile-toggle director-theme-toggle js-role-theme-toggle"
+        data-theme-role="manager"
+        aria-pressed="false"
+        title="Tema almashtirish">
         <i class="fa-regular fa-lightbulb js-role-theme-icon"></i>
       </button>
 
-      <div class="mg-profile">
-        <button type="button" class="mg-profile__btn" id="mgProfileToggle"
-                aria-haspopup="true" aria-expanded="false" aria-label="Profil menyusi">
+      <div class="director-profile-dock" data-director-profile>
+        <button type="button" class="director-profile-toggle" aria-haspopup="true" aria-expanded="false"
+          aria-label="Profil menyusi">
           {% if request.user.avatar %}
-          <div class="mg-profile__ava"><img src="{{ request.user.avatar.url }}" alt="Avatar"></div>
+          <img src="{{ request.user.avatar.url }}" alt="{{ request.user.get_full_name|default:request.user.email }}">
           {% else %}
-          <div class="mg-profile__ava">{{ request.user.ism|first|default:request.user.email|first|upper }}</div>
+          <div class="avatar-trigger">
+            {{ request.user.ism|first|default:request.user.email|first|upper }}
+          </div>
           {% endif %}
         </button>
-      </div>
-    </header>
 
-    <!-- SANA FILTERI -->
-    <div class="mg-filter">
-      <div class="mg-field">
-        <label class="mg-field__lbl" for="mgFrom">Sanadan</label>
-        <input type="date" id="mgFrom" aria-label="Sanadan" title="Sanadan">
-      </div>
-      <div class="mg-field">
-        <label class="mg-field__lbl" for="mgTo">Sanagacha</label>
-        <input type="date" id="mgTo" aria-label="Sanagacha" title="Sanagacha">
-      </div>
-      <div class="mg-presets">
-        <button type="button" class="mg-preset" data-range="today">Bugun</button>
-        <button type="button" class="mg-preset" data-range="7">7 kun</button>
-        <button type="button" class="mg-preset is-active" data-range="month">Joriy oy</button>
-        <button type="button" class="mg-preset" data-range="30">30 kun</button>
-        <button type="button" class="mg-preset" data-range="90">90 kun</button>
-      </div>
-      <div class="mg-filter__spacer"></div>
-      <button type="button" class="mg-filter__reset" id="mgFilterReset">
-        <i class="fa-solid fa-rotate-left"></i> Tiklash
-      </button>
-    </div>
-
-    <!-- KPI GRID — 4 ta asosiy ko'rsatkich (sana filteri bilan) -->
-    <div class="mg-kgrid">
-      <a class="mg-kpi mg-kpi--blue" href="{% url 'core:stat_students' %}">
-        <div class="mg-kpi__head">
-          <div class="mg-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
-          <span class="mg-badge mg-badge--flat" id="mgK1d">—</span>
-        </div>
-        <div class="mg-kpi__lbl">Faol O'quvchilar</div>
-        <div class="mg-kpi__val" id="mgK1v">—</div>
-        <div class="mg-kpi__sub" id="mgK1s">—</div>
-      </a>
-
-      <div class="mg-kpi mg-kpi--green">
-        <div class="mg-kpi__head">
-          <div class="mg-kpi__icon"><i class="fa-solid fa-clipboard-user"></i></div>
-          <span class="mg-badge mg-badge--flat" id="mgK2d">—</span>
-        </div>
-        <div class="mg-kpi__lbl">Davomat</div>
-        <div class="mg-kpi__val" id="mgK2v">—</div>
-        <div class="mg-kpi__sub" id="mgK2s">—</div>
-      </div>
-
-      <a class="mg-kpi mg-kpi--orange" href="{% url 'education:qarzdorlar_home' %}">
-        <div class="mg-kpi__head">
-          <div class="mg-kpi__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-          <span class="mg-badge mg-badge--flat" id="mgK3d">—</span>
-        </div>
-        <div class="mg-kpi__lbl">Qarzdorlar</div>
-        <div class="mg-kpi__val" id="mgK3v">—</div>
-        <div class="mg-kpi__sub" id="mgK3s">Davr oxiriga snapshot</div>
-      </a>
-
-      <a class="mg-kpi mg-kpi--cyan" href="{% url 'education:tolovlar_home' %}">
-        <div class="mg-kpi__head">
-          <div class="mg-kpi__icon"><i class="fa-solid fa-receipt"></i></div>
-          <span class="mg-badge mg-badge--flat" id="mgK6d">—</span>
-        </div>
-        <div class="mg-kpi__lbl">To'lovlar</div>
-        <div class="mg-kpi__val" id="mgK6v">—</div>
-        <div class="mg-kpi__sub">Tanlangan davr · soni</div>
-      </a>
-    </div>
-
-    <!-- ── ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK (director 1:1) ── -->
-    <div class="mg-sec">
-      <div class="mg-groups-activity-grid">
-        <div class="mg-best-card">
-          <div class="mg-best-card__head">
-            <div>
-              <h3 class="mg-best-card__title">Eng yaxshi guruhlar</h3>
-              <p class="mg-best-card__sub">To'ldirilganligi bo'yicha tartiblangan</p>
+        <div class="director-profile-panel" role="menu" aria-label="Profil menyusi">
+          <div class="director-profile-header">
+            <div class="director-profile-avatar">
+              {% if request.user.avatar %}
+              <img src="{{ request.user.avatar.url }}" alt="{{ request.user.get_full_name|default:request.user.email }}">
+              {% else %}
+              {{ request.user.ism|first|default:request.user.email|first|upper }}
+              {% endif %}
             </div>
-            <a class="mg-best-card__link" href="{% url 'education:all_groups' %}">
-              Hammasini ko'rish
-              <i class="fa-solid fa-arrow-right"></i>
-            </a>
-          </div>
-          <div class="mg-best-table-wrap">
-            <table class="mg-best-table">
-              <thead>
-                <tr>
-                  <th>Guruh</th>
-                  <th>O'qituvchi</th>
-                  <th>O'quvchilar</th>
-                  <th>To'ldirilganlik</th>
-                  <th>Tushum</th>
-                  <th aria-label="Amallar"></th>
-                </tr>
-              </thead>
-              <tbody id="mgBestGroupsTable">
-                <tr><td colspan="6" class="mg-best-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        <div class="mg-activity-card">
-          <div class="mg-activity-card__head">
-            <div>
-              <h3 class="mg-activity-card__title">So'nggi faollik</h3>
-              <p class="mg-activity-card__sub">Real vaqtda — to'lovlar va davomat</p>
-            </div>
-            <a class="mg-activity-card__link" href="{% url 'core:activity_history' %}">
-              Hammasi
-              <i class="fa-solid fa-arrow-right"></i>
-            </a>
-          </div>
-          <div class="mg-activity-list" id="mgRecentActivityList">
-            <div class="mg-activity-empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- QUICK ACTIONS -->
-    <div class="mg-sec">
-      <div class="mg-sec__hd">
-        <div class="mg-sec__ico" style="background:rgba(129,140,248,.12);color:var(--mg-violet);border-color:rgba(129,140,248,.18)">
-          <i class="fa-solid fa-compass"></i>
-        </div>
-        <div>
-          <h3 class="mg-sec__title">Tezkor amallar</h3>
-          <p class="mg-sec__sub">Eng ko'p ishlatiladigan bo'limlar</p>
-        </div>
-      </div>
-      <div class="mg-qa-grid">
-        <a class="mg-qa mg-qa--blue" href="{% url 'core:stat_students' %}">
-          <div class="mg-qa__icon"><i class="fa-solid fa-user-plus"></i></div>
-          <div class="mg-qa__txt"><div class="mg-qa__title">O'quvchilar</div><div class="mg-qa__sub">Ro'yxat va kartalar</div></div>
-        </a>
-        <a class="mg-qa mg-qa--green" href="{% url 'education:attendance_groups' %}">
-          <div class="mg-qa__icon"><i class="fa-solid fa-clipboard-user"></i></div>
-          <div class="mg-qa__txt"><div class="mg-qa__title">Davomat</div><div class="mg-qa__sub">Yo'qlama olish</div></div>
-        </a>
-        <a class="mg-qa mg-qa--violet" href="{% url 'education:groups_home' %}">
-          <div class="mg-qa__icon"><i class="fa-solid fa-layer-group"></i></div>
-          <div class="mg-qa__txt"><div class="mg-qa__title">Guruhlar</div><div class="mg-qa__sub">Boshqaruv</div></div>
-        </a>
-        <a class="mg-qa mg-qa--amber" href="{% url 'education:tolovlar_home' %}">
-          <div class="mg-qa__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
-          <div class="mg-qa__txt"><div class="mg-qa__title">To'lovlar</div><div class="mg-qa__sub">Qabul va tarix</div></div>
-        </a>
-        <a class="mg-qa mg-qa--rose" href="{% url 'store:lead_list' %}">
-          <div class="mg-qa__icon"><i class="fa-solid fa-phone-volume"></i></div>
-          <div class="mg-qa__txt"><div class="mg-qa__title">Lidlar</div><div class="mg-qa__sub">Potentsial mijozlar</div></div>
-        </a>
-      </div>
-    </div>
-
-  </div>
-</div>
-{% include "components/grace_period_modal.html" %}
-
-<!-- "Eng yaxshi guruhlar" satrlari uchun ko'proq menyu (3 nuqta tugma) -->
-<div id="mgBestGroupsMenu" class="mg-best-menu" role="menu" aria-hidden="true">
-  <a href="#" class="mg-best-menu__item" data-action="open" role="menuitem"><i class="fa-solid fa-arrow-up-right-from-square"></i> Guruhga kirish</a>
-  <a href="#" class="mg-best-menu__item" data-action="schedule" role="menuitem"><i class="fa-regular fa-calendar"></i> Jadval</a>
-  <a href="#" class="mg-best-menu__item" data-action="add-student" role="menuitem"><i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish</a>
-  <div class="mg-best-menu__divider"></div>
-  <a href="#" class="mg-best-menu__item" data-action="edit" role="menuitem"><i class="fa-solid fa-pen-to-square"></i> Tahrirlash</a>
-</div>
-
-<script>
-  // Group action URL templates — built via Django reverse with a sentinel
-  // ID, then the placeholder is swapped at click time.
-  window.__MG_GROUP_URLS = {
-    open:          "{% url 'education:group_detail'         pk=999999 %}",
-    edit:          "{% url 'education:group_edit'           pk=999999 %}",
-    'add-student': "{% url 'education:add_student_to_group' pk=999999 %}",
-    schedule:      "{% url 'education:group_schedule_manage' group_id=999999 %}",
-  };
-</script>
-
-<!-- ══════════════════ QUICK MENU PANEL (body-level) ══════════════════ -->
-<div class="mg-quick__panel" id="mgQuickPanel" role="menu" aria-label="Tezkor amallar">
-  <div class="mg-quick__panel-head">Tezkor amallar</div>
-  <button
-    type="button"
-    class="mg-quick__link"
-    id="mgQuickStudentOpen"
-    data-drawer-url="{% url 'accounts:add_user' %}?role=student&drawer=1&next={{ request.get_full_path|urlencode }}"
-    role="menuitem">
-    <span class="mg-quick__ico mg-quick__ico--student"><i class="fa-solid fa-user-plus"></i></span>
-    <div class="mg-quick__link-body">
-      <span class="mg-quick__title">Yangi talaba</span>
-      <span class="mg-quick__sub">O'quvchi qo'shish</span>
-    </div>
-    <span class="mg-quick__arr"><i class="fa-solid fa-chevron-right"></i></span>
-  </button>
-  <div class="mg-quick__divider"></div>
-  <button type="button" class="mg-quick__link" id="mgQuickPayOpen" role="menuitem">
-    <span class="mg-quick__ico mg-quick__ico--payment"><i class="fa-solid fa-sack-dollar"></i></span>
-    <div class="mg-quick__link-body">
-      <span class="mg-quick__title">To'lov qabul qilish</span>
-      <span class="mg-quick__sub">Qarzdor o'quvchi uchun</span>
-    </div>
-    <span class="mg-quick__arr"><i class="fa-solid fa-chevron-right"></i></span>
-  </button>
-</div>
-
-<!-- ══════════════════ PROFILE PANEL (body-level) ══════════════════ -->
-<div class="mg-profile__panel" id="mgProfilePanel" role="menu" aria-label="Profil menyusi">
-  <div class="mg-profile__head">
-    {% if request.user.avatar %}
-    <div class="mg-profile__head-ava"><img src="{{ request.user.avatar.url }}" alt="Avatar"></div>
-    {% else %}
-    <div class="mg-profile__head-ava">{{ request.user.ism|first|default:request.user.email|first|upper }}</div>
-    {% endif %}
-    <div style="min-width:0">
-      <p class="mg-profile__name">{{ request.user.get_full_name|default:request.user.email }}</p>
-      <p class="mg-profile__role">Manager</p>
-    </div>
-  </div>
-  <div class="mg-profile__div"></div>
-  <a href="{% url 'accounts:profile' %}" class="mg-profile__item" role="menuitem">
-    <i class="fa-solid fa-user"></i> <span>Profilim</span>
-  </a>
-  <div class="mg-profile__div"></div>
-  <form method="post" action="{% url 'logout' %}" class="mg-profile__form">
-    {% csrf_token %}
-    <button type="submit" class="mg-profile__item mg-profile__item--logout" role="menuitem">
-      <i class="fa-solid fa-right-from-bracket"></i> <span>Chiqish</span>
-    </button>
-  </form>
-</div>
-
-<!-- ══════════════════ STUDENT DRAWER ══════════════════ -->
-<div class="bq-sdrawer-overlay" id="bqStudentDrawerOverlay"></div>
-<aside class="bq-sdrawer" id="bqStudentDrawer" aria-hidden="true">
-  <div class="bq-sdrawer__header">
-    <div>
-      <h3 class="bq-sdrawer__title">Yangi talaba qo'shish</h3>
-    </div>
-    <button class="bq-sdrawer__close" id="bqStudentDrawerClose" type="button" aria-label="Yopish">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-  </div>
-  <div class="bq-sdrawer__body" id="bqStudentDrawerBody">
-    <div class="bq-sdrawer-loading">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>Forma yuklanmoqda...</span>
-    </div>
-  </div>
-</aside>
-
-<!-- ══════════════════ PAYMENT MODAL ══════════════════ -->
-<div class="bq-pm-ov" id="bqPayModal" hidden
-     data-students-url="{% url 'education:students_with_debt_api' %}"
-     data-groups-tpl="{% url 'education:student_groups_api' student_id=0 %}"
-     data-create-url="{% url 'education:create_payment' %}"
-     data-redirect-url="{% url 'education:tolovlar_home' %}">
-  <div class="bq-pm">
-    <div class="bq-pm__head">
-      <div class="bq-pm__head-ico"><i class="fa-solid fa-sack-dollar"></i></div>
-      <div class="bq-pm__head-title">To'lov qilish</div>
-      <button type="button" class="bq-pm__close" id="bqPMClose"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <div class="bq-pm__search-wrap" id="bqPMSearchWrap">
-      <i class="fa-solid fa-magnifying-glass bq-pm__search-ico"></i>
-      <input type="text" class="bq-pm__search-inp" id="bqPMSearch"
-             placeholder="O'quvchi ismi yoki telefoni..." autocomplete="off">
-    </div>
-    <div class="bq-pm__list-wrap" id="bqPMListWrap">
-      <div class="bq-pm__list" id="bqPMList">
-        <div class="bq-pm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>
-      </div>
-    </div>
-
-    <div class="bq-pm__sep" id="bqPMSep" hidden></div>
-
-    <div class="bq-pm__form" id="bqPMForm" hidden>
-      <div class="bq-pm__student-badge" id="bqPMStudentBadge">
-        <div class="bq-pm__student-ava"><i class="fa-solid fa-user"></i></div>
-        <div class="bq-pm__student-info">
-          <div class="bq-pm__student-name" id="bqPMStudentName"></div>
-          <div class="bq-pm__student-groups" id="bqPMStudentGroups">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size:10px"></i>
-          </div>
-        </div>
-        <button type="button" class="bq-pm__student-change" id="bqPMStudentChange" title="O'zgartirish">
-          <i class="fa-solid fa-pen-to-square"></i>
-        </button>
-      </div>
-
-      <div class="bq-pm__type-row" id="bqPMTypeRow">
-        {% if not active_payment_methods or 'NAQD' in active_payment_methods %}
-        <button type="button" class="bq-pm__type-btn is-active" data-type="cash">
-          <i class="fa-solid fa-money-bills"></i> Naqt
-        </button>
-        {% endif %}
-        {% if not active_payment_methods or 'KARTA' in active_payment_methods or 'CLICK' in active_payment_methods or 'PAYME' in active_payment_methods %}
-        <button type="button" class="bq-pm__type-btn{% if active_payment_methods and 'NAQD' not in active_payment_methods %} is-active{% endif %}" data-type="card">
-          <i class="fa-solid fa-credit-card"></i> Karta
-        </button>
-        {% endif %}
-        {% if not active_payment_methods or 'NAQD' in active_payment_methods and 'KARTA' in active_payment_methods or 'CLICK' in active_payment_methods or 'PAYME' in active_payment_methods %}
-        <button type="button" class="bq-pm__type-btn" data-type="mixed">
-          <i class="fa-solid fa-shuffle"></i> Aralash
-        </button>
-        {% endif %}
-      </div>
-
-      <div class="bq-pm__amounts" id="bqPMAmounts"></div>
-
-      <div class="bq-pm__date-row">
-        <span class="bq-pm__date-label">Sana</span>
-        <input type="date" class="bq-pm__date-inp" id="bqPMDate">
-      </div>
-
-      <div class="bq-pm__note-wrap">
-        <button type="button" class="bq-pm__note-toggle" id="bqPMNoteToggle">
-          <i class="fa-regular fa-comment-dots"></i> Izoh qo'shish
-        </button>
-        <textarea class="bq-pm__note-inp" id="bqPMNote" placeholder="Izoh..." hidden></textarea>
-      </div>
-    </div>
-
-    <div class="bq-pm__foot">
-      <button type="button" class="bq-pm__btn-cancel" id="bqPMCancel">Bekor qilish</button>
-      <button type="button" class="bq-pm__btn-confirm" id="bqPMConfirm" disabled>
-        <i class="fa-solid fa-check"></i> To'lov qilish
-      </button>
-    </div>
-  </div>
-</div>
-<form id="bqPayForm" method="post" action="{% url 'education:create_payment' %}" style="display:none">
-  {% csrf_token %}
-  <input type="hidden" name="student_id" id="bqPFStudentId">
-  <input type="hidden" name="cash_amount" id="bqPFCash" value="0">
-  <input type="hidden" name="card_amount" id="bqPFCard" value="0">
-  <input type="hidden" name="paid_date" id="bqPFDate">
-  <input type="hidden" name="note" id="bqPFNote">
-  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-</form>
-
-<!-- ══════════════════ AI CHAT (manager) ══════════════════ -->
-<div class="mg-chat-overlay" id="mgChatOverlay"></div>
-<div class="mg-chat" id="mgChatPanel">
-  <div class="mg-chat__header">
-    <div class="mg-chat__hicon"><i class="fa-solid fa-robot"></i></div>
-    <div style="flex:1; min-width:0;">
-      <div class="mg-chat__htitle">AI Yordamchi</div>
-      <div class="mg-chat__hsub">Gemini · {{ center.name|default:"Markaz" }} · manager ko'rinishi</div>
-    </div>
-    <button class="mg-chat__close" id="mgChatClose" type="button"><i class="fa-solid fa-xmark"></i></button>
-  </div>
-
-  <div class="mg-chat__messages" id="mgChatMessages">
-    <div class="mg-msg">
-      <div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div>
-      <div class="mg-msg__bubble">
-        Salom! Men <strong>{{ center.name|default:"markaz" }}</strong> bo'yicha guruhlar, davomat, qarzdorlar va o'quvchilar haqida savollarga javob beraman.<br><br>
-        Telefon raqamlar maxfiyligi sabab maskalanadi.
-      </div>
-    </div>
-  </div>
-
-  <div class="mg-chat__prompts">
-    <button class="mg-chat__prompt" data-q="Bugungi davomat qanday?">📊 Bugungi davomat</button>
-    <button class="mg-chat__prompt" data-q="Kim qarzdor?">⚠️ Qarzdorlar</button>
-    <button class="mg-chat__prompt" data-q="Faol guruhlar nechta?">👥 Faol guruhlar</button>
-    <button class="mg-chat__prompt" data-q="Past faollikdagi o'quvchilar kimlar?">🔻 Past faollik</button>
-  </div>
-
-  <div class="mg-chat__footer">
-    <div class="mg-chat__inputrow">
-      <textarea class="mg-chat__input" id="mgChatInput" placeholder="Savol yozing... (Enter yuboradi)" rows="1"></textarea>
-      <button class="mg-chat__send" id="mgChatSend" type="button"><i class="fa-solid fa-paper-plane"></i></button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ XARID SO'ROVLARI (PURCHASE REQUESTS) ══════════ -->
-<section class="mg-pr-section" aria-label="Mahsulot xarid so'rovlari">
-  <div class="mg-pr-card">
-    <div class="mg-pr-card__head">
-      <div class="mg-pr-card__title-wrap">
-        <span class="mg-pr-card__icon">🛍</span>
-        <div>
-          <h3 class="mg-pr-card__title">Mahsulot xarid so'rovlari</h3>
-          <p class="mg-pr-card__sub">O'quvchilar Telegram bot orqali yuborgan kutilayotgan so'rovlar</p>
-        </div>
-      </div>
-      <div class="mg-pr-card__head-right">
-        {% if pending_purchase_requests_count %}
-          <span class="mg-pr-badge">{{ pending_purchase_requests_count }} kutilmoqda</span>
-        {% else %}
-          <span class="mg-pr-badge mg-pr-badge--empty">0 kutilmoqda</span>
-        {% endif %}
-        <a href="{% url 'store:requests' %}" class="mg-pr-card__all">Barchasini ko'rish →</a>
-      </div>
-    </div>
-
-    {% if pending_purchase_requests %}
-      <div class="mg-pr-list">
-        {% for r in pending_purchase_requests %}
-          <div class="mg-pr-row">
-            <div class="mg-pr-row__main">
-              <div class="mg-pr-row__student">
-                <span class="mg-pr-row__avatar">{{ r.student_name|slice:":1"|upper|default:"?" }}</span>
-                <div class="mg-pr-row__txt">
-                  <div class="mg-pr-row__name">{{ r.student_name }}</div>
-                  <div class="mg-pr-row__meta">
-                    <span class="mg-pr-row__product">{{ r.product_name }}</span>
-                    {% if r.qty and r.qty > 1 %}<span class="mg-pr-row__qty">×{{ r.qty }}</span>{% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="mg-pr-row__right">
-              <span class="mg-pr-row__price">⚡ {{ r.price_chaqmoq }}</span>
-              <span class="mg-pr-row__date">{{ r.sana|date:"d.m H:i" }}</span>
-              <a href="{% url 'store:requests' %}#req-{{ r.id }}" class="mg-pr-row__btn">Ko'rib chiqish</a>
+            <div class="director-profile-meta">
+              <p class="director-profile-name">{{ request.user.get_full_name|default:request.user.email }}</p>
+              <p class="director-profile-role">
+                {% if request.user.is_superuser %}Super Admin
+                {% elif request.user.role == 'director' %}Director
+                {% elif request.user.role == 'manager' %}Manager
+                {% elif request.user.role == 'teacher' %}O'qituvchi
+                {% elif request.user.role == 'student' %}O'quvchi
+                {% elif request.user.role == 'parent' %}Ota-ona
+                {% else %}Foydalanuvchi{% endif %}
+              </p>
             </div>
           </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="mg-pr-empty">
-        <span class="mg-pr-empty__icon">✅</span>
-        <div>
-          <div class="mg-pr-empty__title">Hech qanday kutilayotgan so'rov yo'q</div>
-          <div class="mg-pr-empty__sub">O'quvchilar Telegram orqali so'rov yuborganda bu yerda ko'rinadi</div>
+
+          <div class="director-profile-divider"></div>
+
+          <a href="{% url 'accounts:profile' %}" class="director-profile-item" role="menuitem">
+            <i class="bi bi-person"></i>
+            <span>Profilim</span>
+          </a>
+
+          <div class="director-profile-divider"></div>
+
+          <form method="post" action="{% url 'logout' %}" class="director-profile-form">
+            {% csrf_token %}
+            <button type="submit" class="director-profile-item director-profile-item--logout" role="menuitem">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Chiqish</span>
+            </button>
+          </form>
         </div>
       </div>
+    </div>
+  </header>
+
+  {% for alert in director_alerts %}
+  <div style="
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px; border-radius:12px; margin:0 0 8px;
+    background:{% if alert.level == 'danger' %}rgba(239,68,68,0.1){% elif alert.level == 'warning' %}rgba(245,158,11,0.1){% else %}rgba(56,189,248,0.1){% endif %};
+    border:1px solid {% if alert.level == 'danger' %}rgba(239,68,68,0.3){% elif alert.level == 'warning' %}rgba(245,158,11,0.3){% else %}rgba(56,189,248,0.3){% endif %};">
+    <span style="font-size:18px;">{{ alert.icon }}</span>
+    <span style="font-size:13px; color:#e2e8f0; font-weight:600;">{{ alert.text }}</span>
+    {% if alert.url %}
+    <a href="{{ alert.url }}" style="margin-left:auto; font-size:12px; color:#94a3b8;">Ko'rish →</a>
     {% endif %}
   </div>
+  {% endfor %}
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin:0 0 20px;">
+
+    <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Bugungi tushum</div>
+      <div style="font-size:26px; font-weight:900; color:#34d399;" id="stat-today-income">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Bugun qabul qilingan to'lovlar</div>
+    </div>
+
+    <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Qarzdorlar</div>
+      <div style="font-size:26px; font-weight:900; color:#f87171;" id="stat-debtors">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Bu oyda to'lamagan o'quvchilar</div>
+    </div>
+
+    <div style="background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Faol guruhlar</div>
+      <div style="font-size:26px; font-weight:900; color:#fb923c;" id="stat-groups">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Arxivlanmagan guruhlar soni</div>
+    </div>
+
+    <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Bugungi davomat</div>
+      <div style="font-size:26px; font-weight:900; color:#38bdf8;" id="stat-attendance">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;" id="stat-attendance-label">Bugun belgilangan davomat foizi</div>
+    </div>
+
+  </div>
+
+  {% if not feature_kpi and not feature_leads %}
+  {% include "partials/dashboard_upgrade_block.html" %}
+  {% endif %}
+
+  <!-- Quick navigation links -->
+  <nav class="director-quicklinks" aria-label="Tezkor havolalar">
+
+    <a href="{% url 'core:director_overview' %}" class="director-ql-card">
+      <i class="fa-solid fa-bolt-lightning" style="color:#facc15;background:rgba(250,204,21,.1);"></i>
+      <span>Umumiy ko'rinish</span>
+    </a>
+
+    <a href="{% url 'core:financial_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-chart-line" style="color:#22c55e;background:rgba(34,197,94,.1);"></i>
+      <span>Moliya</span>
+    </a>
+
+    <a href="{% url 'core:student_performance_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-user-graduate" style="color:#38bdf8;background:rgba(56,189,248,.1);"></i>
+      <span>O'quvchilar</span>
+    </a>
+
+    <a href="{% url 'core:teacher_performance_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-chalkboard-user" style="color:#a78bfa;background:rgba(167,139,250,.1);"></i>
+      <span>O'qituvchilar</span>
+    </a>
+
+    <a href="{% url 'core:groups_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-layer-group" style="color:#f97316;background:rgba(249,115,22,.1);"></i>
+      <span>Guruhlar</span>
+    </a>
+
+    <a href="{% url 'core:billing_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-credit-card" style="color:#fb923c;background:rgba(251,146,60,.1);"></i>
+      <span>To'lovlar</span>
+    </a>
+
+    <a href="{% url 'core:director_boshqaruv' %}" class="director-ql-card">
+      <i class="fa-solid fa-sliders" style="color:#22d3ee;background:rgba(34,211,238,.1);"></i>
+      <span>Boshqaruv</span>
+    </a>
+
+    <a href="{% url 'core:analytics_dashboard' %}" class="director-ql-card">
+      <i class="fa-solid fa-magnifying-glass-chart" style="color:#f43f5e;background:rgba(244,63,94,.1);"></i>
+      <span>Tahlil</span>
+    </a>
+
+    <a href="{% url 'core:stat_students' %}" class="director-ql-card">
+      <i class="fa-solid fa-users" style="color:#818cf8;background:rgba(129,140,248,.1);"></i>
+      <span>Statistika</span>
+    </a>
+
+    <a href="{% url 'accounts:profile' %}" class="director-ql-card">
+      <i class="fa-solid fa-gear" style="color:#94a3b8;background:rgba(148,163,184,.1);"></i>
+      <span>Sozlamalar</span>
+    </a>
+
+  </nav>
+
 </section>
 
-<style>
-/* ══════════════════════════════════════════════════════════════
-   MANAGER — Xarid so'rovlari kartochkasi
-   ══════════════════════════════════════════════════════════════ */
-.mg-pr-section { margin-top: 20px; max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 clamp(12px, 2vw, 20px); }
-.mg-pr-card {
-  border-radius: 16px;
-  background: var(--panel, rgba(13,21,38,.88));
-  border: 1px solid var(--line, rgba(255,255,255,.07));
-  padding: 18px 20px;
-  backdrop-filter: blur(12px);
-}
-.mg-pr-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.mg-pr-card__title-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.mg-pr-card__icon {
-  font-size: 24px;
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(34,211,238,.18), rgba(129,140,248,.18));
-  border: 1px solid rgba(34,211,238,.22);
-}
-.mg-pr-card__title { margin: 0; color: var(--text, #e2e8f0); font-size: 16px; font-weight: 800; }
-.mg-pr-card__sub  { margin: 2px 0 0; color: var(--muted, #94a3b8); font-size: 12.5px; }
-.mg-pr-card__head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.mg-pr-badge {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(251,146,60,.16), rgba(239,68,68,.14));
-  border: 1px solid rgba(251,146,60,.32);
-  color: #fb923c;
-  font-size: 12.5px;
-  font-weight: 800;
-}
-.mg-pr-badge--empty { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.28); color: #34d399; }
-.mg-pr-card__all { color: #22d3ee; font-size: 13px; font-weight: 700; text-decoration: none; border-bottom: 1px dashed rgba(34,211,238,.4); }
-.mg-pr-card__all:hover { color: #67e8f9; }
-.mg-pr-list { display: grid; gap: 10px; }
-.mg-pr-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.02);
-  border: 1px solid var(--line, rgba(255,255,255,.07));
-  transition: border-color .15s, background .15s;
-}
-.mg-pr-row:hover { background: rgba(255,255,255,.04); }
-.mg-pr-row__student { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.mg-pr-row__avatar {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #22d3ee, #818cf8);
-  color: #fff;
-  font-weight: 800;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.mg-pr-row__txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.mg-pr-row__name { color: var(--text, #e2e8f0); font-weight: 700; font-size: 14px; }
-.mg-pr-row__meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted, #94a3b8); font-size: 12px; }
-.mg-pr-row__product { color: var(--muted, #94a3b8); font-weight: 600; }
-.mg-pr-row__qty { background: rgba(99,102,241,.12); color: #818cf8; padding: 1px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-.mg-pr-row__right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-.mg-pr-row__price { color: #fbbf24; font-weight: 800; font-size: 13px; white-space: nowrap; }
-.mg-pr-row__date { color: var(--muted, #94a3b8); font-size: 11.5px; white-space: nowrap; }
-.mg-pr-row__btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #22d3ee, #818cf8);
-  color: #0b1220;
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-  transition: transform .12s, box-shadow .15s;
-  white-space: nowrap;
-}
-.mg-pr-row__btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34,211,238,.22); color: #0b1220; }
-.mg-pr-empty {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px 16px;
-  border-radius: 12px;
-  background: rgba(34,197,94,.06);
-  border: 1px dashed rgba(34,197,94,.28);
-}
-.mg-pr-empty__icon { font-size: 24px; }
-.mg-pr-empty__title { color: var(--text, #e2e8f0); font-weight: 700; font-size: 14px; }
-.mg-pr-empty__sub   { color: var(--muted, #94a3b8); font-size: 12.5px; margin-top: 2px; }
-@media (max-width: 640px) {
-  .mg-pr-row { grid-template-columns: 1fr; }
-  .mg-pr-row__right { justify-content: flex-start; }
-  .mg-pr-card__head-right { width: 100%; justify-content: space-between; }
-}
-
-/* Light mode override */
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-card {
-  background: #ffffff;
-  border-color: rgba(15,23,42,.10);
-  box-shadow: 0 4px 16px rgba(15,23,42,.06);
-}
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-card__title { color: #0f172a; }
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-card__sub { color: #64748b; }
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row {
-  background: #f8fafc;
-  border-color: rgba(15,23,42,.08);
-}
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row__name { color: #0f172a; }
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row__meta,
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row__product,
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row__date { color: #64748b; }
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-row__btn {
-  color: #ffffff;
-  background: linear-gradient(135deg, #2563eb, #818cf8);
-}
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-empty__title { color: #0f172a; }
-html[data-role-theme="light"] body.manager-dashboard-page .mg-pr-empty__sub { color: #64748b; }
-
-/* ══════════════════════════════════════════════════════════════
-   MANAGER DASHBOARD — TO'LIQ LIGHT MODE
-   ══════════════════════════════════════════════════════════════ */
-html[data-role-theme="light"] {
-  --mg-bg:    #f0f4f8;
-  --mg-surf:  #ffffff;
-  --mg-card:  rgba(255,255,255,.95);
-  --mg-br:    rgba(15,23,42,.09);
-  --mg-br2:   rgba(15,23,42,.16);
-  --mg-txt:   #0f172a;
-  --mg-muted: #64748b;
-  --mg-soft:  #94a3b8;
-  --mg-cyan:  #0284c7;
-  --mg-green: #059669;
-  --mg-amber: #d97706;
-  --mg-rose:  #e11d48;
-  --mg-violet:#4f46e5;
-  --mg-blue:  #2563eb;
-  --mg-orange:#ea580c;
-  --mg-teal:  #0d9488;
-}
-
-/* Page bg */
-html[data-role-theme="light"] body.manager-dashboard-page { background:#f0f4f8; }
-html[data-role-theme="light"] .mg {
-  background:
-    radial-gradient(ellipse 60% 35% at 8% 0%,  rgba(14,165,233,.05) 0%, transparent 55%),
-    radial-gradient(ellipse 45% 30% at 92% 5%, rgba(99,102,241,.06) 0%, transparent 50%),
-    linear-gradient(180deg,#f0f4f8 0%,#e8eef5 100%);
-  color:#0f172a;
-}
-
-/* Header */
-html[data-role-theme="light"] .mg-header {
-  background:rgba(255,255,255,.94);
-  border-color:rgba(15,23,42,.08);
-  box-shadow:0 4px 20px rgba(15,23,42,.07);
-}
-html[data-role-theme="light"] .mg-brand__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-header__sync { color:#94a3b8; }
-html[data-role-theme="light"] .mg-header__refresh {
-  background:rgba(15,23,42,.04); border-color:rgba(15,23,42,.10); color:#0f172a;
-}
-html[data-role-theme="light"] .mg-header__refresh:hover {
-  background:rgba(15,23,42,.07); border-color:rgba(15,23,42,.16);
-}
-
-/* Filter bar */
-html[data-role-theme="light"] .mg-filter {
-  background:rgba(255,255,255,.92); border-color:rgba(15,23,42,.08);
-}
-html[data-role-theme="light"] .mg-field__lbl { color:#94a3b8; }
-html[data-role-theme="light"] .mg-field input[type="date"] {
-  background:#fff; border-color:rgba(15,23,42,.12); color:#0f172a; color-scheme:light;
-}
-html[data-role-theme="light"] .mg-field input[type="date"]:hover { border-color:rgba(15,23,42,.2); background:#f8fafc; }
-html[data-role-theme="light"] .mg-field input[type="date"]:focus { border-color:#0284c7; box-shadow:0 0 0 3px rgba(2,132,199,.10); }
-html[data-role-theme="light"] .mg-preset { color:#64748b; border-color:rgba(15,23,42,.10); background:rgba(15,23,42,.03); }
-html[data-role-theme="light"] .mg-preset:hover { color:#0f172a; border-color:rgba(15,23,42,.16); background:rgba(15,23,42,.06); }
-html[data-role-theme="light"] .mg-preset.is-active { color:#0284c7; border-color:rgba(2,132,199,.3); background:rgba(2,132,199,.08); }
-html[data-role-theme="light"] .mg-filter__reset { color:#64748b; border-color:rgba(15,23,42,.10); background:rgba(15,23,42,.03); }
-html[data-role-theme="light"] .mg-filter__reset:hover { color:#0f172a; border-color:rgba(15,23,42,.16); background:rgba(15,23,42,.06); }
-
-/* KPI cards */
-html[data-role-theme="light"] .mg-kpi {
-  background:#fff; border-color:rgba(15,23,42,.08);
-  box-shadow:0 2px 12px rgba(15,23,42,.06);
-}
-html[data-role-theme="light"] .mg-kpi:hover { border-color:rgba(15,23,42,.14); box-shadow:0 8px 28px rgba(15,23,42,.10); }
-html[data-role-theme="light"] .mg-kpi__lbl  { color:#94a3b8; }
-html[data-role-theme="light"] .mg-kpi__val  { color:#0f172a; }
-html[data-role-theme="light"] .mg-kpi__sub  { color:#64748b; }
-html[data-role-theme="light"] .mg-kpi__icon { border-color:rgba(15,23,42,.07) !important; }
-html[data-role-theme="light"] .mg-badge--up   { color:#059669; background:rgba(5,150,105,.1); border-color:rgba(5,150,105,.2); }
-html[data-role-theme="light"] .mg-badge--down { color:#e11d48; background:rgba(225,29,72,.1); border-color:rgba(225,29,72,.2); }
-html[data-role-theme="light"] .mg-badge--flat { color:#64748b; background:rgba(100,116,139,.08); border-color:rgba(100,116,139,.14); }
-
-/* Generic card */
-html[data-role-theme="light"] .mg-card { background:#fff; border-color:rgba(15,23,42,.08); }
-
-/* Section headers */
-html[data-role-theme="light"] .mg-sec__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-sec__sub   { color:#94a3b8; }
-html[data-role-theme="light"] .mg-sec__link  { color:#64748b; border-color:rgba(15,23,42,.10); background:rgba(15,23,42,.03); }
-html[data-role-theme="light"] .mg-sec__link:hover { color:#0f172a; border-color:rgba(15,23,42,.16); background:rgba(15,23,42,.06); }
-
-/* Rows / list items */
-html[data-role-theme="light"] .mg-row { background:#f8fafc; border-color:rgba(15,23,42,.07); }
-html[data-role-theme="light"] .mg-row:hover { background:#f1f5f9; border-color:rgba(15,23,42,.12); }
-html[data-role-theme="light"] .mg-row__time  { color:#0284c7; }
-html[data-role-theme="light"] .mg-row__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-row__sub   { color:#64748b; }
-html[data-role-theme="light"] .mg-row__status--ok   { color:#059669; background:rgba(5,150,105,.1); border-color:rgba(5,150,105,.2); }
-html[data-role-theme="light"] .mg-row__status--wait { color:#d97706; background:rgba(217,119,6,.1); border-color:rgba(217,119,6,.2); }
-
-/* Attention rows */
-html[data-role-theme="light"] .mg-attn-row { background:#f8fafc; border-color:rgba(15,23,42,.07); }
-html[data-role-theme="light"] .mg-attn-row:hover { background:#f1f5f9; border-color:rgba(15,23,42,.12); }
-html[data-role-theme="light"] .mg-attn__name  { color:#0f172a; }
-html[data-role-theme="light"] .mg-attn__sub   { color:#64748b; }
-html[data-role-theme="light"] .mg-attn__rate  { color:#e11d48; background:rgba(225,29,72,.08); border-color:rgba(225,29,72,.18); }
-
-/* Activity feed */
-html[data-role-theme="light"] .mg-feed__row  { background:#f8fafc; border-color:rgba(15,23,42,.06); }
-html[data-role-theme="light"] .mg-feed__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-feed__sub   { color:#64748b; }
-html[data-role-theme="light"] .mg-feed__time  { color:#94a3b8; }
-
-/* Funnel */
-html[data-role-theme="light"] .mg-funnel__lbl { color:#0f172a; }
-html[data-role-theme="light"] .mg-funnel__bar { background:rgba(15,23,42,.06); }
-html[data-role-theme="light"] .mg-funnel__val { color:#0f172a; }
-
-/* Top groups */
-html[data-role-theme="light"] .mg-grp__row { background:#f8fafc; border-color:rgba(15,23,42,.07); }
-html[data-role-theme="light"] .mg-grp__name    { color:#0f172a; }
-html[data-role-theme="light"] .mg-grp__teacher { color:#64748b; }
-html[data-role-theme="light"] .mg-grp__meter   { background:rgba(15,23,42,.06); }
-html[data-role-theme="light"] .mg-grp__pct     { color:#0284c7; }
-
-/* Quick actions */
-html[data-role-theme="light"] .mg-qa { background:#fff; border-color:rgba(15,23,42,.08); }
-html[data-role-theme="light"] .mg-qa:hover { border-color:rgba(15,23,42,.14); box-shadow:0 6px 20px rgba(15,23,42,.09); }
-html[data-role-theme="light"] .mg-qa__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-qa__sub   { color:#64748b; }
-
-/* Best groups + activity cards */
-html[data-role-theme="light"] .mg-best-card,
-html[data-role-theme="light"] .mg-activity-card {
-  background:#fff; border-color:rgba(15,23,42,.08);
-  box-shadow:0 2px 12px rgba(15,23,42,.06);
-}
-html[data-role-theme="light"] .mg-best-card__title,
-html[data-role-theme="light"] .mg-activity-card__title { color:#0f172a; }
-html[data-role-theme="light"] .mg-best-card__sub,
-html[data-role-theme="light"] .mg-activity-card__sub   { color:#64748b; }
-
-/* Skeleton shimmer */
-html[data-role-theme="light"] .mg-skeleton {
-  background:linear-gradient(90deg,rgba(15,23,42,.04) 0%,rgba(15,23,42,.09) 50%,rgba(15,23,42,.04) 100%);
-  background-size:200% 100%;
-}
-
-/* Empty state */
-html[data-role-theme="light"] .mg-empty { color:#64748b; }
-html[data-role-theme="light"] .mg-empty i { color:#94a3b8; }
-
-/* Scrollbar */
-html[data-role-theme="light"] .mg-list::-webkit-scrollbar-thumb,
-html[data-role-theme="light"] .mg-feed::-webkit-scrollbar-thumb { background:rgba(15,23,42,.12); }
-
-/* AI Chat button */
-html[data-role-theme="light"] .mg-ai-btn {
-  background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(79,70,229,.12));
-  border-color:rgba(99,102,241,.2); color:#4f46e5;
-}
-
-/* ── Student drawer — autofill va input fix ── */
-.bq-sdrawer-field input:-webkit-autofill,
-.bq-sdrawer-field input:-webkit-autofill:hover,
-.bq-sdrawer-field input:-webkit-autofill:focus,
-.bq-sdrawer-field select:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px rgba(7,13,26,.9) inset !important;
-  -webkit-text-fill-color: #e2e8f0 !important;
-  caret-color: #e2e8f0 !important;
-  border-color: rgba(148,163,184,.2) !important;
-  transition: background-color 99999s ease-in-out 0s;
-}
-html[data-role-theme="light"] .bq-sdrawer-field input:-webkit-autofill,
-html[data-role-theme="light"] .bq-sdrawer-field input:-webkit-autofill:hover,
-html[data-role-theme="light"] .bq-sdrawer-field input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
-  -webkit-text-fill-color: #0f172a !important;
-  caret-color: #0f172a !important;
-}
-html[data-role-theme="light"] .bq-sdrawer-field input,
-html[data-role-theme="light"] .bq-sdrawer-field select,
-html[data-role-theme="light"] .bq-sdrawer-field textarea {
-  background:#f8fafc; border-color:rgba(148,163,184,.3);
-  color:#0f172a !important; -webkit-text-fill-color:#0f172a;
-}
-html[data-role-theme="light"] .bq-sdrawer-field input:focus,
-html[data-role-theme="light"] .bq-sdrawer-field select:focus,
-html[data-role-theme="light"] .bq-sdrawer-field textarea:focus {
-  background:#fff; border-color:rgba(37,99,235,.45);
-  box-shadow:0 0 0 4px rgba(37,99,235,.10);
-}
-html[data-role-theme="light"] .bq-sdrawer-field input::placeholder,
-html[data-role-theme="light"] .bq-sdrawer-field textarea::placeholder { color:#94a3b8; -webkit-text-fill-color:#94a3b8; }
-
-/* ── Tug'ilgan sana: icon-left date wrapper ── */
-.bq-sdrawer-date{position:relative;display:flex;align-items:stretch;overflow:hidden;border:1px solid rgba(148,163,184,.24);border-radius:14px;background:rgba(7,13,26,.82);transition:border-color .18s ease,box-shadow .18s ease;}
-.bq-sdrawer-date:focus-within{border-color:rgba(56,189,248,.54);box-shadow:0 0 0 4px rgba(56,189,248,.12);}
-.bq-sdrawer-date__icon{width:46px;min-width:46px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-right:1px solid rgba(148,163,184,.24);color:#38bdf8;background:rgba(56,189,248,.08);font-size:.95rem;}
-.bq-sdrawer-date input[type="date"]{flex:1;min-height:46px;height:46px;padding:0 14px;border:0!important;background:transparent!important;box-shadow:none!important;outline:none;color:#e2e8f0!important;-webkit-text-fill-color:#e2e8f0!important;caret-color:#e2e8f0;color-scheme:dark;cursor:pointer;font-size:.94rem;font-weight:500;width:100%;-webkit-appearance:none;appearance:none;}
-.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit{display:flex;align-items:center;padding:0;line-height:1;}
-.bq-sdrawer-date input[type="date"]::-webkit-datetime-edit-fields-wrapper{padding:0;}
-.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;filter:invert(.7) brightness(2);padding:0;margin-right:10px;width:15px;height:15px;}
-.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
-html[data-role-theme="light"] .bq-sdrawer-date{background:rgba(255,255,255,.98);border-color:rgba(148,163,184,.3);}
-html[data-role-theme="light"] .bq-sdrawer-date:focus-within{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1);}
-html[data-role-theme="light"] .bq-sdrawer-date__icon{background:rgba(37,99,235,.06);border-right-color:rgba(148,163,184,.28);color:#2563eb;}
-html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]{color:#0f172a!important;-webkit-text-fill-color:#0f172a!important;caret-color:#0f172a;color-scheme:light;}
-html[data-role-theme="light"] .bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator{filter:none;opacity:.45;}
-/* ── Floating-label modifier ── */
-.bq-sdrawer-date--fl{flex-direction:column;}
-.bq-sdrawer-field .bq-sdrawer-date__flabel{display:block;width:100%;text-align:center;padding:7px 12px 6px;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#38bdf8;border-bottom:1px solid rgba(148,163,184,.24);line-height:1;cursor:pointer;background:rgba(56,189,248,.04);transition:color .16s;}
-.bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(56,189,248,.07);}
-html[data-role-theme="light"] .bq-sdrawer-field .bq-sdrawer-date__flabel{color:#2563eb;background:rgba(37,99,235,.04);border-bottom-color:rgba(148,163,184,.28);}
-html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__flabel{background:rgba(37,99,235,.07);}
-.bq-sdrawer-date__body{display:flex;align-items:stretch;flex:1;min-width:0;}
-.bq-sdrawer-date--fl .bq-sdrawer-date__body input[type="date"]{height:42px;min-height:42px;}
-</style>
+{# AI Widget — PREMIUM tarifda to'liq, boshqalarda demo rejim #}
+{% if feature_ai %}
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Manager yordamchisi" ai_widget_greet="markaz statistikasi, moliya va o'quvchilar haqida" aiw_prompt_1="Bu oy daromad qancha?" aiw_prompt_2="Qancha qarzdor bor?" aiw_prompt_3="O'quvchilar soni qanday o'zgarmoqda?" aiw_prompt_4="Eng faol guruhlar qaysilar?" %}
+{% else %}
+<script>window.AIW_DEMO_MODE = true;</script>
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Demo rejim — PREMIUM tarifda to'liq ochiladi" ai_widget_greet="AI Yordamchi" aiw_prompt_1="Bu oy daromad qancha?" aiw_prompt_2="Qancha qarzdor bor?" aiw_prompt_3="O'quvchilar soni?" aiw_prompt_4="Eng faol guruhlar?" %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-(function(){
-  const centerSlug = "{{ center.slug|default:''|escapejs }}";
-  const slugPrefix = centerSlug ? "/" + centerSlug : "";
-  const apiUrl = slugPrefix + "/api/dashboard/manager/";
+  (function () {
+    const statsUrl = "{% url 'core:dashboard_quick_stats' %}";
+    const root = document.querySelector('[data-director-profile]');
+    if (!root) return;
 
-  function fmtN(n){ return n==null?'—':Number(n).toLocaleString('uz-UZ'); }
-  function fmtP(n){ return n==null?'—':Math.round(n)+'%'; }
-  function fmtSom(n){
-    if(n==null||n==='') return '—';
-    return Number(Math.round(n)).toLocaleString('uz-UZ') + ' so\'m';
-  }
-  function fmtSomSigned(amount){
-    if(amount==null||amount==='') return '';
-    const v = Number(amount||0);
-    const sign = v<0?'−':'+';
-    return sign + Math.abs(Math.round(v)).toLocaleString('uz-UZ') + ' so\'m';
-  }
-  function escapeHtml(s){
-    return String(s||'').replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-  }
-  function formatActivityTime(iso){
-    if(!iso) return '';
-    const dt = new Date(iso);
-    if(isNaN(dt.getTime())) return '';
-    const now = new Date();
-    const diffMs = now.getTime() - dt.getTime();
-    const minute = 60*1000, hour = 60*minute, day = 24*hour;
-    if(diffMs >= 0 && diffMs < minute) return 'hozir';
-    if(diffMs >= 0 && diffMs < hour)   return Math.max(1, Math.round(diffMs/minute)) + ' daqiqa oldin';
-    if(diffMs >= 0 && diffMs < day)    return Math.round(diffMs/hour) + ' soat oldin';
-    const sameYear = dt.getFullYear() === now.getFullYear();
-    return dt.toLocaleDateString('uz-UZ', {day:'2-digit', month:'2-digit', ...(sameYear?{}:{year:'numeric'})});
-  }
-  function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
-  function setBadge(id, v){
-    const el = document.getElementById(id);
-    if(!el) return;
-    if(v==null){ el.textContent='—'; el.className='mg-badge mg-badge--flat'; return; }
-    const f = parseFloat(v);
-    if(f>0){ el.innerHTML = `<i class="fa-solid fa-arrow-up"></i> +${f}%`; el.className='mg-badge mg-badge--up'; }
-    else if(f<0){ el.innerHTML = `<i class="fa-solid fa-arrow-down"></i> ${f}%`; el.className='mg-badge mg-badge--down'; }
-    else { el.textContent = '0%'; el.className='mg-badge mg-badge--flat'; }
-  }
-  function relTime(iso){
-    if(!iso) return '';
-    try {
-      const dt = new Date(iso);
-      const sec = (Date.now() - dt.getTime())/1000;
-      if(sec < 60) return 'hozir';
-      if(sec < 3600) return Math.floor(sec/60) + ' daq';
-      if(sec < 86400) return Math.floor(sec/3600) + ' soat';
-      const days = Math.floor(sec/86400);
-      if(days < 7) return days + ' kun';
-      return dt.toLocaleDateString('uz-UZ', {day:'2-digit', month:'2-digit'});
-    } catch(_){ return ''; }
-  }
-  function initials(name){
-    if(!name) return '?';
-    const parts = String(name).trim().split(/\s+/);
-    return (parts[0]?.[0]||'') + (parts[1]?.[0]||'');
-  }
+    const toggle = root.querySelector('.director-profile-toggle');
 
-  // ── Chart.js theme ─────────────────────────────────────────
-  if(window.Chart){
-    Chart.defaults.color = '#94a3b8';
-    Chart.defaults.borderColor = 'rgba(255,255,255,.05)';
-    Chart.defaults.font.family = "'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif";
-  }
-
-  let attChart = null;
-
-  function renderKPI(k){
-    const ch = k.changes || {};
-    setText('mgK1v', fmtN(k.active_students));
-    setText('mgK1s', `+${fmtN(k.new_this_month)} davr ichida`);
-    setBadge('mgK1d', ch.active_students);
-
-    setText('mgK2v', fmtP(k.att_pct_today));
-    setText('mgK2s', k.att_today_label || '—');
-    setBadge('mgK2d', ch.att_pct);
-
-    setText('mgK3v', fmtN(k.debtors));
-    setBadge('mgK3d', ch.debtors);
-
-    setText('mgK6v', fmtN(k.pays_today));
-    setBadge('mgK6d', ch.pays);
-  }
-
-  function renderTodayList(items){
-    const el = document.getElementById('mgTodayList');
-    const cnt = document.getElementById('mgTodayCount');
-    if(!el) return;
-    if(!items || items.length === 0){
-      el.innerHTML = '<div class="mg-empty"><i class="fa-regular fa-calendar-check"></i><p>Bugun rejada darslar yo\'q</p></div>';
-      if(cnt) cnt.textContent = "Bugun darslar yo'q";
-      return;
+    function setOpen(next) {
+      root.classList.toggle('is-open', next);
+      toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
     }
-    if(cnt) cnt.textContent = `${items.length} ta dars rejada`;
-    el.innerHTML = items.map(it => {
-      const status = it.taken
-        ? `<span class="mg-row__status mg-row__status--ok"><i class="fa-solid fa-check"></i> ${it.present}/${it.total} · ${it.pct}%</span>`
-        : `<span class="mg-row__status mg-row__status--wait"><i class="fa-regular fa-clock"></i> Davomat olinmagan</span>`;
-      return `<a class="mg-row" href="${slugPrefix}/education/groups/${it.id}/">
-        <div class="mg-row__time">${escapeHtml(it.time || '—')}</div>
-        <div class="mg-row__main">
-          <div class="mg-row__title">${escapeHtml(it.name)}</div>
-          <div class="mg-row__sub">${escapeHtml(it.teacher || '—')}</div>
-        </div>
-        ${status}
-      </a>`;
-    }).join('');
-  }
 
-  function renderAttention(items){
-    const el = document.getElementById('mgAttentionList');
-    if(!el) return;
-    if(!items || items.length === 0){
-      el.innerHTML = '<div class="mg-empty"><i class="fa-solid fa-circle-check" style="color:var(--mg-green);opacity:.5"></i><p>Hammasi joyida — barcha o\'quvchilar faol</p></div>';
-      return;
-    }
-    el.innerHTML = items.map(s => {
-      const ava = s.avatar
-        ? `<div class="mg-attn__avatar" style="background-image:url('${escapeHtml(s.avatar)}')"></div>`
-        : `<div class="mg-attn__avatar">${escapeHtml(initials(s.name))}</div>`;
-      return `<a class="mg-attn-row" href="${slugPrefix}/user/${s.id}/view/">
-        ${ava}
-        <div class="mg-attn__main">
-          <div class="mg-attn__name">${escapeHtml(s.name || '—')}</div>
-          <div class="mg-attn__sub">${escapeHtml(s.course || '—')}${s.phone ? ' · ' + escapeHtml(s.phone) : ''}</div>
-        </div>
-        <div class="mg-attn__rate">${s.rate}%</div>
-      </a>`;
-    }).join('');
-  }
-
-  function renderAttendanceChart(labels, values){
-    const ctx = document.getElementById('mgChAtt');
-    if(!ctx || !window.Chart) return;
-    if(attChart){ attChart.destroy(); attChart = null; }
-    const ctx2d = ctx.getContext('2d');
-    const h = ctx.clientHeight || 230;
-    const grad = ctx2d.createLinearGradient(0,0,0,h);
-    grad.addColorStop(0, 'rgba(52,211,153,.30)');
-    grad.addColorStop(1, 'rgba(52,211,153,0)');
-    attChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels || [],
-        datasets: [{
-          label: 'Davomat %',
-          data: values || [],
-          borderColor: '#34d399',
-          backgroundColor: grad,
-          fill: true,
-          tension: .42,
-          borderWidth: 2.4,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointBackgroundColor: '#34d399',
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode:'index', intersect:false },
-        plugins: {
-          legend: { display:false },
-          tooltip: {
-            backgroundColor: 'rgba(7,13,26,.94)',
-            borderColor: 'rgba(255,255,255,.08)',
-            borderWidth: 1,
-            titleColor: '#ffffff',
-            bodyColor: '#cbd5e1',
-            callbacks: { label: (c)=> ` ${c.parsed.y}%` }
-          }
-        },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color:'#64748b', font:{size:10}, maxRotation:0, autoSkipPadding:18 } },
-          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color:'#64748b', font:{size:10}, callback:(v)=>v+'%' } }
-        }
-      }
+    toggle.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(!root.classList.contains('is-open'));
     });
-  }
 
-  function renderFunnel(values){
-    const max = Math.max(1, ...(values||[1]));
-    const wrap = document.getElementById('mgFunnel');
-    if(!wrap) return;
-    const rows = wrap.querySelectorAll('.mg-funnel__row');
-    rows.forEach((row, i) => {
-      const v = (values||[])[i] || 0;
-      const fill = row.querySelector('.mg-funnel__fill');
-      const val = row.querySelector('.mg-funnel__val');
-      if(fill) fill.style.width = (v / max * 100).toFixed(1) + '%';
-      if(val) val.textContent = fmtN(v);
+    document.addEventListener('click', function (event) {
+      if (!root.contains(event.target)) setOpen(false);
     });
-  }
 
-  function renderBestGroupsTable(rows){
-    const el = document.getElementById('mgBestGroupsTable');
-    if(!el) return;
-    const data = rows || [];
-    if(!data.length){
-      el.innerHTML = '<tr><td colspan="5" class="mg-best-empty">Guruhlar topilmadi</td></tr>';
-      return;
-    }
-    const palette = ['#60a5fa','#818cf8','#34d399','#fbbf24','#f43f5e'];
-    el.innerHTML = data.map((row, i) => {
-      const color = palette[i % palette.length];
-      const pctRaw = Number(row.fill_percent || 0);
-      const pct = Math.max(0, Math.min(100, pctRaw));
-      const pctLabel = Number.isInteger(pctRaw) ? pctRaw : pctRaw.toFixed(1);
-      const initials = escapeHtml(row.initials || String(row.name||'G').slice(0,2).toUpperCase());
-      const status = escapeHtml(row.status || 'Faol');
-      const revenue = Number(row.revenue || 0);
-      const revenueLabel = revenue ? fmtSom(revenue) : '—';
-      const avatarStyle = `background:${color}22;color:${color}`;
-      const barStyle = `width:${Math.max(2, pct)}%;background:${color}`;
-      return `<tr>
-        <td>
-          <div class="mg-best-group">
-            <span class="mg-best-avatar" style="${avatarStyle}">${initials}</span>
-            <span class="mg-best-name">
-              <strong title="${escapeHtml(row.name||'Guruh')}">${escapeHtml(row.name||'Guruh')}</strong>
-              <small>${status}</small>
-            </span>
-          </div>
-        </td>
-        <td><span class="mg-best-teacher" title="${escapeHtml(row.teacher||'—')}">${escapeHtml(row.teacher||'—')}</span></td>
-        <td class="mg-best-count">${fmtN(row.enrolled||0)}</td>
-        <td>
-          <div class="mg-best-fill" title="${pctLabel}%">
-            <span class="mg-best-fill__track"><span class="mg-best-fill__bar" style="${barStyle}"></span></span>
-            <span class="mg-best-fill__pct">${pctLabel}%</span>
-          </div>
-        </td>
-        <td class="mg-best-revenue">${revenueLabel}</td>
-        <td><button class="mg-best-more" type="button" aria-label="Ko'proq" aria-haspopup="menu" data-group-id="${row.id||''}" data-group-name="${escapeHtml(row.name||'Guruh')}"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>
-      </tr>`;
-    }).join('');
-  }
-
-  function renderRecentActivityList(rows){
-    const el = document.getElementById('mgRecentActivityList');
-    if(!el) return;
-    const data = rows || [];
-    if(!data.length){
-      el.innerHTML = '<div class="mg-activity-empty">So\'nggi faollik topilmadi</div>';
-      return;
-    }
-    const iconMap = {
-      payment: 'fa-wallet',
-      lead:    'fa-user-plus',
-      absence: 'fa-circle-xmark',
-      demo:    'fa-bullhorn',
-      leave:   'fa-right-from-bracket',
-      reward:  'fa-bolt',
-    };
-    el.innerHTML = data.map(row => {
-      const type = Object.prototype.hasOwnProperty.call(iconMap, row.type) ? row.type : 'lead';
-      const icon = iconMap[type] || 'fa-bolt';
-      const title = escapeHtml(row.title || 'Faollik');
-      const subtitle = escapeHtml(row.subtitle || '');
-      const timeText = formatActivityTime(row.timestamp);
-      const meta = [subtitle, timeText].filter(Boolean).join(' · ');
-      const amountText = fmtSomSigned(row.amount);
-      const amountClass = Number(row.amount||0) < 0 ? ' mg-activity-amount--negative' : '';
-      return `<div class="mg-activity-item">
-        <span class="mg-activity-icon mg-activity-icon--${type}"><i class="fa-solid ${icon}"></i></span>
-        <span class="mg-activity-info">
-          <span class="mg-activity-title" title="${title}">${title}</span>
-          <span class="mg-activity-meta">${escapeHtml(meta)}</span>
-        </span>
-        ${amountText ? `<span class="mg-activity-amount${amountClass}">${amountText}</span>` : ''}
-      </div>`;
-    }).join('');
-  }
-
-  function setSyncTime(iso){
-    const el = document.getElementById('mgSyncTime');
-    if(!el) return;
-    try {
-      const dt = iso ? new Date(iso) : new Date();
-      el.textContent = dt.toLocaleTimeString('uz-UZ', { hour:'2-digit', minute:'2-digit' });
-    } catch(_) { el.textContent = '—'; }
-  }
-
-  // ── Sana filteri yordamchilari ──────────────────────────────
-  function _toIso(d){
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth()+1).padStart(2,'0');
-    const da = String(d.getDate()).padStart(2,'0');
-    return `${yr}-${mo}-${da}`;
-  }
-  function _initDates(){
-    const fromEl = document.getElementById('mgFrom');
-    const toEl   = document.getElementById('mgTo');
-    if(!fromEl || !toEl) return;
-    const today = new Date();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    fromEl.value = _toIso(monthStart);
-    toEl.value   = _toIso(today);
-  }
-  function _setRange(key){
-    const fromEl = document.getElementById('mgFrom');
-    const toEl   = document.getElementById('mgTo');
-    if(!fromEl || !toEl) return;
-    const today = new Date();
-    let from = new Date(today);
-    if(key === 'today'){
-      from = today;
-    } else if(key === 'month'){
-      from = new Date(today.getFullYear(), today.getMonth(), 1);
-    } else {
-      const days = parseInt(key, 10) || 30;
-      from = new Date(today.getTime() - (days-1)*86400000);
-    }
-    fromEl.value = _toIso(from);
-    toEl.value   = _toIso(today);
-  }
-  function _markPreset(key){
-    document.querySelectorAll('.mg-preset').forEach(b => {
-      b.classList.toggle('is-active', b.getAttribute('data-range') === key);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') setOpen(false);
     });
-  }
 
-  function load(){
-    const btn = document.getElementById('mgRefreshBtn');
-    if(btn){ btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; }
-    const fromEl = document.getElementById('mgFrom');
-    const toEl   = document.getElementById('mgTo');
-    const params = new URLSearchParams();
-    if(fromEl && fromEl.value) params.set('from', fromEl.value);
-    if(toEl   && toEl.value)   params.set('to',   toEl.value);
-    const url = apiUrl + (params.toString() ? '?' + params.toString() : '');
-    fetch(url, { credentials:'same-origin' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if(!data){ return; }
-        renderKPI(data.kpi || {});
-        renderBestGroupsTable(data.top_groups_full || []);
-        renderRecentActivityList(data.recent_activity || []);
-        setSyncTime(data.synced_at);
+    const nf = new Intl.NumberFormat('uz-UZ');
+
+    function setText(id, value) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    }
+
+    fetch(statsUrl, { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('quick-stats failed');
+        return response.json();
       })
-      .catch(err => console.warn('manager dashboard load failed', err))
-      .finally(() => {
-        if(btn){ btn.style.opacity=''; btn.style.pointerEvents=''; }
+      .then(function (data) {
+        setText('stat-today-income', nf.format(data.today_income || 0) + " so'm");
+        setText('stat-debtors', nf.format(data.debtors || 0) + ' ta');
+        setText('stat-groups', nf.format(data.active_groups || 0) + ' ta');
+        setText('stat-attendance', String(data.attendance_pct || 0) + '%');
+        setText(
+          'stat-attendance-label',
+          'Bugun belgilangan davomat foizi (' + (data.attendance_label || '0/0') + ')'
+        );
+      })
+      .catch(function () {
+        setText('stat-today-income', "—");
+        setText('stat-debtors', "—");
+        setText('stat-groups', "—");
+        setText('stat-attendance', "—");
+        setText('stat-attendance-label', "Ma'lumotni yuklab bo'lmadi");
       });
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    _initDates();
-    load();
-    const btn = document.getElementById('mgRefreshBtn');
-    if(btn) btn.addEventListener('click', load);
-    // Sana inputlari o'zgarganda — qayta yuklash + presetlardan oktivni olib tashlash
-    ['mgFrom','mgTo'].forEach(id => {
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.addEventListener('change', () => {
-        document.querySelectorAll('.mg-preset').forEach(b => b.classList.remove('is-active'));
-        load();
-      });
-    });
-    // Quick presetlar
-    document.querySelectorAll('.mg-preset').forEach(btnEl => {
-      btnEl.addEventListener('click', () => {
-        const key = btnEl.getAttribute('data-range');
-        _setRange(key);
-        _markPreset(key);
-        load();
-      });
-    });
-    // Tiklash tugmasi → joriy oy boshidan bugungacha
-    const resetBtn = document.getElementById('mgFilterReset');
-    if(resetBtn) resetBtn.addEventListener('click', () => {
-      _setRange('month');
-      _markPreset('month');
-      load();
-    });
-    // Auto-refresh har 90 soniyada (joriy filter bilan)
-    setInterval(load, 90000);
-  });
-
-  /* "Eng yaxshi guruhlar" jadvalidagi 3-nuqta menyusi — har bir satrda
-   * "Guruhga kirish / Jadval / O'quvchi qo'shish / Tahrirlash" amallarini
-   * ochadi. Menyu fixed-positioned, jadval overflowidan tashqarida render
-   * bo'ladi (clip bo'lmaydi). Director paneli bilan 1:1 mos. */
-  (function initBestGroupsMenu(){
-    const menu = document.getElementById('mgBestGroupsMenu');
-    const tbody = document.getElementById('mgBestGroupsTable');
-    if(!menu || !tbody) return;
-    const URL_TEMPLATES = window.__MG_GROUP_URLS || {};
-    let activeBtn = null;
-
-    function buildUrl(action, groupId){
-      const tmpl = URL_TEMPLATES[action];
-      if(!tmpl || !groupId) return '#';
-      return tmpl.replace(/999999/, String(groupId));
-    }
-
-    function closeMenu(){
-      if(!menu.classList.contains('is-open')) return;
-      menu.classList.remove('is-open');
-      menu.setAttribute('aria-hidden','true');
-      if(activeBtn){ activeBtn.classList.remove('is-open'); activeBtn.setAttribute('aria-expanded','false'); }
-      activeBtn = null;
-    }
-
-    function positionMenu(btn){
-      const r = btn.getBoundingClientRect();
-      // Render hidden first to measure menu size
-      menu.style.left = '-9999px';
-      menu.style.top = '0';
-      menu.classList.add('is-open');
-      const mw = menu.offsetWidth || 220;
-      const mh = menu.offsetHeight || 180;
-      const margin = 8;
-      let left = r.right - mw;          // align right edge of menu to button
-      let top = r.bottom + 6;
-      if(left < margin) left = margin;
-      if(left + mw > window.innerWidth - margin) left = window.innerWidth - mw - margin;
-      if(top + mh > window.innerHeight - margin){
-        top = r.top - mh - 6;            // flip above
-        if(top < margin) top = margin;
-      }
-      menu.style.left = `${Math.round(left)}px`;
-      menu.style.top  = `${Math.round(top)}px`;
-    }
-
-    function openMenu(btn){
-      const groupId = btn.getAttribute('data-group-id') || '';
-      if(!groupId){ return; }
-      // Wire action links to this group's URLs
-      menu.querySelectorAll('[data-action]').forEach(a => {
-        const act = a.getAttribute('data-action');
-        a.setAttribute('href', buildUrl(act, groupId));
-      });
-      activeBtn = btn;
-      btn.classList.add('is-open');
-      btn.setAttribute('aria-expanded','true');
-      menu.setAttribute('aria-hidden','false');
-      positionMenu(btn);
-    }
-
-    // Delegated click on the more buttons (rows are re-rendered on each load).
-    tbody.addEventListener('click', function(ev){
-      const btn = ev.target.closest('.mg-best-more');
-      if(!btn || !tbody.contains(btn)) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      if(activeBtn === btn){ closeMenu(); return; }
-      closeMenu();
-      openMenu(btn);
-    });
-
-    document.addEventListener('click', function(ev){
-      if(!menu.classList.contains('is-open')) return;
-      if(menu.contains(ev.target)) return;          // clicked inside menu — let link work
-      if(ev.target.closest('.mg-best-more')) return; // handled above
-      closeMenu();
-    });
-    document.addEventListener('keydown', function(ev){
-      if(ev.key === 'Escape') closeMenu();
-    });
-    window.addEventListener('resize', closeMenu);
-    window.addEventListener('scroll', closeMenu, true);
   })();
-})();
-</script>
-
-<!-- ══════════════════ AI CHAT (manager) ══════════════════ -->
-<script>
-(function(){
-  'use strict';
-  const CHAT_API         = '{% url "core:director_boshqaruv_chat" %}';
-  const CHAT_HISTORY_API = '{% url "core:director_boshqaruv_chat_history" %}';
-  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-
-  const panel    = document.getElementById('mgChatPanel');
-  const overlay  = document.getElementById('mgChatOverlay');
-  const messages = document.getElementById('mgChatMessages');
-  const input    = document.getElementById('mgChatInput');
-  const sendBtn  = document.getElementById('mgChatSend');
-  const openBtn  = document.getElementById('mgAiOpen');
-  const closeBtn = document.getElementById('mgChatClose');
-  if(!panel || !overlay || !openBtn) return;
-
-  let loading = false;
-  let historyLoaded = false;
-  const USER_AVA = `{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}`;
-
-  function escapeHTML(s){
-    return String(s||'').replace(/[&<>"']/g, c => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-  }
-  function renderText(s){
-    return escapeHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-  }
-
-  function addMsg(role, text){
-    const isUser = role === 'user';
-    const ava = isUser
-      ? `<div class="mg-msg__ava">${escapeHTML(USER_AVA)}</div>`
-      : `<div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
-    const div = document.createElement('div');
-    div.className = `mg-msg ${isUser ? 'mg-msg--user' : ''}`;
-    div.innerHTML = `${ava}<div class="mg-msg__bubble">${renderText(text)}</div>`;
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  }
-  function addTyping(){
-    const div = document.createElement('div');
-    div.className = 'mg-msg';
-    div.id = 'mgTypingEl';
-    div.innerHTML = `<div class="mg-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="mg-msg__bubble"><div class="mg-msg__typing"><span></span><span></span><span></span></div></div>`;
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  }
-  function removeTyping(){
-    const el = document.getElementById('mgTypingEl');
-    if(el) el.remove();
-  }
-
-  function open(){
-    panel.classList.add('open');
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    loadHistory();
-    setTimeout(() => input.focus(), 250);
-  }
-  function close(){
-    panel.classList.remove('open');
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  async function loadHistory(){
-    if(historyLoaded) return;
-    historyLoaded = true;
-    try{
-      const res = await fetch(CHAT_HISTORY_API, {credentials:'same-origin'});
-      if(!res.ok) return;
-      const data = await res.json();
-      const msgs = Array.isArray(data.messages) ? data.messages : [];
-      if(msgs.length === 0) return;
-      messages.innerHTML = '';
-      msgs.forEach(m => addMsg(m.role === 'assistant' ? 'ai' : 'user', m.content));
-    }catch(e){ /* fallback: greeting stays */ }
-  }
-
-  async function send(q){
-    if(!q || loading) return;
-    loading = true;
-    sendBtn.disabled = true;
-    input.value = '';
-    input.style.height = 'auto';
-    addMsg('user', q);
-    addTyping();
-
-    try{
-      const res = await fetch(CHAT_API, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
-        body: JSON.stringify({question:q})
-      });
-      const data = await res.json();
-      removeTyping();
-      addMsg('ai', data.answer || 'Javob olishda xatolik yuz berdi.');
-    }catch(e){
-      removeTyping();
-      addMsg('ai', 'Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');
-    }finally{
-      loading = false;
-      sendBtn.disabled = false;
-      input.focus();
-    }
-  }
-
-  openBtn.addEventListener('click', open);
-  closeBtn.addEventListener('click', close);
-  overlay.addEventListener('click', close);
-  document.addEventListener('keydown', e => {
-    if(e.key === 'Escape' && panel.classList.contains('open')) close();
-  });
-
-  sendBtn.addEventListener('click', () => send(input.value.trim()));
-  input.addEventListener('keydown', e => {
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(input.value.trim()); }
-  });
-  input.addEventListener('input', function(){
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-  });
-
-  document.querySelectorAll('.mg-chat__prompt').forEach(btn => {
-    btn.addEventListener('click', function(){
-      if(!panel.classList.contains('open')) open();
-      send(this.dataset.q);
-    });
-  });
-})();
-</script>
-
-<!-- ══════════════════ QUICK MENU + STUDENT DRAWER + PAYMENT MODAL ══════════════════ -->
-<script>
-(function(){
-'use strict';
-
-/* ── Quick menu ── */
-const quickMenu   = document.getElementById('mgQuickMenu');
-const quickToggle = document.getElementById('mgQuickToggle');
-const quickPanel  = document.getElementById('mgQuickPanel');
-
-function positionPanel(){
-  if(!quickToggle||!quickPanel) return;
-  const r = quickToggle.getBoundingClientRect();
-  quickPanel.style.top  = (r.bottom + 8) + 'px';
-  quickPanel.style.left = r.left + 'px';
-}
-
-function isQuickOpen(){ return quickPanel&&quickPanel.classList.contains('open'); }
-
-function setQuickMenu(open){
-  if(!quickToggle||!quickPanel) return;
-  if(open){ positionPanel(); if(typeof setProfileMenu==='function') setProfileMenu(false); }
-  quickPanel.classList.toggle('open', open);
-  quickToggle.classList.toggle('open', open);
-  quickToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-}
-if(quickToggle&&quickPanel){
-  quickToggle.addEventListener('click', e=>{
-    e.stopPropagation();
-    setQuickMenu(!isQuickOpen());
-  });
-  document.addEventListener('click', e=>{
-    if(!quickToggle.contains(e.target) && !quickPanel.contains(e.target)) setQuickMenu(false);
-  });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && isQuickOpen()) setQuickMenu(false); });
-  window.addEventListener('resize', ()=>{ if(isQuickOpen()) positionPanel(); });
-  window.addEventListener('scroll', ()=>{ if(isQuickOpen()) positionPanel(); }, true);
-}
-
-/* ── Profile dropdown ── */
-const profileToggle = document.getElementById('mgProfileToggle');
-const profilePanel  = document.getElementById('mgProfilePanel');
-
-function positionProfilePanel(){
-  if(!profileToggle||!profilePanel) return;
-  const r = profileToggle.getBoundingClientRect();
-  profilePanel.style.top  = (r.bottom + 8) + 'px';
-  profilePanel.style.left = Math.max(4, r.right - 220) + 'px';
-}
-
-function isProfileOpen(){ return profilePanel&&profilePanel.classList.contains('open'); }
-
-function setProfileMenu(open){
-  if(!profileToggle||!profilePanel) return;
-  if(open){ setQuickMenu(false); positionProfilePanel(); }
-  profilePanel.classList.toggle('open', open);
-  profileToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-}
-
-if(profileToggle&&profilePanel){
-  profileToggle.addEventListener('click', e=>{
-    e.stopPropagation();
-    setProfileMenu(!isProfileOpen());
-  });
-  document.addEventListener('click', e=>{
-    if(!profileToggle.contains(e.target) && !profilePanel.contains(e.target)) setProfileMenu(false);
-  });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && isProfileOpen()) setProfileMenu(false); });
-  window.addEventListener('resize', ()=>{ if(isProfileOpen()) positionProfilePanel(); });
-  window.addEventListener('scroll', ()=>{ if(isProfileOpen()) positionProfilePanel(); }, true);
-}
-
-/* ── Student Drawer ── */
-const studentDrawerTrigger = document.getElementById('mgQuickStudentOpen');
-const studentDrawerOverlay = document.getElementById('bqStudentDrawerOverlay');
-const studentDrawerPanel   = document.getElementById('bqStudentDrawer');
-const studentDrawerBody    = document.getElementById('bqStudentDrawerBody');
-const studentDrawerClose   = document.getElementById('bqStudentDrawerClose');
-let studentDrawerLoaded = false;
-
-function transliterateDrawerWord(word){
-  if(!word) return '';
-  word=word.toLowerCase().replace(/o['`''ʼʻ]/g,'o').replace(/g['`''ʼʻ]/g,'g').replace(/['`''ʼʻ]/g,'');
-  const map={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'sh','ъ':'','ы':'i','ь':'','э':'e','ю':'yu','я':'ya'};
-  return word.split('').map(c=>map[c]||c).join('').replace(/[^a-z0-9]/g,'');
-}
-
-function formatDrawerPhoneValue(value){
-  const digits=String(value||'').replace(/\D/g,'').replace(/^998/,'').slice(0,9);
-  const parts=[];
-  if(digits.slice(0,2)) parts.push(digits.slice(0,2));
-  if(digits.slice(2,5)) parts.push(digits.slice(2,5));
-  if(digits.slice(5,7)) parts.push(digits.slice(5,7));
-  if(digits.slice(7,9)) parts.push(digits.slice(7,9));
-  return parts.length?parts.join(' '):'';
-}
-
-function formatDrawerPassportValue(value){
-  const clean=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  return clean.replace(/[^A-Z]/g,'').slice(0,2)+clean.replace(/[^0-9]/g,'').slice(0,7);
-}
-
-function initStudentDrawerInputFormatting(){
-  studentDrawerBody.querySelectorAll('#id_telefon1,#id_telefon2').forEach(input=>{
-    function applyPhoneMask(){ input.value=formatDrawerPhoneValue(input.value); }
-    function schedulePhoneMask(){
-      applyPhoneMask();
-      requestAnimationFrame(applyPhoneMask);
-      [0,30,80,150,300,600,1000,2000,4000].forEach(delay=>setTimeout(applyPhoneMask,delay));
-    }
-    schedulePhoneMask();
-    input.addEventListener('pointerdown',schedulePhoneMask);
-    input.addEventListener('click',schedulePhoneMask);
-    input.addEventListener('focus',schedulePhoneMask);
-    input.addEventListener('input',applyPhoneMask);
-    input.addEventListener('change',applyPhoneMask);
-    input.addEventListener('paste',schedulePhoneMask);
-    input.addEventListener('keyup',applyPhoneMask);
-    input.addEventListener('blur',()=>{ const d=input.value.replace(/\D/g,'').replace(/^998/,''); input.value=d?formatDrawerPhoneValue(input.value):''; });
-  });
-  studentDrawerBody.querySelectorAll('#id_passport_id').forEach(input=>{
-    function applyPassportMask(){ input.value=formatDrawerPassportValue(input.value); }
-    applyPassportMask();
-    input.addEventListener('input',applyPassportMask);
-    input.addEventListener('blur',applyPassportMask);
-  });
-}
-
-function setBodyLock(locked){
-  document.body.style.overflow=locked?'hidden':'';
-}
-
-function setStudentDrawer(open){
-  if(!studentDrawerOverlay||!studentDrawerPanel) return;
-  studentDrawerOverlay.classList.toggle('open',open);
-  studentDrawerPanel.classList.toggle('open',open);
-  studentDrawerPanel.setAttribute('aria-hidden',open?'false':'true');
-  setBodyLock(open);
-}
-
-function renderStudentDrawerLoading(msg){
-  if(!studentDrawerBody) return;
-  studentDrawerBody.innerHTML=`<div class="bq-sdrawer-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>${msg}</span></div>`;
-}
-function renderStudentDrawerError(msg){
-  if(!studentDrawerBody) return;
-  studentDrawerBody.innerHTML=`<div class="bq-sdrawer-alert">${msg}</div>`;
-}
-
-function initStudentDrawerPasswordToggle(){
-  studentDrawerBody.querySelectorAll('[data-toggle-password]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const wrap=btn.closest('.bq-sdrawer-password');
-      const input=wrap?.querySelector('input');
-      const icon=btn.querySelector('i');
-      if(!input) return;
-      const isPassword=input.type==='password';
-      input.type=isPassword?'text':'password';
-      if(icon) icon.className=isPassword?'fa-regular fa-eye-slash':'fa-regular fa-eye';
-    });
-  });
-}
-
-function initStudentDrawerCredentialGenerator(){
-  const ismInput=studentDrawerBody.querySelector('#id_ism');
-  const famInput=studentDrawerBody.querySelector('#id_familya');
-  const emailInput=studentDrawerBody.querySelector('#id_email');
-  const passInput=studentDrawerBody.querySelector('#id_password');
-  if(!ismInput||!famInput||!emailInput||!passInput) return;
-  function getParts(){ return {ismPart:transliterateDrawerWord(ismInput.value.trim()).slice(0,10)||'student',famPart:transliterateDrawerWord(famInput.value.trim()).slice(0,12)||'user'}; }
-  function createEmailValue(){ const p=getParts(),rand=Math.floor(Math.random()*900)+100,local=`${p.ismPart}.${p.famPart}`.replace(/\.+/g,'.').replace(/^\.+|\.+$/g,''); return `${local.slice(0,24)}${rand}@gmail.com`; }
-  function createPasswordValue(){ const p=getParts(),f=p.ismPart.slice(0,4),s=p.famPart.slice(0,4),r=String(Math.floor(1000+Math.random()*9000)),prefix=f?f.charAt(0).toUpperCase()+f.slice(1):'Stud'; return `${prefix}${s}${r}`; }
-  function generate(){ const ism=ismInput.value.trim(),fam=famInput.value.trim(); if(!ism||!fam) return; if(!emailInput.value) emailInput.value=createEmailValue(); if(!passInput.value) passInput.value=createPasswordValue(); }
-  studentDrawerBody.querySelectorAll('[data-generate-email]').forEach(btn=>btn.addEventListener('click',()=>{emailInput.value=createEmailValue();emailInput.focus();}));
-  studentDrawerBody.querySelectorAll('[data-generate-password]').forEach(btn=>btn.addEventListener('click',()=>{passInput.value=createPasswordValue();passInput.focus();}));
-  ismInput.addEventListener('blur',generate);
-  famInput.addEventListener('blur',generate);
-  generate();
-}
-
-function initStudentDrawerGroupPrice(){
-  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
-  const groupSelect=studentDrawerBody.querySelector('#id_group');
-  const kursInput=studentDrawerBody.querySelector('#id_kurs_narhi');
-  const priceBlock=studentDrawerBody.querySelector('[data-drawer-price-block]');
-  const template=form?.dataset.groupPriceTemplate||'';
-  if(!form||!groupSelect||!kursInput||!priceBlock||!template) return;
-  function setPriceVisible(v){ priceBlock.style.display=v?'':'none'; if(v){const d=studentDrawerBody.querySelector('#id_group_start_date');if(d&&!d.value){const t=new Date();d.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;}} }
-  function updatePrice(){ const gid=groupSelect.value; if(!gid){kursInput.value='';setPriceVisible(false);return;} fetch(template.replace(/0\/?$/,`${gid}/`),{headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.ok?r.json():{}).then(d=>{kursInput.value=d.price||'';setPriceVisible(true);}).catch(()=>setPriceVisible(true)); }
-  groupSelect.addEventListener('change',updatePrice);
-  if(groupSelect.value) updatePrice(); else setPriceVisible(false);
-}
-
-function initStudentDrawerExtraFields(){
-  function clearField(row){ row.querySelectorAll('input,textarea,select').forEach(input=>{ if(input.tagName==='SELECT'){input.selectedIndex=0;input.dispatchEvent(new Event('change',{bubbles:true}));return;} if(input.type==='checkbox'||input.type==='radio'){input.checked=false;return;} input.value=''; }); }
-  function setFieldVisibility(fieldName,visible){ const row=studentDrawerBody.querySelector(`[data-extra-field="${fieldName}"]`),toggle=studentDrawerBody.querySelector(`[data-extra-toggle="${fieldName}"]`); if(!row||!toggle) return; row.hidden=!visible; toggle.classList.toggle('is-active',visible); toggle.setAttribute('aria-pressed',visible?'true':'false'); if(visible){const fv=Array.from(row.querySelectorAll('input:not([type="hidden"]),textarea,select')).find(el=>!el.closest('[style*="display:none"]')); fv?.focus(); return;} if(fieldName==='group'){const pb=studentDrawerBody.querySelector('[data-drawer-price-block]');if(pb) pb.style.display='none';} clearField(row); }
-  studentDrawerBody.querySelectorAll('[data-extra-toggle]').forEach(btn=>btn.addEventListener('click',()=>{ const fn=btn.dataset.extraToggle,row=studentDrawerBody.querySelector(`[data-extra-field="${fn}"]`); setFieldVisibility(fn,row?row.hidden:false); }));
-  studentDrawerBody.querySelectorAll('[data-extra-remove]').forEach(btn=>btn.addEventListener('click',()=>setFieldVisibility(btn.dataset.extraRemove,false)));
-  studentDrawerBody.querySelectorAll('[data-extra-field]').forEach(row=>{ const fn=row.dataset.extraField,toggle=studentDrawerBody.querySelector(`[data-extra-toggle="${fn}"]`); if(!toggle) return; const v=!row.hidden; toggle.classList.toggle('is-active',v); toggle.setAttribute('aria-pressed',v?'true':'false'); });
-}
-
-function initStudentDrawerOptionalSections(){
-  function syncSectionToggle(sectionName,visible){ const toggle=studentDrawerBody.querySelector(`[data-section-toggle="${sectionName}"]`); if(!toggle) return; toggle.classList.toggle('is-active',visible); toggle.setAttribute('aria-expanded',visible?'true':'false'); toggle.textContent=visible?(toggle.dataset.closeLabel||toggle.dataset.openLabel||'Ochish'):(toggle.dataset.openLabel||'Ochish'); }
-  function setSectionVisibility(sectionName,visible){ const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`); if(!section) return; section.hidden=!visible; syncSectionToggle(sectionName,visible); if(visible) section.querySelector('input,textarea,select')?.focus(); }
-  studentDrawerBody.querySelectorAll('[data-section-toggle]').forEach(btn=>btn.addEventListener('click',()=>{ const sn=btn.dataset.sectionToggle,section=studentDrawerBody.querySelector(`[data-optional-section="${sn}"]`); setSectionVisibility(sn,section?section.hidden:false); }));
-  studentDrawerBody.querySelectorAll('[data-section-close]').forEach(btn=>btn.addEventListener('click',()=>setSectionVisibility(btn.dataset.sectionClose,false)));
-  studentDrawerBody.querySelectorAll('[data-optional-section]').forEach(s=>setSectionVisibility(s.dataset.optionalSection,!s.hidden));
-}
-
-function initStudentDrawerGroupModal(){
-  const MODAL_ID='bqGModal';
-  const existing=document.getElementById(MODAL_ID);
-  if(existing) existing.remove();
-  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
-  const selGrp=studentDrawerBody.querySelector('#id_group');
-  const openBtn2=studentDrawerBody.querySelector('#bqGrpOpenBtn');
-  const btnText=studentDrawerBody.querySelector('#bqGrpBtnText');
-  const chipsContainer=studentDrawerBody.querySelector('#bqGrpChips');
-  const assignmentsField=studentDrawerBody.querySelector('#id_group_assignments');
-  if(!openBtn2||!selGrp) return;
-  const priceTpl=form?.dataset.groupPriceTemplate||'';
-  const opts=Array.from(selGrp.options).filter(o=>o.value).map(o=>({value:o.value,label:o.text.trim()}));
-  let groups=[],pickedNow=null;
-  const ov=document.createElement('div');
-  ov.id=MODAL_ID; ov.className='bq-gm-ov'; ov.hidden=true;
-  ov.innerHTML='<div class="bq-gm"><div class="bq-gm__head"><div class="bq-gm__head-ico"><i class="fa-solid fa-layer-group"></i></div><div class="bq-gm__head-title">Guruh qo\'shish</div><button type="button" class="bq-gm__close" id="bqGMClose"><i class="fa-solid fa-xmark"></i></button></div><div class="bq-gm__added" id="bqGMAdded" hidden><div class="bq-gm__added-list" id="bqGMAddedList"></div></div><div class="bq-gm__search-wrap"><i class="fa-solid fa-magnifying-glass bq-gm__search-ico"></i><input type="text" class="bq-gm__search-inp" id="bqGMSearch" placeholder="Guruh nomini yozing..." autocomplete="off"></div><div class="bq-gm__list-wrap"><div class="bq-gm__list" id="bqGMList"></div></div><div class="bq-gm__cascade" id="bqGMCascade" hidden><div class="bq-gm__sel-badge"><i class="fa-solid fa-circle-check"></i><span id="bqGMSelName"></span><button type="button" class="bq-gm__desel-btn" id="bqGMDesel"><i class="fa-solid fa-xmark"></i></button></div><div class="bq-gm__cascade-row"><div class="bq-gm__cascade-field"><label>Kurs narxi <span class="bq-gm__cascade-opt">(so\'m)</span></label><input type="number" id="bqGMPrice" placeholder="0" min="0"></div><div class="bq-gm__cascade-field"><label>Qo\'shilish sanasi</label><input type="date" id="bqGMDate"></div></div></div><div class="bq-gm__foot"><button type="button" class="bq-gm__btn-cancel" id="bqGMClose2">Yopish</button><button type="button" class="bq-gm__btn-confirm" id="bqGMConfirm" disabled><i class="fa-solid fa-plus"></i> Qo\'shish</button></div></div>';
-  document.body.appendChild(ov);
-  const gmSearch=document.getElementById('bqGMSearch'),gmList=document.getElementById('bqGMList'),gmCascade=document.getElementById('bqGMCascade'),gmSelName=document.getElementById('bqGMSelName'),gmDesel=document.getElementById('bqGMDesel'),gmPrice=document.getElementById('bqGMPrice'),gmDate=document.getElementById('bqGMDate'),gmClose=document.getElementById('bqGMClose'),gmClose2=document.getElementById('bqGMClose2'),gmConfirm=document.getElementById('bqGMConfirm'),gmAdded=document.getElementById('bqGMAdded'),gmAddedList=document.getElementById('bqGMAddedList');
-  function todayStr(){const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
-  function fmtDate(s){if(!s) return '';return new Date(s).toLocaleDateString('uz-UZ',{day:'numeric',month:'long'});}
-  function fetchPrice(id,cb){if(!priceTpl) return cb('');fetch(priceTpl.replace(/0\/?$/,id+'/'),{headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.ok?r.json():{}).then(d=>cb(d.price||'')).catch(()=>cb(''));}
-  function serialize(){const payload=groups.map(g=>({group_id:parseInt(g.value),start_date:g.date,course_price:g.price?parseInt(g.price):''}));if(assignmentsField) assignmentsField.value=groups.length?JSON.stringify(payload):'';if(btnText) btnText.textContent=groups.length?'Guruh qo\'shish ('+groups.length+')':'Guruh qo\'shish';}
-  function renderChips(){if(!chipsContainer) return;chipsContainer.innerHTML=groups.map((g,i)=>{const meta=[];if(g.price) meta.push(Number(g.price).toLocaleString()+" so'm");if(g.date) meta.push(fmtDate(g.date));return '<div class="bq-gtrg__chip"><span class="bq-gtrg__chip-ico"><i class="fa-solid fa-layer-group"></i></span><div class="bq-gtrg__chip-body"><span class="bq-gtrg__chip-name">'+g.label+'</span>'+(meta.length?'<span class="bq-gtrg__chip-meta">'+meta.join(' · ')+'</span>':'')+'</div><button type="button" class="bq-gtrg__chip-del" data-del-idx="'+i+'"><i class="fa-solid fa-xmark"></i></button></div>';}).join('');chipsContainer.querySelectorAll('[data-del-idx]').forEach(btn=>btn.addEventListener('click',()=>{groups.splice(parseInt(btn.dataset.delIdx),1);serialize();renderChips();renderAddedInModal();refreshList();}));}
-  function renderAddedInModal(){if(!groups.length){gmAdded.hidden=true;return;}gmAdded.hidden=false;gmAddedList.innerHTML=groups.map((g,i)=>'<div class="bq-gm__added-item"><i class="fa-solid fa-check"></i><span>'+g.label+'</span><button type="button" class="bq-gm__added-del" data-modal-del="'+i+'"><i class="fa-solid fa-xmark"></i></button></div>').join('');gmAddedList.querySelectorAll('[data-modal-del]').forEach(btn=>btn.addEventListener('click',()=>{groups.splice(parseInt(btn.dataset.modalDel),1);serialize();renderChips();renderAddedInModal();refreshList();}));}
-  function showHint(){gmList.innerHTML='<div class="bq-gm__empty bq-gm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>';}
-  function refreshList(){const q=gmSearch.value.trim().toLowerCase();if(q.length>=3){const filtered=opts.filter(o=>o.label.toLowerCase().includes(q));renderSearchResults(filtered);}else if(q.length===0) showHint();}
-  function renderSearchResults(items){gmList.innerHTML='';if(!items.length){gmList.innerHTML='<div class="bq-gm__empty">Guruh topilmadi</div>';return;}items.forEach(item=>{const alreadyAdded=groups.some(g=>g.value===item.value);const b=document.createElement('button');b.type='button';b.className='bq-gm__item'+(pickedNow&&pickedNow.value===item.value?' is-active':'')+(alreadyAdded?' is-added':'');b.textContent=item.label;if(alreadyAdded){b.disabled=true;}else{b.addEventListener('click',()=>pickGroup(item));}gmList.appendChild(b);});}
-  function pickGroup(item){pickedNow=item;gmSelName.textContent=item.label;gmCascade.hidden=false;gmConfirm.disabled=false;gmDate.value=todayStr();refreshList();fetchPrice(item.value,p=>{gmPrice.value=p;});}
-  function clearPick(){pickedNow=null;gmCascade.hidden=true;gmConfirm.disabled=true;refreshList();}
-  function addGroup(){if(!pickedNow) return;if(groups.some(g=>g.value===pickedNow.value)) return;groups.push({value:pickedNow.value,label:pickedNow.label,price:gmPrice.value,date:gmDate.value});serialize();renderChips();renderAddedInModal();pickedNow=null;gmCascade.hidden=true;gmConfirm.disabled=true;gmSearch.value='';showHint();setTimeout(()=>gmSearch.focus(),60);}
-  function openGModal(){ov.hidden=false;document.body.style.overflow='hidden';pickedNow=null;gmCascade.hidden=true;gmConfirm.disabled=true;gmSearch.value='';showHint();renderAddedInModal();setTimeout(()=>gmSearch.focus(),60);}
-  function closeGModal(){ov.hidden=true;document.body.style.overflow='';}
-  gmSearch.addEventListener('input',function(){if(this.value.trim().length===0){showHint();clearPick();}});
-  gmSearch.addEventListener('keydown',function(e){if(e.key!=='Enter') return;e.preventDefault();const q=this.value.trim().toLowerCase();if(q.length<3) return;renderSearchResults(opts.filter(o=>o.label.toLowerCase().includes(q)));});
-  openBtn2.addEventListener('click',openGModal);
-  gmClose.addEventListener('click',closeGModal);
-  gmClose2.addEventListener('click',closeGModal);
-  gmDesel.addEventListener('click',clearPick);
-  gmConfirm.addEventListener('click',addGroup);
-  ov.addEventListener('click',e=>{if(e.target===ov) closeGModal();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ov.hidden) closeGModal();});
-  if(assignmentsField&&assignmentsField.value){try{const parsed=JSON.parse(assignmentsField.value);if(Array.isArray(parsed)){parsed.forEach(item=>{const opt=opts.find(o=>o.value===String(item.group_id));if(opt) groups.push({value:opt.value,label:opt.label,price:item.course_price||'',date:item.start_date||''});});serialize();renderChips();}}catch(e){}}
-}
-
-function initStudentDrawerForm(){
-  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
-  studentDrawerBody.querySelectorAll('[data-student-drawer-close]').forEach(btn=>btn.addEventListener('click',()=>setStudentDrawer(false)));
-  initStudentDrawerInputFormatting();
-  initStudentDrawerPasswordToggle();
-  initStudentDrawerCredentialGenerator();
-  initStudentDrawerGroupPrice();
-  initStudentDrawerExtraFields();
-  initStudentDrawerOptionalSections();
-  initStudentDrawerGroupModal();
-  if(!form) return;
-  form.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const submitBtn=form.querySelector('.bq-sdrawer-submit');
-    if(submitBtn){submitBtn.disabled=true;submitBtn.classList.add('is-loading');}
-    try{
-      const res=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'}});
-      const data=await res.json();
-      if(data.ok){setStudentDrawer(false);window.location.reload();return;}
-      if(data.html){studentDrawerBody.innerHTML=data.html;initStudentDrawerForm();return;}
-      renderStudentDrawerError("Studentni saqlashda xatolik yuz berdi.");
-    }catch(err){renderStudentDrawerError("Server bilan aloqa uzildi. Qayta urinib ko'ring.");}
-    finally{if(submitBtn){submitBtn.disabled=false;submitBtn.classList.remove('is-loading');}}
-  });
-}
-
-async function openStudentDrawer(forceReload){
-  if(!studentDrawerTrigger||!studentDrawerOverlay||!studentDrawerPanel||!studentDrawerBody) return;
-  setQuickMenu(false);
-  setStudentDrawer(true);
-  if(studentDrawerLoaded&&!forceReload) return;
-  renderStudentDrawerLoading("Forma yuklanmoqda...");
-  try{
-    const res=await fetch(studentDrawerTrigger.dataset.drawerUrl,{headers:{'X-Requested-With':'XMLHttpRequest'}});
-    if(!res.ok) throw new Error('err');
-    studentDrawerBody.innerHTML=await res.text();
-    studentDrawerLoaded=true;
-    initStudentDrawerForm();
-  }catch(err){renderStudentDrawerError("Student qo'shish formasi yuklanmadi.");}
-}
-
-if(studentDrawerTrigger&&studentDrawerOverlay&&studentDrawerPanel&&studentDrawerBody){
-  studentDrawerTrigger.addEventListener('click',e=>{e.preventDefault();openStudentDrawer(true);});
-  studentDrawerClose?.addEventListener('click',()=>setStudentDrawer(false));
-  studentDrawerOverlay.addEventListener('click',()=>setStudentDrawer(false));
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&studentDrawerPanel.classList.contains('open')) setStudentDrawer(false);});
-}
-
-/* ── Payment modal ── */
-(function(){
-  const modal    = document.getElementById('bqPayModal');
-  const openBtn3 = document.getElementById('mgQuickPayOpen');
-  if(!modal||!openBtn3) return;
-  const studentsUrl = modal.dataset.studentsUrl||'';
-  const redirectUrl = modal.dataset.redirectUrl||'';
-  const payForm     = document.getElementById('bqPayForm');
-  const pmClose         = document.getElementById('bqPMClose');
-  const pmCancel        = document.getElementById('bqPMCancel');
-  const pmSearch        = document.getElementById('bqPMSearch');
-  const pmList          = document.getElementById('bqPMList');
-  const pmListWrap      = document.getElementById('bqPMListWrap');
-  const pmSep           = document.getElementById('bqPMSep');
-  const pmForm          = document.getElementById('bqPMForm');
-  const pmStudentName   = document.getElementById('bqPMStudentName');
-  const pmStudentGroups = document.getElementById('bqPMStudentGroups');
-  const pmStudentChange = document.getElementById('bqPMStudentChange');
-  const pmTypeRow       = document.getElementById('bqPMTypeRow');
-  const pmAmounts       = document.getElementById('bqPMAmounts');
-  const pmDate          = document.getElementById('bqPMDate');
-  const pmNoteToggle    = document.getElementById('bqPMNoteToggle');
-  const pmNote          = document.getElementById('bqPMNote');
-  const pmConfirm       = document.getElementById('bqPMConfirm');
-  let cachedStudents=null,selectedStudent=null,payType='cash';
-  function todayStr(){const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
-  function fmtMoney(n){return Number(n).toLocaleString('uz-UZ');}
-  function showSearch(){pmListWrap.hidden=false;pmSep.hidden=true;pmForm.hidden=true;pmConfirm.disabled=true;pmSearch.value='';renderHint();setTimeout(()=>pmSearch.focus(),60);}
-  function renderHint(){pmList.innerHTML='<div class="bq-pm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>';}
-  function firstAvailableType(){const first=pmTypeRow.querySelector('.bq-pm__type-btn');return first?(first.dataset.type||'cash'):'cash';}
-  function openModal(){cachedStudents=null;modal.hidden=false;document.body.style.overflow='hidden';selectedStudent=null;payType=firstAvailableType();setActiveType(payType);showSearch();}
-  function closeModal(){modal.hidden=true;document.body.style.overflow='';}
-  async function fetchStudents(){if(cachedStudents) return cachedStudents;const res=await fetch(studentsUrl,{headers:{'X-Requested-With':'XMLHttpRequest'}});const data=await res.json();cachedStudents=data.students||[];return cachedStudents;}
-  async function doSearch(q){pmList.innerHTML='<div class="bq-pm__hint"><i class="fa-solid fa-spinner fa-spin"></i></div>';let students;try{students=await fetchStudents();}catch(e){pmList.innerHTML='<div class="bq-pm__empty">Xatolik yuz berdi</div>';return;}const filtered=students.filter(s=>(s.name||'').toLowerCase().includes(q));if(!filtered.length){pmList.innerHTML='<div class="bq-pm__empty">Qarzdor o\'quvchi topilmadi</div>';return;}pmList.innerHTML='';filtered.forEach(s=>{const initials=(s.name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();const btn2=document.createElement('button');btn2.type='button';btn2.className='bq-pm__student-item';btn2.innerHTML='<div class="bq-pm__item-ava">'+initials+'</div><div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:1px"><span class="bq-pm__item-name">'+(s.name||'—')+'</span><span class="bq-pm__item-meta">'+(s.groups||'')+'</span></div><span class="bq-pm__item-debt">'+fmtMoney(s.debt||0)+' <small>so\'m</small></span>';btn2.addEventListener('click',()=>selectStudent(s));pmList.appendChild(btn2);});}
-  pmSearch.addEventListener('keydown',function(e){if(e.key!=='Enter') return;e.preventDefault();const q=this.value.trim().toLowerCase();if(q.length<3) return;doSearch(q);});
-  pmSearch.addEventListener('input',function(){if(this.value.trim().length===0) renderHint();});
-  function selectStudent(s){selectedStudent=s;pmStudentName.textContent=s.name||'—';pmStudentGroups.textContent=s.groups||'';pmListWrap.hidden=true;pmSep.hidden=false;pmForm.hidden=false;pmDate.value=todayStr();pmConfirm.disabled=false;renderAmounts(s.debt||0);const nextInp=payForm.querySelector('[name="next"]');if(nextInp&&redirectUrl) nextInp.value=redirectUrl;}
-  pmStudentChange.addEventListener('click',()=>{selectedStudent=null;pmConfirm.disabled=true;showSearch();});
-  function setActiveType(type){payType=type;pmTypeRow.querySelectorAll('.bq-pm__type-btn').forEach(b=>b.classList.toggle('is-active',b.dataset.type===type));}
-  pmTypeRow.querySelectorAll('.bq-pm__type-btn').forEach(btn3=>btn3.addEventListener('click',()=>{setActiveType(btn3.dataset.type);renderAmounts(selectedStudent?.debt||0);}));
-  function renderAmounts(debt){const val=debt>0?debt:'';pmAmounts.innerHTML='';if(payType==='cash'){pmAmounts.innerHTML='<div class="bq-pm__amount-row"><div class="bq-pm__amount-field"><div class="bq-pm__amount-label">Naqt summa</div><div class="bq-pm__amount-inp-wrap"><input type="number" class="bq-pm__amount-inp" id="bqPMCash" placeholder="0" min="0" inputmode="numeric" value="'+val+'"><span class="bq-pm__amount-cur">UZS</span></div></div></div>';}else if(payType==='card'){pmAmounts.innerHTML='<div class="bq-pm__amount-row"><div class="bq-pm__amount-field"><div class="bq-pm__amount-label">Karta summa</div><div class="bq-pm__amount-inp-wrap"><input type="number" class="bq-pm__amount-inp" id="bqPMCard" placeholder="0" min="0" inputmode="numeric" data-currency="card" value="'+val+'"><span class="bq-pm__amount-cur">UZS</span></div></div></div>';}else{pmAmounts.innerHTML='<div class="bq-pm__amount-row two-col"><div class="bq-pm__amount-field"><div class="bq-pm__amount-label">Naqt</div><div class="bq-pm__amount-inp-wrap"><input type="number" class="bq-pm__amount-inp" id="bqPMCash" placeholder="0" min="0" inputmode="numeric"><span class="bq-pm__amount-cur">UZS</span></div></div><div class="bq-pm__amount-field"><div class="bq-pm__amount-label">Karta</div><div class="bq-pm__amount-inp-wrap"><input type="number" class="bq-pm__amount-inp" id="bqPMCard" placeholder="0" min="0" inputmode="numeric" data-currency="card"><span class="bq-pm__amount-cur">UZS</span></div></div></div>';}const first=pmAmounts.querySelector('input');if(first) setTimeout(()=>{first.focus();first.select();},40);}
-  pmNoteToggle.addEventListener('click',()=>{pmNote.hidden=!pmNote.hidden;if(!pmNote.hidden) setTimeout(()=>pmNote.focus(),40);});
-  pmConfirm.addEventListener('click',()=>{if(!selectedStudent) return;const cashInp=document.getElementById('bqPMCash'),cardInp=document.getElementById('bqPMCard'),cash=cashInp?(parseInt(cashInp.value)||0):0,card=cardInp?(parseInt(cardInp.value)||0):0;if(cash+card<=0){const bad=cashInp||cardInp;if(bad){bad.focus();bad.classList.add('bq-pm__amount-inp--err');setTimeout(()=>bad.classList.remove('bq-pm__amount-inp--err'),1200);}return;}document.getElementById('bqPFStudentId').value=selectedStudent.id;document.getElementById('bqPFCash').value=cash;document.getElementById('bqPFCard').value=card;document.getElementById('bqPFDate').value=pmDate.value||todayStr();document.getElementById('bqPFNote').value=pmNote.value||'';pmConfirm.classList.add('is-loading');pmConfirm.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';payForm.submit();});
-  openBtn3.addEventListener('click',()=>{setQuickMenu(false);openModal();});
-  pmClose.addEventListener('click',closeModal);
-  pmCancel.addEventListener('click',closeModal);
-  modal.addEventListener('click',e=>{if(e.target===modal) closeModal();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden) closeModal();});
-})();
-
-})();
 </script>
 {% endblock %}

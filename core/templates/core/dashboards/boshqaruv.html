@@ -2121,17 +2121,20 @@ html[data-role-theme="light"] .bq-sdrawer-date:focus-within .bq-sdrawer-date__fl
 /* ══════════════════ KPI GRID ══════════════════ */
 .bq-krows { display: flex; flex-direction: column; gap: 12px; }
 .bq-kgrid { display: grid; gap: 12px; }
+.bq-kgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .bq-kgrid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .bq-kgrid--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 @media(max-width:1280px){
+  .bq-kgrid--3 { grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
   .bq-kgrid--4 { grid-template-columns: repeat(4, minmax(0,1fr)); gap:10px; }
   .bq-kgrid--5 { grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
 }
 @media(max-width:720px){
+  .bq-kgrid--3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 @media(max-width:460px){
-  .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: 1fr; }
+  .bq-kgrid--3, .bq-kgrid--4, .bq-kgrid--5 { grid-template-columns: 1fr; }
 }
 
 .bq-kpi {
@@ -4514,7 +4517,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
           <button
             class="bq-btn bq-btn--ghost bq-theme-toggle js-role-theme-toggle"
             type="button"
-            data-theme-role="{% if request.user.is_superuser %}superadmin{% else %}director{% endif %}"
+            data-theme-role="{% if request.user.is_superuser %}superadmin{% elif request.user.role == 'manager' %}manager{% else %}director{% endif %}"
             aria-pressed="false"
             title="Tema almashtirish">
             <i class="fa-regular fa-lightbulb js-role-theme-icon"></i>
@@ -4579,8 +4582,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
       <!-- ── KPI kartalar ── -->
       <div class="bq-krows">
 
-        <!-- Yuqori qator: 4 ta moliyaviy ko'rsatkich -->
-        <div class="bq-kgrid bq-kgrid--4">
+        <!-- Yuqori qator: director=4, manager=3 -->
+        <div class="bq-kgrid {% if request.user.role == 'manager' %}bq-kgrid--3{% else %}bq-kgrid--4{% endif %}">
 
           <!-- 1. Daromad -->
           <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
@@ -4615,7 +4618,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
             <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
           </div>
 
-          <!-- 4. Sof Foyda -->
+          <!-- 4. Sof Foyda — faqat director/superadmin -->
+          {% if request.user.role != 'manager' %}
           <div class="bq-kpi bq-kpi--cyan">
             <div class="bq-kpi__head">
               <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
@@ -4625,11 +4629,12 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
             <div class="bq-kpi__val" id="k2v" style="color:var(--bq-cyan)">—</div>
             <div class="bq-kpi__sub" id="k2s">—</div>
           </div>
+          {% endif %}
 
         </div>
 
-        <!-- Quyi qator: 5 ta faoliyat ko'rsatkichi -->
-        <div class="bq-kgrid bq-kgrid--5">
+        <!-- Quyi qator: director=5, manager=4 -->
+        <div class="bq-kgrid {% if request.user.role == 'manager' %}bq-kgrid--4{% else %}bq-kgrid--5{% endif %}">
 
           <!-- 5. Faol O'quvchi -->
           <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
@@ -4653,7 +4658,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
             <div class="bq-kpi__sub" id="k4s">Faol o'qituvchilar</div>
           </a>
 
-          <!-- 7. Managerlar -->
+          <!-- 7. Managerlar — faqat director/superadmin -->
+          {% if request.user.role != 'manager' %}
           <a class="bq-kpi bq-kpi--amber" href="{% url 'core:stat_managers' %}">
             <div class="bq-kpi__head">
               <div class="bq-kpi__icon"><i class="fa-solid fa-user-tie"></i></div>
@@ -4663,6 +4669,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
             <div class="bq-kpi__val" id="k5v" style="color:var(--bq-amber)">—</div>
             <div class="bq-kpi__sub" id="k5s">Faol managerlar</div>
           </a>
+          {% endif %}
 
           <!-- 8. Lidlar -->
           <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
@@ -4694,7 +4701,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
 
       </div>
 
-      <!-- ── MOLIYA bo'limi ── -->
+      <!-- ── MOLIYA bo'limi — faqat director/superadmin ── -->
+      {% if request.user.role != 'manager' %}
       <div class="bq-sec">
         <div class="bq-sec__hd">
           <div class="bq-sec__ico" style="background:rgba(52,211,153,.12);color:var(--bq-green);border-color:rgba(52,211,153,.18)"><i class="fa-solid fa-chart-line"></i></div>
@@ -4714,6 +4722,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
                 <span class="bq-fin-hint">Barcha kirim to'lovlar</span>
               </div>
             </div>
+            {% if request.user.role != 'manager' %}
             <div class="bq-fin-stat">
               <span class="bq-fin-dot" style="background:var(--bq-green)"></span>
               <div>
@@ -4722,6 +4731,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
                 <span class="bq-fin-hint">Aylanma − Xarajatlar</span>
               </div>
             </div>
+            {% endif %}
             <div class="bq-fin-stat">
               <span class="bq-fin-dot" style="background:var(--bq-rose)"></span>
               <div>
@@ -4734,6 +4744,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
           <div class="bq-ch bq-ch--xl"><canvas id="chRevenue"></canvas></div>
         </div>
       </div>
+      {% endif %}
 
       <!-- ── O'QUVCHILAR bo'limi ── -->
       <div class="bq-sec">
@@ -4790,7 +4801,8 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
         </div>
       </div>
 
-      <!-- ── ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK ── -->
+      <!-- ── ENG YAXSHI GURUHLAR + SO'NGGI FAOLLIK — faqat director/superadmin ── -->
+      {% if request.user.role != 'manager' %}
       <div class="bq-sec">
         <div class="bq-groups-activity-grid">
           <div class="bq-best-card">
@@ -4840,6 +4852,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
           </div>
         </div>
       </div>
+      {% endif %}
 
       <!-- ── CRM SNAPSHOT ── -->
       <div class="bq-sec">
@@ -6865,9 +6878,12 @@ function render(d){
   document.getElementById('k1s').textContent=fmtN(k.pay_count)+' ta to\'lov';
   badge(document.getElementById('k1d'), _ch.revenue);
 
-  document.getElementById('k2v').textContent=fmtN(k.net_profit)+' so\'m';
-  document.getElementById('k2s').textContent='Xarajat: '+fmtN(k.expenses)+' so\'m';
-  badge(document.getElementById('k2d'), _ch.net_profit);
+  const _k2v=document.getElementById('k2v');
+  const _k2s=document.getElementById('k2s');
+  const _k2d=document.getElementById('k2d');
+  if(_k2v) _k2v.textContent=fmtN(k.net_profit)+' so\'m';
+  if(_k2s) _k2s.textContent='Xarajat: '+fmtN(k.expenses)+' so\'m';
+  if(_k2d) badge(_k2d, _ch.net_profit);
 
   document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';
   document.getElementById('k3s').textContent='Jami: '+fmtN(k.total_students)+' | Yangi: '+fmtN(k.new_this_month);
@@ -6877,9 +6893,12 @@ function render(d){
   document.getElementById('k4s').textContent='Faol o\'qituvchilar';
   badge(document.getElementById('k4d'), _ch.teachers);
 
-  document.getElementById('k5v').textContent=fmtN(k.managers_count)+' ta';
-  document.getElementById('k5s').textContent='Faol managerlar';
-  badge(document.getElementById('k5d'), _ch.managers);
+  const _k5v=document.getElementById('k5v');
+  const _k5s=document.getElementById('k5s');
+  const _k5d=document.getElementById('k5d');
+  if(_k5v) _k5v.textContent=fmtN(k.managers_count)+' ta';
+  if(_k5s) _k5s.textContent='Faol managerlar';
+  if(_k5d) badge(_k5d, _ch.managers);
 
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);

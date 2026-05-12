@@ -2548,11 +2548,6 @@ def director_boshqaruv(request):
     center = _get_center(request)
     if not center:
         return redirect("core:home")
-    # Manager "Boshqaruv" bossa bu view'ga tushmasligi kerak — o'zining
-    # manager dashboardiga yo'naltiramiz. Direct URL orqali kelsa ham himoya.
-    user_role = getattr(request.user, "role", None)
-    if user_role == "manager" and not request.user.is_superuser:
-        return redirect("core:home")
     d_from, d_to = _parse_dates(request)
     pending_purchase_requests = _build_pending_purchase_requests(center)
     # Active payment methods for payment modal
