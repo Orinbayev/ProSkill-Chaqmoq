@@ -4779,7 +4779,7 @@ def group_detail(request, pk: int):
     from education.models import GroupSchedule as _GS
     today_now = localdate()
     month_start_now = today_now.replace(day=1)
-    enrolled_total = len(student_enrollments) or enrollments.count()
+    enrolled_total = len(student_enrollments) or len(enrollments)
     capacity = int(getattr(g, "max_students", 0) or 0)
     fill_pct = round(enrolled_total * 100 / capacity, 1) if capacity else 0
 
