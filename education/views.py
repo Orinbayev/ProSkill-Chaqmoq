@@ -8224,9 +8224,9 @@ def group_create(request, category=None):
                 from accounts.models import Center
                 g.center = Center.objects.first()
 
-        # ✅ Foydalanuvchi kurs narxini kiritgan bo'lsa — o'sha qiymatni saqlaymiz
-        if g.kurs_narxi in [None, "", 0]:
-            g.kurs_narxi = 500000  # faqat bo'sh bo'lsa default beramiz
+        # Agar narx kiritilmagan bo'lsa, 0 saqlaymiz (500k avtomatik qo'shmaymiz)
+        if g.kurs_narxi is None:
+            g.kurs_narxi = 0
 
         # ✅ O'qituvchi foizi
         if g.oqituvchi and getattr(g.oqituvchi, 'oqituvchi_foizi', None) is not None:

@@ -141,7 +141,12 @@ class GroupForm(forms.ModelForm):
                 self.fields[f].required = False
 
         # Default qiymatlar
-        if "kurs_narxi" in self.fields: self.fields["kurs_narxi"].initial = 500000
+        if "kurs_narxi" in self.fields:
+            self.fields["kurs_narxi"].widget = forms.NumberInput(attrs={
+                "min": "0", "step": "1000", "placeholder": "Masalan: 600000"
+            })
+            if not getattr(self, "instance", None) or not self.instance.pk:
+                self.fields["kurs_narxi"].initial = ""
         if "max_students" in self.fields:
             self.fields["max_students"].initial = self.initial.get("max_students") or getattr(self.instance, "max_students", None) or 15
         if (
@@ -150,8 +155,6 @@ class GroupForm(forms.ModelForm):
             and not self.initial.get("course_start_date")
         ):
             self.fields["course_start_date"].initial = timezone.localdate()
-        if "kurs_narxi" in self.fields:
-            self.fields["kurs_narxi"].widget = forms.HiddenInput()
         if "duration_months" in self.fields:
             self.fields["duration_months"].widget.attrs.update(
                 {"placeholder": "Masalan: 2"}
@@ -255,7 +258,7 @@ class GroupForm(forms.ModelForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.estimated_end_date_manual = False
-        obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.kurs_narxi = obj.kurs_narxi or 0
         obj.max_students = obj.max_students or 15
 
         # Support teacher: feature yoqilgan markazlarda — clean'dan kelgan qiymat
@@ -284,7 +287,7 @@ class LangGroupForm(GroupForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.category = Group.LANG  # <— Eng muhim qator
-        obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.kurs_narxi = obj.kurs_narxi or 0
         obj.oqituvchi_foiz = obj.oqituvchi_foiz or 40
         obj.oy_dars_soni = obj.oy_dars_soni or 12
         if commit:
@@ -300,7 +303,7 @@ class ITGroupForm(GroupForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.category = Group.IT  # <— Eng muhim qator
-        obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.kurs_narxi = obj.kurs_narxi or 0
         obj.oqituvchi_foiz = obj.oqituvchi_foiz or 40
         obj.oy_dars_soni = obj.oy_dars_soni or 12
         if commit:

@@ -342,6 +342,13 @@
         </div>
 
         <div class="gf-field">
+          <label class="gf-label" for="{{ form.kurs_narxi.id_for_label }}">Kurs narxi (so'm)</label>
+          {{ form.kurs_narxi }}
+          <div class="gf-help">Oylik to'lov miqdori. O'quvchi qo'shganda avtomatik shu narx bilan yoziladi.</div>
+          {% for error in form.kurs_narxi.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="gf-field">
           <label class="gf-label" for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
           {{ form.course_start_date }}
           <div class="gf-help">Bo'sh qoldirsangiz bugungi sana qo'yiladi.</div>
