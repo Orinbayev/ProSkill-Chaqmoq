@@ -1000,34 +1000,25 @@ def stat_students(request):
     else:
         rows = rows.filter(is_archived=False)
 
-    # ledger relation nomi: "ledger" bo'lishi shart emas, sizda annotate ishlagan.
-    from django.db.models.functions import Coalesce
     from django.db.models import Prefetch
     from education.models import Enrollment
 
-    # ✅ Isolate data by center (Coins and Groups)
-    rows = rows.annotate(
-        jami_chaqmoq=Coalesce(
-            Sum("ledger__ball", filter=Q(ledger__group__center=center) | Q(ledger__rule__center=center) | Q(ledger__rule__center__isnull=True)),
-            0
-        )
-    ).prefetch_related(
+    rows = rows.prefetch_related(
         Prefetch("enrollments", queryset=Enrollment.objects.filter(group__center=center, is_active=True).select_related("group"))
     ).order_by("-id")
 
     if q:
         rows = rows.filter(Q(ism__icontains=q) | Q(familya__icontains=q) | Q(email__icontains=q))
-    
+
     if gender:
         rows = rows.filter(gender=gender)
-        
+
     if section_id:
         if section_id.isdigit():
-             rows = rows.filter(enrollments__group__category_obj__id=int(section_id)).distinct()
+            rows = rows.filter(enrollments__group__category_obj__id=int(section_id)).distinct()
         else:
-             rows = rows.filter(enrollments__group__category_obj__name=section_id).distinct()
+            rows = rows.filter(enrollments__group__category_obj__name=section_id).distinct()
 
-    # Ko'p guruhda o'qiydiganlar filtri
     if multi_group == 'yes':
         from django.db.models import Count as AnnotCount
         rows = rows.annotate(
@@ -1038,9 +1029,29 @@ def stat_students(request):
             )
         ).filter(active_group_count__gt=1)
 
+    # Cap page_size to avoid very large pages
+    page_size = min(page_size, 100)
+
     paginator = Paginator(rows, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
     start_index = page_obj.start_index() if page_obj.paginator.count else 0
+
+    # Compute jami_chaqmoq for current page students in ONE query (not per-row annotation)
+    from chaqmoq.models import Ledger
+    _student_ids = [u.id for u in page_obj]
+    if _student_ids and center:
+        _ledger_sums = (
+            Ledger.objects
+            .filter(student_id__in=_student_ids)
+            .filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
+            .values("student_id")
+            .annotate(_total=Sum("ball"))
+        )
+        _sum_map = {row["student_id"]: row["_total"] for row in _ledger_sums}
+    else:
+        _sum_map = {}
+    for u in page_obj:
+        u.jami_chaqmoq = _sum_map.get(u.id, 0)
 
     context = {
         "title": "O’quvchilar",

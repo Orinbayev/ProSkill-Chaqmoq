@@ -8835,7 +8835,7 @@ def enrollment_leave(request, pk):
 def my_groups(request):
     rows = (
         Group.objects.filter(oqituvchi=request.user, is_archived=False)
-        .select_related("center", "oqituvchi")
+        .select_related("center", "oqituvchi", "category_obj")
         .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
         .order_by("nom")
     )
