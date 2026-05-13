@@ -938,8 +938,11 @@
         }
       })
         .then(function (response) {
+          var status = response.status;
           return response.json().then(function (data) {
-            return { ok: response.ok, data: data };
+            return { ok: response.ok, status: status, data: data };
+          }).catch(function () {
+            return { ok: false, status: status, data: null };
           });
         })
         .then(function (result) {
@@ -963,9 +966,12 @@
             return;
           }
 
-          setBodyState(
-            '<div class="student-drawer__error">Formani saqlashda xatolik yuz berdi. Qayta urinib ko\'ring.</div>'
-          );
+          var errMsg = (result.data && result.data.error)
+            ? result.data.error
+            : (result.status >= 500
+                ? "Server xatosi (" + result.status + "). Iltimos qayta urinib koʻring."
+                : "Saqlashda xatolik yuz berdi. Qayta urinib koʻring.");
+          setBodyState('<div class="student-drawer__error">' + errMsg + '</div>');
         })
         .catch(function () {
           setBodyState(

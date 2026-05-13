@@ -893,18 +893,32 @@ def add_user(request):
                     },
                     status=409,
                 )
-        user = form.save()
-        messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
-        if is_user_drawer:
-            return JsonResponse({
-                "ok": True,
-                "user": {
-                    "id": user.id,
-                    "full_name": user.get_full_name() or f"{user.ism} {user.familya}".strip(),
-                    "email": user.email,
-                },
-            })
-        return redirect(next_url or "core:home")
+        try:
+            user = form.save()
+        except forms.ValidationError as e:
+            err_msg = " ".join(e.messages) if hasattr(e, "messages") else str(e)
+            if is_user_drawer:
+                return JsonResponse({"ok": False, "error": err_msg}, status=400)
+            form.add_error(None, e)
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).exception("add_user: form.save() failed")
+            err_msg = f"Saqlashda xatolik yuz berdi: {e}"
+            if is_user_drawer:
+                return JsonResponse({"ok": False, "error": err_msg}, status=500)
+            raise
+        else:
+            messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo’shildi.")
+            if is_user_drawer:
+                return JsonResponse({
+                    "ok": True,
+                    "user": {
+                        "id": user.id,
+                        "full_name": user.get_full_name() or f"{user.ism} {user.familya}".strip(),
+                        "email": user.email,
+                    },
+                })
+            return redirect(next_url or "core:home")
 
     role_titles = {
         "director": "Yangi direktor",
