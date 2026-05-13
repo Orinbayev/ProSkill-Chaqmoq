@@ -4,462 +4,876 @@
 {% block body_class %}gas-page group-form-page{% endblock %}
 
 {% block content %}
-<div class="gas-shell">
+<div class="ngf-shell">
 
   {% if form.instance.pk %}
     {% include "education/_group_action_shell.html" with group=form.instance active_tab="edit" page_title="Tahrirlash" %}
   {% else %}
-    <nav class="gas-crumb" aria-label="breadcrumb">
-      <a href="{% url 'core:director_boshqaruv' %}">Boshqaruv</a>
-      <i class="fa-solid fa-chevron-right gas-crumb__sep"></i>
-      <a href="{% url 'education:all_groups' %}">Guruhlar</a>
-      <i class="fa-solid fa-chevron-right gas-crumb__sep"></i>
-      <span class="gas-crumb__cur">{{ title|default:'Yangi guruh yaratish' }}</span>
-    </nav>
-    <div class="gas-card">
-      <div class="gas-head">
-        <span class="gas-avatar gf-new-avatar"><i class="fa-solid fa-plus"></i></span>
-        <div class="gas-head__main">
-          <h1 class="gas-head__name">{{ title|default:'Yangi guruh yaratish' }}</h1>
-          <div class="gas-head__meta"><span>{{ description|default:"Boshlanish sanasi, davomiyligi va dars vaqtini kiriting." }}</span></div>
-        </div>
-      </div>
-    </div>
+  <nav class="ngf-crumb" aria-label="breadcrumb">
+    <a href="{% url 'core:director_boshqaruv' %}"><i class="fa-solid fa-house"></i> Boshqaruv</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <a href="{% url 'education:all_groups' %}">Guruhlar</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <span>{{ title|default:'Yangi guruh yaratish' }}</span>
+  </nav>
   {% endif %}
 
-  <style>
-    .gf-new-avatar { background: #ede9fe; color: #7c3aed; font-size: 22px; }
-
-    .gf-card {
-      padding: 22px 24px;
-      border-radius: 18px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 14px 32px rgba(15,23,42,.05);
-    }
-    .gf-card + .gf-card { margin-top: 14px; }
-    .gf-section-title {
-      margin: 0 0 4px;
-      color: #0f172a;
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: -.01em;
-    }
-    .gf-section-sub {
-      margin: 0 0 18px;
-      color: #94a3b8;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .gf-grid {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 14px;
-    }
-    .gf-grid > .gf-field { grid-column: span 6; }
-    .gf-grid > .gf-field--full { grid-column: 1 / -1; }
-    .gf-grid > .gf-field--third { grid-column: span 4; }
-    @media (max-width: 720px) {
-      .gf-grid > .gf-field,
-      .gf-grid > .gf-field--full,
-      .gf-grid > .gf-field--third { grid-column: 1 / -1; }
-    }
-
-    .gf-label {
-      display: block;
-      margin: 0 0 8px;
-      color: #94a3b8;
-      font-size: 11.5px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .gf-help {
-      margin-top: 6px;
-      color: #94a3b8;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .gf-error {
-      margin-top: 6px;
-      color: #b91c1c;
-      font-size: 12.5px;
-      font-weight: 600;
-    }
-
-    /* Style native form widgets (rendered by Django) inside the card */
-    .gf-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-    .gf-card select,
-    .gf-card textarea {
-      width: 100%;
-      height: 48px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      color: #0f172a;
-      font-size: 14.5px;
-      font-weight: 600;
-      transition: border-color .15s, box-shadow .15s;
-      outline: 0;
-      box-sizing: border-box;
-    }
-    .gf-card textarea {
-      height: auto;
-      min-height: 96px;
-      padding: 12px 14px;
-      line-height: 1.45;
-      resize: vertical;
-    }
-    .gf-card input:focus,
-    .gf-card select:focus,
-    .gf-card textarea:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
-    }
-    .gf-card input[readonly] {
-      background: #f8fafc;
-      color: #475569;
-      border-color: #e5e7eb;
-    }
-    .gf-card select {
-      -webkit-appearance: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='%2394a3b8'><path d='M3 4.5l3 3 3-3' stroke='%2394a3b8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      background-size: 12px 12px;
-      padding-right: 38px;
-    }
-
-    .gf-summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-    .gf-summary-card {
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid #eef2f7;
-      background: #f8fafc;
-    }
-    .gf-summary-card__lbl {
-      color: #94a3b8;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .gf-summary-card__val {
-      margin-top: 6px;
-      color: #0f172a;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -.01em;
-    }
-    @media (max-width: 720px) {
-      .gf-summary { grid-template-columns: 1fr; }
-    }
-
-    .gf-tip {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid #bfdbfe;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.45;
-      margin-bottom: 18px;
-    }
-    .gf-tip i { margin-top: 2px; flex-shrink: 0; }
-
-    .gf-support {
-      grid-column: 1 / -1;
-      padding: 16px;
-      border-radius: 14px;
-      border: 1px solid #bfdbfe;
-      background: #eff6ff;
-    }
-    .gf-support__head {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      -webkit-user-select: none;
-      user-select: none;
-      color: #1d4ed8;
-      font-size: 14px;
-      font-weight: 700;
-    }
-    .gf-support__head input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: #2563eb;
-      margin: 0;
-    }
-    .gf-support__body {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 720px) {
-      .gf-support__body { grid-template-columns: 1fr; }
-    }
-
-    .gf-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 22px;
-    }
-    .gf-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 44px;
-      padding: 0 22px;
-      border-radius: 11px;
-      border: 1px solid transparent;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background .15s, color .15s, border-color .15s, transform .1s;
-    }
-    .gf-btn:active { transform: translateY(1px); }
-    .gf-btn--ghost {
-      background: #ffffff;
-      color: #475569;
-      border-color: #e5e7eb;
-    }
-    .gf-btn--ghost:hover { background: #f8fafc; color: #0f172a; }
-    .gf-btn--primary {
-      background: #2563eb;
-      color: #ffffff;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, .22);
-    }
-    .gf-btn--primary:hover { background: #1d4ed8; }
-
-    .gf-msgs { margin-bottom: 14px; }
-    .gf-msg {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 14px;
-      border-radius: 12px;
-      border: 1px solid;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .gf-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
-    .gf-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
-    .gf-msg--warning { border-color: #fde68a; background: #fffbeb; color: #b45309; }
-    .gf-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
-
-    .gf-schedule-block { display: none; }
-    .gf-schedule-block.show {
-      display: grid;
-      grid-column: 1 / -1;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-    @media (max-width: 720px) {
-      .gf-schedule-block.show { grid-template-columns: 1fr; }
-    }
-  </style>
-
   {% if messages %}
-  <div class="gf-msgs">
+  <div class="ngf-msgs">
     {% for m in messages %}
-      <div class="gf-msg gf-msg--{% if m.tags == 'error' %}error{% elif m.tags == 'warning' %}warning{% elif m.tags == 'success' %}success{% else %}info{% endif %}">
-        <i class="fa-solid {% if m.tags == 'error' %}fa-circle-xmark{% elif m.tags == 'warning' %}fa-triangle-exclamation{% elif m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
-        <span>{{ m }}</span>
-      </div>
+    <div class="ngf-msg ngf-msg--{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}success{% elif m.tags == 'warning' %}warning{% else %}info{% endif %}">
+      <i class="fa-solid {% if m.tags == 'error' %}fa-circle-xmark{% elif m.tags == 'success' %}fa-circle-check{% elif m.tags == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+      <span>{{ m }}</span>
+    </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <div class="gf-card">
-    <h2 class="gf-section-title">{% if form.instance.pk %}Guruh ma'lumotlari{% else %}Yangi guruh{% endif %}</h2>
-    <p class="gf-section-sub">Bo'sh joylarni to'ldiring — boshlanish sanasi, davomiyligi va dars vaqti.</p>
-
-    <form method="post" id="group-form" autocomplete="off">
-      {% csrf_token %}
-
-      {% for hidden in form.hidden_fields %}
-        {{ hidden }}
-      {% endfor %}
-
-      {% if form.non_field_errors %}
-        <div class="gf-msg gf-msg--error" style="margin-bottom:14px">
-          <i class="fa-solid fa-circle-xmark"></i>
-          <div>{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>
+  <!-- HERO HEADER -->
+  <div class="ngf-hero">
+    <div class="ngf-hero__left">
+      <div class="ngf-hero__icon">
+        {% if form.instance.pk %}
+          <i class="fa-solid fa-pen-to-square"></i>
+        {% else %}
+          <i class="fa-solid fa-layer-group"></i>
+        {% endif %}
+      </div>
+      <div>
+        <h1 class="ngf-hero__title">{{ title|default:'Yangi guruh yaratish' }}</h1>
+        <p class="ngf-hero__sub">Guruh ma'lumotlarini to'ldiring — narx, o'qituvchi va jadval</p>
+      </div>
+    </div>
+    <div class="ngf-summary-strip" id="summary-strip">
+      <div class="ngf-scard ngf-scard--blue">
+        <div class="ngf-scard__ico"><i class="fa-solid fa-calendar-plus"></i></div>
+        <div>
+          <div class="ngf-scard__lbl">Boshlanish</div>
+          <div class="ngf-scard__val" id="sum-start">Bugun</div>
         </div>
+      </div>
+      <div class="ngf-scard ngf-scard--violet">
+        <div class="ngf-scard__ico"><i class="fa-solid fa-hourglass-half"></i></div>
+        <div>
+          <div class="ngf-scard__lbl">Davomiyligi</div>
+          <div class="ngf-scard__val" id="sum-dur">—</div>
+        </div>
+      </div>
+      <div class="ngf-scard ngf-scard--green">
+        <div class="ngf-scard__ico"><i class="fa-solid fa-flag-checkered"></i></div>
+        <div>
+          <div class="ngf-scard__lbl">Tugash</div>
+          <div class="ngf-scard__val" id="sum-end">Hisoblanadi</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM CARD -->
+  <form method="post" id="group-form" autocomplete="off">
+    {% csrf_token %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+    {% if form.non_field_errors %}
+    <div class="ngf-msg ngf-msg--error" style="margin-bottom:14px">
+      <i class="fa-solid fa-circle-xmark"></i>
+      <div>{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>
+    </div>
+    {% endif %}
+
+    <div class="ngf-body">
+
+      <!-- ══ SECTION 1: Asosiy ma'lumotlar ══ -->
+      <div class="ngf-card">
+        <div class="ngf-sec-head">
+          <div class="ngf-sec-head__dot ngf-sec-head__dot--blue"></div>
+          <span class="ngf-sec-head__title">Asosiy ma'lumotlar</span>
+          <div class="ngf-sec-head__line"></div>
+        </div>
+
+        <div class="ngf-row">
+          <!-- Guruh nomi (full) -->
+          <div class="ngf-field ngf-field--full">
+            <label class="ngf-label" for="{{ form.nom.id_for_label }}">
+              <i class="fa-solid fa-users-line ngf-label__ico"></i>Guruh nomi
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-pen"></i></span>
+              {{ form.nom }}
+            </div>
+            {% for e in form.nom.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- O'qituvchi -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.oqituvchi.id_for_label }}">
+              <i class="fa-solid fa-chalkboard-user ngf-label__ico"></i>O'qituvchi
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-user-tie"></i></span>
+              {{ form.oqituvchi }}
+            </div>
+            <div class="ngf-hint" id="teacher-availability-hint">
+              <i class="fa-solid fa-circle-info"></i> Jadval va vaqt tanlang, bo'sh ustozlar filtrlanadi
+            </div>
+            {% for e in form.oqituvchi.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Kurs narxi -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.kurs_narxi.id_for_label }}">
+              <i class="fa-solid fa-sack-dollar ngf-label__ico"></i>Kurs narxi (so'm)
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-money-bill-wave"></i></span>
+              {{ form.kurs_narxi }}
+              <span class="ngf-input-suffix">so'm</span>
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> O'quvchi qo'shganda avtomatik yoziladi</div>
+            {% for e in form.kurs_narxi.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 2: Vaqt va muddati ══ -->
+      <div class="ngf-card">
+        <div class="ngf-sec-head">
+          <div class="ngf-sec-head__dot ngf-sec-head__dot--violet"></div>
+          <span class="ngf-sec-head__title">Vaqt va muddati</span>
+          <div class="ngf-sec-head__line"></div>
+        </div>
+
+        <div class="ngf-row">
+          <!-- Boshlanish sanasi -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.course_start_date.id_for_label }}">
+              <i class="fa-solid fa-calendar-day ngf-label__ico"></i>Boshlanish sanasi
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-regular fa-calendar"></i></span>
+              {{ form.course_start_date }}
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Bo'sh qolsa bugungi sana qo'yiladi</div>
+            {% for e in form.course_start_date.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Davomiyligi -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.duration_months.id_for_label }}">
+              <i class="fa-solid fa-clock-rotate-left ngf-label__ico"></i>Davomiyligi
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-regular fa-clock"></i></span>
+              {{ form.duration_months }}
+              <span class="ngf-input-suffix">oy</span>
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Tugash sanasi avtomatik hisoblanadi</div>
+            {% for e in form.duration_months.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Tugash sanasi (readonly) -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.estimated_end_date.id_for_label }}">
+              <i class="fa-solid fa-calendar-xmark ngf-label__ico"></i>Tugash sanasi
+            </label>
+            <div class="ngf-input-wrap ngf-input-wrap--readonly">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-flag"></i></span>
+              {{ form.estimated_end_date }}
+              <span class="ngf-input-badge"><i class="fa-solid fa-bolt"></i> Auto</span>
+            </div>
+            {% for e in form.estimated_end_date.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Maksimal o'quvchi -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.max_students.id_for_label }}">
+              <i class="fa-solid fa-users ngf-label__ico"></i>Maksimal o'quvchi
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-user-plus"></i></span>
+              {{ form.max_students }}
+              <span class="ngf-input-suffix">ta</span>
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Sig'im foizi shu raqamdan hisoblanadi</div>
+            {% for e in form.max_students.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 3: Dars jadvali ══ -->
+      {% if not form.instance.pk %}
+      <div class="ngf-card">
+        <div class="ngf-sec-head">
+          <div class="ngf-sec-head__dot ngf-sec-head__dot--green"></div>
+          <span class="ngf-sec-head__title">Dars jadvali</span>
+          <div class="ngf-sec-head__line"></div>
+        </div>
+
+        <div class="ngf-row">
+          <div class="ngf-field ngf-field--full">
+            <label class="ngf-label" for="{{ form.schedule_mode.id_for_label }}">
+              <i class="fa-solid fa-calendar-week ngf-label__ico"></i>Dars kunlari
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-regular fa-calendar-days"></i></span>
+              {{ form.schedule_mode }}
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Toq: Du/Ch/Ju · Juft: Se/Pa/Sh</div>
+            {% for e in form.schedule_mode.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="ngf-schedule-block" id="schedule-block">
+            <div class="ngf-field">
+              <label class="ngf-label" for="{{ form.schedule_start_time.id_for_label }}">
+                <i class="fa-solid fa-play ngf-label__ico"></i>Boshlanish vaqti
+              </label>
+              <div class="ngf-input-wrap">
+                <span class="ngf-input-prefix"><i class="fa-regular fa-clock"></i></span>
+                {{ form.schedule_start_time }}
+              </div>
+              {% for e in form.schedule_start_time.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="ngf-field">
+              <label class="ngf-label" for="{{ form.schedule_end_time.id_for_label }}">
+                <i class="fa-solid fa-stop ngf-label__ico"></i>Tugash vaqti
+              </label>
+              <div class="ngf-input-wrap">
+                <span class="ngf-input-prefix"><i class="fa-regular fa-clock"></i></span>
+                {{ form.schedule_end_time }}
+              </div>
+              {% for e in form.schedule_end_time.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="ngf-field">
+              <label class="ngf-label" for="{{ form.schedule_room.id_for_label }}">
+                <i class="fa-solid fa-door-open ngf-label__ico"></i>Xona
+              </label>
+              <div class="ngf-input-wrap">
+                <span class="ngf-input-prefix"><i class="fa-solid fa-location-dot"></i></span>
+                {{ form.schedule_room }}
+              </div>
+              {% for e in form.schedule_room.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="ngf-card">
+        <div class="ngf-sec-head">
+          <div class="ngf-sec-head__dot ngf-sec-head__dot--green"></div>
+          <span class="ngf-sec-head__title">Dars jadvali</span>
+          <div class="ngf-sec-head__line"></div>
+        </div>
+        <div class="ngf-schedule-link">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>Dars jadvali (kun, vaqt, xona) <a href="{% url 'education:group_schedule_manage' group_id=form.instance.pk %}">Jadval</a> tabidan boshqariladi.</span>
+        </div>
+        <input type="hidden" name="{{ form.schedule_mode.html_name }}" value="{{ form.schedule_mode.value|default_if_none:'' }}">
+        <input type="hidden" name="{{ form.schedule_start_time.html_name }}" value="{% if form.schedule_start_time.value %}{{ form.schedule_start_time.value|time:'H:i' }}{% endif %}">
+        <input type="hidden" name="{{ form.schedule_end_time.html_name }}" value="{% if form.schedule_end_time.value %}{{ form.schedule_end_time.value|time:'H:i' }}{% endif %}">
+        <input type="hidden" name="{{ form.schedule_room.html_name }}" value="{{ form.schedule_room.value|default_if_none:'' }}">
+      </div>
       {% endif %}
 
-      <div class="gf-summary">
-        <div class="gf-summary-card">
-          <div class="gf-summary-card__lbl">Boshlanish</div>
-          <div class="gf-summary-card__val" id="summary-start">Bugun</div>
-        </div>
-        <div class="gf-summary-card">
-          <div class="gf-summary-card__lbl">Davomiyligi</div>
-          <div class="gf-summary-card__val" id="summary-duration">Kiritilmagan</div>
-        </div>
-        <div class="gf-summary-card">
-          <div class="gf-summary-card__lbl">Tugash sanasi</div>
-          <div class="gf-summary-card__val" id="summary-end">Hisoblanmoqda</div>
-        </div>
-      </div>
-
-      <div class="gf-tip">
-        <i class="fa-regular fa-lightbulb"></i>
-        <span>Necha oy davom etishini kiriting — tugash sanasi avtomatik hisoblanadi. Masalan, <strong>2 oy</strong> kiritsangiz tugash sanasi shu zahoti chiqadi.</span>
-      </div>
-
-      <div class="gf-grid">
-        <div class="gf-field gf-field--full">
-          <label class="gf-label" for="{{ form.nom.id_for_label }}">Guruh nomi</label>
-          {{ form.nom }}
-          {% for error in form.nom.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.oqituvchi.id_for_label }}">O'qituvchi</label>
-          {{ form.oqituvchi }}
-          <div class="gf-help" id="teacher-availability-hint">Jadval va vaqt tanlang, bo'sh ustozlar avtomatik filtrlab ko'rsatiladi.</div>
-          {% for error in form.oqituvchi.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.kurs_narxi.id_for_label }}">Kurs narxi (so'm)</label>
-          {{ form.kurs_narxi }}
-          <div class="gf-help">Oylik to'lov miqdori. O'quvchi qo'shganda avtomatik shu narx bilan yoziladi.</div>
-          {% for error in form.kurs_narxi.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
-          {{ form.course_start_date }}
-          <div class="gf-help">Bo'sh qoldirsangiz bugungi sana qo'yiladi.</div>
-          {% for error in form.course_start_date.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        {% if form.use_support %}
-        <div class="gf-support">
-          <label class="gf-support__head">
+      <!-- ══ SECTION 4: Support (agar yoqilgan bo'lsa) ══ -->
+      {% if form.use_support %}
+      <div class="ngf-card ngf-card--support" id="support-card">
+        <label class="ngf-support-toggle">
+          <div class="ngf-toggle-switch">
             <input type="checkbox" name="{{ form.use_support.html_name }}" id="{{ form.use_support.id_for_label }}" {% if form.use_support.value %}checked{% endif %}>
-            <span>🤝 Support qo'shish</span>
-          </label>
-          <div class="gf-help" style="margin-top:8px">
-            Support — yordamchi xodim. Asosiy o'qituvchi davomatni oladi, support'ga foiz bo'yicha summa yoziladi.
+            <span class="ngf-toggle-track"></span>
           </div>
-          <div id="support-fields" class="gf-support__body" {% if not form.use_support.value %}style="display:none"{% endif %}>
-            <div>
-              <label class="gf-label" for="{{ form.support_teacher.id_for_label }}">Support xodimi</label>
-              {{ form.support_teacher }}
-              {% for error in form.support_teacher.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+          <div>
+            <div class="ngf-support-toggle__title">🤝 Support xodim qo'shish</div>
+            <div class="ngf-support-toggle__sub">Yordamchi xodim davomat foizidan haq oladi</div>
+          </div>
+        </label>
+        <div id="support-fields" class="ngf-support-body" {% if not form.use_support.value %}style="display:none"{% endif %}>
+          <div class="ngf-row" style="margin-top:16px">
+            <div class="ngf-field">
+              <label class="ngf-label" for="{{ form.support_teacher.id_for_label }}">
+                <i class="fa-solid fa-user-plus ngf-label__ico"></i>Support xodimi
+              </label>
+              <div class="ngf-input-wrap">
+                <span class="ngf-input-prefix"><i class="fa-solid fa-user"></i></span>
+                {{ form.support_teacher }}
+              </div>
+              {% for e in form.support_teacher.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
             </div>
-            <div>
-              <label class="gf-label" for="{{ form.support_foiz.id_for_label }}">Foiz (%)</label>
-              {{ form.support_foiz }}
-              <div class="gf-help">0–100. Asosiy o'qituvchi + Support 100% dan oshmasin.</div>
-              {% for error in form.support_foiz.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
+            <div class="ngf-field">
+              <label class="ngf-label" for="{{ form.support_foiz.id_for_label }}">
+                <i class="fa-solid fa-percent ngf-label__ico"></i>Foiz (%)
+              </label>
+              <div class="ngf-input-wrap">
+                <span class="ngf-input-prefix"><i class="fa-solid fa-percent"></i></span>
+                {{ form.support_foiz }}
+                <span class="ngf-input-suffix">%</span>
+              </div>
+              <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> O'qituvchi + Support ≤ 100%</div>
+              {% for e in form.support_foiz.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
             </div>
           </div>
         </div>
-        <script>
-        (function(){
-          var cb = document.getElementById("{{ form.use_support.id_for_label }}");
-          var box = document.getElementById("support-fields");
-          if(!cb || !box) return;
-          cb.addEventListener("change", function(){ box.style.display = cb.checked ? "" : "none"; });
-        })();
-        </script>
-        {% endif %}
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.max_students.id_for_label }}">Maksimal o'quvchi soni</label>
-          {{ form.max_students }}
-          <div class="gf-help">Sig'im va to'ldirilish foizi shu maydondan hisoblanadi.</div>
-          {% for error in form.max_students.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.duration_months.id_for_label }}">Necha oy davom etadi</label>
-          {{ form.duration_months }}
-          <div class="gf-help">Masalan: 2, 4 yoki 6 oy.</div>
-          {% for error in form.duration_months.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-field">
-          <label class="gf-label" for="{{ form.estimated_end_date.id_for_label }}">Tugash sanasi</label>
-          {{ form.estimated_end_date }}
-          <div class="gf-help">Bu sana avtomatik hisoblanadi.</div>
-          {% for error in form.estimated_end_date.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        {% if not form.instance.pk %}
-        <div class="gf-field gf-field--full">
-          <label class="gf-label" for="{{ form.schedule_mode.id_for_label }}">Dars kunlari</label>
-          {{ form.schedule_mode }}
-          <div class="gf-help">Toq kunlar: Du / Ch / Ju · Juft kunlar: Se / Pa / Sh.</div>
-          {% for error in form.schedule_mode.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-        </div>
-
-        <div class="gf-schedule-block" id="schedule-block">
-          <div class="gf-field">
-            <label class="gf-label" for="{{ form.schedule_start_time.id_for_label }}">Boshlanish vaqti</label>
-            {{ form.schedule_start_time }}
-            {% for error in form.schedule_start_time.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-          </div>
-          <div class="gf-field">
-            <label class="gf-label" for="{{ form.schedule_end_time.id_for_label }}">Tugash vaqti</label>
-            {{ form.schedule_end_time }}
-            {% for error in form.schedule_end_time.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-          </div>
-          <div class="gf-field">
-            <label class="gf-label" for="{{ form.schedule_room.id_for_label }}">Xona</label>
-            {{ form.schedule_room }}
-            {% for error in form.schedule_room.errors %}<div class="gf-error">{{ error }}</div>{% endfor %}
-          </div>
-        </div>
-        {% else %}
-        <div class="gf-field gf-field--full">
-          <div class="gf-tip" style="margin-bottom:0">
-            <i class="fa-regular fa-calendar"></i>
-            <span>Dars jadvali (kun, vaqt, xona) endi <a href="{% url 'education:group_schedule_manage' group_id=form.instance.pk %}" style="color:#1d4ed8;font-weight:800;text-decoration:underline">Jadval</a> tabidan boshqariladi.</span>
-          </div>
-          {# Hidden fields preserve existing values during edit save #}
-          <input type="hidden" name="{{ form.schedule_mode.html_name }}" value="{{ form.schedule_mode.value|default_if_none:'' }}">
-          <input type="hidden" name="{{ form.schedule_start_time.html_name }}" value="{% if form.schedule_start_time.value %}{{ form.schedule_start_time.value|time:'H:i' }}{% endif %}">
-          <input type="hidden" name="{{ form.schedule_end_time.html_name }}" value="{% if form.schedule_end_time.value %}{{ form.schedule_end_time.value|time:'H:i' }}{% endif %}">
-          <input type="hidden" name="{{ form.schedule_room.html_name }}" value="{{ form.schedule_room.value|default_if_none:'' }}">
-        </div>
-        {% endif %}
       </div>
+      {% endif %}
 
-      <div class="gf-actions">
+      <!-- ACTIONS -->
+      <div class="ngf-actions">
         {% if form.instance.pk %}
-          <a class="gf-btn gf-btn--ghost" href="{% url 'education:group_detail' pk=form.instance.pk %}">Bekor qilish</a>
+          <a class="ngf-btn ngf-btn--ghost" href="{% url 'education:group_detail' pk=form.instance.pk %}">
+            <i class="fa-solid fa-xmark"></i> Bekor qilish
+          </a>
         {% else %}
-          <a class="gf-btn gf-btn--ghost" href="{% url 'education:all_groups' %}">Bekor qilish</a>
+          <a class="ngf-btn ngf-btn--ghost" href="{% url 'education:all_groups' %}">
+            <i class="fa-solid fa-xmark"></i> Bekor qilish
+          </a>
         {% endif %}
-        <button type="submit" class="gf-btn gf-btn--primary"><i class="fa-solid fa-check"></i><span>Saqlash</span></button>
+        <button type="submit" class="ngf-btn ngf-btn--primary" id="save-btn">
+          <i class="fa-solid fa-check"></i>
+          <span>{% if form.instance.pk %}Saqlash{% else %}Guruh yaratish{% endif %}</span>
+        </button>
       </div>
-    </form>
-  </div>
-</div>
+
+    </div><!-- /ngf-body -->
+  </form>
+</div><!-- /ngf-shell -->
+
+<style>
+/* ══ SHELL ══ */
+.ngf-shell {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 4px 48px;
+}
+
+/* ══ BREADCRUMB ══ */
+.ngf-crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  flex-wrap: wrap;
+}
+.ngf-crumb a {
+  color: var(--text-muted, #94a3b8);
+  text-decoration: none;
+  transition: color .15s;
+}
+.ngf-crumb a:hover { color: #2563eb; }
+.ngf-crumb .fa-chevron-right { font-size: 10px; opacity: .6; }
+.ngf-crumb span { color: var(--text, #0f172a); }
+
+/* ══ MESSAGES ══ */
+.ngf-msgs { margin-bottom: 16px; }
+.ngf-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ngf-msg--success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+.ngf-msg--error   { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+.ngf-msg--warning { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+.ngf-msg--info    { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+
+/* ══ HERO ══ */
+.ngf-hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%);
+  border-radius: 22px;
+  padding: 28px 28px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+}
+.ngf-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><circle cx='150' cy='50' r='80' fill='rgba(255,255,255,.04)'/><circle cx='20' cy='160' r='60' fill='rgba(255,255,255,.03)'/></svg>");
+  background-size: cover;
+  pointer-events: none;
+}
+.ngf-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  position: relative;
+}
+.ngf-hero__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.ngf-hero__title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -.02em;
+}
+.ngf-hero__sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: rgba(255,255,255,.72);
+  font-weight: 500;
+}
+
+/* ══ SUMMARY STRIP ══ */
+.ngf-summary-strip {
+  display: flex;
+  gap: 10px;
+  position: relative;
+  flex-wrap: wrap;
+}
+.ngf-scard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.18);
+  min-width: 130px;
+}
+.ngf-scard__ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.ngf-scard--blue   .ngf-scard__ico { background: rgba(96,165,250,.25); color: #93c5fd; }
+.ngf-scard--violet .ngf-scard__ico { background: rgba(167,139,250,.25); color: #c4b5fd; }
+.ngf-scard--green  .ngf-scard__ico { background: rgba(52,211,153,.25); color: #6ee7b7; }
+.ngf-scard__lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.55);
+}
+.ngf-scard__val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  margin-top: 2px;
+  letter-spacing: -.01em;
+}
+
+/* ══ BODY ══ */
+.ngf-body { display: flex; flex-direction: column; gap: 16px; }
+
+/* ══ CARD ══ */
+.ngf-card {
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 3px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.05);
+}
+.ngf-card--support {
+  background: linear-gradient(135deg, rgba(239,246,255,.6) 0%, rgba(237,233,254,.6) 100%);
+  border-color: #bfdbfe;
+}
+
+/* ══ SECTION HEAD ══ */
+.ngf-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.ngf-sec-head__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ngf-sec-head__dot--blue   { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+.ngf-sec-head__dot--violet { background: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.2); }
+.ngf-sec-head__dot--green  { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.2); }
+.ngf-sec-head__title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.ngf-sec-head__line {
+  flex: 1;
+  height: 1px;
+  background: var(--line, #e5e7eb);
+}
+
+/* ══ ROW / FIELD ══ */
+.ngf-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.ngf-field { min-width: 0; }
+.ngf-field--full { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .ngf-row { grid-template-columns: 1fr; }
+}
+
+/* ══ LABEL ══ */
+.ngf-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.ngf-label__ico {
+  font-size: 11px;
+  opacity: .7;
+}
+
+/* ══ INPUT WRAPPER ══ */
+.ngf-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ngf-input-prefix {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+.ngf-input-suffix {
+  position: absolute;
+  right: 14px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+}
+.ngf-input-badge {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: #7c3aed;
+  background: rgba(124,58,237,.1);
+  border: 1px solid rgba(124,58,237,.2);
+  padding: 2px 8px;
+  border-radius: 20px;
+  pointer-events: none;
+}
+.ngf-input-wrap--readonly .ngf-input-prefix { color: #a78bfa; }
+
+/* ══ NATIVE INPUTS ══ */
+.ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]),
+.ngf-input-wrap select,
+.ngf-input-wrap textarea {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px 0 44px;
+  border-radius: 13px;
+  border: 1.5px solid var(--line, #e2e8f0);
+  background: var(--bg2, #f8fafc);
+  color: var(--text, #0f172a);
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  outline: none;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]):focus,
+.ngf-input-wrap select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3.5px rgba(37,99,235,.14);
+  background: var(--panel, #fff);
+}
+.ngf-input-wrap input[readonly],
+.ngf-input-wrap--readonly input {
+  background: var(--bg2, #f1f5f9) !important;
+  color: #7c3aed;
+  font-weight: 700;
+  border-color: rgba(124,58,237,.25) !important;
+  cursor: default;
+}
+.ngf-input-wrap select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%2394a3b8' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px;
+  padding-right: 38px;
+}
+/* Suffix olan input — right padding */
+.ngf-input-wrap:has(.ngf-input-suffix) input,
+.ngf-input-wrap:has(.ngf-input-suffix) select {
+  padding-right: 48px;
+}
+/* Badge olan input */
+.ngf-input-wrap:has(.ngf-input-badge) input {
+  padding-right: 72px;
+}
+
+/* ══ HINT / ERROR ══ */
+.ngf-hint {
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ngf-hint .fa-circle-info { color: #60a5fa; font-size: 11px; }
+.ngf-err {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ngf-err::before {
+  content: "⚠";
+  font-size: 11px;
+}
+
+/* ══ SCHEDULE BLOCK ══ */
+.ngf-schedule-block {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.ngf-schedule-block.show { display: grid; }
+@media (max-width: 640px) {
+  .ngf-schedule-block.show { grid-template-columns: 1fr; }
+}
+
+/* ══ SCHEDULE LINK (edit mode) ══ */
+.ngf-schedule-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ngf-schedule-link a {
+  color: #1d4ed8;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+/* ══ SUPPORT TOGGLE ══ */
+.ngf-support-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+.ngf-toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.ngf-toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.ngf-toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: #cbd5e1;
+  transition: background .2s;
+  cursor: pointer;
+}
+.ngf-toggle-track::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  transition: transform .2s;
+}
+.ngf-toggle-switch input:checked + .ngf-toggle-track { background: #2563eb; }
+.ngf-toggle-switch input:checked + .ngf-toggle-track::before { transform: translateX(20px); }
+.ngf-support-toggle__title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+}
+.ngf-support-toggle__sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  margin-top: 2px;
+}
+
+/* ══ ACTIONS ══ */
+.ngf-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+.ngf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 26px;
+  border-radius: 13px;
+  border: 1.5px solid transparent;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.ngf-btn:active { transform: translateY(1px); }
+.ngf-btn--ghost {
+  background: var(--panel, #fff);
+  color: var(--text-muted, #475569);
+  border-color: var(--line, #e2e8f0);
+}
+.ngf-btn--ghost:hover {
+  background: var(--bg2, #f8fafc);
+  color: var(--text, #0f172a);
+  border-color: #cbd5e1;
+}
+.ngf-btn--primary {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 20px rgba(37,99,235,.32), 0 2px 6px rgba(124,58,237,.2);
+}
+.ngf-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(37,99,235,.38), 0 4px 10px rgba(124,58,237,.25);
+}
+
+/* ══ DARK MODE ══ */
+html[data-theme="dark"] .ngf-card,
+html[data-role-theme="director"] .ngf-card,
+html[data-role-theme="manager"] .ngf-card {
+  background: var(--panel, #1e293b);
+  border-color: var(--line, rgba(255,255,255,.08));
+}
+html[data-theme="dark"] .ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .ngf-input-wrap select,
+html[data-role-theme="director"] .ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]),
+html[data-role-theme="director"] .ngf-input-wrap select,
+html[data-role-theme="manager"] .ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]),
+html[data-role-theme="manager"] .ngf-input-wrap select {
+  background: var(--bg2, #0f172a);
+  border-color: var(--line, rgba(255,255,255,.1));
+  color: var(--text, #f1f5f9);
+}
+html[data-theme="dark"] .ngf-input-wrap input:focus,
+html[data-theme="dark"] .ngf-input-wrap select:focus,
+html[data-role-theme="director"] .ngf-input-wrap input:focus,
+html[data-role-theme="director"] .ngf-input-wrap select:focus,
+html[data-role-theme="manager"] .ngf-input-wrap input:focus,
+html[data-role-theme="manager"] .ngf-input-wrap select:focus {
+  background: var(--panel, #1e293b);
+  border-color: #3b82f6;
+}
+html[data-theme="dark"] .ngf-card--support,
+html[data-role-theme="director"] .ngf-card--support,
+html[data-role-theme="manager"] .ngf-card--support {
+  background: rgba(37,99,235,.08);
+  border-color: rgba(59,130,246,.25);
+}
+
+/* ══ LIGHT MODE ══ */
+html[data-theme="light"] .ngf-card,
+html[data-role-theme="light"] .ngf-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .ngf-input-wrap input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="light"] .ngf-input-wrap select {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ══ RESPONSIVE ══ */
+@media (max-width: 768px) {
+  .ngf-hero {
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px 20px 20px;
+  }
+  .ngf-summary-strip {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .ngf-scard { flex: 1; min-width: 100px; }
+  .ngf-shell { padding: 0 0 40px; }
+  .ngf-card { padding: 18px 16px; border-radius: 16px; }
+  .ngf-hero__title { font-size: 18px; }
+  .ngf-actions { flex-direction: column-reverse; }
+  .ngf-btn { width: 100%; justify-content: center; height: 50px; font-size: 15px; }
+}
+@media (max-width: 420px) {
+  .ngf-summary-strip { flex-direction: column; }
+  .ngf-scard { min-width: unset; }
+}
+</style>
 
 <script>
 (function(){
@@ -470,130 +884,128 @@
   const durationInput = document.getElementById("{{ form.duration_months.id_for_label }}");
   const endDateInput = document.getElementById("{{ form.estimated_end_date.id_for_label }}");
   const teacherSelect = document.getElementById("{{ form.oqituvchi.id_for_label }}");
-  const teacherAvailabilityHint = document.getElementById("teacher-availability-hint");
+  const teacherHint = document.getElementById("teacher-availability-hint");
   const scheduleStartTimeInput = document.getElementById("{{ form.schedule_start_time.id_for_label }}");
   const scheduleEndTimeInput = document.getElementById("{{ form.schedule_end_time.id_for_label }}");
-  const summaryStart = document.getElementById("summary-start");
-  const summaryDuration = document.getElementById("summary-duration");
-  const summaryEnd = document.getElementById("summary-end");
+  const sumStart = document.getElementById("sum-start");
+  const sumDur = document.getElementById("sum-dur");
+  const sumEnd = document.getElementById("sum-end");
   const tenantSlug = "{{ request.center.slug|default:''|escapejs }}";
   const availableTeachersUrl = tenantSlug ? `/${tenantSlug}/api/hr/teachers/available/` : "/api/hr/teachers/available/";
   const excludeGroupId = "{{ form.instance.pk|default:''|escapejs }}";
   const initialTeacherOptions = teacherSelect
-    ? Array.from(teacherSelect.options).map(option => ({ value: option.value, label: option.textContent }))
+    ? Array.from(teacherSelect.options).map(o => ({ value: o.value, label: o.textContent }))
     : [];
 
   const pad = v => String(v).padStart(2, "0");
-  const getToday = () => {
-    const n = new Date();
-    return [n.getFullYear(), pad(n.getMonth()+1), pad(n.getDate())].join("-");
-  };
+  const getToday = () => { const n = new Date(); return [n.getFullYear(), pad(n.getMonth()+1), pad(n.getDate())].join("-"); };
   const formatDate = v => {
-    if(!v) return "Kiritilmagan";
+    if (!v) return "—";
     const p = v.split("-");
-    if(p.length !== 3) return v;
-    return [p[2], p[1], p[0]].join(".");
+    return p.length === 3 ? [p[2], p[1], p[0]].join(".") : v;
   };
   const addMonths = (start, months) => {
     months = parseInt(months || "0", 10);
-    if(!start || !months || months <= 0) return "";
+    if (!start || months <= 0) return "";
     const p = start.split("-").map(Number);
-    if(p.length !== 3 || p.some(Number.isNaN)) return "";
-    const year = p[0], month = p[1], day = p[2];
-    const idx = (month - 1) + months;
-    const ty = year + Math.floor(idx / 12);
+    if (p.length !== 3 || p.some(Number.isNaN)) return "";
+    const idx = (p[1] - 1) + months;
+    const ty = p[0] + Math.floor(idx / 12);
     const tm = (idx % 12) + 1;
-    const last = new Date(ty, tm, 0).getDate();
-    const td = Math.min(day, last);
-    return [ty, pad(tm), pad(td)].join("-");
+    return [ty, pad(tm), pad(Math.min(p[2], new Date(ty, tm, 0).getDate()))].join("-");
   };
 
   function syncScheduleBlock(){
-    if(!modeSelect || !scheduleBlock) return;
+    if (!modeSelect || !scheduleBlock) return;
     const show = modeSelect.value === "odd" || modeSelect.value === "even";
     scheduleBlock.classList.toggle("show", show);
   }
   function restoreTeacherOptions(){
-    if(!teacherSelect) return;
+    if (!teacherSelect) return;
     const cur = teacherSelect.value;
-    teacherSelect.innerHTML = initialTeacherOptions.map(i =>
-      `<option value="${i.value}">${i.label}</option>`
-    ).join("");
-    if(cur) teacherSelect.value = cur;
-    if(teacherAvailabilityHint){
-      teacherAvailabilityHint.textContent = "Jadval va vaqt tanlang, bo'sh ustozlar avtomatik filtrlab ko'rsatiladi.";
-    }
+    teacherSelect.innerHTML = initialTeacherOptions.map(i => `<option value="${i.value}">${i.label}</option>`).join("");
+    if (cur) teacherSelect.value = cur;
+    if (teacherHint) teacherHint.innerHTML = '<i class="fa-solid fa-circle-info"></i> Jadval va vaqt tanlang, bo\'sh ustozlar filtrlanadi';
   }
   async function syncAvailableTeachers(){
-    if(!teacherSelect || !modeSelect || !scheduleStartTimeInput) return;
+    if (!teacherSelect || !modeSelect || !scheduleStartTimeInput) return;
     const mode = modeSelect.value;
     const startTime = scheduleStartTimeInput.value;
-    const endTime = scheduleEndTimeInput ? scheduleEndTimeInput.value : "";
-    if(!(mode === "odd" || mode === "even") || !startTime){
-      restoreTeacherOptions();
-      return;
-    }
+    if (!(mode === "odd" || mode === "even") || !startTime) { restoreTeacherOptions(); return; }
     const days = mode === "odd" ? ["1","3","5"] : ["2","4","6"];
     const params = new URLSearchParams();
     days.forEach(d => params.append("day", d));
     params.set("time", startTime);
-    if(endTime) params.set("end_time", endTime);
-    if(excludeGroupId) params.set("exclude_group_id", excludeGroupId);
+    if (scheduleEndTimeInput?.value) params.set("end_time", scheduleEndTimeInput.value);
+    if (excludeGroupId) params.set("exclude_group_id", excludeGroupId);
     const sel = teacherSelect.value;
     teacherSelect.disabled = true;
-    if(teacherAvailabilityHint) teacherAvailabilityHint.textContent = "Bo'sh ustozlar tekshirilmoqda...";
+    if (teacherHint) teacherHint.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Tekshirilmoqda...';
     try {
       const r = await fetch(`${availableTeachersUrl}?${params.toString()}`, { headers: {"X-Requested-With": "XMLHttpRequest"} });
       const d = await r.json();
       const results = Array.isArray(d.results) ? d.results : [];
-      const html = ['<option value="">O\'qituvchini tanlang</option>'].concat(
+      teacherSelect.innerHTML = ['<option value="">O\'qituvchini tanlang</option>'].concat(
         results.map(i => `<option value="${i.id}">${i.name}</option>`)
       ).join("");
-      teacherSelect.innerHTML = html;
-      if(sel && results.some(i => String(i.id) === String(sel))) teacherSelect.value = sel;
-      else teacherSelect.value = "";
-      if(teacherAvailabilityHint){
-        teacherAvailabilityHint.textContent = results.length
-          ? `${results.length} ta bo'sh ustoz topildi.`
-          : "Bu vaqtda bo'sh ustoz topilmadi.";
-      }
+      if (sel && results.some(i => String(i.id) === String(sel))) teacherSelect.value = sel;
+      if (teacherHint) teacherHint.innerHTML = results.length
+        ? `<i class="fa-solid fa-circle-check" style="color:#10b981"></i> ${results.length} ta bo'sh ustoz topildi`
+        : '<i class="fa-solid fa-circle-xmark" style="color:#ef4444"></i> Bu vaqtda bo\'sh ustoz topilmadi';
     } catch {
       restoreTeacherOptions();
-      if(teacherAvailabilityHint) teacherAvailabilityHint.textContent = "Bo'sh ustozlarni tekshirishda xatolik.";
     } finally {
       teacherSelect.disabled = false;
     }
   }
   function syncEndDate(){
-    if(!startDateInput || !durationInput || !endDateInput) return;
-    if(!startDateInput.value) startDateInput.value = getToday();
+    if (!startDateInput || !durationInput || !endDateInput) return;
+    if (!startDateInput.value) startDateInput.value = getToday();
     const calc = addMonths(startDateInput.value, durationInput.value);
     endDateInput.value = calc;
-    if(summaryStart) summaryStart.textContent = formatDate(startDateInput.value);
-    if(summaryDuration){
+    if (sumStart) sumStart.textContent = formatDate(startDateInput.value) || "Bugun";
+    if (sumDur) {
       const m = parseInt(durationInput.value || "0", 10);
-      summaryDuration.textContent = m > 0 ? m + " oy" : "Kiritilmagan";
+      sumDur.textContent = m > 0 ? m + " oy" : "—";
     }
-    if(summaryEnd) summaryEnd.textContent = calc ? formatDate(calc) : "Hisoblanmagan";
+    if (sumEnd) sumEnd.textContent = calc ? formatDate(calc) : "Hisoblanadi";
   }
 
-  if(modeSelect){
+  if (modeSelect) {
     modeSelect.addEventListener("change", syncScheduleBlock);
     modeSelect.addEventListener("change", syncAvailableTeachers);
     syncScheduleBlock();
   }
-  if(scheduleStartTimeInput){
+  if (scheduleStartTimeInput) {
     scheduleStartTimeInput.addEventListener("change", syncAvailableTeachers);
     scheduleStartTimeInput.addEventListener("input", syncAvailableTeachers);
   }
-  if(scheduleEndTimeInput){
+  if (scheduleEndTimeInput) {
     scheduleEndTimeInput.addEventListener("change", syncAvailableTeachers);
-    scheduleEndTimeInput.addEventListener("input", syncAvailableTeachers);
   }
-  if(startDateInput) startDateInput.addEventListener("change", syncEndDate);
-  if(durationInput){
+  if (startDateInput) startDateInput.addEventListener("change", syncEndDate);
+  if (durationInput) {
     durationInput.addEventListener("input", syncEndDate);
     durationInput.addEventListener("change", syncEndDate);
+  }
+
+  // Support toggle
+  const supportCb = document.getElementById("{{ form.use_support.id_for_label }}");
+  const supportFields = document.getElementById("support-fields");
+  if (supportCb && supportFields) {
+    supportCb.addEventListener("change", () => {
+      supportFields.style.display = supportCb.checked ? "" : "none";
+    });
+  }
+
+  // Save button loading state
+  const saveBtn = document.getElementById("save-btn");
+  const groupForm = document.getElementById("group-form");
+  if (saveBtn && groupForm) {
+    groupForm.addEventListener("submit", () => {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saqlanmoqda...</span>';
+    });
   }
 
   syncEndDate();
