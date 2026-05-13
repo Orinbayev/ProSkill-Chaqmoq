@@ -476,7 +476,7 @@ def home(request):
     center = _get_center(request)
 
     if role == "teacher":
-        return render(request, "core/dashboard_teacher.html", skeleton_ctx)
+        return render(request, "core/dashboard_teacher.html", {"center": center})
 
     if role == "student":
         return render(request, "core/dashboard_student.html", {
