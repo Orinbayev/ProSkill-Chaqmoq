@@ -1772,8 +1772,9 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
 
     # ── Daromad ────────────────────────────────────────────────
     pay_qs = _payments_for_scope(center, branch).filter(paid_date__range=(d_from, d_to))
-    revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
-    pay_count = pay_qs.count()
+    _pay_agg = pay_qs.aggregate(s=Sum("summa"), c=Count("id"))
+    revenue = int(_pay_agg["s"] or 0)
+    pay_count = int(_pay_agg["c"] or 0)
 
     exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
     expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
@@ -1801,10 +1802,15 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     att_qs = Attendance.objects.filter(group__center=center, date__range=(d_from, d_to))
     if branch:
         att_qs = att_qs.filter(group__branch=branch)
-    att_total = att_qs.count()
-    att_present = att_qs.filter(present_filter).count()
+    _att_agg = att_qs.aggregate(
+        total=Count("id"),
+        present=Count("id", filter=present_filter),
+        excused=Count("id", filter=Q(status="absent_excused") & ~present_filter),
+    )
+    att_total = int(_att_agg["total"] or 0)
+    att_present = int(_att_agg["present"] or 0)
+    att_excused = int(_att_agg["excused"] or 0)
     avg_attendance = round(att_present / att_total * 100, 1) if att_total else 0
-    att_excused = att_qs.filter(status="absent_excused").exclude(present_filter).count()
     att_absent = max(att_total - att_present - att_excused, 0)
 
     # ── O'qituvchilar va Managerlar ────────────────────────────

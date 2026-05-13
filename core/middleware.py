@@ -35,6 +35,12 @@ _CENTER_CACHE_TTL = 30  # seconds
 _SLUG_CACHE: dict[str, tuple] = {}
 _SLUG_CACHE_TTL = 120  # seconds
 
+# ── Subscription block cache (center_pk → (is_blocked, fetched_at)) ──────────
+# Avoids a DB query on every authenticated request.
+# TTL: 60 seconds — acceptable lag for plan blocking to take effect.
+_SUB_BLOCK_CACHE: dict[int, tuple] = {}
+_SUB_BLOCK_CACHE_TTL = 60  # seconds
+
 
 def _get_center_cached(center_id: int):
     """
@@ -76,8 +82,34 @@ def invalidate_center_cache(center_id: int):
     Center.save() signal dan chaqirilishi mumkin.
     """
     _CENTER_CACHE.pop(center_id, None)
+    _SUB_BLOCK_CACHE.pop(center_id, None)
     # Slug cache: topish qiyin, shuning uchun butun slug cache ni tozalaymiz
     _SLUG_CACHE.clear()
+
+
+def _is_center_blocked(center) -> bool:
+    """
+    Subscription block holatini in-process cache bilan tekshiradi.
+    Avval center.status='BLOCKED' ni tekshiradi (0 DB), keyin subscription
+    query faqat cache miss yoki TTL o'tganda chaqiriladi.
+    """
+    if center.status == 'BLOCKED':
+        return True
+    now = time.monotonic()
+    cached = _SUB_BLOCK_CACHE.get(center.pk)
+    if cached:
+        is_blocked, fetched_at = cached
+        if now - fetched_at < _SUB_BLOCK_CACHE_TTL:
+            return is_blocked
+    try:
+        sub = center.subscriptions.filter(
+            status='ACTIVE'
+        ).only('status', 'expires_at', 'manual_block').first()
+        is_blocked = bool(sub and sub.is_blocked())
+    except Exception:
+        is_blocked = False
+    _SUB_BLOCK_CACHE[center.pk] = (is_blocked, now)
+    return is_blocked
 
 
 def _bind_authenticated_center(request, center, path: str, *, clear_invalid_session: bool = False):
@@ -119,16 +151,7 @@ def _bind_authenticated_center(request, center, path: str, *, clear_invalid_sess
         except Exception as e:
             logger.error(f'Middleware sub-check error: {e}')
 
-    is_blocked = fresh_center.status == 'BLOCKED'
-    if not is_blocked:
-        try:
-            sub = fresh_center.subscriptions.filter(
-                status='ACTIVE'
-            ).only('status', 'expires_at', 'manual_block').first()
-            if sub and sub.is_blocked():
-                is_blocked = True
-        except Exception:
-            pass
+    is_blocked = _is_center_blocked(fresh_center)
 
     if is_blocked:
         allowed = (
@@ -259,6 +282,10 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        from django.conf import settings as _settings
+        _mw_debug = getattr(_settings, 'PERF_MIDDLEWARE_DEBUG', False)
+        _t0 = time.perf_counter() if _mw_debug else 0
+
         path = request.path
 
         # Reset
@@ -271,6 +298,54 @@ class TenantMiddleware:
                 or path.startswith('/media/')
                 or path == '/favicon.ico'):
             return self.get_response(request)
+
+        # Pre-compute redirect flags once (used in fast-path and fallback)
+        is_api = '/api/' in path
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        is_excluded = any(path.startswith(p) for p in NO_REDIRECT_PREFIXES)
+
+        # ── FAST-PATH REDIRECT ──────────────────────────────────
+        # For authenticated non-superusers doing GET requests that lack a slug
+        # prefix: issue the redirect BEFORE any subscription DB query.
+        # Session is already loaded by AuthenticationMiddleware, so
+        # request.session access here is free (no extra DB hit).
+        if (request.user.is_authenticated
+                and not request.user.is_superuser
+                and request.method == 'GET'
+                and not is_api
+                and not is_ajax
+                and not is_excluded):
+
+            _m_early = _SLUG_RE.match(path)
+            _early_slug = _m_early.group(1) if _m_early else None
+            _already_prefixed = bool(_early_slug and _early_slug not in EXCLUDED_PREFIXES)
+
+            if not _already_prefixed:
+                _user_center = getattr(request.user, 'center', None)
+                if _user_center:
+                    _redirect_slug = None
+                    if getattr(request.user, 'role', None) == 'director':
+                        _switched_id = request.session.get('active_center_id')
+                        if _switched_id:
+                            try:
+                                _switched = _get_center_cached(int(_switched_id))
+                                if _switched and not _switched.is_deleted and _switched.slug:
+                                    _redirect_slug = _switched.slug
+                            except (TypeError, ValueError):
+                                pass
+                    if not _redirect_slug:
+                        _redirect_slug = _user_center.slug
+                    if _redirect_slug:
+                        if _mw_debug:
+                            _elapsed = (time.perf_counter() - _t0) * 1000
+                            logger.info(
+                                '[MW-DEBUG] fast-path redirect to /%s%s in %.1fms',
+                                _redirect_slug, path, _elapsed,
+                            )
+                        return redirect(f'/{_redirect_slug}{path}', permanent=False)
+
+        if _mw_debug:
+            logger.info('[MW-DEBUG] no fast-path redirect for %s (api=%s excluded=%s)', path, is_api, is_excluded)
 
         # ── PRIMARY: session/user-based ─────────────────────────
         if request.user.is_authenticated:
@@ -288,6 +363,8 @@ class TenantMiddleware:
                         request.session.pop('active_center_id', None)
             elif hasattr(request.user, 'center') and request.user.center:
                 role = getattr(request.user, 'role', None)
+                if _mw_debug:
+                    _t_bind = time.perf_counter()
                 if role == 'director':
                     switched_center = _get_director_session_center(request)
                     if switched_center is not None:
@@ -304,27 +381,32 @@ class TenantMiddleware:
                     response = _bind_authenticated_center(request, request.user.center, path)
                     if response:
                         return response
+                if _mw_debug:
+                    logger.info(
+                        '[MW-DEBUG] _bind_authenticated_center took %.1fms',
+                        (time.perf_counter() - _t_bind) * 1000,
+                    )
 
         # ── SECONDARY: slug from URL /<slug>/... ────────────────
         m = _SLUG_RE.match(path)
         if m:
             slug = m.group(1)
             if slug not in EXCLUDED_PREFIXES:
-                # ✅ PERF: slug cache
+                if _mw_debug:
+                    _t_slug = time.perf_counter()
                 center = _get_center_by_slug_cached(slug)
                 if center:
                     request.url_center_slug = slug
-                    # Don't override session-based center
                     if request.center is None:
                         request.center = center
                         request.active_center = center
+                if _mw_debug:
+                    logger.info(
+                        '[MW-DEBUG] slug lookup "%s" → %s in %.1fms',
+                        slug, center, (time.perf_counter() - _t_slug) * 1000,
+                    )
 
-        # ── AUTO-REDIRECT: logged-in user with center → /<slug>/current_path ───
-        # Covers /, /stat/students/, /do'kon/leads/ etc.
-        is_api = '/api/' in path
-        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        is_excluded = any(path.startswith(p) for p in NO_REDIRECT_PREFIXES)
-
+        # ── AUTO-REDIRECT: fallback for superadmin / edge cases ──
         if (request.user.is_authenticated
                 and request.center
                 and request.center.slug
@@ -336,6 +418,8 @@ class TenantMiddleware:
             slug = request.center.slug
             return redirect(f'/{slug}{path}', permanent=False)
 
+        if _mw_debug:
+            logger.info('[MW-DEBUG] total middleware: %.1fms', (time.perf_counter() - _t0) * 1000)
         return self.get_response(request)
 
 

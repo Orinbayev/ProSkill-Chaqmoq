@@ -4784,11 +4784,20 @@ def group_detail(request, pk: int):
     capacity = int(getattr(g, "max_students", 0) or 0)
     fill_pct = round(enrolled_total * 100 / capacity, 1) if capacity else 0
 
-    # Davomat (oxirgi 30 kun)
+    # Davomat (oxirgi 30 kun) — per-student ma'lumotlardan group KPI ni chiqaramiz (4→2 query)
     att_from = today_now - timedelta(days=30)
-    att_qs_g = Attendance.objects.filter(group=g, date__gte=att_from, date__lte=today_now)
-    att_total_g = att_qs_g.count()
-    att_present_g = att_qs_g.filter(Q(status="present") | Q(present=True) | Q(forced=True)).count()
+    att_per_student_total = dict(
+        Attendance.objects.filter(group=g, date__gte=att_from, date__lte=today_now)
+        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
+    )
+    att_per_student_pres = dict(
+        Attendance.objects.filter(
+            group=g, date__gte=att_from, date__lte=today_now,
+        ).filter(Q(status="present") | Q(present=True) | Q(forced=True))
+        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
+    )
+    att_total_g = sum(att_per_student_total.values())
+    att_present_g = sum(att_per_student_pres.values())
     att_rate_g = round(att_present_g * 100 / att_total_g, 1) if att_total_g else 0
 
     # Oylik tushum
@@ -4832,17 +4841,7 @@ def group_detail(request, pk: int):
         col, bg = _avatar_palette[idx]
         return safe[:2].upper(), col, bg
 
-    # Per-student davomat (oxirgi 30 kun)
-    att_per_student_total = dict(
-        Attendance.objects.filter(group=g, date__gte=att_from, date__lte=today_now)
-        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
-    )
-    att_per_student_pres = dict(
-        Attendance.objects.filter(
-            group=g, date__gte=att_from, date__lte=today_now,
-        ).filter(Q(status="present") | Q(present=True) | Q(forced=True))
-        .values("student_id").annotate(c=Count("id")).values_list("student_id", "c")
-    )
+    # att_per_student_total / att_per_student_pres already computed above (shared with KPI)
 
     student_rows = []
     paid_count = 0

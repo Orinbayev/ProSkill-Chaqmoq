@@ -151,6 +151,8 @@ MIDDLEWARE = [
 SLOW_REQUEST_MS = int(os.environ.get("SLOW_REQUEST_MS", "800"))
 SLOW_REQUEST_LOG_QUERIES = os.environ.get("SLOW_REQUEST_LOG_QUERIES", "1") == "1"
 PERF_LOG_ALL = os.environ.get("PERF_LOG_ALL", "1") == "1"
+# PERF_MIDDLEWARE_DEBUG=1 → per-section timing logs in TenantMiddleware
+PERF_MIDDLEWARE_DEBUG = os.environ.get("PERF_MIDDLEWARE_DEBUG", "0") == "1"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
