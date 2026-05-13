@@ -334,16 +334,17 @@ def build_group_internal_ranking(*, group, on_date=None, actor=None, persist: bo
     return rows
 
 
-def get_group_internal_ranking_preview(*, group, on_date=None, limit: int = 3, actor=None):
+def get_group_internal_ranking_preview(*, group, on_date=None, limit: int = 3, actor=None, persist: bool = True):
     on_date = on_date or timezone.localdate()
     limit = max(1, int(limit or 3))
     if not _has_group_activity_data(group=group, on_date=on_date):
         return []
-    snapshot_qs = GroupInternalRankingSnapshot.objects.filter(group=group, snapshot_date=on_date).select_related("student")
-    if snapshot_qs.count() >= limit:
-        return list(snapshot_qs.order_by("rank_position")[:limit])
+    if persist:
+        snapshot_qs = GroupInternalRankingSnapshot.objects.filter(group=group, snapshot_date=on_date).select_related("student")
+        if snapshot_qs.count() >= limit:
+            return list(snapshot_qs.order_by("rank_position")[:limit])
 
-    rows = build_group_internal_ranking(group=group, on_date=on_date, actor=actor, persist=True)
+    rows = build_group_internal_ranking(group=group, on_date=on_date, actor=actor, persist=persist)
     return rows[:limit]
 
 

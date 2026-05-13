@@ -4757,6 +4757,7 @@ def group_detail(request, pk: int):
                 on_date=selected_date,
                 limit=3,
                 actor=request.user,
+                persist=False,
             )
         except Exception:
             logger.exception("Failed to calculate group internal ranking preview")
@@ -8337,7 +8338,7 @@ def group_list(request):
     """
     rows = (
         Group.objects
-        .select_related("center", "oqituvchi")
+        .select_related("center", "oqituvchi", "category_obj")
         .annotate(
             student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
             sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
@@ -8355,11 +8356,11 @@ def group_list(request):
     page_size = request.GET.get('page_size', '10')
 
     if page_size == "all":
-        paginator = Paginator(rows, max(1, rows.count()))
+        paginator = Paginator(rows, max(1, min(rows.count(), 200)))
     else:
         try:
             page_size = int(page_size)
-            if page_size < 1:
+            if page_size < 1 or page_size > 200:
                 page_size = 10
         except ValueError:
             page_size = 10
