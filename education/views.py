@@ -6225,7 +6225,12 @@ def category_detail(request, category_id):
         if category.center_id and category.center_id != center.id:
             raise PermissionDenied("Bu bo'limga ruxsat yo'q")
 
-    groups = Group.objects.filter(category_obj=category).order_by("id")
+    groups = (
+        Group.objects
+        .filter(category_obj=category)
+        .select_related("center", "oqituvchi")
+        .order_by("id")
+    )
     if center:
         groups = groups.filter(center=center)
 
@@ -6242,10 +6247,12 @@ def category_detail(request, category_id):
         else:
             groups = groups.filter(is_archived=False)
 
+    groups_count = groups.count()
+
     return render(request, "education/category_detail.html", {
         "category": category,
         "groups": groups,
-        "groups_count": groups.count(),
+        "groups_count": groups_count,
         "status": status,
         "is_teacher": request.user.role == 'teacher', # Template uchun
     })

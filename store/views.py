@@ -673,7 +673,7 @@ def expenses(request):
     from django.db.models.functions import TruncMonth
     
     # 1. Base QuerySet
-    items = Expense.objects.filter(center=center).select_related('category', 'worker', 'product').order_by('-sana')
+    items_qs = Expense.objects.filter(center=center).select_related('category', 'worker', 'product').order_by('-sana')
 
     # 2. Filters
     sana_dan_raw = (request.GET.get('sana_dan') or '').strip()
@@ -710,11 +710,25 @@ def expenses(request):
             qs = qs.filter(Q(izoh__icontains=q) | Q(receiver__icontains=q))
         return qs
 
-    items = _apply_shared_filters(items).filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
+    items_qs = _apply_shared_filters(items_qs).filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
 
     # 3. Aggregations
     total_sum = Expense.objects.filter(center=center).aggregate(Sum('summa'))['summa__sum'] or 0
-    filtered_sum = items.aggregate(Sum('summa'))['summa__sum'] or 0
+    filtered_sum = items_qs.aggregate(Sum('summa'))['summa__sum'] or 0
+
+    # Large expense lists were rendering every row at once. Keep totals/chart based
+    # on the full filtered set, but render only one page to prevent request resets.
+    from django.core.paginator import Paginator
+    page_size_options = (10, 20, 50, 100)
+    try:
+        per_page = int((request.GET.get("per_page") or "50").strip())
+    except (TypeError, ValueError):
+        per_page = 50
+    if per_page not in page_size_options:
+        per_page = 50
+    paginator = Paginator(items_qs, per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    items = page_obj.object_list
 
     # 4. Chart Data (oxirgi 12 oy)
     month_names = {
@@ -742,7 +756,7 @@ def expenses(request):
     chart_start = buckets[0]
     chart_end = _add_month(buckets[-1], 1) - timedelta(days=1)
     chart_items = _apply_shared_filters(
-        Expense.objects.filter(center=center).select_related('category', 'worker', 'product')
+        Expense.objects.filter(center=center)
     ).filter(sana__date__gte=chart_start, sana__date__lte=chart_end)
     chart_rows = (
         chart_items.annotate(bucket=TruncMonth('sana'))
@@ -778,6 +792,10 @@ def expenses(request):
     
     context = {
         'items': items,
+        'page_obj': page_obj,
+        'items_count': paginator.count,
+        'per_page': per_page,
+        'page_size_options': page_size_options,
         'total_sum': total_sum,
         'filtered_sum': filtered_sum,
         'categories': categories,

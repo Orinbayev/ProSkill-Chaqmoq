@@ -295,7 +295,30 @@ class HistoricalFinanceService:
 
     @staticmethod
     def get_yearly_teacher_salary(teacher, year, center=None):
-        stats = HistoricalFinanceService.get_yearly_teacher_stats(teacher, year, center)
+        groups = HistoricalFinanceService._teacher_groups(teacher, center=center)
+        group_ids = [group.id for group in groups]
+
+        yearly_att = {}
+        if group_ids:
+            rows = (
+                Attendance.objects.filter(group_id__in=group_ids, date__year=year)
+                .filter(HistoricalFinanceService._billable_attendance_filter())
+                .values("group_id", "student_id", "date__month", "date__day")
+            )
+            for row in rows:
+                yearly_att.setdefault(row["group_id"], {}).setdefault(
+                    row["date__month"], {}
+                ).setdefault(row["student_id"], []).append(row["date__day"])
+
+        history = HistoricalFinanceService._history_lookup(group_ids) if group_ids else {}
+        stats = HistoricalFinanceService.get_yearly_teacher_stats(
+            teacher,
+            year,
+            center,
+            _teacher_groups=groups,
+            _yearly_att=yearly_att,
+            _history=history,
+        )
         return [row["salary"] for row in stats]
 
     @staticmethod

@@ -124,7 +124,7 @@ async def setup_scheduler(bot):
     async def month_end_job():
         await _dispatch_scheduler_payload(bot, "month_end_reminders", get_scheduler_month_end_reminders_api)
 
-    scheduler.add_job(configured_parent_reports_job, CronTrigger(second=0), id="legacy_daily_parent_reports")
+    scheduler.add_job(configured_parent_reports_job, CronTrigger(hour=20, minute=0, second=0), id="legacy_daily_parent_reports")
     scheduler.add_job(payment_reminders_job, CronTrigger(day="*/2", hour=9, minute=0), id="payment_reminders")
     scheduler.add_job(parent_attendance_job, CronTrigger(hour=19, minute=0), id="parent_attendance")
     scheduler.add_job(weekly_reports_job, CronTrigger(day_of_week="sun", hour=20, minute=0), id="weekly_reports")

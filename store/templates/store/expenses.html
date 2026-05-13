@@ -97,6 +97,7 @@
     <div class="expenses-filter-row">
         <div class="filter-bar filter-bar--expenses-v2">
             <form method="get" id="expenseFilterForm">
+                <input type="hidden" name="per_page" value="{{ per_page }}">
                 <div class="filter-grid--expenses-v2">
                     <div class="filter-field">
                         <label class="filter-label">Sana dan</label>
@@ -167,7 +168,7 @@
     <div class="data-table-card">
         <div class="data-table-card__head">
             <h3 class="data-table-card__title">Xarajatlar ro'yxati</h3>
-            <span class="pill-badge pill-badge--violet">Jami: {{ items|length }} ta</span>
+            <span class="pill-badge pill-badge--violet">Jami: {{ items_count }} ta</span>
         </div>
         <div class="data-table-wrap">
             <table class="data-table data-table--expenses-v2">
@@ -245,6 +246,32 @@
             </table>
         </div>
     </div>
+    {% if page_obj.paginator.count %}
+    <div class="table-footer">
+        <div class="page-meta">
+            <span>Sahifa <strong>{{ page_obj.number }}</strong> / <strong>{{ page_obj.paginator.num_pages }}</strong></span>
+            <span>Jami <strong>{{ page_obj.paginator.count }}</strong> ta</span>
+        </div>
+        <form method="get" class="page-size-form">
+            {% for key, value in request.GET.items %}
+                {% if key != 'page' and key != 'per_page' %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endfor %}
+            <label class="page-size-label" for="expensesPerPage">Har sahifada</label>
+            <div class="page-select-wrap">
+                <select id="expensesPerPage" name="per_page" class="page-select" onchange="this.form.submit()">
+                    {% for size in page_size_options %}
+                    <option value="{{ size }}" {% if per_page == size %}selected{% endif %}>{{ size }} ta</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="moliya-pagination">
+        {% include "partials/pagination.html" %}
+    </div>
+    {% endif %}
     {% else %}
     <div class="data-table-card data-table-card--empty">
         <div class="empty-state-simple empty-state-simple--padded">Xarajatlar topilmadi</div>

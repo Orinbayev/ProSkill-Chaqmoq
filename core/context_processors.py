@@ -62,8 +62,6 @@ def tenant_context(request):
                 get_subscription_ui_state,
                 get_feature_flags,
                 ensure_center_subscription,
-                get_active_subscription,
-                FEATURES_BY_PLAN,
             )
 
             # Filial bo'lsa asosiy markazni aniqlaymiz — subscription shu yerdan
@@ -84,9 +82,6 @@ def tenant_context(request):
                 sub_ui = cached_sub_data.get("sub_ui")
                 features = set(cached_sub_data.get("features", []))
             else:
-                # root_center orqali subscription olamiz (filial bo'lsa ham to'g'ri ishlaydi)
-                active_sub = get_active_subscription(root_center)
-
                 try:
                     sub_ui = get_subscription_ui_state(root_center)
                 except Exception as e:
@@ -112,12 +107,15 @@ def tenant_context(request):
     from billing.plan_tiers import get_plan_tier_from_subscription, TIER_FREE
     current_plan_tier = TIER_FREE
     if center:
-        try:
-            from billing.services import get_active_subscription as _get_active_sub
-            _root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
-            current_plan_tier = get_plan_tier_from_subscription(_get_active_sub(_root))
-        except Exception as e:
-            logger.warning("current_plan_tier error: %s", e)
+        if isinstance(sub_ui, dict) and sub_ui.get("plan_tier") is not None:
+            current_plan_tier = sub_ui.get("plan_tier")
+        else:
+            try:
+                from billing.services import get_active_subscription as _get_active_sub
+                _root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+                current_plan_tier = get_plan_tier_from_subscription(_get_active_sub(_root))
+            except Exception as e:
+                logger.warning("current_plan_tier error: %s", e)
 
     # ── Feature flags ──────────────────────────────────────────
     if is_super:

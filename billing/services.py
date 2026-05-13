@@ -200,7 +200,10 @@ def invalidate_center_limit_cache(center: Center | None) -> None:
     if not center_id:
         return
 
-    cache.delete_many([f"tenant_ctx:sub:v3:{center_id}"])
+    cache.delete_many([
+        f"tenant_ctx:sub:v3:{center_id}",
+        f"billing:features:v4:{center_id}",
+    ])
 
 
 def _get_center_active_subscription_cached(center: Center) -> CenterSubscription | None:
@@ -841,13 +844,48 @@ def default_trial_expires():
 
 def get_feature_flags(center):
     """Return set of enabled feature codes for the center (effective state)."""
-    from billing.models import PlanFeature
+    from billing.models import CenterFeatureOverride, PlanFeature
     root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+
+    cache_key = f"billing:features:v4:{root.id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return set(cached)
+
     enabled = set()
-    # Iterate every active feature and ask center_has_feature
-    for code in PlanFeature.objects.filter(is_active=True).values_list('code', flat=True):
-        if center_has_feature(root, code):
+
+    active_features = list(
+        PlanFeature.objects
+        .filter(is_active=True)
+        .values("id", "code", "is_core")
+    )
+    feature_id_to_code = {feature["id"]: feature["code"] for feature in active_features}
+
+    overrides = {
+        feature_id_to_code[feature_id]: is_enabled
+        for feature_id, is_enabled in CenterFeatureOverride.objects
+        .filter(center=root, feature_id__in=feature_id_to_code)
+        .values_list("feature_id", "enabled")
+    }
+
+    plan_codes = set()
+    sub = get_active_subscription(root)
+    if sub and not sub.is_blocked() and sub.plan_id:
+        plan_codes = set(
+            sub.plan.plan_features
+            .filter(is_active=True)
+            .values_list("code", flat=True)
+        )
+
+    for feature in active_features:
+        code = feature["code"]
+        if code in overrides:
+            if overrides[code]:
+                enabled.add(code)
+            continue
+        if feature["is_core"] or code in plan_codes:
             enabled.add(code)
+
     # Also include legacy JSONField truthy keys that have no PlanFeature row,
     # so existing UI flags keep working
     raw = getattr(root, 'features', None) or {}
@@ -855,6 +893,8 @@ def get_feature_flags(center):
         for k, v in raw.items():
             if isinstance(v, bool) and v:
                 enabled.add(k)
+
+    cache.set(cache_key, sorted(enabled), timeout=60)
     return enabled
 
 
