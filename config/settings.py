@@ -57,8 +57,15 @@ CSRF_TRUSTED_ORIGINS = [
     "http://*.localhost:8000",
     "http://*.localhost",
     "https://*.onrender.com",
-    "https://*.chaqmoq.uz"
+    "https://*.chaqmoq.uz",
+    "https://chaqmoqapp.uz",
+    "https://www.chaqmoqapp.uz",
 ]
+
+# Cloudflare proxy orqali kelgan real IP'ni ko'rish uchun
+# Render ham X-Forwarded-For header'ni ishlatadi
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 if DEBUG and LOCAL_DEV_HOST:
     CSRF_TRUSTED_ORIGINS.append(f"http://{LOCAL_DEV_HOST}:8000")
 if DEBUG:
