@@ -1145,8 +1145,28 @@ def create_payment(request):
         if center: user_qs = user_qs.filter(center=center)
         student = get_object_or_404(user_qs, id=student_id)
         
-        # ✅ ONLY Active and NOT ARCHIVED groups
-        enrollments = Enrollment.objects.filter(student=student, is_active=True, group__is_archived=False).order_by('id')
+        # Faol enrollment'lar
+        active_enrollments = Enrollment.objects.filter(
+            student=student, is_active=True, group__is_archived=False
+        ).order_by('id')
+
+        # Guruhdan chiqarilgan (is_active=False) lekin to'lanmagan TuitionMonth bor
+        # enrollment'lar ham to'lovga qo'shiladi — ularning qarzi ham yig'ilishi kerak.
+        inactive_with_debt_ids = list(
+            TuitionMonth.objects
+            .filter(enrollment__student=student, enrollment__is_active=False, is_deleted=False)
+            .values_list("enrollment_id", flat=True)
+            .distinct()
+        )
+        inactive_enrollments = Enrollment.objects.filter(id__in=inactive_with_debt_ids).order_by('id')
+
+        # Ikkisini birlashtirish — takrorlanmaslik uchun ID bo'yicha
+        all_enr_ids = list(dict.fromkeys(
+            list(active_enrollments.values_list('id', flat=True)) +
+            list(inactive_enrollments.values_list('id', flat=True))
+        ))
+        enrollments = Enrollment.objects.filter(id__in=all_enr_ids).order_by('id')
+
         if not enrollments.exists():
             messages.error(request, "O'quvchida faol kurslar topilmadi.")
             return redirect(next_url)
@@ -1256,15 +1276,22 @@ def create_payment(request):
                     )
                     remaining_sum -= take
 
-                # Ortiqcha to'lov (kredit) — 1-enrollment uchun kelgusi oyga
+                # Ortiqcha to'lov (kredit) — faol enrollmentning kelgusi oyiga
+                # Guruhdan chiqarilgan (is_active=False) enrollment uchun ortiqcha
+                # to'lov kelajak oylariga yozilmasin — bu noto'g'ri qarz hosil qiladi.
                 if remaining_sum > 0:
-                    overflow_start = month_for_payment or start_month
-                    _allocate_amount_forward(
-                        enrollment=enrollments[0],
-                        payment=main_payment,
-                        amount=remaining_sum,
-                        start_month=overflow_start,
+                    overflow_enr = next(
+                        (e for e in enrollments if getattr(e, "is_active", False)),
+                        None,
                     )
+                    if overflow_enr:
+                        overflow_start = month_for_payment or start_month
+                        _allocate_amount_forward(
+                            enrollment=overflow_enr,
+                            payment=main_payment,
+                            amount=remaining_sum,
+                            start_month=overflow_start,
+                        )
             
             messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to'lov saqlandi!")
         except Exception as e:
@@ -2671,15 +2698,33 @@ def qarzdorlar_home(request):
     # Legacy data: center=None enrollment'lari group/student.center orqali
     # markazga biriktiriladi (dashboard_metrics bilan izchil).
     from django.db.models import Q as _Q
+    _center_q = (
+        _Q(center=center)
+        | _Q(center__isnull=True, group__center=center)
+        | _Q(center__isnull=True, student__center=center)
+    )
     active_enrs_qs = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
         .filter(is_active=True, student__is_archived=False, group__is_archived=False)
-        .filter(
-            _Q(center=center)
-            | _Q(center__isnull=True, group__center=center)
-            | _Q(center__isnull=True, student__center=center)
-        )
+        .filter(_center_q)
+    )
+
+    # ─── GURUHDAN CHIQARILGAN, AMMO QARZI BOR ENROLLMENT'LAR ─────────────────
+    # is_active=False lekin to'lanmagan TuitionMonth mavjud bo'lsa — qarzdorlar
+    # ro'yxatida "Chiqarilgan" belgisi bilan ko'rsatamiz.
+    _inactive_enr_ids = (
+        TuitionMonth.objects
+        .filter(enrollment__is_active=False, is_deleted=False,
+                enrollment__student__is_archived=False)
+        .values_list("enrollment_id", flat=True)
+        .distinct()
+    )
+    inactive_enrs_qs = (
+        Enrollment.objects
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
+        .filter(is_active=False, id__in=_inactive_enr_ids, student__is_archived=False)
+        .filter(_center_q)
     )
 
     chart_months = _last_12_ending(selected_to)
@@ -2692,7 +2737,6 @@ def qarzdorlar_home(request):
     # PERF: Qidiruv DB darajasida (avval Python loop'da edi — har student uchun
     # alohida qidirardi). Endi student bo'yicha indekslangan filter:
     if q:
-        from django.db.models import Q as _Q
         ql_terms = q.split()
         for term in ql_terms:
             enrs_base = enrs_base.filter(
@@ -2702,7 +2746,7 @@ def qarzdorlar_home(request):
                 | _Q(student__telefon2__icontains=term)
             )
 
-    enrollment_list = list(
+    active_list = list(
         enrs_base.order_by(
             "student__familya",
             "student__ism",
@@ -2711,6 +2755,25 @@ def qarzdorlar_home(request):
             "id",
         )
     )
+
+    # Inactive enrollment'lar ham xuddi shu qidiruv/guruh filtrlaridan o'tishi kerak
+    inactive_base = inactive_enrs_qs
+    if group_id:
+        inactive_base = inactive_base.filter(group_id=group_id)
+    if q:
+        ql_terms = q.split()
+        for term in ql_terms:
+            inactive_base = inactive_base.filter(
+                _Q(student__ism__icontains=term)
+                | _Q(student__familya__icontains=term)
+                | _Q(student__telefon1__icontains=term)
+                | _Q(student__telefon2__icontains=term)
+            )
+    inactive_list = list(inactive_base.order_by("student__familya", "student__ism", "id"))
+    for _e in inactive_list:
+        _e._is_unenrolled = True
+
+    enrollment_list = active_list + inactive_list
 
     # PERF: Pre-load (a) StudentGroupHistory start dates, (b) GroupSchedule
     # weekday counts. Bu N+1 muammoning ASOSIY manbasi — har enrollment uchun
@@ -2747,6 +2810,7 @@ def qarzdorlar_home(request):
         pattern_value = enrollment_lesson_pattern(e)
         pattern_label = lesson_pattern_label(pattern_value)
 
+        _e_unenrolled = getattr(e, "_is_unenrolled", False)
         if sid not in student_map:
             student_map[sid] = {
                 "student":     e.student,
@@ -2768,6 +2832,7 @@ def qarzdorlar_home(request):
                 "primary_debt_enrollment": None,
                 "deferred_enrollment": None,
                 "is_deferred": False,
+                "has_unenrolled_debt": False,
                 "teacher_share_only_debt": 0,
                 "teacher_share_only_full_total": 0,
                 "teacher_share_only_payment_enrollment_id": None,
@@ -2784,6 +2849,8 @@ def qarzdorlar_home(request):
         row["previous_unpaid"] += prev_unpaid
         row["credit_balance"]  += enr_credit
         row["lesson_count"] += lesson_count
+        if _e_unenrolled and debt > 0:
+            row["has_unenrolled_debt"] = True
         if start_date and (not row.get("start_date") or start_date < row["start_date"]):
             row["start_date"] = start_date
         if debt > 0:
@@ -10714,14 +10781,15 @@ def student_monthly_breakdown(request, student_id):
         user_qs = user_qs.filter(center=center)
     student = get_object_or_404(user_qs, id=student_id)
 
-    enrollments = Enrollment.objects.filter(student=student, is_active=True).select_related("group")
+    from django.db.models import Q as _Q
+    _center_q_mb = (
+        _Q(center=center)
+        | _Q(center__isnull=True, group__center=center)
+        | _Q(center__isnull=True, student__center=center)
+    )
+    enrollments = Enrollment.objects.filter(student=student).select_related("group")
     if center:
-        from django.db.models import Q as _Q
-        enrollments = enrollments.filter(
-            _Q(center=center)
-            | _Q(center__isnull=True, group__center=center)
-            | _Q(center__isnull=True, student__center=center)
-        )
+        enrollments = enrollments.filter(_center_q_mb)
 
     fee_field = tuition_month_fee_field()
 

@@ -720,6 +720,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border: 1px solid var(--m-violet-glow);
 }
 
+.pill-badge--unenrolled {
+    color: #F87171;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 /* ============================================================
    Action Buttons
    ============================================================ */
@@ -1369,6 +1375,7 @@ html[data-role-theme="light"] .pill-badge--pending { background: #FEF3C7; border
 html[data-role-theme="light"] .pill-badge--info { background: #DBEAFE; border-color: #BFDBFE; color: #1D4ED8; }
 html[data-role-theme="light"] .pill-badge--violet { background: #EDE9FE; border-color: #DDD6FE; color: #5B21B6; }
 html[data-role-theme="light"] .pill-badge--ghost { background: #F1F5F9; border-color: #E2E8F0; color: #475569; }
+html[data-role-theme="light"] .pill-badge--unenrolled { background: #FEE2E2; border-color: #FECACA; color: #B91C1C; }
 
 html[data-role-theme="light"] .action-btn {
     background: #FFFFFF;

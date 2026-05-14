@@ -149,6 +149,11 @@
                                         <i class="fa-solid fa-clock"></i> Kechiktirilgan
                                     </span>
                                     {% endif %}
+                                    {% if row.has_unenrolled_debt %}
+                                    <span class="pill-badge pill-badge--unenrolled" style="align-self:flex-start;">
+                                        <i class="fa-solid fa-user-xmark"></i> Chiqarilgan
+                                    </span>
+                                    {% endif %}
                                     {% if row.student.telefon1 %}
                                     <span class="cell-stack__meta">
                                         {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
@@ -1381,6 +1386,17 @@ tr.row-deferred {
                 data.months.forEach(function (m) {
                     const statusLabel = m.status === 'paid' ? 'To\'landi' : (m.status === 'partial' ? 'Qisman' : 'Qarzdor');
                     const statusCls = `breakdown-status--${m.status}`;
+                    const editBtn = m.tm_id
+                        ? `<button type="button" class="breakdown-edit-btn js-edit-fee"
+                                title="Oylik to'lovni tahrirlash"
+                                data-student-id="${studentId}"
+                                data-month="${m.month}"
+                                data-month-label="${m.month_label}"
+                                data-tm-id="${m.tm_id}"
+                                data-current-fee="${m.fee}">
+                                <i class="fa-solid fa-pen"></i>
+                           </button>`
+                        : '';
                     const payBtn = m.debt > 0
                         ? `<button type="button" class="breakdown-pay-btn js-breakdown-pay"
                                 title="To'lov qilish"
@@ -1397,7 +1413,7 @@ tr.row-deferred {
                         <td>${formatUzMoney(m.paid)}</td>
                         <td style="color:${m.debt > 0 ? '#ef4444' : '#10b981'}">${formatUzMoney(m.debt)}</td>
                         <td><span class="${statusCls}">${statusLabel}</span></td>
-                        <td>${payBtn}</td>
+                        <td style="display:flex;gap:4px;align-items:center;">${editBtn}${payBtn}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
