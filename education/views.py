@@ -1237,6 +1237,13 @@ def create_payment(request):
                     # Tanlangan oydan yoki eng eski to'lanmagan oydan boshlaymiz
                     if month_for_payment:
                         allocation_start = month_for_payment
+                        # Agar tanlangan oy yopiq bo'lsa — xato ko'rsatamiz
+                        e_center = getattr(e, "center", None) or getattr(e.group, "center", None)
+                        if is_month_closed_for_center(e_center, allocation_start):
+                            raise ValueError(
+                                f"{allocation_start:%B %Y} oyi mahkamlangan. "
+                                "Bu oyga to'lov yozish mumkin emas."
+                            )
                     else:
                         earliest_tm = find_earliest_unpaid_month(e)
                         allocation_start = earliest_tm.month if earliest_tm else start_month
@@ -2735,6 +2742,7 @@ def qarzdorlar_home(request):
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
         enr_credit = int(snapshot.get("credit_balance", 0) or 0)
+        prev_unpaid = int(snapshot.get("previous_unpaid", 0) or 0)
         start_date = enrollment_start_date(e)
         pattern_value = enrollment_lesson_pattern(e)
         pattern_label = lesson_pattern_label(pattern_value)
@@ -2749,6 +2757,7 @@ def qarzdorlar_home(request):
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
+                "previous_unpaid": 0,
                 "credit_balance": 0,
                 "lesson_count": 0,
                 "start_date":  start_date,
@@ -2769,10 +2778,11 @@ def qarzdorlar_home(request):
 
         row = student_map[sid]
         row["enrollment_count"] += 1
-        row["total_fee"]  += f
-        row["total_paid"] += p
-        row["debt"]       += debt
-        row["credit_balance"] += enr_credit
+        row["total_fee"]       += f
+        row["total_paid"]      += p
+        row["debt"]            += debt
+        row["previous_unpaid"] += prev_unpaid
+        row["credit_balance"]  += enr_credit
         row["lesson_count"] += lesson_count
         if start_date and (not row.get("start_date") or start_date < row["start_date"]):
             row["start_date"] = start_date

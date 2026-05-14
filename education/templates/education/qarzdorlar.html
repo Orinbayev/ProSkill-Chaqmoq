@@ -207,6 +207,11 @@
                                 <div class="cell-amount cell-amount--red"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %}>
                                     {{ row.debt|money_uz }}
                                 </div>
+                                {% if row.previous_unpaid > 0 %}
+                                <span class="cell-amount__sub" style="color:#f97316;">
+                                    <i class="fa-solid fa-clock-rotate-left" style="font-size:9px;margin-right:2px;"></i>O'tgan: {{ row.previous_unpaid|money_uz }}
+                                </span>
+                                {% endif %}
                                 {% if row.credit_balance %}
                                 <span class="cell-amount__sub" style="color:#10b981;">Hisobida: {{ row.credit_balance|intcomma }} so'm</span>
                                 {% endif %}
@@ -1383,18 +1388,7 @@ tr.row-deferred {
                                 data-month="${m.month}"
                                 data-month-label="${m.month_label}"
                                 data-debt="${m.debt}">
-                                <i class="fa-solid fa-wallet"></i>
-                           </button>`
-                        : '';
-                    const editBtn = m.tm_id
-                        ? `<button type="button" class="breakdown-edit-btn js-edit-fee"
-                                title="Oylik to'lov miqdorini o'zgartirish"
-                                data-student-id="${studentId}"
-                                data-month="${m.month}"
-                                data-month-label="${m.month_label}"
-                                data-current-fee="${m.fee}"
-                                data-tm-id="${m.tm_id}">
-                                <i class="fa-solid fa-pen"></i>
+                                <i class="fa-solid fa-wallet"></i> To'lov
                            </button>`
                         : '';
                     html += `<tr data-tm-month="${m.month}" data-student-id="${studentId}">
@@ -1403,7 +1397,7 @@ tr.row-deferred {
                         <td>${formatUzMoney(m.paid)}</td>
                         <td style="color:${m.debt > 0 ? '#ef4444' : '#10b981'}">${formatUzMoney(m.debt)}</td>
                         <td><span class="${statusCls}">${statusLabel}</span></td>
-                        <td style="display:flex;gap:4px;align-items:center;">${payBtn}${editBtn}</td>
+                        <td>${payBtn}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
