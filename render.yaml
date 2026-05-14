@@ -2,7 +2,7 @@ services:
   - type: web
     name: ProSkill-Chaqmoq
     env: python
-    plan: free
+    plan: starter
     region: frankfurt
     
     # ==================== BUILD COMMAND ====================
@@ -35,9 +35,9 @@ services:
         value: "4"
 
       # Markaz yaratish: parol xeshlash + subscription sync + feature sync
-      # free plan CPU'da 120s'dan oshib ketar edi. 180s ga ko'tarildi.
+      # Starter CPU'da 60s yetarli (subscription cache + fast-path redirect bilan).
       - key: GUNICORN_TIMEOUT
-        value: "180"
+        value: "60"
 
       - key: GUNICORN_MAX_REQUESTS
         value: "500"

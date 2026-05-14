@@ -576,6 +576,17 @@ tr.row-deferred {
     transition: border-color .15s, color .15s;
 }
 .breakdown-edit-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+.breakdown-pay-btn {
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(16,185,129,0.4);
+    background: transparent;
+    color: #10b981;
+    cursor: pointer;
+    font-size: 11px;
+    transition: border-color .15s, background .15s;
+}
+.breakdown-pay-btn:hover { border-color: #10b981; background: rgba(16,185,129,0.1); }
 [data-role-theme="light"] .breakdown-table td { border-bottom-color: #f1f5f9; }
 [data-role-theme="light"] .breakdown-table th { color: #64748b; }
 
@@ -1159,6 +1170,14 @@ tr.row-deferred {
             if (paymentModal) {
                 paymentModal.addEventListener('show.bs.modal', function (event) {
                     const btn = event.relatedTarget;
+                    // btn yo'q = breakdown payment tugmasidan ochildi (pv2State allaqachon to'ldirilgan)
+                    if (!btn) {
+                        fetch(buildTenantPath(`/talim/tolovlar/student/${pv2State.studentId}/groups/`))
+                            .then(r => r.json())
+                            .then(d => { document.getElementById('payGroupName').textContent = d.groups || ''; })
+                            .catch(() => {});
+                        return;
+                    }
                     pv2State.studentId    = btn.getAttribute('data-student-id') || '';
                     pv2State.enrollmentId = btn.getAttribute('data-enrollment-id') || '';
                     pv2State.paymentScope = btn.getAttribute('data-payment-scope') || '';
@@ -1174,7 +1193,7 @@ tr.row-deferred {
 
                     pv2Reset();
 
-                    // TASK 1: oylar ro'yxatini to'ldirish
+                    // TASK 1: oylar ro'yxatini to'ldirish (avtomatik tanlash)
                     populateMonthSelector();
 
                     // Auto-fill single cash with full debt
@@ -1289,12 +1308,19 @@ tr.row-deferred {
                 7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr"
             };
 
-            function populateMonthSelector() {
+            function populateMonthSelector(preselectedMonth) {
                 const sel = document.getElementById('pv2MonthForPayment');
                 if (!sel) return;
                 sel.innerHTML = '';
+                // Default: eng eski to'lanmagan oydan boshlab avtomatik taqsimlash.
+                // Agar manager aniq oy ko'rsatmoqchi bo'lsa — quyidagi oylardan tanlaydi.
+                const autoOpt = document.createElement('option');
+                autoOpt.value = '';
+                autoOpt.textContent = 'Avtomatik (eng eski qarzdan)';
+                autoOpt.selected = !preselectedMonth;
+                sel.appendChild(autoOpt);
                 const now = new Date();
-                // 3 oy oldin -> joriy oy (jami 4 ta variant)
+                let found = false;
                 for (let i = 3; i >= 0; i--) {
                     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                     const y = d.getFullYear();
@@ -1304,9 +1330,19 @@ tr.row-deferred {
                     const opt = document.createElement('option');
                     opt.value = val;
                     opt.textContent = label;
-                    // Joriy oy default tanlansin
-                    if (i === 0) opt.selected = true;
+                    if (preselectedMonth && val === preselectedMonth) { opt.selected = true; found = true; }
                     sel.appendChild(opt);
+                }
+                // Agar tanlangan oy ro'yxatda bo'lmasa (masalan, 4 oydan eski) — qo'shamiz
+                if (preselectedMonth && !found) {
+                    const parts = preselectedMonth.split('-');
+                    const y = parseInt(parts[0]);
+                    const mNum = parseInt(parts[1]);
+                    const opt = document.createElement('option');
+                    opt.value = preselectedMonth;
+                    opt.textContent = `${UZ_MONTHS[mNum] || preselectedMonth} ${y}`;
+                    opt.selected = true;
+                    sel.insertBefore(opt, sel.children[1]);
                 }
             }
 
@@ -1340,9 +1376,19 @@ tr.row-deferred {
                 data.months.forEach(function (m) {
                     const statusLabel = m.status === 'paid' ? 'To\'landi' : (m.status === 'partial' ? 'Qisman' : 'Qarzdor');
                     const statusCls = `breakdown-status--${m.status}`;
+                    const payBtn = m.debt > 0
+                        ? `<button type="button" class="breakdown-pay-btn js-breakdown-pay"
+                                title="To'lov qilish"
+                                data-student-id="${studentId}"
+                                data-month="${m.month}"
+                                data-month-label="${m.month_label}"
+                                data-debt="${m.debt}">
+                                <i class="fa-solid fa-wallet"></i>
+                           </button>`
+                        : '';
                     const editBtn = m.tm_id
                         ? `<button type="button" class="breakdown-edit-btn js-edit-fee"
-                                title="Oylik to'lovni tahrirlash"
+                                title="Oylik to'lov miqdorini o'zgartirish"
                                 data-student-id="${studentId}"
                                 data-month="${m.month}"
                                 data-month-label="${m.month_label}"
@@ -1357,7 +1403,7 @@ tr.row-deferred {
                         <td>${formatUzMoney(m.paid)}</td>
                         <td style="color:${m.debt > 0 ? '#ef4444' : '#10b981'}">${formatUzMoney(m.debt)}</td>
                         <td><span class="${statusCls}">${statusLabel}</span></td>
-                        <td>${editBtn}</td>
+                        <td style="display:flex;gap:4px;align-items:center;">${payBtn}${editBtn}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
@@ -1408,6 +1454,47 @@ tr.row-deferred {
                         const container = document.getElementById(`breakdown-content-${studentId}`);
                         if (container) container.innerHTML = '<p style="color:#ef4444;font-size:13px;">Ma\'lumotni yuklab bo\'lmadi.</p>';
                     });
+            });
+
+            // ====================================================
+            // Breakdown'dagi "To'lov qilish" tugmasi
+            // ====================================================
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-breakdown-pay');
+                if (!btn) return;
+
+                const studentId  = btn.getAttribute('data-student-id');
+                const month      = btn.getAttribute('data-month');
+                const monthLabel = btn.getAttribute('data-month-label');
+                const debt       = parseInt(btn.getAttribute('data-debt') || 0, 10) || 0;
+
+                // Asosiy qatordagi to'lov tugmasidan enrollment_id va student nomini olamiz
+                const mainRow    = document.querySelector(`tr[data-student-id="${studentId}"][data-main-row]`);
+                const mainPayBtn = mainRow ? mainRow.querySelector('[data-bs-target="#paymentModal"]') : null;
+                const paymentScope = mainPayBtn ? (mainPayBtn.getAttribute('data-payment-scope') || '') : '';
+                const studentName  = mainRow ? (mainRow.querySelector('.cell-stack__primary')?.textContent?.trim() || '—') : '—';
+
+                // enrollmentId bo'sh qoladi → student_id path ishlatiladi
+                // (bir nechta enrollment bo'lsa ham, shu oy uchun hammasini yopadi)
+                pv2State.studentId    = studentId;
+                pv2State.enrollmentId = '';
+                pv2State.paymentScope = paymentScope;
+                pv2State.debtRaw      = debt;
+
+                document.getElementById('payStudentName').textContent  = studentName;
+                document.getElementById('payDebtLabel').textContent    = `${monthLabel} qarz:`;
+                document.getElementById('payMonthlyFee').textContent   = formatUzMoney(debt);
+                document.getElementById('payGroupName').textContent    = '';
+
+                pv2Reset();
+                populateMonthSelector(month);  // O'sha oyni oldindan tanlaydi
+
+                document.getElementById('pv2SingleCash').value = debt;
+                pv2Validate();
+
+                bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('paymentModal')
+                ).show();
             });
 
             // ====================================================
