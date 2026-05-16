@@ -792,10 +792,18 @@ tr.row-deferred {
                 <div class="pv2-field">
                     <label class="pv2-label" id="efMonthLabel">Oy</label>
                 </div>
-                <div class="pv2-field">
-                    <label class="pv2-label">Yangi to'lov summasi (so'm)</label>
-                    <input type="number" class="pv2-input" id="efNewFee" placeholder="0" min="0">
+                <div style="display:flex;gap:10px;align-items:flex-end;">
+                    <div class="pv2-field" style="flex:1;margin-bottom:0;">
+                        <label class="pv2-label">Summa (so'm)</label>
+                        <input type="number" class="pv2-input" id="efNewFee" placeholder="0" min="0">
+                    </div>
+                    <div style="padding-bottom:10px;color:var(--m-muted,#888);font-size:18px;line-height:1;">↔</div>
+                    <div class="pv2-field" style="flex:1;margin-bottom:0;">
+                        <label class="pv2-label">Dars soni</label>
+                        <input type="number" class="pv2-input" id="efLessonCount" placeholder="0" min="0">
+                    </div>
                 </div>
+                <div id="efPriceInfo" style="font-size:12px;color:var(--m-muted,#888);margin-top:6px;margin-bottom:4px;"></div>
                 <div class="pv2-field">
                     <label class="pv2-label">Izoh (ixtiyoriy)</label>
                     <input type="text" class="pv2-input" id="efNote" placeholder="Sabab, izoh...">
@@ -1393,7 +1401,9 @@ tr.row-deferred {
                                 data-month="${m.month}"
                                 data-month-label="${m.month_label}"
                                 data-tm-id="${m.tm_id}"
-                                data-current-fee="${m.fee}">
+                                data-current-fee="${m.fee}"
+                                data-price-per-lesson="${m.price_per_lesson || 0}"
+                                data-monthly-lessons="${m.monthly_lessons || 0}">
                                 <i class="fa-solid fa-pen"></i>
                            </button>`
                         : '';
@@ -1510,18 +1520,48 @@ tr.row-deferred {
             // ====================================================
             // TASK 3: TuitionMonth fee tahrirlash modal
             // ====================================================
-            let efState = { studentId: null, month: null, tmId: null };
+            let efState = { studentId: null, month: null, tmId: null, pricePerLesson: 0, currentFee: 0 };
 
             const editFeeModalEl = document.getElementById('editFeeModal');
             const efSaveBtn = document.getElementById('efSaveBtn');
             const efNewFeeInput = document.getElementById('efNewFee');
+            const efLessonCountInput = document.getElementById('efLessonCount');
 
-            if (efNewFeeInput) {
-                efNewFeeInput.addEventListener('input', function () {
-                    const val = parseInt(efNewFeeInput.value || 0, 10) || 0;
-                    efSaveBtn.disabled = val < 0;
-                });
+            function efUpdateFromFee() {
+                const fee = parseInt(efNewFeeInput.value || 0, 10) || 0;
+                if (efState.pricePerLesson > 0) {
+                    efLessonCountInput.value = fee > 0 ? Math.round(fee / efState.pricePerLesson) : '';
+                }
+                efValidate();
             }
+
+            function efUpdateFromLesson() {
+                const lessons = parseInt(efLessonCountInput.value || 0, 10) || 0;
+                if (efState.pricePerLesson > 0) {
+                    efNewFeeInput.value = lessons > 0 ? lessons * efState.pricePerLesson : '';
+                }
+                efValidate();
+            }
+
+            function efValidate() {
+                const fee = parseInt(efNewFeeInput.value || 0, 10) || 0;
+                const hintEl = document.getElementById('efHint');
+                if (fee < 0) {
+                    hintEl.textContent = 'Summa manfiy bo\'lishi mumkin emas.';
+                    hintEl.style.color = '#ef4444';
+                    efSaveBtn.disabled = true;
+                } else if (fee > efState.currentFee) {
+                    hintEl.textContent = `⚠️ Maksimal summa: ${formatUzMoney(efState.currentFee)}. Ortiqcha olinmaydi.`;
+                    hintEl.style.color = '#f59e0b';
+                    efSaveBtn.disabled = true;
+                } else {
+                    hintEl.textContent = '';
+                    efSaveBtn.disabled = false;
+                }
+            }
+
+            if (efNewFeeInput) efNewFeeInput.addEventListener('input', efUpdateFromFee);
+            if (efLessonCountInput) efLessonCountInput.addEventListener('input', efUpdateFromLesson);
 
             document.addEventListener('click', function (e) {
                 const btn = e.target.closest('.js-edit-fee');
@@ -1530,11 +1570,22 @@ tr.row-deferred {
                 efState.studentId = btn.getAttribute('data-student-id');
                 efState.month = btn.getAttribute('data-month');
                 efState.tmId = btn.getAttribute('data-tm-id') || null;
+                efState.pricePerLesson = parseInt(btn.getAttribute('data-price-per-lesson') || 0, 10) || 0;
+                efState.currentFee = parseInt(btn.getAttribute('data-current-fee') || 0, 10) || 0;
                 const monthLabel = btn.getAttribute('data-month-label');
-                const currentFee = parseInt(btn.getAttribute('data-current-fee') || 0, 10) || 0;
+                const monthlyLessons = parseInt(btn.getAttribute('data-monthly-lessons') || 0, 10) || 0;
 
                 document.getElementById('efMonthLabel').textContent = monthLabel;
-                if (efNewFeeInput) efNewFeeInput.value = currentFee || '';
+                if (efNewFeeInput) efNewFeeInput.value = efState.currentFee || '';
+                if (efLessonCountInput) efLessonCountInput.value = monthlyLessons || '';
+
+                const priceInfoEl = document.getElementById('efPriceInfo');
+                if (efState.pricePerLesson > 0) {
+                    priceInfoEl.textContent = `1 dars = ${formatUzMoney(efState.pricePerLesson)} | Jami: ${formatUzMoney(efState.currentFee)}`;
+                } else {
+                    priceInfoEl.textContent = `Jami: ${formatUzMoney(efState.currentFee)}`;
+                }
+
                 document.getElementById('efNote').value = '';
                 document.getElementById('efHint').textContent = '';
                 if (efSaveBtn) efSaveBtn.disabled = false;
@@ -1551,6 +1602,10 @@ tr.row-deferred {
 
                     if (newFee < 0) {
                         document.getElementById('efHint').textContent = 'Summa manfiy bo\'lishi mumkin emas.';
+                        return;
+                    }
+                    if (newFee > efState.currentFee) {
+                        document.getElementById('efHint').textContent = `Maksimal summa: ${formatUzMoney(efState.currentFee)}.`;
                         return;
                     }
                     if (!efState.tmId) {

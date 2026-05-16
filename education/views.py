@@ -10812,7 +10812,7 @@ def student_monthly_breakdown(request, student_id):
     # Oylar bo'yicha grupplaymiz
     from collections import defaultdict
     # tm_id_map: m_key -> list of (tm_id, enrollment_id) — fee tahrirlash uchun
-    month_map = defaultdict(lambda: {"fee": 0, "paid": 0, "payments": [], "enrollments": [], "tm_ids": []})
+    month_map = defaultdict(lambda: {"fee": 0, "paid": 0, "payments": [], "enrollments": [], "tm_ids": [], "price_per_lesson": 0, "monthly_lessons": 0})
 
     for tm in all_tms:
         m_key = tm.month.strftime("%Y-%m")
@@ -10822,6 +10822,13 @@ def student_monthly_breakdown(request, student_id):
         month_map[m_key]["paid"] += paid
         month_map[m_key]["enrollments"].append(tm.enrollment_id)
         month_map[m_key]["tm_ids"].append(tm.id)
+        # Bitta dars narxini enrollment dan olamiz (birinchi TuitionMonth dan)
+        if not month_map[m_key]["price_per_lesson"] and tm.enrollment:
+            enr = tm.enrollment
+            ml = int(getattr(enr, "monthly_lessons", 0) or 0) or int(getattr(enr.group, "oy_dars_soni", 0) or 12)
+            kn = int(getattr(enr, "kurs_narhi", 0) or 0) or int(getattr(enr.group, "kurs_narxi", 0) or 0)
+            month_map[m_key]["monthly_lessons"] = ml
+            month_map[m_key]["price_per_lesson"] = round(kn / ml) if ml > 0 else 0
 
         group_name = tm.enrollment.group.nom if tm.enrollment and tm.enrollment.group else ""
         for alloc in tm.active_allocations:
@@ -10867,6 +10874,8 @@ def student_monthly_breakdown(request, student_id):
             "payments": entry["payments"],
             "tm_id": tm_id,
             "tm_ids": tm_ids,
+            "price_per_lesson": entry.get("price_per_lesson", 0),
+            "monthly_lessons": entry.get("monthly_lessons", 0),
         })
 
     return JsonResponse({
