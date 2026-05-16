@@ -209,7 +209,7 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="cell-amount cell-amount--red"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %}>
+                                <div class="cell-amount cell-amount--red js-debt-cell"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %} data-total-debt="{{ row.debt }}">
                                     {{ row.debt|money_uz }}
                                 </div>
                                 {% if row.previous_unpaid > 0 %}
@@ -794,7 +794,7 @@ tr.row-deferred {
                 </div>
                 <div style="display:flex;gap:10px;align-items:flex-end;">
                     <div class="pv2-field" style="flex:1;margin-bottom:0;">
-                        <label class="pv2-label">Summa (so'm)</label>
+                        <label class="pv2-label">Qarz summasi (so'm)</label>
                         <input type="number" class="pv2-input" id="efNewFee" placeholder="0" min="0">
                     </div>
                     <div style="padding-bottom:10px;color:var(--m-muted,#888);font-size:18px;line-height:1;">↔</div>
@@ -1402,6 +1402,8 @@ tr.row-deferred {
                                 data-month-label="${m.month_label}"
                                 data-tm-id="${m.tm_id}"
                                 data-current-fee="${m.fee}"
+                                data-debt="${m.debt}"
+                                data-paid="${m.paid}"
                                 data-price-per-lesson="${m.price_per_lesson || 0}"
                                 data-monthly-lessons="${m.monthly_lessons || 0}">
                                 <i class="fa-solid fa-pen"></i>
@@ -1520,7 +1522,11 @@ tr.row-deferred {
             // ====================================================
             // TASK 3: TuitionMonth fee tahrirlash modal
             // ====================================================
-            let efState = { studentId: null, month: null, tmId: null, pricePerLesson: 0, currentFee: 0 };
+            // efState.debt  = shu oyning joriy qarzi (paid = fee - debt)
+            // efState.paid  = shu oyda allaqachon to'langan summa
+            // Foydalanuvchi "qarz summasi" kiritadi; backend uchun:
+            //   new_fee = entered_debt + efState.paid
+            let efState = { studentId: null, month: null, tmId: null, pricePerLesson: 0, debt: 0, paid: 0 };
 
             const editFeeModalEl = document.getElementById('editFeeModal');
             const efSaveBtn = document.getElementById('efSaveBtn');
@@ -1528,30 +1534,30 @@ tr.row-deferred {
             const efLessonCountInput = document.getElementById('efLessonCount');
 
             function efUpdateFromFee() {
-                const fee = parseInt(efNewFeeInput.value || 0, 10) || 0;
-                if (efState.pricePerLesson > 0) {
-                    efLessonCountInput.value = fee > 0 ? Math.round(fee / efState.pricePerLesson) : '';
+                const enteredDebt = parseInt(efNewFeeInput.value, 10);
+                if (efState.pricePerLesson > 0 && !isNaN(enteredDebt)) {
+                    efLessonCountInput.value = enteredDebt > 0 ? Math.round(enteredDebt / efState.pricePerLesson) : 0;
                 }
                 efValidate();
             }
 
             function efUpdateFromLesson() {
-                const lessons = parseInt(efLessonCountInput.value || 0, 10) || 0;
-                if (efState.pricePerLesson > 0) {
-                    efNewFeeInput.value = lessons > 0 ? lessons * efState.pricePerLesson : '';
+                const lessons = parseInt(efLessonCountInput.value, 10);
+                if (efState.pricePerLesson > 0 && !isNaN(lessons)) {
+                    efNewFeeInput.value = lessons >= 0 ? lessons * efState.pricePerLesson : '';
                 }
                 efValidate();
             }
 
             function efValidate() {
-                const fee = parseInt(efNewFeeInput.value || 0, 10) || 0;
+                const enteredDebt = parseInt(efNewFeeInput.value, 10);
                 const hintEl = document.getElementById('efHint');
-                if (fee < 0) {
-                    hintEl.textContent = 'Summa manfiy bo\'lishi mumkin emas.';
+                if (isNaN(enteredDebt) || enteredDebt < 0) {
+                    hintEl.textContent = 'Qarz manfiy bo\'lishi mumkin emas.';
                     hintEl.style.color = '#ef4444';
                     efSaveBtn.disabled = true;
-                } else if (fee > efState.currentFee) {
-                    hintEl.textContent = `⚠️ Maksimal summa: ${formatUzMoney(efState.currentFee)}. Ortiqcha olinmaydi.`;
+                } else if (enteredDebt > efState.debt) {
+                    hintEl.textContent = `⚠️ Maksimal qarz: ${formatUzMoney(efState.debt)}. Ortiqcha olinmaydi.`;
                     hintEl.style.color = '#f59e0b';
                     efSaveBtn.disabled = true;
                 } else {
@@ -1568,22 +1574,27 @@ tr.row-deferred {
                 if (!btn) return;
 
                 efState.studentId = btn.getAttribute('data-student-id');
-                efState.month = btn.getAttribute('data-month');
-                efState.tmId = btn.getAttribute('data-tm-id') || null;
+                efState.month     = btn.getAttribute('data-month');
+                efState.tmId      = btn.getAttribute('data-tm-id') || null;
                 efState.pricePerLesson = parseInt(btn.getAttribute('data-price-per-lesson') || 0, 10) || 0;
-                efState.currentFee = parseInt(btn.getAttribute('data-current-fee') || 0, 10) || 0;
-                const monthLabel = btn.getAttribute('data-month-label');
-                const monthlyLessons = parseInt(btn.getAttribute('data-monthly-lessons') || 0, 10) || 0;
+                efState.debt      = parseInt(btn.getAttribute('data-debt') || 0, 10) || 0;
+                efState.paid      = parseInt(btn.getAttribute('data-paid') || 0, 10) || 0;
+                const monthLabel  = btn.getAttribute('data-month-label');
 
                 document.getElementById('efMonthLabel').textContent = monthLabel;
-                if (efNewFeeInput) efNewFeeInput.value = efState.currentFee || '';
-                if (efLessonCountInput) efLessonCountInput.value = monthlyLessons || '';
+                // Input = joriy qarz miqdori (0 qilish mumkin)
+                if (efNewFeeInput) efNewFeeInput.value = efState.debt;
+                if (efLessonCountInput) {
+                    efLessonCountInput.value = efState.pricePerLesson > 0 && efState.debt > 0
+                        ? Math.round(efState.debt / efState.pricePerLesson)
+                        : 0;
+                }
 
                 const priceInfoEl = document.getElementById('efPriceInfo');
                 if (efState.pricePerLesson > 0) {
-                    priceInfoEl.textContent = `1 dars = ${formatUzMoney(efState.pricePerLesson)} | Jami: ${formatUzMoney(efState.currentFee)}`;
+                    priceInfoEl.textContent = `1 dars = ${formatUzMoney(efState.pricePerLesson)} | To'langan: ${formatUzMoney(efState.paid)}`;
                 } else {
-                    priceInfoEl.textContent = `Jami: ${formatUzMoney(efState.currentFee)}`;
+                    priceInfoEl.textContent = `To'langan: ${formatUzMoney(efState.paid)}`;
                 }
 
                 document.getElementById('efNote').value = '';
@@ -1597,21 +1608,25 @@ tr.row-deferred {
             if (efSaveBtn) {
                 efSaveBtn.addEventListener('click', function () {
                     if (efSaveBtn.disabled) return;
-                    const newFee = parseInt(efNewFeeInput.value || 0, 10) || 0;
+
+                    const enteredDebt = parseInt(efNewFeeInput.value, 10);
                     const note = document.getElementById('efNote').value || '';
 
-                    if (newFee < 0) {
-                        document.getElementById('efHint').textContent = 'Summa manfiy bo\'lishi mumkin emas.';
+                    if (isNaN(enteredDebt) || enteredDebt < 0) {
+                        document.getElementById('efHint').textContent = 'Qarz manfiy bo\'lishi mumkin emas.';
                         return;
                     }
-                    if (newFee > efState.currentFee) {
-                        document.getElementById('efHint').textContent = `Maksimal summa: ${formatUzMoney(efState.currentFee)}.`;
+                    if (enteredDebt > efState.debt) {
+                        document.getElementById('efHint').textContent = `Maksimal qarz: ${formatUzMoney(efState.debt)}.`;
                         return;
                     }
                     if (!efState.tmId) {
                         document.getElementById('efHint').textContent = 'TuitionMonth topilmadi. Sahifani yangilang.';
                         return;
                     }
+
+                    // Backendga: new_fee = kiritilgan_qarz + to'langan
+                    const newFee = enteredDebt + efState.paid;
 
                     efSaveBtn.disabled = true;
                     efSaveBtn.classList.add('loading');
@@ -1629,20 +1644,32 @@ tr.row-deferred {
                     .then(r => r.json())
                     .then(result => {
                         if (result.ok) {
-                            // Cache tozalaymiz
                             delete breakdownCache[efState.studentId];
                             const bsModal = bootstrap.Modal.getInstance(document.getElementById('editFeeModal'));
                             if (bsModal) bsModal.hide();
-                            // Breakdown row ochiq bo'lsa qayta yuklaymiz
-                            const brow = document.getElementById(`breakdown-${efState.studentId}`);
-                            if (brow && !brow.hasAttribute('hidden')) {
-                                fetch(buildTenantPath(`/talim/api/student/${efState.studentId}/monthly-breakdown/`))
-                                    .then(r => r.json())
-                                    .then(nd => {
-                                        breakdownCache[efState.studentId] = nd;
-                                        renderBreakdown(efState.studentId, nd);
-                                    });
-                            }
+
+                            // Breakdown va asosiy qatordagi qarzni yangilaymiz
+                            const sid = efState.studentId;
+                            fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/`))
+                                .then(r => r.json())
+                                .then(nd => {
+                                    breakdownCache[sid] = nd;
+                                    // Breakdown row'ni ochib yangilaymiz
+                                    const brow = document.getElementById(`breakdown-${sid}`);
+                                    if (brow) {
+                                        brow.removeAttribute('hidden');
+                                        renderBreakdown(sid, nd);
+                                    }
+                                    // Asosiy qatordagi umumiy qarz katakchasini yangilaymiz
+                                    const mainRow = document.querySelector(`tr[data-student-id="${sid}"][data-main-row]`);
+                                    if (mainRow) {
+                                        const debtCell = mainRow.querySelector('.js-debt-cell');
+                                        if (debtCell) {
+                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
+                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                        }
+                                    }
+                                });
                         } else {
                             document.getElementById('efHint').textContent = result.error || 'Xatolik.';
                         }
