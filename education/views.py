@@ -8662,9 +8662,8 @@ def add_student_to_group(request, pk: int):
                 "message": f"'{student.get_full_name()}' allaqachon '{g.nom}' guruhida bor."
             })
 
-        # Kurs narxini aniqlash (studentning shu markazdagi boshqa guruhidan yoki default guruh narxi)
-        existing_enr = Enrollment.objects.filter(student=student, center=target_center).first()
-        kurs_narhi = existing_enr.kurs_narhi if existing_enr else g.kurs_narxi
+        # Guruhga biriktirilgan narxni doimo ishlatamiz
+        kurs_narhi = g.kurs_narxi
 
         # Qo'shish (EnrollmentService orqali tarix bilan)
         from education.services.enrollment_service import EnrollmentService
