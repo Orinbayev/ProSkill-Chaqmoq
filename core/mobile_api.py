@@ -683,6 +683,7 @@ def _student_open_debt(student: User, center) -> int:
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         ).select_related("group")
     )
     snapshots = calculate_enrollment_debt_snapshots(enrollments, [current_month])
@@ -750,6 +751,7 @@ def _student_monthly_attendance_summary(
         is_active=True,
         student__is_archived=False,
         group__is_archived=False,
+        group__is_deleted=False,
     ).select_related("group")
     if group_id:
         enrollments = enrollments.filter(group_id=group_id)
@@ -1453,6 +1455,7 @@ def _student_monthly_price(student: User, center) -> int:
         is_active=True,
         student__is_archived=False,
         group__is_archived=False,
+        group__is_deleted=False,
     )
     return int(sum(int(getattr(e, "resolved_monthly_price", 0) or 0) for e in enrollments))
 
@@ -2010,6 +2013,7 @@ def _mobile_payments_payload(request, child: User, center) -> dict:
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         )
         .select_related("group")
         .order_by("group__nom")
@@ -3167,6 +3171,7 @@ def mobile_student_debt_breakdown(request):
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         ).select_related("group")
     )
 

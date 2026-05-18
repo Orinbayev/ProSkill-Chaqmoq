@@ -24,6 +24,7 @@ class Command(BaseCommand):
             is_deleted=False,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         ).select_related("student", "group", "center")
 
         sent_count = 0

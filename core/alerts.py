@@ -50,6 +50,7 @@ def get_director_alerts(center):
         .filter(
             date__gte=today - timedelta(days=21),
             group__is_archived=False,
+            group__is_deleted=False,
         )
         .values("group_id", "group__nom", "date")
         .annotate(

@@ -55,6 +55,7 @@ def _center_enrollments(center, *, active_only: bool):
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         )
     return qs.select_related("student", "group")
 

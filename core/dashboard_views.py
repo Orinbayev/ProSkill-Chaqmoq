@@ -1906,6 +1906,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             group__center=center,
             date__range=(d_from, d_to),
             group__is_archived=False,
+            group__is_deleted=False,
             **({"group__branch": branch} if branch else {}),
         )
         .values("group__nom")

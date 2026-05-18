@@ -29,24 +29,20 @@ class EmailOrPhoneBackend(ModelBackend):
 
         from accounts.utils import normalize_phone
 
-        user = None
-        try:
-            # ✅ PERF: select_related('center') — middleware uchun oldindan yuklash
-            user = (
-                User.objects
-                .select_related("center")
-                .only(*self._SELECT_FIELDS)
-                .get(email__iexact=username)
-            )
-        except User.DoesNotExist:
+        qs = User.objects.select_related("center").only(*self._SELECT_FIELDS)
+
+        # Email bo'yicha qidirish
+        email_matches = list(qs.filter(email__iexact=username).order_by("id")[:2])
+        if len(email_matches) == 1:
+            user = email_matches[0]
+        elif len(email_matches) > 1:
+            # Bir xil emailli bir nechta foydalanuvchi — aktiv birini ol
+            active = [u for u in email_matches if u.is_active]
+            user = active[0] if active else email_matches[0]
+        else:
+            # Telefon raqami bo'yicha qidirish
             norm_phone = normalize_phone(username)
-            phone_matches = list(
-                User.objects
-                .select_related("center")
-                .only(*self._SELECT_FIELDS)
-                .filter(phone_number=norm_phone)
-                .order_by("id")[:2]
-            )
+            phone_matches = list(qs.filter(phone_number=norm_phone).order_by("id")[:2])
             if len(phone_matches) == 1:
                 user = phone_matches[0]
             else:

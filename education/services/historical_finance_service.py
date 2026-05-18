@@ -487,6 +487,7 @@ class HistoricalFinanceService:
             Enrollment.objects.filter(
                 is_active=True,
                 group__is_archived=False,
+                group__is_deleted=False,
             )
             .filter(
                 Q(center=center) | Q(center__isnull=True, group__center=center),
@@ -517,6 +518,7 @@ class HistoricalFinanceService:
             Enrollment.objects.filter(
                 is_active=True,
                 group__is_archived=False,
+                group__is_deleted=False,
             )
             .filter(Q(center=center) | Q(center__isnull=True, group__center=center))
             .select_related("group", "student")

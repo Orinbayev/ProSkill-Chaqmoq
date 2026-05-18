@@ -1480,6 +1480,7 @@ def _tuition_debt_map(center: Center, *, as_of: date, student_ids: list[int]) ->
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         ).values("id", "student_id")
     )
     if not active_enrollments:
@@ -1593,6 +1594,7 @@ def _calculate_churn_risk_bundle(
         is_active=True,
         student__is_archived=False,
         group__is_archived=False,
+        group__is_deleted=False,
     ).select_related("group"):
         group_names[row.student_id].append(row.group.nom)
 

@@ -56,6 +56,7 @@ def active_enrollments_for_center(center):
         is_deleted=False,
         student__is_archived=False,
         group__is_archived=False,
+        group__is_deleted=False,
     )
 
 
@@ -75,6 +76,7 @@ def tuition_months_for_center(center, target_month: date | None = None):
             enrollment__is_deleted=False,
             enrollment__student__is_archived=False,
             enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
         )
         .filter(
             Q(center=center)

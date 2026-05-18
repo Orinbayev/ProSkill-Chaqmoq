@@ -497,6 +497,7 @@ def calculate_lessons_api(request):
                     is_active=True,
                     student__is_archived=False,
                     group__is_archived=False,
+                    group__is_deleted=False,
                 )
                 if center:
                     sibling_qs = sibling_qs.filter(center=center)
@@ -710,6 +711,7 @@ def _student_group_financial_cards(
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         )
         .order_by("group__nom", "id")
     )
@@ -1147,18 +1149,29 @@ def create_payment(request):
         
         # Faol enrollment'lar
         active_enrollments = Enrollment.objects.filter(
-            student=student, is_active=True, group__is_archived=False
+            student=student, is_active=True,
+            group__is_archived=False, group__is_deleted=False,
         ).order_by('id')
 
         # Guruhdan chiqarilgan (is_active=False) lekin to'lanmagan TuitionMonth bor
         # enrollment'lar ham to'lovga qo'shiladi — ularning qarzi ham yig'ilishi kerak.
         inactive_with_debt_ids = list(
             TuitionMonth.objects
-            .filter(enrollment__student=student, enrollment__is_active=False, is_deleted=False)
+            .filter(
+                enrollment__student=student,
+                enrollment__is_active=False,
+                enrollment__group__is_archived=False,
+                enrollment__group__is_deleted=False,
+                is_deleted=False,
+            )
             .values_list("enrollment_id", flat=True)
             .distinct()
         )
-        inactive_enrollments = Enrollment.objects.filter(id__in=inactive_with_debt_ids).order_by('id')
+        inactive_enrollments = Enrollment.objects.filter(
+            id__in=inactive_with_debt_ids,
+            group__is_archived=False,
+            group__is_deleted=False,
+        ).order_by('id')
 
         # Ikkisini birlashtirish — takrorlanmaslik uchun ID bo'yicha
         all_enr_ids = list(dict.fromkeys(
@@ -1462,6 +1475,7 @@ def enrollment_edit(request, enrollment_id):
             is_active=True,
             student__is_archived=False,
             group__is_archived=False,
+            group__is_deleted=False,
         ).order_by("group__category_obj__name", "group__nom", "id")
     )
     if all(item.id != enr.id for item in student_enrollments):
@@ -2706,24 +2720,42 @@ def qarzdorlar_home(request):
     active_enrs_qs = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
-        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
+        .filter(
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        )
         .filter(_center_q)
     )
 
     # ─── GURUHDAN CHIQARILGAN, AMMO QARZI BOR ENROLLMENT'LAR ─────────────────
     # is_active=False lekin to'lanmagan TuitionMonth mavjud bo'lsa — qarzdorlar
     # ro'yxatida "Chiqarilgan" belgisi bilan ko'rsatamiz.
+    # Soft-delete yoki arxivlangan guruhlar bundan chiqarib tashlanadi — ular
+    # hech qayerda ko'rinmaydi va enrollment_count ni oshirib yuboradi.
     _inactive_enr_ids = (
         TuitionMonth.objects
-        .filter(enrollment__is_active=False, is_deleted=False,
-                enrollment__student__is_archived=False)
+        .filter(
+            enrollment__is_active=False,
+            is_deleted=False,
+            enrollment__student__is_archived=False,
+            enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
+        )
         .values_list("enrollment_id", flat=True)
         .distinct()
     )
     inactive_enrs_qs = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
-        .filter(is_active=False, id__in=_inactive_enr_ids, student__is_archived=False)
+        .filter(
+            is_active=False,
+            id__in=_inactive_enr_ids,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        )
         .filter(_center_q)
     )
 
@@ -4226,7 +4258,7 @@ def student_groups_api(request, student_id):
     """Return active group names and total debt for a student (payment modal)."""
     from django.db.models import Sum
     center = get_active_center(request)
-    qs = Enrollment.objects.filter(student_id=student_id, is_active=True, group__is_archived=False).select_related('group')
+    qs = Enrollment.objects.filter(student_id=student_id, is_active=True, group__is_archived=False, group__is_deleted=False).select_related('group')
     if center:
         qs = qs.filter(center=center)
     groups = [e.group.nom for e in qs if e.group and not getattr(e.group, "is_archived", False)]
@@ -4260,7 +4292,7 @@ def students_with_debt_api(request):
 
     # 1. Active enrollments for this center
     enr_qs = Enrollment.objects.filter(
-        is_active=True, center=center, group__is_archived=False
+        is_active=True, center=center, group__is_archived=False, group__is_deleted=False,
     ).select_related('student', 'group')
 
     # 2. Total fees per student (sum TuitionMonth.fee_amount)
@@ -4593,6 +4625,7 @@ def group_detail(request, pk: int):
         is_active=True,
         student__is_archived=False,
         group__is_archived=False,
+        group__is_deleted=False,
     )
     if center:
         student_enrollment_qs = student_enrollment_qs.filter(center=center)
@@ -5837,6 +5870,7 @@ def teacher_schedule_view(request):
                 center=center,
                 group__oqituvchi=teacher,
                 group__is_archived=False,
+                group__is_deleted=False,
             )
             .select_related("group", "group__oqituvchi")
             .order_by("weekday", "start_time")
@@ -10626,7 +10660,7 @@ def month_preview(request):
     enrollments_qs = (
         Enrollment.objects
         .select_related("student", "group")
-        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
+        .filter(is_active=True, student__is_archived=False, group__is_archived=False, group__is_deleted=False)
     )
     if center:
         enrollments_qs = enrollments_qs.filter(center=center)
