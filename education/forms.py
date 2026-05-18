@@ -430,7 +430,7 @@ class StudentGroupTransferForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["new_group"].queryset = (
             Group.objects
-            .filter(center=self.center, is_archived=False)
+            .filter(center=self.center, is_archived=False, is_closed=False)
             .exclude(pk=self.old_group.pk)
             .order_by("nom")
         )
@@ -444,7 +444,10 @@ class StudentGroupTransferForm(forms.Form):
         return new_group
 
     def clean_transfer_date(self):
-        return self.cleaned_data.get("transfer_date") or timezone.localdate()
+        d = self.cleaned_data.get("transfer_date") or timezone.localdate()
+        if d > timezone.localdate():
+            raise forms.ValidationError("Ko'chirish sanasi kelajakda bo'lishi mumkin emas.")
+        return d
 
 
 class EnrollmentCreateStudentForm(forms.Form):

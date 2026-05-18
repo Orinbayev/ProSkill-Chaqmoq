@@ -213,6 +213,43 @@ services:
           type: web
           envVarKey: ADMIN_TELEGRAM_IDS
 
+  # ==================== CRON JOB - MONTHLY TUITION GENERATION ====================
+  # Har oyning 1-kuni 02:00 Asia/Tashkent = 21:00 UTC — TuitionMonth yaratadi.
+  - type: cron
+    name: monthly-tuition-generation
+    env: python
+    region: frankfurt
+    schedule: "0 21 1 * *"   # 21:00 UTC = 02:00 Asia/Tashkent, faqat 1-kun
+    buildCommand: python3 -m pip install -r requirements.txt
+    startCommand: python3 manage.py generate_monthly_tuition --all-active
+    envVars:
+      - key: MODE
+        value: production
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: TIME_ZONE
+        value: Asia/Tashkent
+      - key: SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: SECRET_KEY
+      - key: API_SECRET
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: API_SECRET
+      - key: CLICK_SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: CLICK_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: DATABASE_URL
+
   # ==================== CRON JOB - PAYMENT DISCIPLINE RULES ====================
   # Har kuni 02:00 Asia/Tashkent = 21:00 UTC; deadline o'tmagan kunlarda no-op.
   - type: cron

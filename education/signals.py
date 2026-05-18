@@ -131,11 +131,11 @@ def handle_rate_change(sender, instance, update_fields=None, **kwargs):
 
     if isinstance(instance, Group):
         # Group'da narx/ustoz o'zgargandagina qayta hisobla.
-        if update_fields is not None and not (update_fields & {"oqituvchi", "oqituvchi_id", "kurs_narhi", "narx"}):
+        if update_fields is not None and not (update_fields & {"oqituvchi", "oqituvchi_id", "kurs_narxi", "kurs_narhi", "narx"}):
             return
         atts = Attendance.objects.filter(group=instance)
     elif isinstance(instance, Enrollment):
-        if update_fields is not None and not (update_fields & {"kurs_narhi", "narx", "group", "group_id", "student", "student_id"}):
+        if update_fields is not None and not (update_fields & {"kurs_narxi", "kurs_narhi", "narx", "group", "group_id", "student", "student_id"}):
             return
         atts = Attendance.objects.filter(group=instance.group, student=instance.student)
     elif isinstance(instance, User) and instance.role == 'teacher':

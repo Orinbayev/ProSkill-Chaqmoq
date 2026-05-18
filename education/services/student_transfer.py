@@ -203,10 +203,21 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
         raise PermissionDenied("Sizda o'quvchini boshqa guruhga ko'chirish huquqi yo'q.")
     if not transfer_date:
         transfer_date = timezone.localdate()
+    if transfer_date > timezone.localdate():
+        raise ValidationError("Ko'chirish sanasi kelajakda bo'lishi mumkin emas.")
     if old_group.pk == new_group.pk:
         raise ValidationError("Yangi guruh eski guruh bilan bir xil bo'lishi mumkin emas.")
     if old_group.center_id != new_group.center_id:
         raise ValidationError("Boshqa o'quv markaz guruhiga ko'chirish mumkin emas.")
+    if getattr(new_group, "is_archived", False) or getattr(new_group, "is_closed", False):
+        raise ValidationError("Yopilgan yoki arxivlangan guruhga ko'chirish mumkin emas.")
+    max_students = getattr(new_group, "max_students", None)
+    if max_students:
+        active_count = Enrollment.objects.filter(group=new_group, is_active=True).count()
+        if active_count >= max_students:
+            raise ValidationError(
+                f"Yangi guruh to'liq ({active_count}/{max_students} o'quvchi). Ko'chirish mumkin emas."
+            )
     if getattr(student, "role", None) != "student" or not getattr(student, "is_active", True) or getattr(student, "is_archived", False):
         raise ValidationError("Faqat aktiv o'quvchini ko'chirish mumkin.")
     if student.center_id and student.center_id != old_group.center_id:
@@ -310,6 +321,16 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
     new_tm.save(update_fields=[fee_field, "center"] if new_tm.center_id else [fee_field])
 
     moved_amount = _move_surplus_allocations(old_tm=old_tm, new_tm=new_tm)
+
+    # credit_balance (ortiqcha to'lov) yangi enrollmentga ko'chiriladi
+    if old_enrollment.credit_balance > 0:
+        Enrollment.objects.filter(pk=new_enrollment.pk).update(
+            credit_balance=new_enrollment.credit_balance + old_enrollment.credit_balance
+        )
+        Enrollment.objects.filter(pk=old_enrollment.pk).update(credit_balance=0)
+        new_enrollment.credit_balance = new_enrollment.credit_balance + old_enrollment.credit_balance
+        old_enrollment.credit_balance = 0
+
     old_state_after = _payment_state(old_enrollment, transfer_month)
     new_state_after = _payment_state(new_enrollment, transfer_month)
 
