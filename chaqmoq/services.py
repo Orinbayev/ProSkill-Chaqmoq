@@ -123,7 +123,7 @@ def check_attendance_penalty(*, student, center, created_by=None, target_date=No
                 center=center,
                 title="⚡ Chaqmoq ayirildi",
                 message=(
-                    f"Siz {now.strftime('%Y-%yil %B oy')} ichida "
+                    f"Siz {now.strftime('%Y-yil %B oyi')} ichida "
                     f"{rule.absence_limit} ta sababsiz dars qoldirganingiz uchun "
                     f"{abs(penalty)} ta chaqmoq ayirildi."
                 ),
