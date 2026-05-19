@@ -1038,7 +1038,7 @@ def _billing_payload(center, d_from, d_to):
             fee_sub = TuitionMonth.objects.filter(enrollment=OuterRef("pk"), month=debt_month).values("enrollment").annotate(s=Sum(fee_field)).values("s")
             paid_sub = PaymentAllocation.objects.filter(tuition_month__enrollment=OuterRef("pk"), tuition_month__month=debt_month).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
             debt_qs = (
-                Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False)
+                Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False, is_deferred=False)
                 .annotate(f=Coalesce(Subquery(fee_sub), 0), p=Coalesce(Subquery(paid_sub), 0))
                 .annotate(d=F("f") - F("p")).filter(d__gt=0)
             )
@@ -2340,6 +2340,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
         debt_qs = (
             active_enroll
+            .filter(is_deferred=False)
             .annotate(_fee=Coalesce(Subquery(fee_sub), 0))
             .annotate(_paid=Coalesce(Subquery(paid_sub), 0))
             .annotate(d=F("_fee") - F("_paid"))
@@ -2407,6 +2408,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
         prev_debt_qs = (
             active_enroll
+            .filter(is_deferred=False)
             .annotate(_pfee=Coalesce(Subquery(prev_fee_sub), 0))
             .annotate(_ppaid=Coalesce(Subquery(prev_paid_sub), 0))
             .annotate(d=F("_pfee") - F("_ppaid"))
