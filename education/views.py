@@ -10799,6 +10799,85 @@ def edit_tuition_month_fee(request, tm_id):
 
 
 # ============================================================
+# Oylik umumiy qarzni o'rnatish (barcha TuitionMonth'lar)
+# ============================================================
+
+@require_POST
+@login_required
+def edit_student_month_debt(request, student_id):
+    """
+    O'quvchining bitta oy uchun umumiy qarz miqdorini o'rnatadi.
+    Bir oy ichida bir nechta TuitionMonth bo'lsa ham hammasi yangilanadi:
+    - Birinchi TM: fee = new_debt + TM.paid  (bu TMda qarz = new_debt)
+    - Qolgan TMlar: fee = TM.paid            (bu TMlarda qarz = 0)
+    POST: month="2026-04", new_debt=500000
+    """
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    center = get_active_center(request)
+
+    month_str = (request.POST.get("month") or "").strip()
+    new_debt_raw = (request.POST.get("new_debt") or "").strip()
+
+    try:
+        y, m = int(month_str[:4]), int(month_str[5:7])
+        month_date = date(y, m, 1)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri oy formati."}, status=400)
+
+    try:
+        new_debt = int(Decimal(new_debt_raw or "0"))
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri summa."}, status=400)
+
+    if new_debt < 0:
+        return JsonResponse({"ok": False, "error": "Qarz manfiy bo'lishi mumkin emas."}, status=400)
+
+    from django.db.models import Q as _Q2
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+    student = get_object_or_404(user_qs, id=student_id)
+
+    tms_qs = TuitionMonth.objects.filter(
+        enrollment__student=student,
+        month=month_date,
+        is_deleted=False,
+    ).prefetch_related(
+        Prefetch(
+            "allocations",
+            queryset=PaymentAllocation.objects.filter(payment__is_deleted=False),
+            to_attr="active_allocations",
+        )
+    )
+    if center:
+        tms_qs = tms_qs.filter(
+            _Q2(center=center)
+            | _Q2(enrollment__center=center)
+            | _Q2(enrollment__group__center=center)
+        )
+
+    tms = list(tms_qs.order_by("id"))
+    if not tms:
+        return JsonResponse({"ok": False, "error": "Bu oy uchun yozuv topilmadi."}, status=404)
+
+    fee_field = tuition_month_fee_field()
+    paid_per_tm = [sum(int(a.amount or 0) for a in tm.active_allocations) for tm in tms]
+
+    # Birinchi TM: fee = new_debt + uning to'lovi (qarz = new_debt)
+    setattr(tms[0], fee_field, new_debt + paid_per_tm[0])
+    tms[0].save(update_fields=[fee_field])
+
+    # Qolgan TMlar: fee = to'lovi (qarz = 0)
+    for i in range(1, len(tms)):
+        setattr(tms[i], fee_field, paid_per_tm[i])
+        tms[i].save(update_fields=[fee_field])
+
+    return JsonResponse({"ok": True})
+
+
+# ============================================================
 # TASK 5: O'quvchi oylik breakdown (AJAX endpoint)
 # ============================================================
 

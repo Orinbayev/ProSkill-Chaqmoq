@@ -794,7 +794,7 @@ tr.row-deferred {
                 </div>
                 <div style="display:flex;gap:10px;align-items:flex-end;">
                     <div class="pv2-field" style="flex:1;margin-bottom:0;">
-                        <label class="pv2-label">Qarz summasi (so'm)</label>
+                        <label class="pv2-label">Yangi qarz (so'm)</label>
                         <input type="number" class="pv2-input" id="efNewFee" placeholder="0" min="0">
                     </div>
                     <div style="padding-bottom:10px;color:var(--m-muted,#888);font-size:18px;line-height:1;">↔</div>
@@ -1556,12 +1556,13 @@ tr.row-deferred {
                     hintEl.textContent = 'Qarz manfiy bo\'lishi mumkin emas.';
                     hintEl.style.color = '#ef4444';
                     efSaveBtn.disabled = true;
-                } else if (enteredDebt > efState.debt) {
-                    hintEl.textContent = `⚠️ Maksimal qarz: ${formatUzMoney(efState.debt)}. Ortiqcha olinmaydi.`;
-                    hintEl.style.color = '#f59e0b';
-                    efSaveBtn.disabled = true;
+                } else if (enteredDebt === 0) {
+                    hintEl.textContent = "Qarz 0 — bu oy 'To'landi' deb belgilanadi.";
+                    hintEl.style.color = '#10b981';
+                    efSaveBtn.disabled = false;
                 } else {
-                    hintEl.textContent = '';
+                    hintEl.textContent = `Yangi qarz: ${formatUzMoney(enteredDebt)}`;
+                    hintEl.style.color = '';
                     efSaveBtn.disabled = false;
                 }
             }
@@ -1616,28 +1617,21 @@ tr.row-deferred {
                         document.getElementById('efHint').textContent = 'Qarz manfiy bo\'lishi mumkin emas.';
                         return;
                     }
-                    if (enteredDebt > efState.debt) {
-                        document.getElementById('efHint').textContent = `Maksimal qarz: ${formatUzMoney(efState.debt)}.`;
+                    if (!efState.studentId || !efState.month) {
+                        document.getElementById('efHint').textContent = 'Ma\'lumot topilmadi. Sahifani yangilang.';
                         return;
                     }
-                    if (!efState.tmId) {
-                        document.getElementById('efHint').textContent = 'TuitionMonth topilmadi. Sahifani yangilang.';
-                        return;
-                    }
-
-                    // Backendga: new_fee = kiritilgan_qarz + to'langan
-                    const newFee = enteredDebt + efState.paid;
 
                     efSaveBtn.disabled = true;
                     efSaveBtn.classList.add('loading');
                     document.getElementById('efHint').textContent = '';
 
                     const fd = new FormData();
-                    fd.append('new_fee', newFee);
-                    fd.append('note', note);
+                    fd.append('month', efState.month);
+                    fd.append('new_debt', enteredDebt);
                     fd.append('csrfmiddlewaretoken', getCsrfToken());
 
-                    fetch(buildTenantPath(`/talim/tuition-month/${efState.tmId}/edit-fee/`), {
+                    fetch(buildTenantPath(`/talim/api/student/${efState.studentId}/month-debt/`), {
                         method: 'POST',
                         body: fd,
                     })
@@ -1648,19 +1642,16 @@ tr.row-deferred {
                             const bsModal = bootstrap.Modal.getInstance(document.getElementById('editFeeModal'));
                             if (bsModal) bsModal.hide();
 
-                            // Breakdown va asosiy qatordagi qarzni yangilaymiz
                             const sid = efState.studentId;
                             fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/`))
                                 .then(r => r.json())
                                 .then(nd => {
                                     breakdownCache[sid] = nd;
-                                    // Breakdown row'ni ochib yangilaymiz
                                     const brow = document.getElementById(`breakdown-${sid}`);
                                     if (brow) {
                                         brow.removeAttribute('hidden');
                                         renderBreakdown(sid, nd);
                                     }
-                                    // Asosiy qatordagi umumiy qarz katakchasini yangilaymiz
                                     const mainRow = document.querySelector(`tr[data-student-id="${sid}"][data-main-row]`);
                                     if (mainRow) {
                                         const debtCell = mainRow.querySelector('.js-debt-cell');

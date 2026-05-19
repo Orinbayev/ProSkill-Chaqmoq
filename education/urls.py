@@ -177,6 +177,8 @@ urlpatterns += [
     path("api/finance/teacher-expected-income/", teacher_expected_income_api, name="teacher_expected_income_api"),
     # TASK 3: TuitionMonth fee tahrirlash
     path("tuition-month/<int:tm_id>/edit-fee/", views.edit_tuition_month_fee, name="edit_tuition_month_fee"),
+    # Oylik umumiy qarzni o'rnatish (barcha guruhlar uchun)
+    path("api/student/<int:student_id>/month-debt/", views.edit_student_month_debt, name="edit_student_month_debt"),
     # TASK 5: Oylik breakdown AJAX
     path("api/student/<int:student_id>/monthly-breakdown/", views.student_monthly_breakdown, name="student_monthly_breakdown"),
 ]
