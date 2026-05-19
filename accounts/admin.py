@@ -7,6 +7,23 @@ from django.utils.html import format_html
 from django.urls import reverse
 
 
+class EnrollmentInline(admin.TabularInline):
+    """O'quvchi admin sahifasida uning guruhlarini ko'rish va boshqarish."""
+    model = None  # lazy import below
+    extra = 0
+    fields = ("group", "is_active", "is_deferred", "joined_at", "created_at")
+    readonly_fields = ("joined_at", "created_at")
+    raw_id_fields = ("group",)
+    verbose_name = "Guruh (Enrollment)"
+    verbose_name_plural = "O'quvchi qo'shilgan guruhlar"
+    show_change_link = True
+
+    def get_queryset(self, request):
+        from education.models import Enrollment
+        self.__class__.model = Enrollment
+        return Enrollment.all_objects.select_related("group").order_by("-created_at")
+
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
 
@@ -15,6 +32,14 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'ism', 'familya', 'child_code')
     ordering = ('email',)
     readonly_fields = ('child_code',)
+    inlines = []
+
+    def get_inlines(self, request, obj=None):
+        if obj and obj.role == "student":
+            from education.models import Enrollment
+            EnrollmentInline.model = Enrollment
+            return [EnrollmentInline]
+        return []
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),

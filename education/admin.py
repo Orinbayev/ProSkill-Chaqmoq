@@ -56,7 +56,20 @@ class TeacherAvailabilityAdmin(admin.ModelAdmin):
     search_fields = ("teacher__ism", "teacher__familya", "teacher__email", "note")
 
 
-admin.site.register(Enrollment)
+@admin.register(Enrollment)
+class EnrollmentAdmin(admin.ModelAdmin):
+    list_display = ("student_full_name", "group", "center", "is_active", "is_deferred", "joined_at", "created_at")
+    list_filter = ("is_active", "is_deferred", "center", "group__is_archived", "group__is_deleted")
+    search_fields = ("student__ism", "student__familya", "student__email", "student__telefon1", "group__nom")
+    raw_id_fields = ("student", "group")
+    list_editable = ("is_active",)
+    ordering = ("-created_at",)
+
+    def student_full_name(self, obj):
+        return f"{obj.student.ism} {obj.student.familya}" if obj.student else "—"
+    student_full_name.short_description = "O'quvchi"
+
+
 admin.site.register(Payment)
 admin.site.register(Attendance)
 
