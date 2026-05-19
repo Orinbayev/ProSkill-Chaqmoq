@@ -9,7 +9,9 @@ from django.urls import reverse
 
 class EnrollmentInline(admin.TabularInline):
     """O'quvchi admin sahifasida uning guruhlarini ko'rish va boshqarish."""
-    model = None  # lazy import below
+    from education.models import Enrollment as _Enrollment
+    model = _Enrollment
+    fk_name = "student"
     extra = 0
     fields = ("group", "is_active", "is_deferred", "joined_at", "created_at")
     readonly_fields = ("joined_at", "created_at")
@@ -20,7 +22,6 @@ class EnrollmentInline(admin.TabularInline):
 
     def get_queryset(self, request):
         from education.models import Enrollment
-        self.__class__.model = Enrollment
         return Enrollment.all_objects.select_related("group").order_by("-created_at")
 
 
