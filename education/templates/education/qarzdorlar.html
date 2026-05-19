@@ -607,6 +607,66 @@ tr.row-deferred {
 .ef-header__title { font-size: 16px; font-weight: 700; color: var(--m-text); margin: 0; }
 .ef-body { padding: 18px 22px; }
 .ef-footer { padding: 12px 22px 18px; border-top: 1px solid var(--m-border); display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+/* ── Kelajak oy o'chirish tugmasi ── */
+.breakdown-delete-btn {
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(239,68,68,0.35);
+    background: transparent;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 11px;
+    transition: border-color .15s, background .15s;
+}
+.breakdown-delete-btn:hover { border-color: #ef4444; background: rgba(239,68,68,0.10); }
+
+/* ── Kelajak oy o'chirish confirm modal ── */
+#deleteMonthModal .modal-dialog { max-width: 400px; }
+#deleteMonthModal .modal-content { border-radius: 20px; border: 1px solid rgba(239,68,68,0.25); overflow: hidden; }
+.dm-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--m-border); display: flex; align-items: center; gap: 10px; }
+.dm-header__icon { color: #ef4444; font-size: 18px; }
+.dm-header__title { font-size: 16px; font-weight: 700; color: var(--m-text); margin: 0; }
+.dm-body { padding: 18px 22px; }
+.dm-warning {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.22);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--m-text);
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+.dm-warning strong { color: #ef4444; }
+.dm-month-label { font-size: 15px; font-weight: 700; color: #ef4444; text-align: center; margin-bottom: 10px; }
+.dm-footer { padding: 12px 22px 18px; border-top: 1px solid var(--m-border); display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.dm-btn-delete {
+    padding: 9px 20px; border-radius: 10px; border: none;
+    background: #ef4444; color: #fff; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; gap: 7px;
+    transition: opacity .15s;
+}
+.dm-btn-delete:disabled { opacity: .45; cursor: not-allowed; }
+.dm-btn-delete:not(:disabled):hover { opacity: .85; }
+.dm-paid-warning {
+    background: rgba(245,158,11,0.10);
+    border: 1px solid rgba(245,158,11,0.30);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #f59e0b;
+    margin-top: 6px;
+}
+.dm-paid-warning--hidden { display: none; }
+.dm-spinner { display: none; }
+.dm-btn-delete.loading .dm-spinner { display: inline; }
+.dm-btn-delete.loading #dmTrashIcon { display: none; }
+.breakdown-debt-red { color: #ef4444; }
+.breakdown-debt-green { color: #10b981; }
+.breakdown-actions-cell { display: flex; gap: 4px; align-items: center; }
+.breakdown-total-row { margin-top: 8px; text-align: right; font-size: 12px; color: var(--m-text-muted); }
+.breakdown-total-red { color: #ef4444; }
 </style>
 
 {% now "Y-m-d" as default_payment_date %}
@@ -815,6 +875,39 @@ tr.row-deferred {
                 <button type="button" class="pv2-btn-save" id="efSaveBtn" disabled>
                     <i class="fa-solid fa-spinner fa-spin pv2-spinner"></i>
                     <span class="pv2-btn-text">Saqlash</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kelajak oy o'chirish ogohlantirish modali -->
+<div class="modal fade glass-modal" id="deleteMonthModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="dm-header">
+                <i class="fa-solid fa-triangle-exclamation dm-header__icon"></i>
+                <h5 class="dm-header__title">Oyni o'chirishni tasdiqlang</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="dm-body">
+                <div class="dm-month-label" id="dmMonthLabel">—</div>
+                <div class="dm-warning">
+                    Bu amal <strong>qaytarib bo'lmaydi</strong>.<br>
+                    Ushbu oyga tegishli barcha yozuvlar o'chiriladi.<br>
+                    Agar to'lov kiritilgan bo'lsa — u <strong>kredit sifatida</strong> saqlanadi.
+                </div>
+                <div id="dmPaidWarning" class="dm-paid-warning dm-paid-warning--hidden">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    Bu oyda to'lov bor — <span id="dmPaidAmount"></span>. U kredit hisobiga o'tkaziladi.
+                </div>
+            </div>
+            <div class="dm-footer">
+                <button type="button" class="pv2-btn-cancel" data-bs-dismiss="modal">Bekor qilish</button>
+                <button type="button" class="dm-btn-delete" id="dmConfirmBtn">
+                    <i class="fa-solid fa-spinner fa-spin dm-spinner"></i>
+                    <i class="fa-solid fa-trash" id="dmTrashIcon"></i>
+                    O'chirish
                 </button>
             </div>
         </div>
@@ -1391,9 +1484,15 @@ tr.row-deferred {
                     </thead>
                     <tbody>`;
 
+                // Joriy oy (YYYY-MM)
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
                 data.months.forEach(function (m) {
                     const statusLabel = m.status === 'paid' ? 'To\'landi' : (m.status === 'partial' ? 'Qisman' : 'Qarzdor');
                     const statusCls = `breakdown-status--${m.status}`;
+                    const isFuture = m.month > currentMonthKey;
+
                     const editBtn = m.tm_id
                         ? `<button type="button" class="breakdown-edit-btn js-edit-fee"
                                 title="Oylik to'lovni tahrirlash"
@@ -1409,7 +1508,7 @@ tr.row-deferred {
                                 <i class="fa-solid fa-pen"></i>
                            </button>`
                         : '';
-                    const payBtn = m.debt > 0
+                    const payBtn = m.debt > 0 && !isFuture
                         ? `<button type="button" class="breakdown-pay-btn js-breakdown-pay"
                                 title="To'lov qilish"
                                 data-student-id="${studentId}"
@@ -1419,20 +1518,30 @@ tr.row-deferred {
                                 <i class="fa-solid fa-wallet"></i> To'lov
                            </button>`
                         : '';
+                    const deleteBtn = isFuture && m.tm_id
+                        ? `<button type="button" class="breakdown-delete-btn js-delete-month"
+                                title="Bu oyni o'chirish"
+                                data-student-id="${studentId}"
+                                data-month="${m.month}"
+                                data-month-label="${m.month_label}"
+                                data-paid="${m.paid}">
+                                <i class="fa-solid fa-trash"></i>
+                           </button>`
+                        : '';
                     html += `<tr data-tm-month="${m.month}" data-student-id="${studentId}">
-                        <td>${m.month_label}</td>
+                        <td>${m.month_label}${isFuture ? ' <span style="font-size:10px;color:var(--m-text-muted);">(kelajak)</span>' : ''}</td>
                         <td>${formatUzMoney(m.fee)}</td>
                         <td>${formatUzMoney(m.paid)}</td>
-                        <td style="color:${m.debt > 0 ? '#ef4444' : '#10b981'}">${formatUzMoney(m.debt)}</td>
+                        <td class="${m.debt > 0 ? 'breakdown-debt-red' : 'breakdown-debt-green'}">${formatUzMoney(m.debt)}</td>
                         <td><span class="${statusCls}">${statusLabel}</span></td>
-                        <td style="display:flex;gap:4px;align-items:center;">${editBtn}${payBtn}</td>
+                        <td class="breakdown-actions-cell">${editBtn}${payBtn}${deleteBtn}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
 
                 if (data.total_debt > 0) {
-                    html += `<div style="margin-top:8px;text-align:right;font-size:12px;color:var(--m-text-muted);">
-                        Jami qarz: <strong style="color:#ef4444;">${formatUzMoney(data.total_debt)}</strong>
+                    html += `<div class="breakdown-total-row">
+                        Jami qarz: <strong class="breakdown-total-red">${formatUzMoney(data.total_debt)}</strong>
                     </div>`;
                 }
                 container.innerHTML = html;
@@ -1671,6 +1780,94 @@ tr.row-deferred {
                         document.getElementById('efHint').textContent = 'Server xatosi.';
                         efSaveBtn.disabled = false;
                         efSaveBtn.classList.remove('loading');
+                    });
+                });
+            }
+
+            // ====================================================
+            // Kelajak oyni o'chirish modal
+            // ====================================================
+            let dmState = { studentId: null, month: null, paid: 0 };
+            const deleteMonthModalEl = document.getElementById('deleteMonthModal');
+            const dmConfirmBtn = document.getElementById('dmConfirmBtn');
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-delete-month');
+                if (!btn) return;
+
+                dmState.studentId  = btn.getAttribute('data-student-id');
+                dmState.month      = btn.getAttribute('data-month');
+                dmState.paid       = parseInt(btn.getAttribute('data-paid') || 0, 10) || 0;
+                const monthLabel   = btn.getAttribute('data-month-label');
+
+                document.getElementById('dmMonthLabel').textContent = monthLabel;
+
+                const paidWarning = document.getElementById('dmPaidWarning');
+                if (dmState.paid > 0) {
+                    document.getElementById('dmPaidAmount').textContent = formatUzMoney(dmState.paid);
+                    paidWarning.classList.remove('dm-paid-warning--hidden');
+                } else {
+                    paidWarning.classList.add('dm-paid-warning--hidden');
+                }
+
+                if (dmConfirmBtn) {
+                    dmConfirmBtn.disabled = false;
+                    dmConfirmBtn.classList.remove('loading');
+                }
+
+                bootstrap.Modal.getOrCreateInstance(deleteMonthModalEl).show();
+            });
+
+            if (dmConfirmBtn) {
+                dmConfirmBtn.addEventListener('click', function () {
+                    if (!dmState.studentId || !dmState.month) return;
+                    dmConfirmBtn.disabled = true;
+                    dmConfirmBtn.classList.add('loading');
+
+                    const fd = new FormData();
+                    fd.append('month', dmState.month);
+                    fd.append('csrfmiddlewaretoken', getCsrfToken());
+
+                    fetch(buildTenantPath(`/talim/api/student/${dmState.studentId}/month-delete/`), {
+                        method: 'POST',
+                        body: fd,
+                    })
+                    .then(r => r.json())
+                    .then(result => {
+                        dmConfirmBtn.disabled = false;
+                        dmConfirmBtn.classList.remove('loading');
+
+                        if (result.ok) {
+                            bootstrap.Modal.getInstance(deleteMonthModalEl).hide();
+                            const sid = dmState.studentId;
+                            delete breakdownCache[sid];
+
+                            fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/`))
+                                .then(r => r.json())
+                                .then(nd => {
+                                    breakdownCache[sid] = nd;
+                                    const brow = document.getElementById(`breakdown-${sid}`);
+                                    if (brow) {
+                                        brow.removeAttribute('hidden');
+                                        renderBreakdown(sid, nd);
+                                    }
+                                    const mainRow = document.querySelector(`tr[data-student-id="${sid}"][data-main-row]`);
+                                    if (mainRow) {
+                                        const debtCell = mainRow.querySelector('.js-debt-cell');
+                                        if (debtCell) {
+                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
+                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                        }
+                                    }
+                                });
+                        } else {
+                            alert(result.error || 'Xatolik yuz berdi.');
+                        }
+                    })
+                    .catch(() => {
+                        dmConfirmBtn.disabled = false;
+                        dmConfirmBtn.classList.remove('loading');
+                        alert('Server xatosi.');
                     });
                 });
             }
