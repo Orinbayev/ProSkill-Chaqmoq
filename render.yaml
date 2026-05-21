@@ -6,11 +6,12 @@ services:
     region: frankfurt
     
     # ==================== BUILD COMMAND ====================
-    # Install deps, collect static. Migrations run at startup (start.sh)
-    # so DATABASE_URL is guaranteed to be available.
-    buildCommand: |
-      python3 -m pip install -r requirements.txt
-      python3 manage.py collectstatic --noinput
+    # RENDER_BUILD_PHASE=1 allows settings.py to gracefully skip production
+    # secret checks (DATABASE_URL etc.) that are absent during build.
+    # Migrations run at startup (start.sh) when DATABASE_URL is available.
+    buildCommand: >-
+      RENDER_BUILD_PHASE=1 pip install -r requirements.txt &&
+      RENDER_BUILD_PHASE=1 python manage.py collectstatic --noinput
     
     startCommand: ./start.sh
     

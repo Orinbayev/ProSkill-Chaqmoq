@@ -361,8 +361,14 @@ BILLING_EXPIRY_WARN_DAYS = int(os.getenv("BILLING_EXPIRY_WARN_DAYS", "7"))
 # ==================== PRODUCTION OVERRIDE ====================
 # Auto-load production settings when deployed to Render
 if os.getenv("MODE") == "production" or os.getenv("RENDER"):
+    _is_build_phase = os.getenv("RENDER_BUILD_PHASE") == "1"
     try:
         from .settings_prod import *
         print("✅ Production settings loaded successfully")
-    except (ImportError, RuntimeError) as e:
-        print(f"⚠️ Failed to load production settings: {e}")
+    except Exception as e:
+        if _is_build_phase:
+            # During build DATABASE_URL/secrets may be absent — fall back gracefully
+            print(f"⚠️ Build phase: settings_prod not loaded: {e}")
+        else:
+            # At runtime all vars must be set — re-raise to prevent silent misconfiguration
+            raise
