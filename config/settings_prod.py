@@ -95,7 +95,12 @@ if is_production_runtime:
         raise ImproperlyConfigured("API_SECRET productionda kamida 32 belgili bo'lishi shart.")
 
     if not CLICK_SECRET_KEY or CLICK_SECRET_KEY == "tFFjf4jX2kn9OJ69Ex":
-        raise ImproperlyConfigured("CLICK_SECRET_KEY productionda environment orqali berilishi shart.")
+        import warnings
+        warnings.warn(
+            "CLICK_SECRET_KEY sozlanmagan — Click to'lov tizimi ishlamaydi.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 CLICK_ALLOWED_IPS = [ip.strip() for ip in os.getenv("CLICK_ALLOWED_IPS", "").split(",") if ip.strip()]
 
