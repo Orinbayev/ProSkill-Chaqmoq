@@ -2598,7 +2598,6 @@ def dangerous_students(request):
                 "group__oqituvchi__familya",
             )
             .annotate(missed=Count("id"))
-            .filter(missed__gte=min_missed)
             .order_by("-missed")
         )
         # Studentni guruhlash
@@ -2644,7 +2643,10 @@ def dangerous_students(request):
                 if len(info["groups"]) > 3:
                     info["groups_label"] += f" +{len(info['groups']) - 3}"
 
-        rows = sorted(st_map.values(), key=lambda x: (-x["missed"], x.get("rate", 0)))
+        rows = sorted(
+            [v for v in st_map.values() if v["missed"] >= min_missed],
+            key=lambda x: (-x["missed"], x.get("rate", 0)),
+        )
 
         # Qidiruv
         if q:

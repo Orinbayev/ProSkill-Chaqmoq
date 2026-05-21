@@ -1554,3 +1554,162 @@ html[data-role-theme="light"] body.purchase-requests-page .btn-approve {
 html[data-role-theme="light"] body.purchase-requests-page .btn-reject {
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22) !important;
 }
+
+/* ============================================================
+   XAVFLI O'QUVCHILAR sahifasi — Light mode
+   body.dangerous-page
+   ============================================================ */
+html[data-role-theme="light"] body.dangerous-page {
+  --dg-bg:       #FEF2F2;
+  --dg-surface:  #FFFFFF;
+  --dg-elevated: #F8FAFC;
+  --dg-border:   rgba(0, 0, 0, 0.08);
+  --dg-text:     #0F172A;
+  --dg-muted:    #475569;
+  --dg-soft:     #94A3B8;
+  --dg-rose:     #E11D48;
+  --dg-amber:    #D97706;
+  --dg-blue:     #2563EB;
+  --dg-violet:   #7C3AED;
+  background: linear-gradient(180deg, #FFF1F2 0%, #FEF2F2 100%) !important;
+  color: var(--dg-text) !important;
+}
+
+/* Header / surface kartalar */
+html[data-role-theme="light"] body.dangerous-page .dg-head,
+html[data-role-theme="light"] body.dangerous-page .dg-stat,
+html[data-role-theme="light"] body.dangerous-page .dg-search-row,
+html[data-role-theme="light"] body.dangerous-page .dg-card,
+html[data-role-theme="light"] body.dangerous-page .dg-empty {
+  background: #FFFFFF !important;
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+
+/* Orqaga tugma */
+html[data-role-theme="light"] body.dangerous-page .dg-back {
+  background: #F1F5F9 !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+  color: #64748B !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-back:hover {
+  color: #0F172A !important;
+}
+
+/* Sarlavha va kichik matnlar */
+html[data-role-theme="light"] body.dangerous-page .dg-title {
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-sub {
+  color: #475569 !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-sub strong {
+  color: #E11D48 !important;
+}
+
+/* Oy tanlash (select) va minimal input */
+html[data-role-theme="light"] body.dangerous-page .dg-month-select,
+html[data-role-theme="light"] body.dangerous-page .dg-min-input {
+  background-color: #F8FAFC !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-month-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-min-input {
+  background-image: none !important;
+}
+
+/* Qidiruv qatori */
+html[data-role-theme="light"] body.dangerous-page .dg-search {
+  background: #F1F5F9 !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-search i {
+  color: #94A3B8 !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-search input {
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-search input::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Statistika ikonkalar */
+html[data-role-theme="light"] body.dangerous-page .dg-stat__val {
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-stat__lbl {
+  color: #94A3B8 !important;
+}
+
+/* Karta — ism va meta */
+html[data-role-theme="light"] body.dangerous-page .dg-card {
+  border-left-color: #E11D48 !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-card__name {
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-card__name:hover {
+  color: #E11D48 !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-card__meta {
+  color: #64748B !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-card__meta a {
+  color: #64748B !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-card__meta a:hover {
+  color: #E11D48 !important;
+}
+
+/* Avatar */
+html[data-role-theme="light"] body.dangerous-page .dg-card__avatar {
+  background: linear-gradient(135deg, rgba(225,29,72,.15), rgba(225,29,72,.07)) !important;
+  border-color: rgba(225, 29, 72, 0.25) !important;
+  color: #BE123C !important;
+}
+
+/* Qoldirgan badge */
+html[data-role-theme="light"] body.dangerous-page .dg-missed {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: rgba(225, 29, 72, 0.22) !important;
+  color: #BE123C !important;
+}
+
+/* Davomat bar */
+html[data-role-theme="light"] body.dangerous-page .dg-rate__bar {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-rate__val {
+  color: #334155 !important;
+}
+
+/* Amal tugmalari */
+html[data-role-theme="light"] body.dangerous-page .dg-act-btn {
+  background: #F1F5F9 !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+  color: #64748B !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-act-btn:hover {
+  color: #E11D48 !important;
+  border-color: rgba(225, 29, 72, 0.35) !important;
+  background: rgba(225, 29, 72, 0.07) !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-act-btn--tg:hover {
+  color: #0284C7 !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  background: rgba(2, 132, 199, 0.07) !important;
+}
+
+/* Bo'sh holat */
+html[data-role-theme="light"] body.dangerous-page .dg-empty__icon {
+  background: rgba(22, 163, 74, 0.10) !important;
+  color: #059669 !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-empty__title {
+  color: #0F172A !important;
+}
+html[data-role-theme="light"] body.dangerous-page .dg-empty__copy {
+  color: #475569 !important;
+}

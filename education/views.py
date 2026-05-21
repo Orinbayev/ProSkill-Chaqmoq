@@ -2759,6 +2759,7 @@ def qarzdorlar_home(request):
         .filter(_center_q)
     )
 
+    chart_mode = "monthly"
     chart_months = _last_12_ending(selected_to)
 
     # ─── ENROLLMENTS (FILTER UCHUN BASE) ─────────────────────────────────────
@@ -2815,13 +2816,17 @@ def qarzdorlar_home(request):
     preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
 
     debt_snapshots = calculate_enrollment_debt_snapshots(
-        enrollment_list, period_months, cumulative_up_to=_display_month
+        enrollment_list, period_months
     )
 
-    # ─── JAMI QARZ SUMMASI (kumulativ) ───────────────────────────────────────
+    # ─── JAMI QARZ SUMMASI (joriy tanlangan oy) ──────────────────────────────
+    # Dashboard bilan mos bo'lishi uchun: faqat aktiv enrollment'lar,
+    # virtual prorated fee yo'q — xuddi dashboard_views.py debt_snapshot() kabi.
+    _active_total_snaps = calculate_enrollment_debt_snapshots(
+        active_enrs_qs, period_months, virtual_missing_months=[]
+    )
     total_center_debt = sum(
-        int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
-        for snapshot in debt_snapshots.values()
+        int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
     )
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
@@ -2830,9 +2835,7 @@ def qarzdorlar_home(request):
     for e in enrollment_list:
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
-        # Kumulativ qarz: agar cumulative_debt mavjud bo'lsa uni ishlatamiz,
-        # aks holda oddiy oy qarzini ishlatamiz.
-        debt = int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
+        debt = int(snapshot.get("debt", 0) or 0)
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
@@ -3028,20 +3031,12 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
-    chart_enrollment_ids = {
-        enrollment_id
-        for row in display_rows
-        for enrollment_id in row.get("debt_enrollment_ids", [])
-    }
-    chart_enrollments = [
-        enrollment
-        for enrollment in enrollment_list
-        if enrollment.id in chart_enrollment_ids
-    ]
+    # Chart faqat aktiv enrollment'lar bo'yicha quriladi, virtual fee yo'q —
+    # shunda dashboarddagi "QARZDORLAR" kartasi bilan mos keladi.
     chart_snapshots = calculate_enrollment_debt_snapshots(
-        chart_enrollments,
+        active_enrs_qs,
         chart_months,
-        virtual_missing_months=period_months,
+        virtual_missing_months=[],
     )
     graph_map = {chart_month: 0 for chart_month in chart_months}
     for snapshot in chart_snapshots.values():
@@ -3075,6 +3070,7 @@ def qarzdorlar_home(request):
         "filtered_debt":  filtered_debt,
         "chart_data":     chart_series,
         "chart_labels":   chart_labels,
+        "chart_mode":     chart_mode,
         "chart_kicker":   "Oxirgi 12 oy",
         "chart_period_label": chart_period_label,
         "selected_period_label": selected_period_label,
@@ -3384,6 +3380,77 @@ def _last_12_ending(anchor: date) -> list[date]:
     # anchor included, return 12 month starts ending at anchor
     anchor = _month_start(anchor)
     return [_add_months(anchor, -11 + i) for i in range(12)]
+
+
+def _chart_range_mode(from_date: date, to_date: date) -> str:
+    """'daily' when range ≤ 31 days (single-month view), 'monthly' otherwise."""
+    return "daily" if (to_date - from_date).days < 32 else "monthly"
+
+
+def _chart_monthly_buckets_for_range(from_date: date, to_date: date) -> list[date]:
+    """Return month-start dates covering [from_date, to_date] inclusive."""
+    result, m = [], from_date.replace(day=1)
+    end = to_date.replace(day=1)
+    while m <= end:
+        result.append(m)
+        m = _add_months(m, 1)
+    return result
+
+
+def _build_daily_debt_series(enrollment_ids: list, from_date: date, to_date: date) -> list[int]:
+    """
+    For each day in [from_date, to_date] return the outstanding debt for
+    display_month = to_date.replace(day=1).  Matches what the monthly chart
+    shows for that month (fee_amount − PaymentAllocation for that month only).
+    """
+    if not enrollment_ids:
+        return [0] * ((to_date - from_date).days + 1)
+
+    display_month = to_date.replace(day=1)
+
+    # Fees for display_month only (consistent with per-month chart bars)
+    total_fees = int(
+        TuitionMonth.objects.filter(
+            enrollment_id__in=enrollment_ids,
+            month=display_month,
+            is_deleted=False,
+        ).aggregate(s=Sum("fee_amount"))["s"] or 0
+    )
+
+    # Payments allocated to display_month TuitionMonths made BEFORE from_date
+    paid_before = int(
+        PaymentAllocation.objects.filter(
+            tuition_month__enrollment_id__in=enrollment_ids,
+            tuition_month__month=display_month,
+            tuition_month__is_deleted=False,
+            payment__paid_date__lt=from_date,
+            is_deleted=False,
+            payment__is_deleted=False,
+        ).aggregate(s=Sum("amount"))["s"] or 0
+    )
+
+    # Payments allocated to display_month TuitionMonths per day within range
+    daily_map: dict = {}
+    for row in (
+        PaymentAllocation.objects.filter(
+            tuition_month__enrollment_id__in=enrollment_ids,
+            tuition_month__month=display_month,
+            tuition_month__is_deleted=False,
+            payment__paid_date__gte=from_date,
+            payment__paid_date__lte=to_date,
+            is_deleted=False,
+            payment__is_deleted=False,
+        )
+        .values("payment__paid_date")
+        .annotate(total=Sum("amount"))
+    ):
+        daily_map[row["payment__paid_date"]] = int(row["total"] or 0)
+
+    running, series = paid_before, []
+    for i in range((to_date - from_date).days + 1):
+        running += daily_map.get(from_date + timedelta(days=i), 0)
+        series.append(max(0, total_fees - running))
+    return series
 
 
 UZ_MONTH_NAMES = {

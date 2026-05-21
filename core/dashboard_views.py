@@ -1035,10 +1035,34 @@ def _billing_payload(center, d_from, d_to):
 
             debt_month = target_date.replace(day=1)
             fee_field = tuition_month_fee_field()
-            fee_sub = TuitionMonth.objects.filter(enrollment=OuterRef("pk"), month=debt_month).values("enrollment").annotate(s=Sum(fee_field)).values("s")
-            paid_sub = PaymentAllocation.objects.filter(tuition_month__enrollment=OuterRef("pk"), tuition_month__month=debt_month).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+            fee_sub = (
+                TuitionMonth.objects
+                .filter(enrollment=OuterRef("pk"), month=debt_month, is_deleted=False)
+                .values("enrollment")
+                .annotate(s=Sum(fee_field))
+                .values("s")
+            )
+            paid_sub = (
+                PaymentAllocation.objects
+                .filter(
+                    tuition_month__enrollment=OuterRef("pk"),
+                    tuition_month__month=debt_month,
+                    tuition_month__is_deleted=False,
+                    payment__is_deleted=False,
+                )
+                .values("tuition_month__enrollment")
+                .annotate(s=Sum("amount"))
+                .values("s")
+            )
             debt_qs = (
-                Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False, is_deferred=False)
+                Enrollment.objects.filter(
+                    group__center=center,
+                    is_active=True,
+                    student__is_archived=False,
+                    group__is_archived=False,
+                    group__is_deleted=False,
+                    is_deferred=False,
+                )
                 .annotate(f=Coalesce(Subquery(fee_sub), 0), p=Coalesce(Subquery(paid_sub), 0))
                 .annotate(d=F("f") - F("p")).filter(d__gt=0)
             )
@@ -1760,6 +1784,8 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         group__center=center,
         is_active=True,
         student__is_archived=False,
+        group__is_archived=False,
+        group__is_deleted=False,
     )
     if branch:
         students_qs = students_qs.filter(enrollments__group__branch=branch).distinct()
@@ -1845,16 +1871,10 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     _arch_map = {
         (r["y"], r["m"]): r["cnt"]
         for r in students_history_qs
-        .filter(
-            Q(archived_at__date__range=(chart_start, chart_end))
-            | Q(deleted_at__date__range=(chart_start, chart_end))
-        )
-        .values(y=F("archived_at__year"), m=F("archived_at__month"))
+        .filter(deleted_at__date__range=(chart_start, chart_end))
+        .values(y=F("deleted_at__year"), m=F("deleted_at__month"))
         .annotate(cnt=Count("id"))
     }
-    _legacy_archived = students_history_qs.filter(
-        is_archived=True, archived_at__isnull=True, deleted_at__isnull=True
-    ).count()
 
     if branch is None:
         month_pairs = [(ms, me) for ms, me, _ in months_list]
@@ -1868,10 +1888,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             monthly_expenses.append(m_exp)
             monthly_profit.append(m_turn - m_exp)
             monthly_students.append(_join_map.get((ms.year, ms.month), 0))
-            left_cnt = _arch_map.get((ms.year, ms.month), 0)
-            if ms.year == today.year and ms.month == today.month:
-                left_cnt += _legacy_archived
-            monthly_left.append(left_cnt)
+            monthly_left.append(_arch_map.get((ms.year, ms.month), 0))
     else:
         for ms, me, lbl in months_list:
             monthly_labels.append(lbl)
@@ -1881,10 +1898,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             monthly_expenses.append(m_exp)
             monthly_profit.append(m_turn - m_exp)
             monthly_students.append(_join_map.get((ms.year, ms.month), 0))
-            left_cnt = _arch_map.get((ms.year, ms.month), 0)
-            if ms.year == today.year and ms.month == today.month:
-                left_cnt += _legacy_archived
-            monthly_left.append(left_cnt)
+            monthly_left.append(_arch_map.get((ms.year, ms.month), 0))
 
     # ── Chart 3: Guruh to'ldirilganlik (N+1 → 2 queries) ──────
     _open_groups_qs = groups_qs.filter(is_closed=False).only("id", "nom")
@@ -2322,7 +2336,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         xavfli_students = []
 
-    # ── Qarzdorlar (joriy snapshot, oxirgi sana bo'yicha) ──────────
+    # ── Qarzdorlar (kumulativ, barcha to'lanmagan oylar) ──────────
     total_debt = 0
     total_debtors = 0
     try:
@@ -2331,13 +2345,25 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         from education.models import TuitionMonth
         debt_month = d_to.replace(day=1)
         fee_field = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
-        fee_sub = TuitionMonth.objects.filter(
-            enrollment=OuterRef("pk"), month=debt_month
-        ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
-        paid_sub = PaymentAllocation.objects.filter(
-            tuition_month__enrollment=OuterRef("pk"),
-            tuition_month__month=debt_month,
-        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+        fee_sub = (
+            TuitionMonth.objects
+            .filter(enrollment=OuterRef("pk"), month=debt_month, is_deleted=False)
+            .values("enrollment")
+            .annotate(s=Sum(fee_field))
+            .values("s")
+        )
+        paid_sub = (
+            PaymentAllocation.objects
+            .filter(
+                tuition_month__enrollment=OuterRef("pk"),
+                tuition_month__month=debt_month,
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False,
+            )
+            .values("tuition_month__enrollment")
+            .annotate(s=Sum("amount"))
+            .values("s")
+        )
         debt_qs = (
             active_enroll
             .filter(is_deferred=False)
@@ -2399,13 +2425,25 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         from education.models import TuitionMonth
         prev_debt_month = _pt.replace(day=1)
         fee_field2 = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
-        prev_fee_sub = TuitionMonth.objects.filter(
-            enrollment=OuterRef("pk"), month=prev_debt_month
-        ).values("enrollment").annotate(s=Sum(fee_field2)).values("s")
-        prev_paid_sub = PaymentAllocation.objects.filter(
-            tuition_month__enrollment=OuterRef("pk"),
-            tuition_month__month=prev_debt_month,
-        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+        prev_fee_sub = (
+            TuitionMonth.objects
+            .filter(enrollment=OuterRef("pk"), month=prev_debt_month, is_deleted=False)
+            .values("enrollment")
+            .annotate(s=Sum(fee_field2))
+            .values("s")
+        )
+        prev_paid_sub = (
+            PaymentAllocation.objects
+            .filter(
+                tuition_month__enrollment=OuterRef("pk"),
+                tuition_month__month=prev_debt_month,
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False,
+            )
+            .values("tuition_month__enrollment")
+            .annotate(s=Sum("amount"))
+            .values("s")
+        )
         prev_debt_qs = (
             active_enroll
             .filter(is_deferred=False)

@@ -30,6 +30,15 @@
         </div>
 
         <div class="debtors-hero__chart">
+            <div class="debtors-hero__chart-header">
+                <div class="dbc-title">
+                    <span class="dbc-title__kicker">{{ chart_kicker }}</span>
+                    <span class="dbc-title__period">{{ chart_period_label }}</span>
+                </div>
+                <div class="dbc-badge dbc-badge--monthly">
+                    <i class="fa-solid fa-chart-line"></i> Oylik
+                </div>
+            </div>
             <div class="debtors-hero__chart-body" id="debtChartBody">
                 <div id="debtChart"></div>
                 <div class="chart-skeleton" id="debtChartSkeleton"></div>
@@ -1022,8 +1031,8 @@ tr.row-deferred {
                 <div class="chart-empty">
                     <div class="chart-empty__inner">
                         <div class="chart-empty__icon"><i class="fa-solid fa-chart-line"></i></div>
-                        <div class="chart-empty__title">Trend uchun ma'lumot yo'q</div>
-                        <p class="chart-empty__copy">Tanlangan davr bo'yicha qarzdorlik bo'yicha hech qanday yozuv topilmadi.</p>
+                        <div class="chart-empty__title">Tanlangan davr uchun ma'lumot yo'q</div>
+                        <p class="chart-empty__copy">Filterni o'zgartiring yoki boshqa sana oralig'ini tanlang.</p>
                     </div>
                 </div>`;
         }
@@ -1065,111 +1074,69 @@ tr.row-deferred {
                 }
 
                 function buildOptions() {
-                    const isLight = getThemeMode() === 'light';
+                    const isLightTheme = getThemeMode() === 'light';
+                    const labelColor = isLightTheme ? '#475569' : '#94a3b8';
+                    const gridColor = isLightTheme ? 'rgba(239, 68, 68, 0.10)' : 'rgba(255, 255, 255, 0.05)';
+
                     return {
-                        series: [{ name: 'Jami qarz', data: chartData }],
+                        series: [{ name: "Qarz miqdori", data: chartData }],
                         chart: {
-                            type: 'area',
-                            height: '100%',
+                            type: "area",
+                            height: 220,
+                            offsetY: -8,
                             toolbar: { show: false },
-                            background: 'transparent',
-                            parentHeightOffset: 0,
+                            background: "transparent",
+                            sparkline: { enabled: false },
                             zoom: { enabled: false },
-                            animations: {
-                                enabled: true, easing: 'easeOutCubic', speed: 600,
-                                animateGradually: { enabled: false },
-                                dynamicAnimation: { enabled: true, speed: 350 }
-                            },
-                            fontFamily: 'inherit'
+                            parentHeightOffset: 0
                         },
-                        stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
-                        markers: {
-                            size: 0,
-                            colors: ['#ef4444'],
-                            strokeColors: isLight ? '#FFFFFF' : '#0B1220',
-                            strokeWidth: 2,
-                            hover: { size: 7, sizeOffset: 3 }
-                        },
-                        colors: ['#ef4444'],
+                        colors: ["#ef4444"],
+                        stroke: { curve: "smooth", width: 3, lineCap: "round" },
+                        markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
                         fill: {
-                            type: 'gradient',
+                            type: "gradient",
                             gradient: {
-                                shadeIntensity: 1,
-                                type: 'vertical',
-                                opacityFrom: isLight ? 0.32 : 0.45,
-                                opacityTo: 0.02,
-                                stops: [0, 95, 100]
-                            }
-                        },
-                        xaxis: {
-                            categories: chartLabels,
-                            labels: {
-                                rotate: chartLabels.length > 8 ? -35 : 0,
-                                rotateAlways: chartLabels.length > 8,
-                                hideOverlappingLabels: true,
-                                trim: false,
-                                style: { fontSize: '11px', fontWeight: 600 }
-                            },
-                            axisBorder: { show: false },
-                            axisTicks: { show: false },
-                            tooltip: { enabled: false },
-                            crosshairs: {
-                                show: true,
-                                stroke: { color: isLight ? 'rgba(15,23,42,0.18)' : 'rgba(255,255,255,0.18)', width: 1, dashArray: 4 }
-                            }
-                        },
-                        yaxis: {
-                            tickAmount: 5,
-                            forceNiceScale: true,
-                            labels: {
-                                style: { fontSize: '11px', fontWeight: 600 },
-                                formatter: v => formatUzShort(v) + " so'm"
+                                shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.04,
+                                stops: [0, 90, 100],
+                                colorStops: [
+                                    { offset: 0, color: "#ef4444", opacity: 0.4 },
+                                    { offset: 100, color: "#ef4444", opacity: 0.02 }
+                                ]
                             }
                         },
                         grid: {
+                            borderColor: gridColor,
                             strokeDashArray: 4,
-                            padding: { left: 8, right: 16, top: 4, bottom: 0 },
-                            xaxis: { lines: { show: false } },
-                            yaxis: { lines: { show: true } }
+                            padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                        },
+                        xaxis: {
+                            categories: chartLabels,
+                            labels: { style: { colors: labelColor, fontSize: "11px" } },
+                            axisBorder: { show: false },
+                            axisTicks: { show: false }
+                        },
+                        yaxis: {
+                            tickAmount: 4,
+                            labels: {
+                                style: { colors: labelColor, fontSize: "11px" },
+                                formatter: v => {
+                                    if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+                                    if (v >= 1000) return (v / 1000).toFixed(0) + "k";
+                                    return v;
+                                }
+                            }
                         },
                         dataLabels: { enabled: false },
                         legend: { show: false },
                         tooltip: {
-                            enabled: true,
-                            shared: false,
-                            intersect: false,
-                            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-                                const value = Number(series[seriesIndex][dataPointIndex] || 0);
-                                const label = (w.globals.labels[dataPointIndex] || '').toString();
-                                const prevValue = dataPointIndex > 0 ? Number(series[seriesIndex][dataPointIndex - 1] || 0) : null;
-                                let trendLine = '';
-                                if (prevValue !== null) {
-                                    const diff = value - prevValue;
-                                    const pct = prevValue > 0 ? (diff / prevValue * 100) : 0;
-                                    const sign = diff > 0 ? '+' : (diff < 0 ? '−' : '');
-                                    const cls = diff > 0 ? 'moliya-tooltip__amount--red' : '';
-                                    trendLine = `
-                                        <div class="moliya-tooltip__row">
-                                            <span>O'tgan oyga</span>
-                                            <strong class="${cls}">${sign}${Math.abs(pct).toFixed(1).replace('.0','')}%</strong>
-                                        </div>`;
-                                }
-                                return `
-                                    <div class="moliya-tooltip__inner">
-                                        <div class="moliya-tooltip__title">${label}</div>
-                                        <div class="moliya-tooltip__amount moliya-tooltip__amount--red">${formatUzMoney(value)}</div>
-                                        ${trendLine}
-                                    </div>`;
-                            },
-                            cssClass: 'moliya-tooltip'
+                            theme: isLightTheme ? "light" : "dark",
+                            y: { formatter: v => Number(v).toLocaleString() + " so'm" }
                         }
                     };
                 }
 
                 function renderDebtChart() {
-                    if (debtChart) {
-                        debtChart.destroy();
-                    }
+                    if (debtChart) { debtChart.destroy(); debtChart = null; }
                     debtChart = new ApexCharts(chartHost, buildOptions());
                     debtChart.render().then(() => {
                         if (skeletonEl) skeletonEl.style.display = 'none';
@@ -1194,7 +1161,6 @@ tr.row-deferred {
                     attributeFilter: ['data-role-theme']
                 });
 
-                // Re-render on container resize (sidebar toggle, window resize)
                 if ('ResizeObserver' in window) {
                     let resizeTimer = null;
                     const resizeObserver = new ResizeObserver(() => {
@@ -1203,7 +1169,7 @@ tr.row-deferred {
                             if (debtChart && typeof debtChart.updateOptions === 'function') {
                                 debtChart.updateOptions({}, false, false);
                             }
-                        }, 150);
+                        }, 180);
                     });
                     resizeObserver.observe(chartHost);
                 }
