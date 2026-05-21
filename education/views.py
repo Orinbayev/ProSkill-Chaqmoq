@@ -2819,11 +2819,12 @@ def qarzdorlar_home(request):
         enrollment_list, period_months
     )
 
-    # ─── JAMI QARZ SUMMASI (joriy tanlangan oy) ──────────────────────────────
-    # Dashboard bilan mos bo'lishi uchun: faqat aktiv enrollment'lar,
-    # virtual prorated fee yo'q — xuddi dashboard_views.py debt_snapshot() kabi.
+    # ─── JAMI QARZ SUMMASI (barcha 12 oy bo'yicha) ───────────────────────────
+    # Faqat aktiv enrollment'lar, virtual prorated fee yo'q.
+    # chart_months (12 oy) bo'yicha hisoblash — grafik bilan mos keladi:
+    # Jami qarz = barcha oylar qarzlarining yig'indisi.
     _active_total_snaps = calculate_enrollment_debt_snapshots(
-        active_enrs_qs, period_months, virtual_missing_months=[]
+        active_enrs_qs, chart_months, virtual_missing_months=[]
     )
     total_center_debt = sum(
         int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
