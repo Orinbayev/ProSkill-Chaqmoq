@@ -143,7 +143,7 @@ else:
 
 # Use database for sessions to persist across deployments
 # This prevents ALL users from being logged out on every deploy!
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_SAVE_EVERY_REQUEST = False
 
