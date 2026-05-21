@@ -36,6 +36,8 @@ if [ -z "$RENDER" ]; then
   echo '🏠 Local dev mode'
   python3 manage.py runserver 0.0.0.0:8000
 else
+  echo '🗄️  Running migrations...'
+  python3 manage.py migrate --noinput
   WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
   GUNICORN_THREADS="${GUNICORN_THREADS:-4}"
   GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-60}"

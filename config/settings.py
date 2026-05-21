@@ -364,5 +364,5 @@ if os.getenv("MODE") == "production" or os.getenv("RENDER"):
     try:
         from .settings_prod import *
         print("✅ Production settings loaded successfully")
-    except ImportError as e:
+    except (ImportError, RuntimeError) as e:
         print(f"⚠️ Failed to load production settings: {e}")

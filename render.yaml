@@ -6,11 +6,11 @@ services:
     region: frankfurt
     
     # ==================== BUILD COMMAND ====================
-    # Install deps, collect static, run migrations
+    # Install deps, collect static. Migrations run at startup (start.sh)
+    # so DATABASE_URL is guaranteed to be available.
     buildCommand: |
       python3 -m pip install -r requirements.txt
       python3 manage.py collectstatic --noinput
-      python3 manage.py migrate --noinput
     
     startCommand: ./start.sh
     
