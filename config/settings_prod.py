@@ -141,9 +141,9 @@ else:
 
 # ==================== SESSION CONFIGURATION ====================
 
-# cached_db: cache'dan o'qiydi (tez), cache miss bo'lsa DB ga tushadi.
-# Bu har requestda 1 ta DB query tejaydi (LocMemCache warm bo'lganda).
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# Use database for sessions to persist across deployments
+# This prevents ALL users from being logged out on every deploy!
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_SAVE_EVERY_REQUEST = False
 
@@ -238,10 +238,13 @@ LOGGING = {
 
 # ==================== PERFORMANCE ====================
 
-# ✅ DB Connection pooling
+# ✅ DB Connection pooling — Render Postgres ga har request da yangi ulanish EMAS.
+# conn_max_age=600: ulanish 10 daqiqa davomida saqlanadi.
+# Bu login + dashboard da ~20-40ms tejaydi (TCP handshake yo'q).
 CONN_MAX_AGE = 600
 
-# ✅ Cache — Redis yoki LocMem fallback
+# ✅ Cache — Redis (Render add-on) yoki LocMem fallback.
+# LocMem: har worker o'z cache ga ega, lekin Render single-worker uchun yetarli.
 if os.getenv("REDIS_URL"):
     CACHES = {
         "default": {
@@ -263,29 +266,25 @@ else:
         }
     }
 
-# ✅ GZip: HTML/JSON response larni kompresslaydi (~60-70% kichraytiradi).
-# WhiteNoise statik fayllarni o'zi compress qiladi, bu faqat dinamik response uchun.
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.middleware.gzip.GZipMiddleware",
-    "core.middleware_perf.SlowRequestLoggingMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
-    "core.middleware.MobileApiCorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "core.middleware.TenantMiddleware",
-    "core.middleware_rbac.RoleBasedAccessMiddleware",
-]
+# ✅ Session: DB backend yaxshi, lekin har requestda session read/write bo'lmasin.
+# SESSION_SAVE_EVERY_REQUEST = False — faqat o'zgarsa saqlaydi (allaqachon sozlangan).
+# SESSION_COOKIE_AGE = 1209600 — 2 hafta (allaqachon sozlangan).
 
-# ✅ Performance logging: productionda faqat sekin so'rovlarni loglaydi.
-PERF_LOG_ALL = False
-SLOW_REQUEST_MS = 1000  # 1 sekunddan sekin bo'lsa log qilsin
+# ✅ WhiteNoise brotli/gzip compression — statik fayllar compress qilinadi.
+# CompressedStaticFilesStorage → CustomManifestStaticFilesStorage (allaqachon).
+# WHITENOISE_MAX_AGE = 31536000 — 1 yil cache (allaqachon sozlangan).
 
-# ✅ Slow query logging
+# ✅ Django ORM: select_related foydalanuvchi autentifikatsiyasida sozlangan (backends.py).
+
+# ✅ GZip Middleware — HTML response lar ham compress qilish uchun (ixtiyoriy).
+# Render CDN allaqachon gzip qo'llashi mumkin, lekin Django darajasida ham qo'yish zararli emas.
+# MIDDLEWARE ichiga qo'shish kerak (CommonMiddleware dan OLDIN):
+# "django.middleware.gzip.GZipMiddleware",
+# (Xavfsizlik: BREACH attack. Render HTTPS terminationi bo'lgani uchun xavf past.)
+
+# ✅ Slow query logging — sekin querylarni topish uchun
+import django.db
+_slow_query_ms = int(os.getenv("SLOW_QUERY_MS", "200"))  # 200ms dan sekin = log
 LOGGING["loggers"]["django.db.backends"] = {
     "handlers": ["console"],
     "level": "WARNING",

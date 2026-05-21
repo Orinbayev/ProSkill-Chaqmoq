@@ -45,7 +45,6 @@ else
 
   echo "🌐 Production mode on Render (Port $PORT)"
   echo "🧠 Gunicorn: workers=$WEB_CONCURRENCY threads=$GUNICORN_THREADS timeout=$GUNICORN_TIMEOUT max_requests=$GUNICORN_MAX_REQUESTS"
-  GUNICORN_KEEPALIVE="${GUNICORN_KEEPALIVE:-5}"
   python3 -m gunicorn config.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers "$WEB_CONCURRENCY" \
@@ -54,8 +53,6 @@ else
     --graceful-timeout "$GUNICORN_GRACEFUL_TIMEOUT" \
     --max-requests "$GUNICORN_MAX_REQUESTS" \
     --max-requests-jitter "$GUNICORN_MAX_REQUESTS_JITTER" \
-    --keep-alive "$GUNICORN_KEEPALIVE" \
-    --worker-tmp-dir /dev/shm \
     --access-logfile - \
     --error-logfile -
 fi
