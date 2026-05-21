@@ -2820,11 +2820,12 @@ def qarzdorlar_home(request):
     )
 
     # ─── JAMI QARZ SUMMASI (barcha 12 oy bo'yicha) ───────────────────────────
-    # Faqat aktiv enrollment'lar, virtual prorated fee yo'q.
-    # chart_months (12 oy) bo'yicha hisoblash — grafik bilan mos keladi:
-    # Jami qarz = barcha oylar qarzlarining yig'indisi.
+    # Dashboard bilan AYNAN bir xil filtr: is_deferred=False + aktiv enrollment.
+    # Bu kechiktirilgan (deferred) o'quvchilarning to'lanmagan tarixiy
+    # TuitionMonth yozuvlarini chiqarib tashlaydi — ular haqiqiy qarz emas.
+    _billing_enrs_qs = active_enrs_qs.filter(is_deferred=False)
     _active_total_snaps = calculate_enrollment_debt_snapshots(
-        active_enrs_qs, chart_months, virtual_missing_months=[]
+        _billing_enrs_qs, chart_months, virtual_missing_months=[]
     )
     total_center_debt = sum(
         int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
@@ -3032,10 +3033,10 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
-    # Chart faqat aktiv enrollment'lar bo'yicha quriladi, virtual fee yo'q —
-    # shunda dashboarddagi "QARZDORLAR" kartasi bilan mos keladi.
+    # Chart: dashboard bilan aynan bir xil filtr (is_deferred=False),
+    # virtual fee yo'q — faqat haqiqiy TuitionMonth yozuvlari hisoblanadi.
     chart_snapshots = calculate_enrollment_debt_snapshots(
-        active_enrs_qs,
+        _billing_enrs_qs,
         chart_months,
         virtual_missing_months=[],
     )
