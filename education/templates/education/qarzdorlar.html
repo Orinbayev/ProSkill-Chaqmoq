@@ -874,6 +874,13 @@ tr.row-deferred {
                 </div>
                 <div id="efPriceInfo" style="font-size:12px;color:var(--m-muted,#888);margin-top:6px;margin-bottom:4px;"></div>
                 <div class="pv2-field">
+                    <label class="pv2-label">To'langan (so'm) <span style="font-size:11px;color:var(--m-muted,#888);">— kamaytirish mumkin</span></label>
+                    <input type="number" class="pv2-input" id="efPaidInput" placeholder="0" min="0">
+                    <div id="efPaidHint" style="font-size:12px;color:var(--m-amber,#f59e0b);margin-top:4px;display:none;">
+                        <i class="fa-solid fa-circle-info"></i> To'langan miqdor kamaytiriladi — farq kredit hisobiga o'tkaziladi.
+                    </div>
+                </div>
+                <div class="pv2-field">
                     <label class="pv2-label">Izoh (ixtiyoriy)</label>
                     <input type="text" class="pv2-input" id="efNote" placeholder="Sabab, izoh...">
                 </div>
@@ -1605,7 +1612,8 @@ tr.row-deferred {
 
             const editFeeModalEl = document.getElementById('editFeeModal');
             const efSaveBtn = document.getElementById('efSaveBtn');
-            const efNewFeeInput = document.getElementById('efNewFee');
+            const efNewFeeInput  = document.getElementById('efNewFee');
+            const efPaidInput    = document.getElementById('efPaidInput');
             const efLessonCountInput = document.getElementById('efLessonCount');
 
             function efUpdateFromFee() {
@@ -1658,23 +1666,38 @@ tr.row-deferred {
                 const monthLabel  = btn.getAttribute('data-month-label');
 
                 document.getElementById('efMonthLabel').textContent = monthLabel;
-                // Input = joriy qarz miqdori (0 qilish mumkin)
                 if (efNewFeeInput) efNewFeeInput.value = efState.debt;
                 if (efLessonCountInput) {
                     efLessonCountInput.value = efState.pricePerLesson > 0 && efState.debt > 0
                         ? Math.round(efState.debt / efState.pricePerLesson)
                         : 0;
                 }
+                if (efPaidInput) {
+                    efPaidInput.value = efState.paid;
+                    efPaidInput.max   = efState.paid;
+                    // Paid o'zgarsa hint ko'rsat
+                    efPaidInput.oninput = function () {
+                        const hint = document.getElementById('efPaidHint');
+                        const val  = parseInt(efPaidInput.value, 10);
+                        if (!isNaN(val) && val < efState.paid) {
+                            hint.style.display = 'block';
+                        } else {
+                            hint.style.display = 'none';
+                        }
+                    };
+                }
 
                 const priceInfoEl = document.getElementById('efPriceInfo');
                 if (efState.pricePerLesson > 0) {
-                    priceInfoEl.textContent = `1 dars = ${formatUzMoney(efState.pricePerLesson)} | To'langan: ${formatUzMoney(efState.paid)}`;
+                    priceInfoEl.textContent = `1 dars = ${formatUzMoney(efState.pricePerLesson)}`;
                 } else {
-                    priceInfoEl.textContent = `To'langan: ${formatUzMoney(efState.paid)}`;
+                    priceInfoEl.textContent = '';
                 }
 
                 document.getElementById('efNote').value = '';
                 document.getElementById('efHint').textContent = '';
+                const paidHint = document.getElementById('efPaidHint');
+                if (paidHint) paidHint.style.display = 'none';
                 if (efSaveBtn) efSaveBtn.disabled = false;
 
                 const bsModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editFeeModal'));
@@ -1692,6 +1715,17 @@ tr.row-deferred {
                         document.getElementById('efHint').textContent = 'Qarz manfiy bo\'lishi mumkin emas.';
                         return;
                     }
+
+                    const enteredPaid = efPaidInput ? parseInt(efPaidInput.value, 10) : NaN;
+                    if (!isNaN(enteredPaid) && enteredPaid < 0) {
+                        document.getElementById('efHint').textContent = 'To\'langan summa manfiy bo\'lishi mumkin emas.';
+                        return;
+                    }
+                    if (!isNaN(enteredPaid) && enteredPaid > efState.paid) {
+                        document.getElementById('efHint').textContent = 'To\'langan summani oshirish mumkin emas.';
+                        return;
+                    }
+
                     if (!efState.studentId || !efState.month) {
                         document.getElementById('efHint').textContent = 'Ma\'lumot topilmadi. Sahifani yangilang.';
                         return;
@@ -1704,6 +1738,9 @@ tr.row-deferred {
                     const fd = new FormData();
                     fd.append('month', efState.month);
                     fd.append('new_debt', enteredDebt);
+                    if (!isNaN(enteredPaid) && enteredPaid < efState.paid) {
+                        fd.append('new_paid', enteredPaid);
+                    }
                     fd.append('csrfmiddlewaretoken', getCsrfToken());
 
                     fetch(buildTenantPath(`/talim/api/student/${efState.studentId}/month-debt/`), {

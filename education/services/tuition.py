@@ -1082,6 +1082,8 @@ def calculate_enrollment_debt_snapshots(
             key = (row["tuition_month__enrollment_id"], row["tuition_month__month"])
             paid_map[key] = int(row["paid"] or 0)
 
+    today_month_first = date.today().replace(day=1)
+
     for enrollment in enrollment_list:
         enrollment_snapshot = snapshots[enrollment.id]
         for month in month_list:
@@ -1095,6 +1097,13 @@ def calculate_enrollment_debt_snapshots(
                     fee = int(prorated_monthly_fee(enrollment, month) or 0)
                 else:
                     fee = 0
+            else:
+                # Kelajak oy DB da fee=0 saqlanib qolgan bo'lsa (masalan noto'g'ri tahrirlash),
+                # real kurs narxini ishlatamiz — o'quvchi to'lamagan bo'lishi mumkin.
+                if fee == 0 and month > today_month_first:
+                    paid_check = int(paid_map.get(key, 0) or 0)
+                    if paid_check == 0:
+                        fee = int(prorated_monthly_fee(enrollment, month) or 0)
             paid = int(paid_map.get(key, 0) or 0)
             debt = max(0, fee - paid)
             lesson_count = tuition_month_lesson_count(enrollment, month)

@@ -10901,6 +10901,11 @@ def edit_student_month_debt(request, student_id):
     except Exception:
         return JsonResponse({"ok": False, "error": "Noto'g'ri oy formati."}, status=400)
 
+    # Kelajak oylarni tahrirlash mumkin emas — ular avtomatik hisoblanadi
+    cur_month_first = timezone.localdate().replace(day=1)
+    if month_date > cur_month_first:
+        return JsonResponse({"ok": False, "error": "Kelajakdagi oy uchun to'lovni tahrirlash mumkin emas. Oy kelganda avtomatik hisoblanadi."}, status=400)
+
     try:
         new_debt = int(Decimal(new_debt_raw or "0"))
     except Exception:
@@ -10939,15 +10944,64 @@ def edit_student_month_debt(request, student_id):
 
     fee_field = tuition_month_fee_field()
     paid_per_tm = [sum(int(a.amount or 0) for a in tm.active_allocations) for tm in tms]
+    total_paid_now = sum(paid_per_tm)
 
-    # Birinchi TM: fee = new_debt + uning to'lovi (qarz = new_debt)
-    setattr(tms[0], fee_field, new_debt + paid_per_tm[0])
-    tms[0].save(update_fields=[fee_field])
+    # new_paid: to'langan summani kamaytirish (ixtiyoriy)
+    new_paid_raw = request.POST.get("new_paid")
+    new_paid = None
+    if new_paid_raw is not None:
+        try:
+            new_paid = int(Decimal(new_paid_raw.strip()))
+        except Exception:
+            return JsonResponse({"ok": False, "error": "Noto'g'ri to'langan summa."}, status=400)
+        if new_paid < 0:
+            return JsonResponse({"ok": False, "error": "To'langan summa manfiy bo'lishi mumkin emas."}, status=400)
+        if new_paid > total_paid_now:
+            return JsonResponse({"ok": False, "error": "To'langan summani oshirish mumkin emas."}, status=400)
 
-    # Qolgan TMlar: fee = to'lovi (qarz = 0)
-    for i in range(1, len(tms)):
-        setattr(tms[i], fee_field, paid_per_tm[i])
-        tms[i].save(update_fields=[fee_field])
+    with transaction.atomic():
+        # Agar to'langan kamaytirish so'ralgan bo'lsa
+        if new_paid is not None and new_paid < total_paid_now:
+            to_free = total_paid_now - new_paid
+            # Barcha allocationlarni ko'rib chiqib, kerakli miqdorni ozod qilamiz
+            for tm in tms:
+                if to_free <= 0:
+                    break
+                allocs_sorted = sorted(tm.active_allocations, key=lambda a: a.amount, reverse=True)
+                for alloc in allocs_sorted:
+                    if to_free <= 0:
+                        break
+                    alloc_amt = int(alloc.amount or 0)
+                    if alloc_amt <= to_free:
+                        # Bu allocationni to'liq o'chiramiz
+                        to_free -= alloc_amt
+                        Enrollment.objects.filter(pk=tm.enrollment_id).update(
+                            credit_balance=F("credit_balance") + alloc_amt
+                        )
+                        alloc.is_deleted = True
+                        alloc.save(update_fields=["is_deleted"])
+                    else:
+                        # Qisman kamaytiramiz
+                        alloc.amount = alloc_amt - to_free
+                        alloc.save(update_fields=["amount"])
+                        Enrollment.objects.filter(pk=tm.enrollment_id).update(
+                            credit_balance=F("credit_balance") + to_free
+                        )
+                        to_free = 0
+            # paid_per_tm ni yangi holat bilan yangilaymiz
+            paid_per_tm = [
+                sum(int(a.amount or 0) for a in tm.allocations.filter(is_deleted=False))
+                for tm in tms
+            ]
+
+        # Birinchi TM: fee = new_debt + uning to'lovi (qarz = new_debt)
+        setattr(tms[0], fee_field, new_debt + paid_per_tm[0])
+        tms[0].save(update_fields=[fee_field])
+
+        # Qolgan TMlar: fee = to'lovi (qarz = 0)
+        for i in range(1, len(tms)):
+            setattr(tms[i], fee_field, paid_per_tm[i])
+            tms[i].save(update_fields=[fee_field])
 
     return JsonResponse({"ok": True})
 
@@ -11104,6 +11158,8 @@ def student_monthly_breakdown(request, student_id):
                 "group": group_name,
             })
 
+    cur_month_key = timezone.localdate().strftime("%Y-%m")
+
     months_result = []
     total_debt = 0
     for m_key in sorted(month_map.keys()):
@@ -11113,9 +11169,20 @@ def student_monthly_breakdown(request, student_id):
         fee = entry["fee"]
         paid = entry["paid"]
         debt = max(0, fee - paid)
+
+        # Kelajak oy va to'lov yo'q — ko'rsatmayiz.
+        # Faqat ortiqcha to'lov (paid>0) bo'lsa kelajak oy ko'rinadi.
+        is_future = m_key > cur_month_key
+        if is_future and paid == 0:
+            continue
+
         total_debt += debt
 
-        if fee <= 0:
+        if fee <= 0 and paid > 0:
+            status = "paid"
+        elif fee <= 0:
+            # Kelajak oy uchun fee hali hisoblanmagan — ko'rsatilmaydi (yuqorida skip qilingan)
+            # Joriy/o'tgan oy uchun fee=0: to'langan deb hisoblanadi
             status = "paid"
         elif paid <= 0:
             status = "debtor"
