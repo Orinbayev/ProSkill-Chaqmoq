@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://localhost:8001/accounts/login/ -o /dev/null)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://localhost:8001/ -w \"%{http_code}\" -o /dev/null)",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://localhost:8001/talim/api/student/599/monthly-breakdown/ -w '\\\\n%{http_code}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://localhost:8001/demo-center/talim/api/student/599/monthly-breakdown/ -w '\\\\n%{http_code}')",
+      "Bash(python -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}
