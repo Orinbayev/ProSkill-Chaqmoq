@@ -1369,14 +1369,19 @@ def payment_update(request, payment_id: int):
     note = request.POST.get("note")
     if note is not None:
         p.note = note.strip()
-    
+
     paid_date_str = request.POST.get("paid_date")
     if paid_date_str:
         try:
-            p.paid_date = parse_date(paid_date_str)
+            new_paid_date = parse_date(paid_date_str)
+            if new_paid_date:
+                p.paid_date = new_paid_date
+                # Agar alohida 'month' yuborilmagan bo'lsa, paid_date oyini start_month sifatida ishlatamiz
+                if not start_month:
+                    start_month = new_paid_date.replace(day=1)
         except Exception:
             pass
-            
+
     p.save()
 
     try:
@@ -4459,6 +4464,7 @@ def payment_history(request, student_id):
         payments_data.append({
             "id": p.id,
             "paid_at": f"{p.paid_date.strftime('%d.%m.%Y')} {p.paid_time.strftime('%H:%M')}",
+            "paid_date_iso": p.paid_date.strftime('%Y-%m-%d'),
             "cash": int(p.cash_amount or 0),
             "card": int(getattr(p, 'card_amount_som', 0) or getattr(p, 'card_amount', 0) or 0),
             "total": int(p.summa or 0),

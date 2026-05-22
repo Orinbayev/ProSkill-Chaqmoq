@@ -533,7 +533,7 @@
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
                                     <button class="action-btn edit" title="So'nggi to'lovni tahrirlash"
-                                        onclick="openEditModal({{ row.latest_payment_id }}, {{ row.latest_cash_amount }}, {{ row.latest_card_amount }}, '{{ row.latest_note|escapejs }}')">
+                                        onclick="openEditModal({{ row.latest_payment_id }}, {{ row.latest_cash_amount }}, {{ row.latest_card_amount }}, '{{ row.latest_note|escapejs }}', '{{ row.latest_paid_date|date:"Y-m-d" }}')">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     <button class="action-btn delete" title="So'nggi to'lovni o'chirish"
@@ -648,6 +648,10 @@
             <form id="editPayForm" method="post" action="">
                 {% csrf_token %}
                 <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="filter-label">To'lov sanasi</label>
+                        <input type="date" name="paid_date" id="editPaidDate" class="filter-input">
+                    </div>
                     <div class="mb-3">
                         <label class="filter-label">Naqd pul (so'm)</label>
                         <input type="number" name="cash_amount" id="editCash" class="filter-input" min="0" value="0">
@@ -885,7 +889,8 @@
             new bootstrap.Modal(document.getElementById('noteModal')).show();
         };
 
-        window.openEditModal = function (paymentId, cash, card, note) {
+        window.openEditModal = function (paymentId, cash, card, note, paidDate) {
+            document.getElementById('editPaidDate').value = paidDate || '';
             document.getElementById('editCash').value = cash || 0;
             document.getElementById('editCard').value = card || 0;
             document.getElementById('editNote').value = note || '';
@@ -995,7 +1000,7 @@
                                         <div class="history-actions">
                                             ${receiptButton}
                                             <button class="action-btn edit" type="button" title="Tahrirlash"
-                                                onclick="openEditModal(${payment.id}, ${payment.cash || 0}, ${payment.card || 0}, decodeURIComponent('${encodeURIComponent(payment.note || "")}'))">
+                                                onclick="openEditModal(${payment.id}, ${payment.cash || 0}, ${payment.card || 0}, decodeURIComponent('${encodeURIComponent(payment.note || "")}'), '${payment.paid_date_iso || ""}')">
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
                                             <button class="action-btn delete js-history-delete" type="button" title="O'chirish"
