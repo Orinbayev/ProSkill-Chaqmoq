@@ -11003,7 +11003,10 @@ def edit_student_month_debt(request, student_id):
             setattr(tms[i], fee_field, paid_per_tm[i])
             tms[i].save(update_fields=[fee_field])
 
-    return JsonResponse({"ok": True})
+    saved_fee = int(getattr(tms[0], fee_field, 0) or 0) if tms else 0
+    saved_paid = paid_per_tm[0] if paid_per_tm else 0
+    saved_debt = max(0, saved_fee - saved_paid)
+    return JsonResponse({"ok": True, "fee": saved_fee, "paid": saved_paid, "debt": saved_debt})
 
 
 # ============================================================

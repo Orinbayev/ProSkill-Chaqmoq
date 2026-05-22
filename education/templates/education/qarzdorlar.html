@@ -1666,7 +1666,9 @@ tr.row-deferred {
                 const monthLabel  = btn.getAttribute('data-month-label');
 
                 document.getElementById('efMonthLabel').textContent = monthLabel;
-                if (efNewFeeInput) efNewFeeInput.value = efState.debt;
+                if (efNewFeeInput) {
+                    efNewFeeInput.value = efState.debt;
+                }
                 if (efLessonCountInput) {
                     efLessonCountInput.value = efState.pricePerLesson > 0 && efState.debt > 0
                         ? Math.round(efState.debt / efState.pricePerLesson)
@@ -1702,6 +1704,10 @@ tr.row-deferred {
 
                 const bsModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editFeeModal'));
                 bsModal.show();
+                // Auto-focus and select the debt input after modal animation finishes
+                document.getElementById('editFeeModal').addEventListener('shown.bs.modal', function () {
+                    if (efNewFeeInput) { efNewFeeInput.focus(); efNewFeeInput.select(); }
+                }, { once: true });
             });
 
             if (efSaveBtn) {
