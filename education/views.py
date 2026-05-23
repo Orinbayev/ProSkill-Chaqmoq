@@ -10920,8 +10920,19 @@ def edit_student_month_debt(request, student_id):
         user_qs = user_qs.filter(center=center)
     student = get_object_or_404(user_qs, id=student_id)
 
+    # Enrollment filter must match student_monthly_breakdown exactly so that
+    # the same TuitionMonths are updated here and read there.
+    _center_q_edit = (
+        _Q2(center=center)
+        | _Q2(center__isnull=True, group__center=center)
+        | _Q2(center__isnull=True, student__center=center)
+    )
+    enrollments_for_student = Enrollment.objects.filter(student=student)
+    if center:
+        enrollments_for_student = enrollments_for_student.filter(_center_q_edit)
+
     tms_qs = TuitionMonth.objects.filter(
-        enrollment__student=student,
+        enrollment__in=enrollments_for_student,
         month=month_date,
         is_deleted=False,
     ).prefetch_related(
@@ -10931,12 +10942,6 @@ def edit_student_month_debt(request, student_id):
             to_attr="active_allocations",
         )
     )
-    if center:
-        tms_qs = tms_qs.filter(
-            _Q2(center=center)
-            | _Q2(enrollment__center=center)
-            | _Q2(enrollment__group__center=center)
-        )
 
     tms = list(tms_qs.order_by("id"))
     if not tms:

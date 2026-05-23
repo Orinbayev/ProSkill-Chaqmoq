@@ -1812,9 +1812,27 @@ tr.row-deferred {
                             if (bsModal) bsModal.hide();
 
                             // To'liq breakdown'ni yangilaymiz (fon rejimida)
+                            const savedFee  = result.fee  || 0;
+                            const savedPaid = result.paid || 0;
+                            const savedDebt = result.debt || 0;
                             fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/?_t=${Date.now()}`))
                                 .then(r => r.json())
                                 .then(nd => {
+                                    // Agar server hali eski qiymatni qaytarsa (stale data),
+                                    // saqlab qo'yilgan qiymatni nd'ga qo'shamiz — UI noto'g'ri
+                                    // eski holga qaytmasligi uchun.
+                                    if (nd && nd.months) {
+                                        const mEntry = nd.months.find(m => m.month === savedMonth);
+                                        if (mEntry && mEntry.fee < savedFee) {
+                                            const oldMonthDebt = mEntry.debt || 0;
+                                            mEntry.fee  = savedFee;
+                                            mEntry.paid = savedPaid;
+                                            mEntry.debt = savedDebt;
+                                            mEntry.status = savedDebt > 0 ? 'debtor' : 'paid';
+                                            // total_debt ni ham tuzatamiz
+                                            nd.total_debt = Math.max(0, (nd.total_debt || 0) - oldMonthDebt + savedDebt);
+                                        }
+                                    }
                                     breakdownCache[sid] = nd;
                                     const brow = document.getElementById(`breakdown-${sid}`);
                                     if (brow) {
