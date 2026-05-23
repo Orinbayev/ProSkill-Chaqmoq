@@ -1756,12 +1756,63 @@ tr.row-deferred {
                     .then(r => r.json())
                     .then(result => {
                         if (result.ok) {
-                            delete breakdownCache[efState.studentId];
+                            const sid = efState.studentId;
+                            const savedMonth = efState.month;
+
+                            // Breakdown'dagi tegishli oyni darhol save natijasi bilan yangilaymiz
+                            const monthRow = document.querySelector(`tr[data-tm-month="${savedMonth}"][data-student-id="${sid}"]`);
+                            if (monthRow) {
+                                const cells = monthRow.querySelectorAll('td');
+                                if (cells.length >= 5) {
+                                    const newFee  = result.fee  || 0;
+                                    const newPaid = result.paid || 0;
+                                    const newDebt = result.debt || 0;
+                                    cells[1].textContent = formatUzMoney(newFee);
+                                    cells[2].textContent = formatUzMoney(newPaid);
+                                    cells[3].className   = newDebt > 0 ? 'breakdown-debt-red' : 'breakdown-debt-green';
+                                    cells[3].textContent = formatUzMoney(newDebt);
+                                    const newStatus    = newDebt > 0 ? 'debtor' : (newPaid >= newFee && newFee > 0 ? 'paid' : 'paid');
+                                    const statusLabel  = newStatus === 'paid' ? "To'landi" : 'Qarzdor';
+                                    const statusCls    = `breakdown-status--${newStatus}`;
+                                    cells[4].innerHTML = `<span class="${statusCls}">${statusLabel}</span>`;
+                                    // Pencil tugmasidagi data atributlarini yangilaymiz
+                                    const pencilBtn = cells[5] && cells[5].querySelector('.js-edit-fee');
+                                    if (pencilBtn) {
+                                        pencilBtn.setAttribute('data-debt', newDebt);
+                                        pencilBtn.setAttribute('data-paid', newPaid);
+                                        pencilBtn.setAttribute('data-current-fee', newFee);
+                                    }
+                                    // To'lov tugmasini ko'rsatamiz/yashiramiz
+                                    const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+                                    const isFuture = savedMonth > currentMonthKey;
+                                    const payBtn = cells[5] && cells[5].querySelector('.js-breakdown-pay');
+                                    if (newDebt > 0 && !isFuture) {
+                                        if (!payBtn) {
+                                            const newPayBtn = document.createElement('button');
+                                            newPayBtn.type = 'button';
+                                            newPayBtn.className = 'breakdown-pay-btn js-breakdown-pay';
+                                            newPayBtn.title = "To'lov qilish";
+                                            newPayBtn.setAttribute('data-student-id', sid);
+                                            newPayBtn.setAttribute('data-month', savedMonth);
+                                            newPayBtn.setAttribute('data-month-label', cells[0].textContent.trim());
+                                            newPayBtn.setAttribute('data-debt', newDebt);
+                                            newPayBtn.innerHTML = '<i class="fa-solid fa-wallet"></i> To\'lov';
+                                            if (cells[5]) cells[5].appendChild(newPayBtn);
+                                        } else {
+                                            payBtn.setAttribute('data-debt', newDebt);
+                                        }
+                                    } else if (payBtn) {
+                                        payBtn.remove();
+                                    }
+                                }
+                            }
+
+                            delete breakdownCache[sid];
                             const bsModal = bootstrap.Modal.getInstance(document.getElementById('editFeeModal'));
                             if (bsModal) bsModal.hide();
 
-                            const sid = efState.studentId;
-                            fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/`))
+                            // To'liq breakdown'ni yangilaymiz (fon rejimida)
+                            fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/?_t=${Date.now()}`))
                                 .then(r => r.json())
                                 .then(nd => {
                                     breakdownCache[sid] = nd;

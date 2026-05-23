@@ -11003,9 +11003,14 @@ def edit_student_month_debt(request, student_id):
             setattr(tms[i], fee_field, paid_per_tm[i])
             tms[i].save(update_fields=[fee_field])
 
+    # DB dan haqiqiy qiymatni o'qiymiz (Python object qiymatiga ishonmaymiz)
+    tms[0].refresh_from_db(fields=[fee_field])
     saved_fee = int(getattr(tms[0], fee_field, 0) or 0) if tms else 0
     saved_paid = paid_per_tm[0] if paid_per_tm else 0
     saved_debt = max(0, saved_fee - saved_paid)
+    expected_fee = new_debt + (paid_per_tm[0] if paid_per_tm else 0)
+    if saved_fee != expected_fee:
+        return JsonResponse({"ok": False, "error": "Ma'lumot saqlanmadi. Qaytadan urinib ko'ring."}, status=500)
     return JsonResponse({"ok": True, "fee": saved_fee, "paid": saved_paid, "debt": saved_debt})
 
 
@@ -11212,7 +11217,9 @@ def student_monthly_breakdown(request, student_id):
             "monthly_lessons": entry.get("monthly_lessons", 0),
         })
 
-    return JsonResponse({
+    response = JsonResponse({
         "months": months_result,
         "total_debt": total_debt,
     })
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return response
