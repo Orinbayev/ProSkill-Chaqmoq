@@ -769,17 +769,69 @@
         <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">
           Bekor qilish
         </button>
-        <button type="button" class="btn-plan-primary js-upgrade-confirm"
-                id="upgradeConfirmBtn"
-                style="width: auto; padding: 0 28px; height: 42px;">
-          <i class="bi bi-lightning-fill me-1"></i> Tasdiqlash va to'lash
-        </button>
+        <a href="https://t.me/de_amirxon" target="_blank"
+           class="btn-plan-primary"
+           style="width: auto; padding: 0 28px; height: 42px; display: inline-flex; align-items: center; text-decoration: none;">
+          <i class="bi bi-telegram me-1"></i> Admin orqali to'lash
+        </a>
       </div>
     </div>
   </div>
 </div>
 
 <style>
+  /* ── Vaqtinchalik admin to'lov bloki ── */
+  .admin-payment-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.08));
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+  }
+  .admin-payment-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(59,130,246,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #60a5fa;
+    font-size: 15px;
+  }
+  .admin-payment-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .admin-payment-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #93c5fd;
+    line-height: 1.3;
+  }
+  .admin-payment-sub {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.3;
+  }
+  .btn-admin-pay {
+    background: linear-gradient(135deg, #0088cc, #006699) !important;
+    text-decoration: none !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-admin-pay:hover {
+    background: linear-gradient(135deg, #0099dd, #0077aa) !important;
+    transform: translateY(-1px);
+  }
+  /* ── end admin to'lov bloki ── */
+
   .upg-row {
     display: flex;
     justify-content: space-between;
@@ -1004,34 +1056,25 @@
             <div class="active-plan-badge mb-2">
               <i class="bi bi-check-circle-fill"></i> Joriy rejangiz
             </div>
-            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form">
-              {% csrf_token %}
-              <input type="hidden" name="plan" value="{{ p.code }}">
-              <input type="hidden" name="months" value="{{ duration }}">
-              <input type="hidden" name="promo" value="{{ promo }}">
-              <button type="submit" class="btn-plan-primary">
-                <i class="bi bi-arrow-repeat me-1"></i> Uzaytirish
-              </button>
-            </form>
+            {% endif %}
+            <div class="admin-payment-notice">
+              <div class="admin-payment-icon">
+                <i class="bi bi-shield-lock-fill"></i>
+              </div>
+              <div class="admin-payment-text">
+                <span class="admin-payment-label">To'lovlar vaqtincha admin orqali</span>
+                <span class="admin-payment-sub">Tez orada online to'lov qayta yoqiladi</span>
+              </div>
+            </div>
+            <a href="https://t.me/de_amirxon" target="_blank" class="btn-plan-primary btn-admin-pay">
+              <i class="bi bi-telegram me-1"></i>
+              {% if code == sub.plan_code %}Uzaytirish uchun bog'laning{% else %}To'lov uchun bog'laning{% endif %}
+            </a>
+            {% if code == sub.plan_code %}
             <div class="days-left-info">
               <i class="bi bi-calendar3 me-1"></i>
               {{ sub.days_left }} kun qoldi · {{ sub.expires_at|date:"d.m.Y" }}gacha
             </div>
-            {% else %}
-            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form js-upgrade-form"
-                  data-plan-id="{{ p.id }}"
-                  data-plan-tier="{{ p.tier }}"
-                  data-months="{{ duration }}">
-              {% csrf_token %}
-              <input type="hidden" name="plan" value="{{ p.code }}">
-              <input type="hidden" name="months" value="{{ duration }}">
-              <input type="hidden" name="promo" value="{{ promo }}">
-              <button type="submit" class="btn-plan-primary js-upgrade-btn"
-                      data-plan-id="{{ p.id }}"
-                      data-plan-tier="{{ p.tier }}">
-                {% if code == "FREE" %}Bepul boshlash{% else %}Tanlash ⚡{% endif %}
-              </button>
-            </form>
             {% endif %}
 
             <a href="https://t.me/de_amirxon" target="_blank" class="btn-plan-secondary mt-2">
