@@ -104,6 +104,7 @@ class CenterAdmin(admin.ModelAdmin):
         "status_badge",
         "expires_at",
         "days_left_badge",
+        "ai_badge",
         "switch_link",
         "created_at",
     )
@@ -121,6 +122,8 @@ class CenterAdmin(admin.ModelAdmin):
         "remove_own_subscriptions",
         "enable_support_teacher",
         "disable_support_teacher",
+        "enable_ai_feature",
+        "disable_ai_feature",
     )
     raw_id_fields = ("parent_center",)
 
@@ -169,6 +172,30 @@ class CenterAdmin(admin.ModelAdmin):
     remove_own_subscriptions.short_description = (
         "Filial: o'z subscriptionlarini o'chir (parent tarifga o'tish)"
     )
+
+    def ai_badge(self, obj: Center):
+        if obj.ai_enabled:
+            return format_html('<span style="padding:3px 8px;border-radius:10px;background:linear-gradient(135deg,#818cf8,#f43f5e);color:white;font-weight:700;">AI ✓</span>')
+        return format_html('<span style="padding:3px 8px;border-radius:10px;background:#1e293b;color:#64748b;font-weight:600;">AI —</span>')
+    ai_badge.short_description = "AI"
+
+    @admin.action(description="🤖 AI Yordamchi: YOQISH (tanlangan markazlarda)")
+    def enable_ai_feature(self, request, queryset):
+        updated = queryset.update(ai_enabled=True)
+        self.message_user(
+            request,
+            f"✅ {updated} ta markazda AI Yordamchi YOQILDI.",
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description="🤖 AI Yordamchi: O'CHIRISH (tanlangan markazlarda)")
+    def disable_ai_feature(self, request, queryset):
+        updated = queryset.update(ai_enabled=False)
+        self.message_user(
+            request,
+            f"⚠️ {updated} ta markazda AI Yordamchi O'CHIRILDI.",
+            level=messages.WARNING,
+        )
 
     def status_badge(self, obj: Center):
         if obj.status == Center.STATUS_BLOCKED:

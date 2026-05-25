@@ -1,10 +1,11 @@
 {% comment %}
-Floating AI chat widget — har bir rol dashboardiga {% include %} qilinadi.
-Backend: /api/boshqaruv/chat/ va /api/boshqaruv/chat/history/ (rol bo'yicha
-director_boshqaruv_chat view ichida dispatch qilinadi).
+Floating AI chat widget — director va manager dashboardiga base.html orqali qo'shiladi.
+center_ai_enabled=True  → to'liq AI chat paneli
+center_ai_enabled=False → sotib olish modali
 {% endcomment %}
 
 <style>
+/* ── Shared FAB styles ── */
 .aiw-fab {
   position: fixed; right: 20px; bottom: 24px; z-index: 9000;
   width: 58px; height: 58px; border-radius: 50%;
@@ -21,11 +22,18 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   background: #34d399; box-shadow: 0 0 8px #34d399;
   animation: aiw-pulse 1.6s ease-in-out infinite;
 }
+.aiw-fab__lock {
+  position: absolute; top: 6px; right: 6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #f59e0b; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: #1a1a1a;
+}
 @keyframes aiw-pulse {
   0%, 100% { opacity: .5; transform: scale(.8); }
   50%      { opacity: 1; transform: scale(1.1); }
 }
 
+/* ── Shared overlay ── */
 .aiw-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.45);
   backdrop-filter: blur(2px); z-index: 9001;
@@ -33,6 +41,8 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
 }
 .aiw-overlay.open { opacity: 1; visibility: visible; }
 
+{% if center_ai_enabled %}
+/* ── Chat panel ── */
 .aiw-panel {
   position: fixed; top: 0; right: 0; bottom: 0;
   width: min(420px, 96vw);
@@ -45,7 +55,6 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
 }
 .aiw-panel.open { transform: translateX(0); }
-
 .aiw-head {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.07);
@@ -66,14 +75,12 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   transition: background .15s, color .15s;
 }
 .aiw-head__close:hover { background: rgba(255,255,255,.06); color: #e2e8f0; }
-
 .aiw-msgs {
   flex: 1; overflow-y: auto; padding: 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
 .aiw-msgs::-webkit-scrollbar { width: 4px; }
 .aiw-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
-
 .aiw-msg { display: flex; gap: 8px; align-items: flex-start; }
 .aiw-msg--user { flex-direction: row-reverse; }
 .aiw-msg__ava {
@@ -107,7 +114,6 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   0%, 60%, 100% { transform: translateY(0); opacity: .5; }
   30%           { transform: translateY(-3px); opacity: 1; }
 }
-
 .aiw-prompts {
   display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap;
   border-top: 1px solid rgba(255,255,255,.07);
@@ -118,7 +124,6 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
   color: #e2e8f0; font-size: 11.5px; font-weight: 600; cursor: pointer;
 }
 .aiw-prompt:hover { background: rgba(129,140,248,.14); }
-
 .aiw-foot { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.07); }
 .aiw-row  { display: flex; gap: 8px; align-items: flex-end; }
 .aiw-input {
@@ -140,13 +145,107 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
 }
 .aiw-send:hover { transform: scale(1.05); }
 .aiw-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+{% else %}
+/* ── Buy AI modal ── */
+.aiw-buy-modal {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(400px, 96vw);
+  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
+  border-left: 1px solid rgba(255,255,255,.13);
+  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .25s ease;
+  z-index: 9002; color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+  overflow-y: auto;
+}
+.aiw-buy-modal.open { transform: translateX(0); }
+.aiw-buy-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.aiw-buy-header__close {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: transparent; border: 1px solid rgba(255,255,255,.07);
+  color: #94a3b8; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.aiw-buy-header__close:hover { background: rgba(255,255,255,.06); color: #e2e8f0; }
+.aiw-buy-body { padding: 28px 20px; display: flex; flex-direction: column; gap: 20px; }
+.aiw-buy-hero {
+  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.aiw-buy-hero__icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, rgba(129,140,248,.25), rgba(244,63,94,.15));
+  border: 1px solid rgba(129,140,248,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: #c4b5fd;
+  box-shadow: 0 8px 24px rgba(129,140,248,.2);
+}
+.aiw-buy-hero__title {
+  font-size: 20px; font-weight: 800;
+  background: linear-gradient(135deg, #c4b5fd, #f9a8d4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.aiw-buy-hero__sub { font-size: 13px; color: #94a3b8; line-height: 1.5; max-width: 280px; }
+.aiw-buy-features {
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.aiw-buy-feat {
+  display: flex; align-items: flex-start; gap: 10px; font-size: 13px;
+}
+.aiw-buy-feat__icon {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+}
+.aiw-buy-feat__icon--purple { background: rgba(129,140,248,.15); color: #a5b4fc; }
+.aiw-buy-feat__icon--pink   { background: rgba(244,63,94,.12);  color: #fb7185; }
+.aiw-buy-feat__icon--green  { background: rgba(52,211,153,.12); color: #34d399; }
+.aiw-buy-feat__icon--amber  { background: rgba(245,158,11,.12); color: #fbbf24; }
+.aiw-buy-feat__text strong  { display: block; font-size: 12.5px; font-weight: 700; color: #e2e8f0; }
+.aiw-buy-feat__text span    { font-size: 11.5px; color: #64748b; line-height: 1.4; }
+.aiw-buy-divider { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+.aiw-buy-cta { display: flex; flex-direction: column; gap: 10px; }
+.aiw-buy-cta__notice {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #fbbf24;
+}
+.aiw-buy-tg-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #0088cc, #006699);
+  color: #fff; font-size: 14px; font-weight: 700;
+  padding: 14px 20px; border-radius: 13px; text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 6px 20px rgba(0,136,204,.3);
+}
+.aiw-buy-tg-btn:hover {
+  transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,136,204,.4);
+  color: #fff; text-decoration: none;
+}
+.aiw-buy-tg-btn i { font-size: 18px; }
+.aiw-buy-hint { text-align: center; font-size: 11px; color: #475569; }
+{% endif %}
 </style>
 
+<!-- FAB Button -->
 <button type="button" class="aiw-fab" id="aiwFab" title="AI Yordamchi">
+  {% if center_ai_enabled %}
   <span class="aiw-fab__dot"></span>
+  {% else %}
+  <span class="aiw-fab__lock"><i class="fa-solid fa-lock"></i></span>
+  {% endif %}
   <i class="fa-solid fa-robot"></i>
 </button>
 <div class="aiw-overlay" id="aiwOverlay"></div>
+
+{% if center_ai_enabled %}
+<!-- ═══ TO'LIQ AI CHAT PANELI ═══ -->
 <div class="aiw-panel" id="aiwPanel">
   <div class="aiw-head">
     <div class="aiw-head__icon"><i class="fa-solid fa-robot"></i></div>
@@ -303,113 +402,120 @@ director_boshqaruv_chat view ichida dispatch qilinadi).
 })();
 </script>
 
-{% comment %}── Demo mode overlay (injected when window.AIW_DEMO_MODE = true) ──{% endcomment %}
+{% else %}
+<!-- ═══ AI SOTIB OLISH MODALI ═══ -->
+<div class="aiw-buy-modal" id="aiwBuyModal">
+  <div class="aiw-buy-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(129,140,248,.2),rgba(244,63,94,.1));border:1px solid rgba(129,140,248,.25);display:flex;align-items:center;justify-content:center;color:#c4b5fd;">
+        <i class="fa-solid fa-robot"></i>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:#e2e8f0;">AI Yordamchi</span>
+    </div>
+    <button class="aiw-buy-header__close" id="aiwBuyClose" type="button">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="aiw-buy-body">
+    <!-- Hero -->
+    <div class="aiw-buy-hero">
+      <div class="aiw-buy-hero__icon">
+        <i class="fa-solid fa-robot"></i>
+      </div>
+      <div class="aiw-buy-hero__title">AI Yordamchi</div>
+      <div class="aiw-buy-hero__sub">
+        Markazingiz ma'lumotlari asosida tahlil qiladigan, savollaringizga javob beradigan shaxsiy AI yordamchi
+      </div>
+    </div>
+
+    <!-- Feature list -->
+    <div class="aiw-buy-features">
+      <div class="aiw-buy-feat">
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--purple">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div class="aiw-buy-feat__text">
+          <strong>Moliyaviy tahlil</strong>
+          <span>Daromad, to'lovlar va qarzdorlar bo'yicha savol bering</span>
+        </div>
+      </div>
+      <div class="aiw-buy-feat">
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--green">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div class="aiw-buy-feat__text">
+          <strong>O'quvchi tahlili</strong>
+          <span>Davomat, o'zlashtiruv va xavfli o'quvchilar haqida ma'lumot oling</span>
+        </div>
+      </div>
+      <div class="aiw-buy-feat">
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--amber">
+          <i class="fa-solid fa-lightbulb"></i>
+        </div>
+        <div class="aiw-buy-feat__text">
+          <strong>Aqlli tavsiyalar</strong>
+          <span>Markaz samaradorligini oshirish bo'yicha AI tavsiyalari</span>
+        </div>
+      </div>
+      <div class="aiw-buy-feat">
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--pink">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="aiw-buy-feat__text">
+          <strong>Tezkor javoblar</strong>
+          <span>Har qanday savol — markazingiz haqiqiy ma'lumotlari asosida</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="aiw-buy-divider">
+
+    <!-- CTA -->
+    <div class="aiw-buy-cta">
+      <div class="aiw-buy-cta__notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Bu xususiyat alohida to'lov orqali faollashtiriladi. Narx va shartlar uchun admin bilan bog'laning.</span>
+      </div>
+
+      <a href="https://t.me/de_amirxon" target="_blank" class="aiw-buy-tg-btn">
+        <i class="bi bi-telegram"></i>
+        Admin bilan bog'lanish
+      </a>
+
+      <div class="aiw-buy-hint">
+        @de_amirxon · To'lovdan so'ng admin tomonidan faollashtiriladi
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
-  if(!window.AIW_DEMO_MODE) return;
+  const fab     = document.getElementById('aiwFab');
+  const overlay = document.getElementById('aiwOverlay');
+  const modal   = document.getElementById('aiwBuyModal');
+  const closeB  = document.getElementById('aiwBuyClose');
+  if(!fab || !modal) return;
 
-  /* Canned demo responses */
-  var DEMO_REPLIES = [
-    "Demo rejimda ishlayapman. Haqiqiy ma'lumotlaringizni ko'rish uchun PREMIUM tarifga o'ting. Masalan: bu oy daromadingiz 12,500,000 so'm bo'lishi mumkin (haqiqiy raqamlar PREMIUM tarifda ko'rinadi).",
-    "Yana bir demo javob: sizning markazingizda taxminan 85% davomat ko'rsatkichi mavjud bo'lishi mumkin. To'liq AI tahlili uchun PREMIUM tarifni faollashtiring."
-  ];
-  var demoCount = 0;
-  var limitShown = false;
-
-  var LIMIT_WALL_HTML = '<div class="aiw-limit-wall">' +
-    '<div class="aiw-limit-icon">✨</div>' +
-    '<div class="aiw-limit-title">Demo rejim tugadi</div>' +
-    '<div class="aiw-limit-desc">AI Yordamchining to\'liq versiyasini ochish uchun PREMIUM tarifga o\'ting</div>' +
-    '<button onclick="openPremiumModal && openPremiumModal(\'ai\', \'PREMIUM\', \'AI Yordamchi\', \'fa-robot\')" class="aiw-limit-btn">PREMIUM ga o\'tish →</button>' +
-    '<div class="aiw-limit-hint">Cheksiz savol • Haqiqiy ma\'lumotlaringiz • 7/24</div>' +
-    '</div>';
-
-  /* Wait for the main script to initialize, then patch sendMsg */
-  function patchWidget(){
-    var fab   = document.getElementById('aiwFab');
-    var msgs  = document.getElementById('aiwMsgs');
-    var input = document.getElementById('aiwInput');
-    var send  = document.getElementById('aiwSend');
-    if(!fab || !msgs || !input || !send) return;
-
-    /* Disable history loading in demo mode */
-    window._aiwHistoryLoaded = true;
-
-    /* Intercept send button */
-    function demoSend(q){
-      if(!q || !q.trim()) return;
-      if(limitShown) return;
-
-      /* Add user message */
-      var userDiv = document.createElement('div');
-      userDiv.className = 'aiw-msg aiw-msg--user';
-      userDiv.innerHTML = '<div class="aiw-msg__ava">A</div><div class="aiw-msg__bub">' + q.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }) + '</div>';
-      msgs.appendChild(userDiv);
-      msgs.scrollTop = msgs.scrollHeight;
-      input.value = '';
-      input.style.height = 'auto';
-
-      demoCount++;
-
-      if(demoCount <= DEMO_REPLIES.length){
-        /* Show typing then canned reply */
-        var tyDiv = document.createElement('div');
-        tyDiv.id = 'demoTyping';
-        tyDiv.className = 'aiw-msg';
-        tyDiv.innerHTML = '<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub"><div class="aiw-typing"><span></span><span></span><span></span></div></div>';
-        msgs.appendChild(tyDiv);
-        msgs.scrollTop = msgs.scrollHeight;
-
-        setTimeout(function(){
-          var ty = document.getElementById('demoTyping');
-          if(ty) ty.remove();
-          var reply = document.createElement('div');
-          reply.className = 'aiw-msg';
-          reply.innerHTML = '<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub">' + (DEMO_REPLIES[demoCount-1] || DEMO_REPLIES[0]) + '</div>';
-          msgs.appendChild(reply);
-          msgs.scrollTop = msgs.scrollHeight;
-
-          /* After last canned reply, show limit wall */
-          if(demoCount >= DEMO_REPLIES.length && !limitShown){
-            limitShown = true;
-            setTimeout(function(){
-              var wall = document.createElement('div');
-              wall.innerHTML = LIMIT_WALL_HTML;
-              msgs.appendChild(wall.firstChild);
-              msgs.scrollTop = msgs.scrollHeight;
-              send.disabled = true;
-              input.disabled = true;
-              input.placeholder = 'Demo tugadi — PREMIUM ga o\'ting';
-            }, 600);
-          }
-        }, 1200);
-      }
-    }
-
-    /* Override send events */
-    var newSend = send.cloneNode(true);
-    send.parentNode.replaceChild(newSend, send);
-    newSend.addEventListener('click', function(){ demoSend(input.value.trim()); });
-    input.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); demoSend(input.value.trim()); }
-    });
-    document.querySelectorAll('.aiw-prompt').forEach(function(b){
-      b.addEventListener('click', function(){
-        var panel = document.getElementById('aiwPanel');
-        if(panel && !panel.classList.contains('open')){
-          document.getElementById('aiwFab').click();
-        }
-        demoSend(this.dataset.q);
-      });
-    });
+  function open(){
+    modal.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function close(){
+    modal.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
   }
 
-  /* Run after DOM is fully painted */
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', patchWidget);
-  } else {
-    setTimeout(patchWidget, 0);
-  }
+  fab.addEventListener('click', open);
+  closeB.addEventListener('click', close);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && modal.classList.contains('open')) close();
+  });
 })();
 </script>
+{% endif %}

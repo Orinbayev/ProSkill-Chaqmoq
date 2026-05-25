@@ -118,6 +118,8 @@ def tenant_context(request):
                 logger.warning("current_plan_tier error: %s", e)
 
     # ── Feature flags ──────────────────────────────────────────
+    center_ai_enabled = bool(getattr(center, "ai_enabled", False)) if center else False
+
     if is_super:
         res = {
             "request_center": center,
@@ -133,6 +135,7 @@ def tenant_context(request):
             "feature_sms": True,
             "feature_ai": True,
             "feature_hr": True,
+            "center_ai_enabled": True,
             "current_plan_tier": 30,
         }
     else:
@@ -148,8 +151,9 @@ def tenant_context(request):
             "feature_store":   "store" in features or "roles" in features,
             "feature_tasks":   "tasks" in features or "branches" in features,
             "feature_sms":     "sms" in features,
-            "feature_ai":      "ai_assistant" in features,
+            "feature_ai":      center_ai_enabled,
             "feature_hr":      "hr" in features,
+            "center_ai_enabled": center_ai_enabled,
             "current_plan_tier": current_plan_tier,
         }
 

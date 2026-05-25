@@ -89,6 +89,9 @@ class Center(SoftDeleteMixin, models.Model):
     # Manual feature overrides (e.g. {"leads": true, "finance": false})
     features = models.JSONField(default=dict, blank=True)
 
+    # AI Yordamchi — admin tomonidan har markaz uchun alohida yoqiladi
+    ai_enabled = models.BooleanField(default=False, verbose_name="AI Yordamchi yoqilgan")
+
     # Chaqmoq settings
     max_daily_lightning = models.PositiveIntegerField(default=0, verbose_name="Bir kunda max chaqmoq (0=cheksiz)")
     max_daily_deduction = models.PositiveIntegerField(default=0, verbose_name="Bir kunda max ayirish (0=cheksiz)")

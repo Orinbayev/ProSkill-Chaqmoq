@@ -3053,6 +3053,8 @@ def _ai_chat_session(request):
     center = getattr(request, "center", None) or getattr(user, "center", None)
     if not center:
         return None, None
+    if not user.is_superuser and not getattr(center, "ai_enabled", False):
+        return None, None
     from core.models import DirectorAIChatSession
     title = _AI_CHAT_TITLES.get(role, "AI chat")
     session, _ = DirectorAIChatSession.objects.get_or_create(
