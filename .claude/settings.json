@@ -10,7 +10,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(DJANGO_SETTINGS_MODULE=config.settings python -c ' *)"
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings python -c ' *)",
+      "Bash(python manage.py shell -c ' *)"
     ]
   }
 }
