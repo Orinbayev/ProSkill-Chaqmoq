@@ -1160,6 +1160,88 @@ def get_debt_aging_context(center: Center, *, as_of: date | None = None) -> dict
     }
 
 
+def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = None, top_n: int = 20) -> list:
+    """
+    Har bir qarzdor uchun qaysi oyda qancha qarzi borligini qaytaradi.
+    AI 'Mahmudjon qaysi oyda qarz bor?' savoliga aniq javob bera olsin uchun.
+    Returns: [{"full_name": ..., "total_debt": ..., "months": [{"month": "2025-04", "debt": 500000}, ...]}, ...]
+    """
+    as_of = as_of or timezone.localdate()
+
+    active_enrollments = list(
+        Enrollment.objects.filter(center=center, is_active=True)
+        .values("id", "student_id")
+    )
+    if not active_enrollments:
+        return []
+
+    enrollment_ids = [e["id"] for e in active_enrollments]
+    enrollment_student = {e["id"]: e["student_id"] for e in active_enrollments}
+
+    tuition_rows = list(
+        TuitionMonth.objects.filter(
+            center=center,
+            enrollment_id__in=enrollment_ids,
+            month__lte=as_of,
+        ).values("id", "enrollment_id", "month", "fee_amount")
+    )
+    if not tuition_rows:
+        return []
+
+    tuition_ids = [row["id"] for row in tuition_rows]
+    paid_map = {
+        row["tuition_month_id"]: int(row["total"] or 0)
+        for row in (
+            PaymentAllocation.objects.filter(
+                center=center,
+                tuition_month_id__in=tuition_ids,
+                payment__paid_date__lte=as_of,
+            )
+            .values("tuition_month_id")
+            .annotate(total=Sum("amount"))
+        )
+    }
+
+    # Per student per month debt
+    student_months: dict[int, dict[str, int]] = {}
+    for row in tuition_rows:
+        fee = int(row["fee_amount"] or 0)
+        paid = int(paid_map.get(row["id"]) or 0)
+        debt = max(fee - paid, 0)
+        if debt <= 0:
+            continue
+        student_id = enrollment_student.get(row["enrollment_id"])
+        if not student_id:
+            continue
+        month_str = row["month"].strftime("%Y-%m") if hasattr(row["month"], "strftime") else str(row["month"])[:7]
+        if student_id not in student_months:
+            student_months[student_id] = {}
+        student_months[student_id][month_str] = student_months[student_id].get(month_str, 0) + debt
+
+    if not student_months:
+        return []
+
+    student_total = {sid: sum(v.values()) for sid, v in student_months.items()}
+    top_ids = sorted(student_months.keys(), key=lambda sid: -student_total[sid])[:top_n]
+
+    users = {
+        u.id: u
+        for u in User.objects.filter(id__in=top_ids).only("id", "ism", "familya", "otchestvo")
+    }
+
+    result = []
+    for sid in top_ids:
+        if sid not in users:
+            continue
+        months_sorted = sorted(student_months[sid].items())
+        result.append({
+            "full_name": _full_name(users[sid]),
+            "total_debt": student_total[sid],
+            "months": [{"month": m, "debt": d} for m, d in months_sorted],
+        })
+    return result
+
+
 def get_daily_revenue_for_date(center: Center, target_date: date) -> dict:
     """
     Muayyan bir kunga (masalan, 25-mart) to'lovlarni qaytaradi.
@@ -1329,6 +1411,24 @@ def build_center_ai_prompt_context(
             f"  - {r.get('full_name', '—')}: qarz {_fmt_money(debt)} so'm"
         )
 
+    # Per-student per-month debt breakdown (top 20 qarzdor)
+    try:
+        _as_of_str = ctx["period"].get("date_to")
+        _as_of = date.fromisoformat(_as_of_str) if _as_of_str else None
+    except Exception:
+        _as_of = None
+    debtors_monthly = get_top_debtors_monthly_breakdown(center, as_of=_as_of)
+    debtor_detail_lines = []
+    for d in debtors_monthly[:20]:
+        months_str = ", ".join(
+            f"{m['month']}: {_fmt_money(m['debt'])} so'm"
+            for m in d["months"]
+        )
+        debtor_detail_lines.append(
+            f"  - {d['full_name']} — jami {_fmt_money(d['total_debt'])} so'm "
+            f"({months_str})"
+        )
+
     parts = [
         f"Markaz: {ctx['center']['name']} ({ctx['center']['slug']})",
         f"Center ID: {ctx['center']['id']}",
@@ -1356,10 +1456,13 @@ def build_center_ai_prompt_context(
         f"GURUHLAR ({len(group_items)} ta ko'rsatildi):",
         "\n".join(group_lines) if group_lines else "  (yo'q)",
         "",
-        f"QARZDOR O'QUVCHILAR ({len(risky_students)} ta):",
-        "\n".join(risky_lines) if risky_lines else "  (yo'q)",
+        f"QARZDOR O’QUVCHILAR ({len(risky_students)} ta):",
+        "\n".join(risky_lines) if risky_lines else "  (yo’q)",
         "",
-        f"TOP O'QUVCHILAR: {', '.join(item['full_name'] for item in top_students) or 'yo‘q'}",
-        f"OGOHLANTIRISHLAR: {' | '.join(alert['message'] for alert in alerts) or 'yo‘q'}",
+        "QARZDORLAR OY BO’YICHA TAFSILOT (top 20):",
+        "\n".join(debtor_detail_lines) if debtor_detail_lines else "  (qarzdor yo’q)",
+        "",
+        f"TOP O’QUVCHILAR: {‘, ‘.join(item[‘full_name’] for item in top_students) or ‘yo’q’}",
+        f"OGOHLANTIRISHLAR: {‘ | ‘.join(alert[‘message’] for alert in alerts) or ‘yo’q’}",
     ]
     return "\n".join(parts)

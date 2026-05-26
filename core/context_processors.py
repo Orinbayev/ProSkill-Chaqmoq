@@ -118,7 +118,25 @@ def tenant_context(request):
                 logger.warning("current_plan_tier error: %s", e)
 
     # ── Feature flags ──────────────────────────────────────────
-    center_ai_enabled = bool(getattr(center, "ai_enabled", False)) if center else False
+    _ai_base = bool(getattr(center, "ai_enabled", False)) if center else False
+    _user_role = getattr(user, "role", "")
+
+    # Determine AI access for the current user's role
+    if is_super or _user_role in ("director", "manager"):
+        center_ai_enabled = _ai_base
+    elif _user_role == "teacher":
+        center_ai_enabled = _ai_base and bool(getattr(center, "ai_teacher_enabled", False))
+    elif _user_role == "student":
+        center_ai_enabled = _ai_base and bool(getattr(center, "ai_student_enabled", False))
+    elif _user_role == "parent":
+        center_ai_enabled = _ai_base and bool(getattr(center, "ai_parent_enabled", False))
+    else:
+        center_ai_enabled = False
+
+    # Extra flags so director settings page can read raw toggle state
+    ai_teacher_enabled = bool(getattr(center, "ai_teacher_enabled", False)) if center else False
+    ai_student_enabled = bool(getattr(center, "ai_student_enabled", False)) if center else False
+    ai_parent_enabled  = bool(getattr(center, "ai_parent_enabled",  False)) if center else False
 
     if is_super:
         res = {
@@ -136,6 +154,9 @@ def tenant_context(request):
             "feature_ai": True,
             "feature_hr": True,
             "center_ai_enabled": True,
+            "ai_teacher_enabled": True,
+            "ai_student_enabled": True,
+            "ai_parent_enabled": True,
             "current_plan_tier": 30,
         }
     else:
@@ -154,6 +175,9 @@ def tenant_context(request):
             "feature_ai":      center_ai_enabled,
             "feature_hr":      "hr" in features,
             "center_ai_enabled": center_ai_enabled,
+            "ai_teacher_enabled": ai_teacher_enabled,
+            "ai_student_enabled": ai_student_enabled,
+            "ai_parent_enabled": ai_parent_enabled,
             "current_plan_tier": current_plan_tier,
         }
 

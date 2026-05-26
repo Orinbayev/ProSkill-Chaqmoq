@@ -1,42 +1,85 @@
 {% comment %}
-Floating AI chat widget — director va manager dashboardiga base.html orqali qo'shiladi.
+Floating AI chat widget — base.html orqali barcha sahifalarga qo'shiladi.
 center_ai_enabled=True  → to'liq AI chat paneli
 center_ai_enabled=False → sotib olish modali
 {% endcomment %}
 
 <style>
-/* ── Shared FAB styles ── */
+/* ── Theme tokens — light/dark adaptive ── */
+:root {
+  --aiw-bg:          #0d1526;
+  --aiw-surface:     rgba(255,255,255,.04);
+  --aiw-surface2:    rgba(255,255,255,.07);
+  --aiw-border:      rgba(255,255,255,.09);
+  --aiw-border2:     rgba(255,255,255,.13);
+  --aiw-txt:         #e2e8f0;
+  --aiw-txt2:        #94a3b8;
+  --aiw-txt3:        #475569;
+  --aiw-accent:      #818cf8;
+  --aiw-accent2:     #f43f5e;
+  --aiw-user-bg:     rgba(34,211,238,.11);
+  --aiw-user-bd:     rgba(34,211,238,.22);
+  --aiw-user-txt:    #e2e8f0;
+  --aiw-ai-bg:       rgba(255,255,255,.04);
+  --aiw-ai-bd:       rgba(255,255,255,.07);
+  --aiw-scrollbar:   rgba(255,255,255,.1);
+  --aiw-input-bg:    rgba(255,255,255,.04);
+  --aiw-input-bd:    rgba(255,255,255,.07);
+  --aiw-shadow:      rgba(0,0,0,.45);
+}
+html[data-role-theme="light"] {
+  --aiw-bg:          #ffffff;
+  --aiw-surface:     #f8fafc;
+  --aiw-surface2:    #f1f5f9;
+  --aiw-border:      #e2e8f0;
+  --aiw-border2:     #cbd5e1;
+  --aiw-txt:         #0f172a;
+  --aiw-txt2:        #475569;
+  --aiw-txt3:        #94a3b8;
+  --aiw-user-bg:     rgba(99,102,241,.09);
+  --aiw-user-bd:     rgba(99,102,241,.22);
+  --aiw-user-txt:    #1e293b;
+  --aiw-ai-bg:       #f8fafc;
+  --aiw-ai-bd:       #e2e8f0;
+  --aiw-scrollbar:   #cbd5e1;
+  --aiw-input-bg:    #f8fafc;
+  --aiw-input-bd:    #e2e8f0;
+  --aiw-shadow:      rgba(15,23,42,.18);
+}
+
+/* ── FAB ── */
 .aiw-fab {
   position: fixed; right: 20px; bottom: 24px; z-index: 9000;
-  width: 58px; height: 58px; border-radius: 50%;
+  width: 56px; height: 56px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  border: none; cursor: pointer; color: #fff; font-size: 22px;
+  border: none; cursor: pointer; color: #fff; font-size: 21px;
   background: linear-gradient(135deg, #818cf8, #f43f5e);
-  box-shadow: 0 12px 28px rgba(129,140,248,.45);
+  box-shadow: 0 8px 24px rgba(129,140,248,.4);
   transition: transform .2s, box-shadow .2s;
 }
-.aiw-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(129,140,248,.55); }
+.aiw-fab:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(129,140,248,.5); }
 .aiw-fab__dot {
-  position: absolute; top: 8px; right: 8px;
+  position: absolute; top: 7px; right: 7px;
   width: 10px; height: 10px; border-radius: 50%;
-  background: #34d399; box-shadow: 0 0 8px #34d399;
-  animation: aiw-pulse 1.6s ease-in-out infinite;
+  background: #34d399; box-shadow: 0 0 7px #34d399;
+  animation: aiw-pulse 1.8s ease-in-out infinite;
+  border: 2px solid rgba(255,255,255,.4);
 }
 .aiw-fab__lock {
-  position: absolute; top: 6px; right: 6px;
+  position: absolute; top: 5px; right: 5px;
   width: 16px; height: 16px; border-radius: 50%;
   background: #f59e0b; display: flex; align-items: center; justify-content: center;
   font-size: 8px; color: #1a1a1a;
 }
 @keyframes aiw-pulse {
-  0%, 100% { opacity: .5; transform: scale(.8); }
-  50%      { opacity: 1; transform: scale(1.1); }
+  0%, 100% { opacity: .6; transform: scale(.85); }
+  50%       { opacity: 1;  transform: scale(1.1); }
 }
 
-/* ── Shared overlay ── */
+/* ── Overlay ── */
 .aiw-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  backdrop-filter: blur(2px); z-index: 9001;
+  position: fixed; inset: 0; background: rgba(0,0,0,.38);
+  backdrop-filter: blur(3px); z-index: 9001;
   opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s;
 }
 .aiw-overlay.open { opacity: 1; visibility: visible; }
@@ -46,114 +89,185 @@ center_ai_enabled=False → sotib olish modali
 .aiw-panel {
   position: fixed; top: 0; right: 0; bottom: 0;
   width: min(420px, 96vw);
-  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
-  border-left: 1px solid rgba(255,255,255,.13);
-  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  background: var(--aiw-bg);
+  border-left: 1px solid var(--aiw-border2);
+  box-shadow: -12px 0 40px var(--aiw-shadow);
   display: flex; flex-direction: column;
-  transform: translateX(100%); transition: transform .25s ease;
-  z-index: 9002; color: #e2e8f0;
+  transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+  z-index: 9002;
   font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
 }
 .aiw-panel.open { transform: translateX(0); }
+
+/* Header */
 .aiw-head {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.07);
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--aiw-border);
+  flex-shrink: 0;
+  background: var(--aiw-bg);
 }
 .aiw-head__icon {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, rgba(129,140,248,.2), rgba(244,63,94,.1));
-  border: 1px solid rgba(129,140,248,.25); color: #c4b5fd;
+  border: 1px solid rgba(129,140,248,.25); color: #818cf8; font-size: 14px;
 }
-.aiw-head__title { font-size: 13.5px; font-weight: 800; flex: 1; }
-.aiw-head__sub   { font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
-.aiw-head__close {
-  width: 32px; height: 32px; border-radius: 9px;
-  background: transparent; border: 1px solid rgba(255,255,255,.07);
-  color: #94a3b8; cursor: pointer;
+.aiw-head__info { flex: 1; min-width: 0; }
+.aiw-head__title { font-size: 13px; font-weight: 800; color: var(--aiw-txt); }
+.aiw-head__sub   { font-size: 10.5px; color: var(--aiw-txt2); margin-top: 1px; }
+.aiw-head__acts  { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.aiw-head__btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--aiw-border);
+  color: var(--aiw-txt2); cursor: pointer; font-size: 12px;
   display: flex; align-items: center; justify-content: center;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s;
 }
-.aiw-head__close:hover { background: rgba(255,255,255,.06); color: #e2e8f0; }
+.aiw-head__btn:hover {
+  background: var(--aiw-surface2); color: var(--aiw-txt);
+  border-color: var(--aiw-border2);
+}
+
+/* Messages area */
 .aiw-msgs {
-  flex: 1; overflow-y: auto; padding: 14px;
-  display: flex; flex-direction: column; gap: 10px;
+  flex: 1; overflow-y: auto; padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 12px;
+  scroll-behavior: smooth;
 }
 .aiw-msgs::-webkit-scrollbar { width: 4px; }
-.aiw-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
-.aiw-msg { display: flex; gap: 8px; align-items: flex-start; }
+.aiw-msgs::-webkit-scrollbar-track { background: transparent; }
+.aiw-msgs::-webkit-scrollbar-thumb { background: var(--aiw-scrollbar); border-radius: 99px; }
+
+/* Message row */
+.aiw-msg { display: flex; gap: 8px; align-items: flex-end; }
 .aiw-msg--user { flex-direction: row-reverse; }
+.aiw-msg__col { display: flex; flex-direction: column; gap: 3px; max-width: calc(100% - 40px); }
+.aiw-msg--user .aiw-msg__col { align-items: flex-end; }
+
 .aiw-msg__ava {
   width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; font-weight: 800;
-  background: rgba(129,140,248,.16); color: #c4b5fd;
-  border: 1px solid rgba(129,140,248,.22);
+  font-size: 11px; font-weight: 800;
+  background: rgba(129,140,248,.15); color: #818cf8;
+  border: 1px solid rgba(129,140,248,.2);
 }
 .aiw-msg--user .aiw-msg__ava {
-  background: rgba(34,211,238,.16); color: #67e8f9; border-color: rgba(34,211,238,.22);
+  background: rgba(99,102,241,.15); color: #818cf8;
+  border-color: rgba(99,102,241,.25);
 }
 .aiw-msg__bub {
-  padding: 9px 12px; border-radius: 12px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-  font-size: 12.5px; line-height: 1.55;
-  max-width: calc(100% - 36px); word-wrap: break-word;
+  padding: 9px 12px; border-radius: 14px;
+  font-size: 12.5px; line-height: 1.6; word-wrap: break-word;
+  background: var(--aiw-ai-bg); border: 1px solid var(--aiw-ai-bd);
+  color: var(--aiw-txt); border-bottom-left-radius: 4px;
 }
 .aiw-msg--user .aiw-msg__bub {
-  background: rgba(34,211,238,.10); border-color: rgba(34,211,238,.20);
+  background: var(--aiw-user-bg); border-color: var(--aiw-user-bd);
+  color: var(--aiw-user-txt); border-bottom-right-radius: 4px; border-bottom-left-radius: 14px;
 }
-.aiw-typing { display: inline-flex; gap: 3px; padding: 4px 0; }
+.aiw-msg__time {
+  font-size: 10px; color: var(--aiw-txt3);
+  padding: 0 4px;
+}
+
+/* Typing indicator */
+.aiw-typing { display: inline-flex; gap: 3px; padding: 5px 2px; }
 .aiw-typing span {
-  width: 5px; height: 5px; border-radius: 50%; background: #94a3b8;
-  animation: aiw-bounce 1.2s ease-in-out infinite;
+  width: 5px; height: 5px; border-radius: 50%; background: #818cf8;
+  animation: aiw-bounce 1.2s ease-in-out infinite; opacity: .6;
 }
 .aiw-typing span:nth-child(2) { animation-delay: .15s; }
 .aiw-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes aiw-bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: .5; }
-  30%           { transform: translateY(-3px); opacity: 1; }
+  30%            { transform: translateY(-4px); opacity: 1; }
 }
+
+/* Prompts */
 .aiw-prompts {
-  display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap;
-  border-top: 1px solid rgba(255,255,255,.07);
+  display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap;
+  border-top: 1px solid var(--aiw-border);
 }
 .aiw-prompt {
-  padding: 6px 10px; border-radius: 9px;
-  background: rgba(129,140,248,.08); border: 1px solid rgba(129,140,248,.18);
-  color: #e2e8f0; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  padding: 5px 10px; border-radius: 8px; cursor: pointer;
+  background: var(--aiw-surface); border: 1px solid var(--aiw-border);
+  color: var(--aiw-txt2); font-size: 11px; font-weight: 600;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.aiw-prompt:hover { background: rgba(129,140,248,.14); }
-.aiw-foot { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.07); }
+.aiw-prompt:hover {
+  background: var(--aiw-surface2); border-color: rgba(129,140,248,.3);
+  color: var(--aiw-txt);
+}
+
+/* Footer */
+.aiw-foot { padding: 10px 12px 14px; border-top: 1px solid var(--aiw-border); flex-shrink: 0; }
 .aiw-row  { display: flex; gap: 8px; align-items: flex-end; }
 .aiw-input {
   flex: 1; min-height: 40px; max-height: 120px; padding: 10px 12px;
   border-radius: 11px; resize: none; outline: none;
-  border: 1px solid rgba(255,255,255,.07);
-  background: rgba(255,255,255,.04); color: #e2e8f0;
+  border: 1px solid var(--aiw-input-bd);
+  background: var(--aiw-input-bg); color: var(--aiw-txt);
   font-family: inherit; font-size: 13px; line-height: 1.4;
   transition: border-color .15s, box-shadow .15s;
 }
-.aiw-input::placeholder { color: #475569; }
-.aiw-input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.08); }
+.aiw-input::placeholder { color: var(--aiw-txt3); }
+.aiw-input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.07); }
 .aiw-send {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   border: none; cursor: pointer; color: #fff;
   background: linear-gradient(135deg, #818cf8, #f43f5e);
-  transition: transform .15s;
+  transition: transform .15s, opacity .15s;
 }
 .aiw-send:hover { transform: scale(1.05); }
 .aiw-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* AI Role Settings panel (director/manager only) */
+.aiw-settings {
+  position: absolute; top: 56px; right: 0; left: 0;
+  background: var(--aiw-bg); border-bottom: 1px solid var(--aiw-border2);
+  padding: 12px 14px; z-index: 10;
+  display: none;
+}
+.aiw-settings.open { display: block; }
+.aiw-settings__title {
+  font-size: 11px; font-weight: 700; color: var(--aiw-txt2);
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px;
+}
+.aiw-settings__row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--aiw-border);
+}
+.aiw-settings__row:last-child { border-bottom: none; }
+.aiw-settings__label { font-size: 12.5px; color: var(--aiw-txt); font-weight: 600; }
+.aiw-settings__desc  { font-size: 11px; color: var(--aiw-txt2); margin-top: 1px; }
+.aiw-toggle {
+  position: relative; display: inline-block;
+  width: 40px; height: 22px; flex-shrink: 0;
+}
+.aiw-toggle input { opacity: 0; width: 0; height: 0; }
+.aiw-toggle__track {
+  position: absolute; inset: 0; border-radius: 11px;
+  background: var(--aiw-surface2); border: 1px solid var(--aiw-border);
+  cursor: pointer; transition: background .2s;
+}
+.aiw-toggle input:checked + .aiw-toggle__track { background: #818cf8; border-color: #818cf8; }
+.aiw-toggle__track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform .2s;
+}
+.aiw-toggle input:checked + .aiw-toggle__track::after { transform: translateX(18px); }
 
 {% else %}
 /* ── Buy AI modal ── */
 .aiw-buy-modal {
   position: fixed; top: 0; right: 0; bottom: 0;
   width: min(400px, 96vw);
-  background: linear-gradient(180deg, #0d1526 0%, #0a111f 100%);
+  background: var(--aiw-bg, #0d1526);
   border-left: 1px solid rgba(255,255,255,.13);
-  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  box-shadow: -12px 0 40px rgba(0,0,0,.4);
   display: flex; flex-direction: column;
   transform: translateX(100%); transition: transform .25s ease;
   z-index: 9002; color: #e2e8f0;
@@ -173,9 +287,7 @@ center_ai_enabled=False → sotib olish modali
 }
 .aiw-buy-header__close:hover { background: rgba(255,255,255,.06); color: #e2e8f0; }
 .aiw-buy-body { padding: 28px 20px; display: flex; flex-direction: column; gap: 20px; }
-.aiw-buy-hero {
-  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px;
-}
+.aiw-buy-hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .aiw-buy-hero__icon {
   width: 72px; height: 72px; border-radius: 20px;
   background: linear-gradient(135deg, rgba(129,140,248,.25), rgba(244,63,94,.15));
@@ -187,18 +299,14 @@ center_ai_enabled=False → sotib olish modali
 .aiw-buy-hero__title {
   font-size: 20px; font-weight: 800;
   background: linear-gradient(135deg, #c4b5fd, #f9a8d4);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .aiw-buy-hero__sub { font-size: 13px; color: #94a3b8; line-height: 1.5; max-width: 280px; }
 .aiw-buy-features {
   background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
-  border-radius: 14px; padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
+  border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
 }
-.aiw-buy-feat {
-  display: flex; align-items: flex-start; gap: 10px; font-size: 13px;
-}
+.aiw-buy-feat { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
 .aiw-buy-feat__icon {
   width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 13px;
@@ -207,8 +315,8 @@ center_ai_enabled=False → sotib olish modali
 .aiw-buy-feat__icon--pink   { background: rgba(244,63,94,.12);  color: #fb7185; }
 .aiw-buy-feat__icon--green  { background: rgba(52,211,153,.12); color: #34d399; }
 .aiw-buy-feat__icon--amber  { background: rgba(245,158,11,.12); color: #fbbf24; }
-.aiw-buy-feat__text strong  { display: block; font-size: 12.5px; font-weight: 700; color: #e2e8f0; }
-.aiw-buy-feat__text span    { font-size: 11.5px; color: #64748b; line-height: 1.4; }
+.aiw-buy-feat__text strong { display: block; font-size: 12.5px; font-weight: 700; color: #e2e8f0; }
+.aiw-buy-feat__text span   { font-size: 11.5px; color: #64748b; line-height: 1.4; }
 .aiw-buy-divider { border: none; border-top: 1px solid rgba(255,255,255,.06); }
 .aiw-buy-cta { display: flex; flex-direction: column; gap: 10px; }
 .aiw-buy-cta__notice {
@@ -224,10 +332,7 @@ center_ai_enabled=False → sotib olish modali
   transition: transform .15s, box-shadow .15s;
   box-shadow: 0 6px 20px rgba(0,136,204,.3);
 }
-.aiw-buy-tg-btn:hover {
-  transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,136,204,.4);
-  color: #fff; text-decoration: none;
-}
+.aiw-buy-tg-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,136,204,.4); color:#fff; text-decoration:none; }
 .aiw-buy-tg-btn i { font-size: 18px; }
 .aiw-buy-hint { text-align: center; font-size: 11px; color: #475569; }
 {% endif %}
@@ -246,36 +351,95 @@ center_ai_enabled=False → sotib olish modali
 
 {% if center_ai_enabled %}
 <!-- ═══ TO'LIQ AI CHAT PANELI ═══ -->
-<div class="aiw-panel" id="aiwPanel">
+<div class="aiw-panel" id="aiwPanel" style="position:fixed;">
+
+  <!-- Header -->
   <div class="aiw-head">
     <div class="aiw-head__icon"><i class="fa-solid fa-robot"></i></div>
-    <div style="flex:1; min-width:0;">
+    <div class="aiw-head__info">
       <div class="aiw-head__title">AI Yordamchi</div>
-      <div class="aiw-head__sub">{{ ai_widget_subtitle|default:"Sizning ma'lumotingiz bo'yicha javob beradi" }}</div>
+      <div class="aiw-head__sub">{{ ai_widget_subtitle|default:"Markazingiz ma'lumotlari bo'yicha" }}</div>
     </div>
-    <button class="aiw-head__close" id="aiwClose" type="button"><i class="fa-solid fa-xmark"></i></button>
+    <div class="aiw-head__acts">
+      {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+      <button class="aiw-head__btn" id="aiwSettingsBtn" type="button" title="AI sozlamalari">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      {% endif %}
+      <button class="aiw-head__btn" id="aiwClearBtn" type="button" title="Tarixni tozalash">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+      <button class="aiw-head__btn" id="aiwClose" type="button" title="Yopish">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
   </div>
 
+  {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+  <!-- AI Role Settings (director/manager) -->
+  <div class="aiw-settings" id="aiwSettings">
+    <div class="aiw-settings__title">AI kirish sozlamalari</div>
+    <div class="aiw-settings__row">
+      <div>
+        <div class="aiw-settings__label"><i class="fa-solid fa-chalkboard-user" style="color:#818cf8;margin-right:6px;"></i>O'qituvchilar</div>
+        <div class="aiw-settings__desc">O'qituvchilarga AI yordamchini ochish</div>
+      </div>
+      <label class="aiw-toggle">
+        <input type="checkbox" id="aiwTeacherToggle" {% if ai_teacher_enabled %}checked{% endif %}>
+        <span class="aiw-toggle__track"></span>
+      </label>
+    </div>
+    <div class="aiw-settings__row">
+      <div>
+        <div class="aiw-settings__label"><i class="fa-solid fa-user-graduate" style="color:#34d399;margin-right:6px;"></i>O'quvchilar</div>
+        <div class="aiw-settings__desc">O'quvchilarga AI yordamchini ochish</div>
+      </div>
+      <label class="aiw-toggle">
+        <input type="checkbox" id="aiwStudentToggle" {% if ai_student_enabled %}checked{% endif %}>
+        <span class="aiw-toggle__track"></span>
+      </label>
+    </div>
+    <div class="aiw-settings__row">
+      <div>
+        <div class="aiw-settings__label"><i class="fa-solid fa-people-roof" style="color:#fbbf24;margin-right:6px;"></i>Ota-onalar</div>
+        <div class="aiw-settings__desc">Ota-onalarga AI yordamchini ochish</div>
+      </div>
+      <label class="aiw-toggle">
+        <input type="checkbox" id="aiwParentToggle" {% if ai_parent_enabled %}checked{% endif %}>
+        <span class="aiw-toggle__track"></span>
+      </label>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Messages -->
   <div class="aiw-msgs" id="aiwMsgs">
     <div class="aiw-msg">
       <div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div>
-      <div class="aiw-msg__bub">
-        Salom! 👋 Men sizga {{ ai_widget_greet|default:"shaxsiy ma'lumotlaringiz" }} bo'yicha yordam beraman.
-        Qisqa, aniq savol bering — javob beraman.
+      <div class="aiw-msg__col">
+        <div class="aiw-msg__bub">
+          Salom! Men sizga {{ ai_widget_greet|default:"markaz ma'lumotlari" }} bo'yicha yordam beraman.
+          Aniq savol bering — javob beraman.
+        </div>
+        <div class="aiw-msg__time" id="aiwWelcomeTime"></div>
       </div>
     </div>
   </div>
 
+  <!-- Quick prompts -->
+  {% if aiw_prompt_1 or aiw_prompt_2 or aiw_prompt_3 or aiw_prompt_4 %}
   <div class="aiw-prompts">
     {% if aiw_prompt_1 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_1 }}">{{ aiw_prompt_1 }}</button>{% endif %}
     {% if aiw_prompt_2 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_2 }}">{{ aiw_prompt_2 }}</button>{% endif %}
     {% if aiw_prompt_3 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_3 }}">{{ aiw_prompt_3 }}</button>{% endif %}
     {% if aiw_prompt_4 %}<button class="aiw-prompt" data-q="{{ aiw_prompt_4 }}">{{ aiw_prompt_4 }}</button>{% endif %}
   </div>
+  {% endif %}
 
+  <!-- Input -->
   <div class="aiw-foot">
     <div class="aiw-row">
-      <textarea class="aiw-input" id="aiwInput" placeholder="Savol yozing... (Enter yuboradi)" rows="1"></textarea>
+      <textarea class="aiw-input" id="aiwInput" placeholder="Savol yozing…" rows="1"></textarea>
       <button class="aiw-send" id="aiwSend" type="button"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
   </div>
@@ -286,60 +450,76 @@ center_ai_enabled=False → sotib olish modali
   'use strict';
   const CHAT_API         = "{% url 'core:director_boshqaruv_chat' %}";
   const CHAT_HISTORY_API = "{% url 'core:director_boshqaruv_chat_history' %}";
+  const CHAT_CLEAR_API   = "{% url 'core:director_boshqaruv_chat_clear' %}";
+  const AI_ROLE_API      = "{% url 'core:director_ai_role_settings' %}";
   const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{ csrf_token }}";
 
-  const fab     = document.getElementById('aiwFab');
-  const overlay = document.getElementById('aiwOverlay');
-  const panel   = document.getElementById('aiwPanel');
-  const msgs    = document.getElementById('aiwMsgs');
-  const input   = document.getElementById('aiwInput');
-  const send    = document.getElementById('aiwSend');
-  const closeB  = document.getElementById('aiwClose');
+  const fab        = document.getElementById('aiwFab');
+  const overlay    = document.getElementById('aiwOverlay');
+  const panel      = document.getElementById('aiwPanel');
+  const msgs       = document.getElementById('aiwMsgs');
+  const input      = document.getElementById('aiwInput');
+  const sendBtn    = document.getElementById('aiwSend');
+  const closeBtn   = document.getElementById('aiwClose');
+  const clearBtn   = document.getElementById('aiwClearBtn');
+  const settingsBtn = document.getElementById('aiwSettingsBtn');
+  const settingsDiv = document.getElementById('aiwSettings');
+  const welcomeTime = document.getElementById('aiwWelcomeTime');
   if(!fab || !panel) return;
+
+  // Set welcome message time
+  if(welcomeTime) welcomeTime.textContent = fmtTime(new Date());
 
   const USER_AVA = "{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}";
   let loading = false, historyLoaded = false;
 
+  function fmtTime(d){
+    return d.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit', hour12: false});
+  }
+
   function escHTML(s){
-    return String(s||"").replace(/[&<>"']/g, c => (
-      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
-    ));
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function renderText(s){
-    return escHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    return escHTML(s)
+      .replace(/\n/g,'<br>')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
   }
-  function addMsg(role, text){
+
+  function addMsg(role, text, timeStr){
     const isUser = role === 'user';
     const ava = isUser
       ? `<div class="aiw-msg__ava">${escHTML(USER_AVA)}</div>`
       : `<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
+    const t = timeStr || fmtTime(new Date());
     const div = document.createElement('div');
-    div.className = `aiw-msg ${isUser ? 'aiw-msg--user' : ''}`;
-    div.innerHTML = `${ava}<div class="aiw-msg__bub">${renderText(text)}</div>`;
+    div.className = `aiw-msg${isUser ? ' aiw-msg--user' : ''}`;
+    div.innerHTML = `${ava}<div class="aiw-msg__col"><div class="aiw-msg__bub">${renderText(text)}</div><div class="aiw-msg__time">${escHTML(t)}</div></div>`;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
+    return div;
   }
+
   function addTyping(){
     const div = document.createElement('div');
-    div.className = 'aiw-msg';
-    div.id = 'aiwTyping';
-    div.innerHTML = `<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__bub"><div class="aiw-typing"><span></span><span></span><span></span></div></div>`;
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
+    div.className = 'aiw-msg'; div.id = 'aiwTyping';
+    div.innerHTML = `<div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__col"><div class="aiw-msg__bub"><div class="aiw-typing"><span></span><span></span><span></span></div></div></div>`;
+    msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
   }
   function removeTyping(){ const el = document.getElementById('aiwTyping'); if(el) el.remove(); }
 
-  function open(){
+  function openPanel(){
     panel.classList.add('open');
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
     loadHistory();
     setTimeout(() => input.focus(), 250);
   }
-  function close(){
+  function closePanel(){
     panel.classList.remove('open');
     overlay.classList.remove('open');
     document.body.style.overflow = '';
+    if(settingsDiv) settingsDiv.classList.remove('open');
   }
 
   async function loadHistory(){
@@ -352,20 +532,24 @@ center_ai_enabled=False → sotib olish modali
       const items = Array.isArray(data.messages) ? data.messages : [];
       if(items.length === 0) return;
       msgs.innerHTML = '';
-      items.forEach(m => addMsg(m.role === 'assistant' ? 'ai' : 'user', m.content));
+      items.forEach(m => {
+        const role = m.role === 'assistant' ? 'ai' : 'user';
+        const t = m.created_at ? fmtTime(new Date(m.created_at)) : '';
+        addMsg(role, m.content, t);
+      });
     }catch(e){}
   }
 
   async function sendMsg(q){
     if(!q || loading) return;
-    loading = true; send.disabled = true;
+    loading = true; sendBtn.disabled = true;
     input.value = ''; input.style.height = 'auto';
     addMsg('user', q);
     addTyping();
     try{
       const res = await fetch(CHAT_API, {
-        method: 'POST', credentials: 'same-origin',
-        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
         body: JSON.stringify({question:q})
       });
       const data = await res.json();
@@ -373,19 +557,59 @@ center_ai_enabled=False → sotib olish modali
       addMsg('ai', data.answer || 'Javob olishda xatolik yuz berdi.');
     }catch(e){
       removeTyping();
-      addMsg('ai', 'Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');
+      addMsg('ai', "Tarmoq xatosi yuz berdi. Qayta urinib koʼring.");
     }finally{
-      loading = false; send.disabled = false; input.focus();
+      loading = false; sendBtn.disabled = false; input.focus();
     }
   }
 
-  fab.addEventListener('click', open);
-  closeB.addEventListener('click', close);
-  overlay.addEventListener('click', close);
+  async function clearHistory(){
+    if(!confirm("Chat tarixini tozalaysizmi?")) return;
+    try{
+      await fetch(CHAT_CLEAR_API, {
+        method:'POST', credentials:'same-origin',
+        headers:{'X-CSRFToken':CSRF}
+      });
+      msgs.innerHTML = '';
+      historyLoaded = false;
+      addMsg('ai', "Chat tarixi tozalandi.");
+    }catch(e){}
+  }
+
+  // Role settings toggles (director/manager)
+  function bindRoleToggle(id, flagKey){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('change', async function(){
+      const val = this.checked;
+      try{
+        await fetch(AI_ROLE_API, {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+          body: JSON.stringify({[flagKey]: val})
+        });
+      }catch(e){
+        this.checked = !val; // revert on error
+      }
+    });
+  }
+  bindRoleToggle('aiwTeacherToggle', 'ai_teacher_enabled');
+  bindRoleToggle('aiwStudentToggle', 'ai_student_enabled');
+  bindRoleToggle('aiwParentToggle',  'ai_parent_enabled');
+
+  fab.addEventListener('click', openPanel);
+  closeBtn.addEventListener('click', closePanel);
+  overlay.addEventListener('click', closePanel);
+  clearBtn.addEventListener('click', clearHistory);
+
+  if(settingsBtn && settingsDiv){
+    settingsBtn.addEventListener('click', () => settingsDiv.classList.toggle('open'));
+  }
+
   document.addEventListener('keydown', e => {
-    if(e.key === 'Escape' && panel.classList.contains('open')) close();
+    if(e.key === 'Escape' && panel.classList.contains('open')) closePanel();
   });
-  send.addEventListener('click', () => sendMsg(input.value.trim()));
+  sendBtn.addEventListener('click', () => sendMsg(input.value.trim()));
   input.addEventListener('keydown', e => {
     if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(input.value.trim()); }
   });
@@ -395,7 +619,7 @@ center_ai_enabled=False → sotib olish modali
   });
   document.querySelectorAll('.aiw-prompt').forEach(b => {
     b.addEventListener('click', function(){
-      if(!panel.classList.contains('open')) open();
+      if(!panel.classList.contains('open')) openPanel();
       sendMsg(this.dataset.q);
     });
   });
@@ -416,76 +640,53 @@ center_ai_enabled=False → sotib olish modali
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
-
   <div class="aiw-buy-body">
-    <!-- Hero -->
     <div class="aiw-buy-hero">
-      <div class="aiw-buy-hero__icon">
-        <i class="fa-solid fa-robot"></i>
-      </div>
+      <div class="aiw-buy-hero__icon"><i class="fa-solid fa-robot"></i></div>
       <div class="aiw-buy-hero__title">AI Yordamchi</div>
-      <div class="aiw-buy-hero__sub">
-        Markazingiz ma'lumotlari asosida tahlil qiladigan, savollaringizga javob beradigan shaxsiy AI yordamchi
-      </div>
+      <div class="aiw-buy-hero__sub">Markazingiz ma'lumotlari asosida tahlil qiladigan shaxsiy AI yordamchi</div>
     </div>
-
-    <!-- Feature list -->
     <div class="aiw-buy-features">
       <div class="aiw-buy-feat">
-        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--purple">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--purple"><i class="fa-solid fa-chart-line"></i></div>
         <div class="aiw-buy-feat__text">
           <strong>Moliyaviy tahlil</strong>
           <span>Daromad, to'lovlar va qarzdorlar bo'yicha savol bering</span>
         </div>
       </div>
       <div class="aiw-buy-feat">
-        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--green">
-          <i class="fa-solid fa-users"></i>
-        </div>
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--green"><i class="fa-solid fa-users"></i></div>
         <div class="aiw-buy-feat__text">
           <strong>O'quvchi tahlili</strong>
-          <span>Davomat, o'zlashtiruv va xavfli o'quvchilar haqida ma'lumot oling</span>
+          <span>Davomat, o'zlashtiruv va xavfli o'quvchilar haqida ma'lumot</span>
         </div>
       </div>
       <div class="aiw-buy-feat">
-        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--amber">
-          <i class="fa-solid fa-lightbulb"></i>
-        </div>
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--amber"><i class="fa-solid fa-lightbulb"></i></div>
         <div class="aiw-buy-feat__text">
           <strong>Aqlli tavsiyalar</strong>
           <span>Markaz samaradorligini oshirish bo'yicha AI tavsiyalari</span>
         </div>
       </div>
       <div class="aiw-buy-feat">
-        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--pink">
-          <i class="fa-solid fa-bolt"></i>
-        </div>
+        <div class="aiw-buy-feat__icon aiw-buy-feat__icon--pink"><i class="fa-solid fa-bolt"></i></div>
         <div class="aiw-buy-feat__text">
           <strong>Tezkor javoblar</strong>
-          <span>Har qanday savol — markazingiz haqiqiy ma'lumotlari asosida</span>
+          <span>Markazingiz haqiqiy ma'lumotlari asosida javob</span>
         </div>
       </div>
     </div>
-
     <hr class="aiw-buy-divider">
-
-    <!-- CTA -->
     <div class="aiw-buy-cta">
       <div class="aiw-buy-cta__notice">
         <i class="fa-solid fa-circle-info"></i>
-        <span>Bu xususiyat alohida to'lov orqali faollashtiriladi. Narx va shartlar uchun admin bilan bog'laning.</span>
+        <span>Bu xususiyat alohida to'lov orqali faollashtiriladi. Narx uchun admin bilan bog'laning.</span>
       </div>
-
       <a href="https://t.me/de_amirxon" target="_blank" class="aiw-buy-tg-btn">
         <i class="bi bi-telegram"></i>
         Admin bilan bog'lanish
       </a>
-
-      <div class="aiw-buy-hint">
-        @de_amirxon · To'lovdan so'ng admin tomonidan faollashtiriladi
-      </div>
+      <div class="aiw-buy-hint">@de_amirxon · To'lovdan so'ng admin faollashtiradi</div>
     </div>
   </div>
 </div>
@@ -493,29 +694,17 @@ center_ai_enabled=False → sotib olish modali
 <script>
 (function(){
   'use strict';
-  const fab     = document.getElementById('aiwFab');
-  const overlay = document.getElementById('aiwOverlay');
-  const modal   = document.getElementById('aiwBuyModal');
-  const closeB  = document.getElementById('aiwBuyClose');
-  if(!fab || !modal) return;
-
-  function open(){
-    modal.classList.add('open');
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-  function close(){
-    modal.classList.remove('open');
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
+  const fab   = document.getElementById('aiwFab');
+  const ov    = document.getElementById('aiwOverlay');
+  const modal = document.getElementById('aiwBuyModal');
+  const cb    = document.getElementById('aiwBuyClose');
+  if(!fab||!modal) return;
+  function open(){ modal.classList.add('open'); ov.classList.add('open'); document.body.style.overflow='hidden'; }
+  function close(){ modal.classList.remove('open'); ov.classList.remove('open'); document.body.style.overflow=''; }
   fab.addEventListener('click', open);
-  closeB.addEventListener('click', close);
-  overlay.addEventListener('click', close);
-  document.addEventListener('keydown', e => {
-    if(e.key === 'Escape' && modal.classList.contains('open')) close();
-  });
+  cb.addEventListener('click', close);
+  ov.addEventListener('click', close);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&modal.classList.contains('open')) close(); });
 })();
 </script>
 {% endif %}

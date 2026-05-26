@@ -91,6 +91,10 @@ class Center(SoftDeleteMixin, models.Model):
 
     # AI Yordamchi — admin tomonidan har markaz uchun alohida yoqiladi
     ai_enabled = models.BooleanField(default=False, verbose_name="AI Yordamchi yoqilgan")
+    # Director/Manager bu flag larni o'zi boshqaradi
+    ai_teacher_enabled = models.BooleanField(default=False, verbose_name="AI — O'qituvchi uchun")
+    ai_student_enabled = models.BooleanField(default=False, verbose_name="AI — O'quvchi uchun")
+    ai_parent_enabled  = models.BooleanField(default=False, verbose_name="AI — Ota-ona uchun")
 
     # Chaqmoq settings
     max_daily_lightning = models.PositiveIntegerField(default=0, verbose_name="Bir kunda max chaqmoq (0=cheksiz)")

@@ -3055,6 +3055,15 @@ def _ai_chat_session(request):
         return None, None
     if not user.is_superuser and not getattr(center, "ai_enabled", False):
         return None, None
+    # Per-role gate: director/manager use base ai_enabled; others need their own flag
+    if not user.is_superuser and role not in ("director", "manager"):
+        role_flag = {
+            "teacher": "ai_teacher_enabled",
+            "student": "ai_student_enabled",
+            "parent":  "ai_parent_enabled",
+        }.get(role)
+        if role_flag and not getattr(center, role_flag, False):
+            return None, None
     from core.models import DirectorAIChatSession
     title = _AI_CHAT_TITLES.get(role, "AI chat")
     session, _ = DirectorAIChatSession.objects.get_or_create(
@@ -3193,3 +3202,41 @@ def director_boshqaruv_chat_clear(request):
     from core.models import DirectorAIChatMessage
     DirectorAIChatMessage.objects.filter(session=session).delete()
     return JsonResponse({"ok": True})
+
+
+@login_required
+def director_ai_role_settings(request):
+    """Director/Manager AI rollarini yoqish/o'chirish — POST JSON."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Faqat POST"}, status=405)
+
+    user = request.user
+    role = getattr(user, "role", None)
+    if not (user.is_superuser or role in ("director", "manager")):
+        return _403()
+
+    center = getattr(request, "center", None) or getattr(user, "center", None)
+    if not center:
+        return _403()
+
+    if not user.is_superuser and not getattr(center, "ai_enabled", False):
+        return JsonResponse({"error": "AI bu markaz uchun yoqilmagan"}, status=403)
+
+    import json as _json
+    try:
+        payload = _json.loads(request.body)
+    except Exception:
+        return JsonResponse({"error": "JSON talab qilinadi"}, status=400)
+
+    allowed_flags = {"ai_teacher_enabled", "ai_student_enabled", "ai_parent_enabled"}
+    updates = {k: bool(v) for k, v in payload.items() if k in allowed_flags}
+    if not updates:
+        return JsonResponse({"error": "Hech qanday o'zgarish yo'q"}, status=400)
+
+    from accounts.models import Center as _Center
+    _Center.objects.filter(pk=center.pk).update(**updates)
+    # Refresh cached center object on request
+    for k, v in updates.items():
+        setattr(center, k, v)
+
+    return JsonResponse({"ok": True, "updated": updates})
