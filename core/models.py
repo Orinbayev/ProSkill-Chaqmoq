@@ -133,13 +133,8 @@ class DirectorAIChatSession(models.Model):
 
     class Meta:
         ordering = ["-updated_at", "-id"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["center", "user"],
-                name="core_director_ai_chat_unique_center_user",
-            ),
-        ]
         indexes = [
+            models.Index(fields=["center", "user", "updated_at"]),
             models.Index(fields=["center", "updated_at"]),
             models.Index(fields=["user", "updated_at"]),
         ]

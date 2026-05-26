@@ -260,6 +260,46 @@ html[data-role-theme="light"] {
 }
 .aiw-toggle input:checked + .aiw-toggle__track::after { transform: translateX(18px); }
 
+/* ── Sessions history panel ── */
+.aiw-sessions {
+  position: absolute; inset: 0; z-index: 20;
+  background: var(--aiw-bg);
+  display: flex; flex-direction: column;
+  transform: translateX(-100%); transition: transform .22s cubic-bezier(.4,0,.2,1);
+}
+.aiw-sessions.open { transform: translateX(0); }
+.aiw-sessions__head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--aiw-border);
+  flex-shrink: 0;
+}
+.aiw-sessions__head-title { font-size: 13px; font-weight: 800; color: var(--aiw-txt); flex: 1; }
+.aiw-sessions__new {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px;
+  background: linear-gradient(135deg, #818cf8, #f43f5e);
+  color: #fff; font-size: 12px; font-weight: 700; border: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.aiw-sessions__new:hover { opacity: .85; }
+.aiw-sessions__list {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.aiw-sessions__list::-webkit-scrollbar { width: 4px; }
+.aiw-sessions__list::-webkit-scrollbar-thumb { background: var(--aiw-scrollbar); border-radius: 99px; }
+.aiw-sess-item {
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .15s, border-color .15s;
+}
+.aiw-sess-item:hover { background: var(--aiw-surface); border-color: var(--aiw-border); }
+.aiw-sess-item.active { background: var(--aiw-surface2); border-color: rgba(129,140,248,.3); }
+.aiw-sess-item__title { font-size: 12.5px; font-weight: 700; color: var(--aiw-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aiw-sess-item__preview { font-size: 11px; color: var(--aiw-txt2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aiw-sess-item__date { font-size: 10px; color: var(--aiw-txt3); margin-top: 3px; }
+.aiw-sess-empty { text-align: center; padding: 32px 16px; color: var(--aiw-txt2); font-size: 12.5px; }
+
 {% else %}
 /* ── Buy AI modal ── */
 .aiw-buy-modal {
@@ -353,11 +393,29 @@ html[data-role-theme="light"] {
 <!-- ═══ TO'LIQ AI CHAT PANELI ═══ -->
 <div class="aiw-panel" id="aiwPanel" style="position:fixed;">
 
+  <!-- Sessions history panel (slides in from left) -->
+  <div class="aiw-sessions" id="aiwSessions">
+    <div class="aiw-sessions__head">
+      <button class="aiw-head__btn" id="aiwSessionsBack" type="button" title="Orqaga">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <span class="aiw-sessions__head-title">Chat tarixi</span>
+      <button class="aiw-sessions__new" id="aiwNewChat" type="button">
+        <i class="fa-solid fa-plus"></i> Yangi chat
+      </button>
+    </div>
+    <div class="aiw-sessions__list" id="aiwSessionsList">
+      <div class="aiw-sess-empty">Yuklanmoqda…</div>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="aiw-head">
-    <div class="aiw-head__icon"><i class="fa-solid fa-robot"></i></div>
+    <button class="aiw-head__btn" id="aiwHistoryBtn" type="button" title="Chat tarixi">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+    </button>
     <div class="aiw-head__info">
-      <div class="aiw-head__title">AI Yordamchi</div>
+      <div class="aiw-head__title" id="aiwChatTitle">AI Yordamchi</div>
       <div class="aiw-head__sub">{{ ai_widget_subtitle|default:"Markazingiz ma'lumotlari bo'yicha" }}</div>
     </div>
     <div class="aiw-head__acts">
@@ -452,38 +510,46 @@ html[data-role-theme="light"] {
   const CHAT_HISTORY_API = "{% url 'core:director_boshqaruv_chat_history' %}";
   const CHAT_CLEAR_API   = "{% url 'core:director_boshqaruv_chat_clear' %}";
   const AI_ROLE_API      = "{% url 'core:director_ai_role_settings' %}";
+  const SESSIONS_API     = "{% url 'core:director_ai_sessions_list' %}";
+  const SESSION_NEW_API  = "{% url 'core:director_ai_session_new' %}";
   const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{ csrf_token }}";
 
-  const fab        = document.getElementById('aiwFab');
-  const overlay    = document.getElementById('aiwOverlay');
-  const panel      = document.getElementById('aiwPanel');
-  const msgs       = document.getElementById('aiwMsgs');
-  const input      = document.getElementById('aiwInput');
-  const sendBtn    = document.getElementById('aiwSend');
-  const closeBtn   = document.getElementById('aiwClose');
-  const clearBtn   = document.getElementById('aiwClearBtn');
+  const fab         = document.getElementById('aiwFab');
+  const overlay     = document.getElementById('aiwOverlay');
+  const panel       = document.getElementById('aiwPanel');
+  const msgs        = document.getElementById('aiwMsgs');
+  const input       = document.getElementById('aiwInput');
+  const sendBtn     = document.getElementById('aiwSend');
+  const closeBtn    = document.getElementById('aiwClose');
+  const clearBtn    = document.getElementById('aiwClearBtn');
   const settingsBtn = document.getElementById('aiwSettingsBtn');
   const settingsDiv = document.getElementById('aiwSettings');
   const welcomeTime = document.getElementById('aiwWelcomeTime');
+  const historyBtn  = document.getElementById('aiwHistoryBtn');
+  const sessionsDiv = document.getElementById('aiwSessions');
+  const sessionsList= document.getElementById('aiwSessionsList');
+  const sessBack    = document.getElementById('aiwSessionsBack');
+  const newChatBtn  = document.getElementById('aiwNewChat');
+  const chatTitle   = document.getElementById('aiwChatTitle');
   if(!fab || !panel) return;
 
-  // Set welcome message time
   if(welcomeTime) welcomeTime.textContent = fmtTime(new Date());
 
   const USER_AVA = "{{ request.user.ism|first|upper|default:request.user.email|first|upper|escapejs }}";
-  let loading = false, historyLoaded = false;
+  let loading = false, historyLoaded = false, currentSessionId = null;
 
   function fmtTime(d){
     return d.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit', hour12: false});
   }
-
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString('uz-UZ', {day:'numeric', month:'short'}) + ' ' + fmtTime(d);
+  }
   function escHTML(s){
     return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function renderText(s){
-    return escHTML(s)
-      .replace(/\n/g,'<br>')
-      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    return escHTML(s).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
   }
 
   function addMsg(role, text, timeStr){
@@ -499,7 +565,6 @@ html[data-role-theme="light"] {
     msgs.scrollTop = msgs.scrollHeight;
     return div;
   }
-
   function addTyping(){
     const div = document.createElement('div');
     div.className = 'aiw-msg'; div.id = 'aiwTyping';
@@ -507,6 +572,10 @@ html[data-role-theme="light"] {
     msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
   }
   function removeTyping(){ const el = document.getElementById('aiwTyping'); if(el) el.remove(); }
+
+  function resetToWelcome(){
+    msgs.innerHTML = `<div class="aiw-msg"><div class="aiw-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="aiw-msg__col"><div class="aiw-msg__bub">Salom! Men sizga markaz maʼlumotlari boʼyicha yordam beraman. Aniq savol bering — javob beraman.</div><div class="aiw-msg__time">${fmtTime(new Date())}</div></div></div>`;
+  }
 
   function openPanel(){
     panel.classList.add('open');
@@ -520,15 +589,82 @@ html[data-role-theme="light"] {
     overlay.classList.remove('open');
     document.body.style.overflow = '';
     if(settingsDiv) settingsDiv.classList.remove('open');
+    if(sessionsDiv) sessionsDiv.classList.remove('open');
   }
 
+  // ── Sessions panel ──────────────────────────────────────────────
+  function openSessions(){
+    if(settingsDiv) settingsDiv.classList.remove('open');
+    loadSessionsList();
+    sessionsDiv.classList.add('open');
+  }
+  function closeSessions(){ sessionsDiv.classList.remove('open'); }
+
+  async function loadSessionsList(){
+    if(!sessionsList) return;
+    try{
+      const res = await fetch(SESSIONS_API, {credentials:'same-origin'});
+      if(!res.ok){ sessionsList.innerHTML = '<div class="aiw-sess-empty">Yuklab bo\'lmadi</div>'; return; }
+      const data = await res.json();
+      const list = data.sessions || [];
+      if(list.length === 0){
+        sessionsList.innerHTML = '<div class="aiw-sess-empty">Hali chat tarixi yo\'q</div>';
+        return;
+      }
+      sessionsList.innerHTML = '';
+      list.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'aiw-sess-item' + (s.id === currentSessionId ? ' active' : '');
+        item.innerHTML = `<div class="aiw-sess-item__title">${escHTML(s.title || 'AI Chat')}</div>${s.preview ? `<div class="aiw-sess-item__preview">${escHTML(s.preview)}</div>` : ''}<div class="aiw-sess-item__date">${escHTML(fmtDate(s.updated_at))}</div>`;
+        item.addEventListener('click', () => switchSession(s.id, s.title));
+        sessionsList.appendChild(item);
+      });
+    }catch(e){
+      sessionsList.innerHTML = '<div class="aiw-sess-empty">Xatolik</div>';
+    }
+  }
+
+  function switchSession(sid, title){
+    currentSessionId = sid;
+    historyLoaded = false;
+    msgs.innerHTML = '';
+    if(chatTitle) chatTitle.textContent = title || 'AI Chat';
+    closeSessions();
+    loadHistory();
+    setTimeout(() => input.focus(), 200);
+  }
+
+  async function createNewSession(){
+    try{
+      const res = await fetch(SESSION_NEW_API, {
+        method:'POST', credentials:'same-origin',
+        headers:{'X-CSRFToken':CSRF}
+      });
+      const data = await res.json();
+      if(data.session_id){
+        currentSessionId = data.session_id;
+        historyLoaded = false;
+        resetToWelcome();
+        if(chatTitle) chatTitle.textContent = data.title || 'AI Chat';
+        closeSessions();
+        setTimeout(() => input.focus(), 200);
+      }
+    }catch(e){}
+  }
+
+  // ── History & chat ──────────────────────────────────────────────
   async function loadHistory(){
     if(historyLoaded) return;
     historyLoaded = true;
+    const url = currentSessionId
+      ? CHAT_HISTORY_API + '?session_id=' + currentSessionId
+      : CHAT_HISTORY_API;
     try{
-      const res = await fetch(CHAT_HISTORY_API, {credentials:'same-origin'});
+      const res = await fetch(url, {credentials:'same-origin'});
       if(!res.ok) return;
       const data = await res.json();
+      // sync currentSessionId from server response
+      if(data.session_id && !currentSessionId) currentSessionId = data.session_id;
       const items = Array.isArray(data.messages) ? data.messages : [];
       if(items.length === 0) return;
       msgs.innerHTML = '';
@@ -547,12 +683,15 @@ html[data-role-theme="light"] {
     addMsg('user', q);
     addTyping();
     try{
+      const body = {question: q};
+      if(currentSessionId) body.session_id = currentSessionId;
       const res = await fetch(CHAT_API, {
         method:'POST', credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
-        body: JSON.stringify({question:q})
+        body: JSON.stringify(body)
       });
       const data = await res.json();
+      if(data.session_id && !currentSessionId) currentSessionId = data.session_id;
       removeTyping();
       addMsg('ai', data.answer || 'Javob olishda xatolik yuz berdi.');
     }catch(e){
@@ -564,19 +703,22 @@ html[data-role-theme="light"] {
   }
 
   async function clearHistory(){
-    if(!confirm("Chat tarixini tozalaysizmi?")) return;
+    if(!confirm("Joriy chat tarixini tozalaysizmi?")) return;
     try{
+      const body = {};
+      if(currentSessionId) body.session_id = currentSessionId;
       await fetch(CHAT_CLEAR_API, {
         method:'POST', credentials:'same-origin',
-        headers:{'X-CSRFToken':CSRF}
+        headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+        body: JSON.stringify(body)
       });
       msgs.innerHTML = '';
       historyLoaded = false;
-      addMsg('ai', "Chat tarixi tozalandi.");
+      resetToWelcome();
     }catch(e){}
   }
 
-  // Role settings toggles (director/manager)
+  // ── Role toggles ────────────────────────────────────────────────
   function bindRoleToggle(id, flagKey){
     const el = document.getElementById(id);
     if(!el) return;
@@ -588,24 +730,27 @@ html[data-role-theme="light"] {
           headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
           body: JSON.stringify({[flagKey]: val})
         });
-      }catch(e){
-        this.checked = !val; // revert on error
-      }
+      }catch(e){ this.checked = !val; }
     });
   }
   bindRoleToggle('aiwTeacherToggle', 'ai_teacher_enabled');
   bindRoleToggle('aiwStudentToggle', 'ai_student_enabled');
   bindRoleToggle('aiwParentToggle',  'ai_parent_enabled');
 
+  // ── Event wiring ────────────────────────────────────────────────
   fab.addEventListener('click', openPanel);
   closeBtn.addEventListener('click', closePanel);
   overlay.addEventListener('click', closePanel);
   clearBtn.addEventListener('click', clearHistory);
-
+  if(historyBtn) historyBtn.addEventListener('click', openSessions);
+  if(sessBack)   sessBack.addEventListener('click', closeSessions);
+  if(newChatBtn) newChatBtn.addEventListener('click', createNewSession);
   if(settingsBtn && settingsDiv){
-    settingsBtn.addEventListener('click', () => settingsDiv.classList.toggle('open'));
+    settingsBtn.addEventListener('click', () => {
+      closeSessions();
+      settingsDiv.classList.toggle('open');
+    });
   }
-
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape' && panel.classList.contains('open')) closePanel();
   });

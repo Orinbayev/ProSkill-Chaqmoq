@@ -77,6 +77,8 @@ urlpatterns = [
     path('api/boshqaruv/chat/history/',   dashboard_views.director_boshqaruv_chat_history,  name='director_boshqaruv_chat_history'),
     path('api/boshqaruv/chat/clear/',     dashboard_views.director_boshqaruv_chat_clear,    name='director_boshqaruv_chat_clear'),
     path('api/boshqaruv/ai-role-settings/', dashboard_views.director_ai_role_settings,      name='director_ai_role_settings'),
+    path('api/boshqaruv/chat/sessions/',    dashboard_views.director_ai_sessions_list,      name='director_ai_sessions_list'),
+    path('api/boshqaruv/chat/new/',         dashboard_views.director_ai_session_new,        name='director_ai_session_new'),
     path('boshqaruv/export/',             dashboard_views.director_boshqaruv_export,        name='director_boshqaruv_export'),
     path('boshqaruv/faollik-tarixi/',     dashboard_views.director_activity_history,        name='activity_history'),
     # Branch CRUD

@@ -1163,26 +1163,34 @@ def get_debt_aging_context(center: Center, *, as_of: date | None = None) -> dict
 def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = None, top_n: int = 20) -> list:
     """
     Har bir qarzdor uchun qaysi oyda qancha qarzi borligini qaytaradi.
-    AI 'Mahmudjon qaysi oyda qarz bor?' savoliga aniq javob bera olsin uchun.
+    _student_debt_snapshot() bilan bir xil hisob logikasi ishlatiladi — bu app bilan mos natija beradi.
     Returns: [{"full_name": ..., "total_debt": ..., "months": [{"month": "2025-04", "debt": 500000}, ...]}, ...]
     """
     as_of = as_of or timezone.localdate()
+    month_cap = _month_start(as_of)  # joriy oy boshi (xuddi _student_debt_snapshot kabi)
 
-    active_enrollments = list(
-        Enrollment.objects.filter(center=center, is_active=True)
+    # Barcha (is_active yoki yo'q) enrollments — _student_debt_snapshot kabi
+    enrollments = list(
+        Enrollment.objects.filter(center=center)
         .values("id", "student_id")
     )
-    if not active_enrollments:
+    if not enrollments:
         return []
 
-    enrollment_ids = [e["id"] for e in active_enrollments]
-    enrollment_student = {e["id"]: e["student_id"] for e in active_enrollments}
+    enrollment_ids = [e["id"] for e in enrollments]
+    enrollment_student = {e["id"]: e["student_id"] for e in enrollments}
+    all_student_ids = list({e["student_id"] for e in enrollments})
+
+    # Authoritative total debt via _student_debt_snapshot
+    debt_map, _ = _student_debt_snapshot(center, all_student_ids, as_of=as_of)
+    if not debt_map:
+        return []
 
     tuition_rows = list(
         TuitionMonth.objects.filter(
             center=center,
             enrollment_id__in=enrollment_ids,
-            month__lte=as_of,
+            month__lte=month_cap,  # joriy oy boshi gacha (as_of emas!)
         ).values("id", "enrollment_id", "month", "fee_amount")
     )
     if not tuition_rows:
@@ -1202,16 +1210,16 @@ def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = No
         )
     }
 
-    # Per student per month debt
+    # Per student per month debt — faqat debt_map da tasdiqlangan talabalar uchun
     student_months: dict[int, dict[str, int]] = {}
     for row in tuition_rows:
+        student_id = enrollment_student.get(row["enrollment_id"])
+        if not student_id or student_id not in debt_map:
+            continue  # faqat haqiqiy qarzdorlar
         fee = int(row["fee_amount"] or 0)
         paid = int(paid_map.get(row["id"]) or 0)
         debt = max(fee - paid, 0)
         if debt <= 0:
-            continue
-        student_id = enrollment_student.get(row["enrollment_id"])
-        if not student_id:
             continue
         month_str = row["month"].strftime("%Y-%m") if hasattr(row["month"], "strftime") else str(row["month"])[:7]
         if student_id not in student_months:
@@ -1221,8 +1229,8 @@ def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = No
     if not student_months:
         return []
 
-    student_total = {sid: sum(v.values()) for sid, v in student_months.items()}
-    top_ids = sorted(student_months.keys(), key=lambda sid: -student_total[sid])[:top_n]
+    top_ids = sorted(debt_map.keys(), key=lambda sid: -debt_map[sid])[:top_n]
+    top_ids = [sid for sid in top_ids if sid in student_months]
 
     users = {
         u.id: u

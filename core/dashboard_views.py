@@ -3036,14 +3036,8 @@ _AI_CHAT_TITLES = {
 }
 
 
-def _ai_chat_session(request):
-    """Return (center, session) for any allowed role or None if unauthorized.
-
-    Model `DirectorAIChatSession` is historic naming — keyed by (center, user)
-    so har bir foydalanuvchi alohida sessiya oladi (rollar aralashmaydi).
-    Director va manager center-wide ma'lumotni ko'radi (ai_insights orqali);
-    teacher/student/parent esa faqat o'z scope ini ko'radi (role_scoped_ai orqali).
-    """
+def _ai_auth_center(request):
+    """Auth + center check shared by all AI endpoints. Returns (center, role) or (None, None)."""
     user = request.user
     if not user.is_authenticated:
         return None, None
@@ -3055,7 +3049,6 @@ def _ai_chat_session(request):
         return None, None
     if not user.is_superuser and not getattr(center, "ai_enabled", False):
         return None, None
-    # Per-role gate: director/manager use base ai_enabled; others need their own flag
     if not user.is_superuser and role not in ("director", "manager"):
         role_flag = {
             "teacher": "ai_teacher_enabled",
@@ -3064,31 +3057,75 @@ def _ai_chat_session(request):
         }.get(role)
         if role_flag and not getattr(center, role_flag, False):
             return None, None
+    return center, role
+
+
+def _ai_chat_session(request, session_id=None):
+    """Return (center, session) for any allowed role or None if unauthorized.
+
+    session_id — ixtiyoriy. Berilsa, o'sha sessiyani qaytaradi (agar foydalanuvchiga tegishli bo'lsa).
+    Berilmasa — eng oxirgi sessiya, bo'lmasa yangi yaratadi.
+    """
+    center, role = _ai_auth_center(request)
+    if not center:
+        return None, None
+
     from core.models import DirectorAIChatSession
-    title = _AI_CHAT_TITLES.get(role, "AI chat")
-    session, _ = DirectorAIChatSession.objects.get_or_create(
-        center=center,
-        user=user,
-        defaults={"title": title},
+    user = request.user
+
+    if session_id:
+        try:
+            session = DirectorAIChatSession.objects.get(
+                id=int(session_id), center=center, user=user
+            )
+            return center, session
+        except (DirectorAIChatSession.DoesNotExist, ValueError, TypeError):
+            return None, None
+
+    # Most recent session
+    session = (
+        DirectorAIChatSession.objects
+        .filter(center=center, user=user)
+        .order_by("-updated_at", "-id")
+        .first()
     )
+    if not session:
+        title = _AI_CHAT_TITLES.get(role, "AI chat")
+        session = DirectorAIChatSession.objects.create(center=center, user=user, title=title)
     return center, session
+
+
+def _get_session_id(request):
+    """Extract session_id from GET params or JSON body."""
+    sid = request.GET.get("session_id") or request.GET.get("sid")
+    if sid:
+        return sid
+    if request.content_type and "json" in request.content_type:
+        try:
+            import json as _j
+            body = _j.loads(request.body or "{}")
+            return body.get("session_id") or body.get("sid")
+        except Exception:
+            pass
+    return None
 
 
 @login_required
 def director_boshqaruv_chat(request):
-    """AI chat endpoint — POST {question} → saves to DB, replays history from DB."""
+    """AI chat endpoint — POST {question, session_id?} → saves to DB."""
     if request.method != "POST":
         return JsonResponse({"error": "Faqat POST"}, status=405)
-
-    center, session = _ai_chat_session(request)
-    if not center or not session:
-        return _403()
 
     import json as _json
     try:
         body = _json.loads(request.body or b"{}")
     except Exception:
         return JsonResponse({"error": "JSON xato"}, status=400)
+
+    sid = body.get("session_id") or body.get("sid") or request.GET.get("session_id")
+    center, session = _ai_chat_session(request, session_id=sid)
+    if not center or not session:
+        return _403()
 
     question = (body.get("question") or "").strip()
     if not question:
@@ -3158,16 +3195,17 @@ def director_boshqaruv_chat(request):
     # session.updated_at ni yangilash uchun save() (auto_now ishlashi uchun)
     session.save(update_fields=["updated_at"])
 
-    return JsonResponse({"answer": answer, "source": source})
+    return JsonResponse({"answer": answer, "source": source, "session_id": session.id})
 
 
 @login_required
 def director_boshqaruv_chat_history(request):
-    """AI chat tarixi — GET → oxirgi xabarlar ro'yxati."""
+    """AI chat tarixi — GET ?session_id= → oxirgi xabarlar ro'yxati."""
     if request.method != "GET":
         return JsonResponse({"error": "Faqat GET"}, status=405)
 
-    center, session = _ai_chat_session(request)
+    sid = request.GET.get("session_id") or request.GET.get("sid")
+    center, session = _ai_chat_session(request, session_id=sid)
     if not center or not session:
         return _403()
 
@@ -3186,22 +3224,28 @@ def director_boshqaruv_chat_history(request):
         }
         for m in qs
     ]
-    return JsonResponse({"messages": messages})
+    return JsonResponse({"messages": messages, "session_id": session.id})
 
 
 @login_required
 def director_boshqaruv_chat_clear(request):
-    """AI chat tarixini tozalash — POST."""
+    """AI chat tarixini tozalash — POST {session_id?}."""
     if request.method != "POST":
         return JsonResponse({"error": "Faqat POST"}, status=405)
 
-    center, session = _ai_chat_session(request)
+    import json as _json
+    try:
+        body = _json.loads(request.body or b"{}")
+    except Exception:
+        body = {}
+    sid = body.get("session_id") or request.GET.get("session_id")
+    center, session = _ai_chat_session(request, session_id=sid)
     if not center or not session:
         return _403()
 
     from core.models import DirectorAIChatMessage
     DirectorAIChatMessage.objects.filter(session=session).delete()
-    return JsonResponse({"ok": True})
+    return JsonResponse({"ok": True, "session_id": session.id})
 
 
 @login_required
@@ -3240,3 +3284,58 @@ def director_ai_role_settings(request):
         setattr(center, k, v)
 
     return JsonResponse({"ok": True, "updated": updates})
+
+
+@login_required
+def director_ai_sessions_list(request):
+    """GET — foydalanuvchining barcha AI sessiyalari ro'yxati."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Faqat GET"}, status=405)
+
+    center, role = _ai_auth_center(request)
+    if not center:
+        return _403()
+
+    from core.models import DirectorAIChatSession, DirectorAIChatMessage
+
+    sessions_qs = (
+        DirectorAIChatSession.objects
+        .filter(center=center, user=request.user)
+        .order_by("-updated_at", "-id")[:30]
+    )
+
+    result = []
+    for s in sessions_qs:
+        last_msg = (
+            DirectorAIChatMessage.objects
+            .filter(session=s, role="user")
+            .order_by("-created_at")
+            .values("content", "created_at")
+            .first()
+        )
+        result.append({
+            "id": s.id,
+            "title": s.title or "AI Chat",
+            "created_at": s.created_at.isoformat(),
+            "updated_at": s.updated_at.isoformat(),
+            "preview": (last_msg["content"][:60] + "…") if last_msg and len(last_msg["content"]) > 60 else (last_msg["content"] if last_msg else ""),
+        })
+    return JsonResponse({"sessions": result})
+
+
+@login_required
+def director_ai_session_new(request):
+    """POST — yangi bo'sh AI sessiya yaratish."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Faqat POST"}, status=405)
+
+    center, role = _ai_auth_center(request)
+    if not center:
+        return _403()
+
+    from core.models import DirectorAIChatSession
+    title = _AI_CHAT_TITLES.get(role, "AI chat")
+    session = DirectorAIChatSession.objects.create(
+        center=center, user=request.user, title=title
+    )
+    return JsonResponse({"ok": True, "session_id": session.id, "title": session.title})
