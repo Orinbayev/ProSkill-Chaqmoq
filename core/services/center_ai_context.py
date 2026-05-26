@@ -1462,7 +1462,7 @@ def build_center_ai_prompt_context(
         "QARZDORLAR OY BO’YICHA TAFSILOT (top 20):",
         "\n".join(debtor_detail_lines) if debtor_detail_lines else "  (qarzdor yo’q)",
         "",
-        f"TOP O’QUVCHILAR: {‘, ‘.join(item[‘full_name’] for item in top_students) or ‘yo’q’}",
-        f"OGOHLANTIRISHLAR: {‘ | ‘.join(alert[‘message’] for alert in alerts) or ‘yo’q’}",
+        "TOP O’QUVCHILAR: " + (", ".join(item["full_name"] for item in top_students) or "yoq"),
+        "OGOHLANTIRISHLAR: " + (" | ".join(alert["message"] for alert in alerts) or "yoq"),
     ]
     return "\n".join(parts)
