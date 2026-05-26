@@ -461,6 +461,38 @@
                     </div>
                 </div>
 
+                <!-- AI Yordamchi Toggle -->
+                <div class="full-width mt-4">
+                    <label class="form-label-custom mb-3">
+                        <i class="bi bi-robot me-1"></i> AI Yordamchi
+                    </label>
+                    <div style="background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.18);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:4px;">
+                                <i class="bi bi-robot me-2" style="color:#a5b4fc;"></i>Gemini AI Yordamchi
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Yoqilganda direktor va manager dashboardda AI chat tugmasi paydo bo'ladi.
+                                Markaz ma'lumotlari (moliya, o'quvchilar, davomat) asosida javob beradi.
+                                <strong style="color:#94a3b8;">Render'da GEMINI_API_KEY o'rnatilgan bo'lishi kerak.</strong>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch" style="flex-shrink:0;margin:0;">
+                            {% for field in form %}
+                            {% if field.name == 'ai_enabled' %}
+                            <input type="checkbox" class="form-check-input" name="ai_enabled" id="id_ai_enabled"
+                                   style="width:48px;height:24px;cursor:pointer;"
+                                   {% if field.value %}checked{% endif %}>
+                            {% endif %}
+                            {% endfor %}
+                            <label class="form-check-label ms-2" for="id_ai_enabled"
+                                   style="font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;">
+                                {% if center.ai_enabled %}Yoqilgan{% else %}O'chirilgan{% endif %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn-cancel">
                         Bekor qilish
@@ -729,6 +761,17 @@
         }
 
         renderUiModules();
+
+        // AI toggle — label rangini dinamik yangilash
+        const aiToggle = document.getElementById('id_ai_enabled');
+        const aiLabel  = aiToggle ? aiToggle.nextElementSibling : null;
+        if (aiToggle && aiLabel) {
+            aiToggle.addEventListener('change', function () {
+                aiLabel.textContent = this.checked ? 'Yoqilgan' : 'O\'chirilgan';
+                aiLabel.style.color = this.checked ? '#34d399' : '#94a3b8';
+            });
+            aiLabel.style.color = aiToggle.checked ? '#34d399' : '#94a3b8';
+        }
     });
 </script>
 {% endblock %}

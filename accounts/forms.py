@@ -478,7 +478,8 @@ class CenterAdminForm(forms.ModelForm):
             "name", "slug", "address",
             "plan",
             "capacity_limit", "expires_at",
-            "status", "features"
+            "status", "features",
+            "ai_enabled",
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),

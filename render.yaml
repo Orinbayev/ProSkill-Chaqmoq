@@ -68,6 +68,16 @@ services:
       - key: CLICK_SECRET_KEY
         sync: false
 
+      # ── Gemini AI ──────────────────────────────────────────────────────────
+      # Google AI Studio dan oling: https://aistudio.google.com/app/apikey
+      # Render Dashboard → ProSkill-Chaqmoq → Environment → GEMINI_API_KEY
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Ixtiyoriy: model nomini o'zgartirish uchun (default: gemini-2.5-flash)
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
+
       - key: TELEGRAM_BOT_TOKEN
         sync: false
 
