@@ -479,12 +479,7 @@ def home(request):
         return render(request, "core/dashboard_teacher.html", {"center": center})
 
     if role == "student":
-        return render(request, "core/dashboard_student.html", {
-            "balance": None,
-            "last_actions": [],
-            "center": center,
-            "deferred": True,
-        })
+        return render(request, "core/dashboard_student.html", {"center": center})
 
     return redirect("/admin/accounts/user/")
 

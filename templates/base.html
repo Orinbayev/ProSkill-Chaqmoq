@@ -580,13 +580,6 @@
 
   {% block modals %}{% endblock %}
 
-  <!-- ── AI Yordamchi Widget (director va manager uchun) ── -->
-  {% if request.user.is_authenticated %}
-  {% if request.user.is_superuser or request.user.role == "director" or request.user.role == "manager" %}
-  {% include "partials/ai_chat_widget.html" %}
-  {% endif %}
-  {% endif %}
-
   <!-- 🔔 NOTIFICATION SIDEBAR (Restored) -->
   <div id="notificationSidebar" class="notification-sidebar">
     <div class="ns-header">

@@ -95,6 +95,7 @@ html[data-role-theme="light"] {
   display: flex; flex-direction: column;
   transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
   z-index: 9002;
+  overflow: hidden; /* sessions panel translateX(-100%) bug'ini tuzatadi */
   font-family: 'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
 }
 .aiw-panel.open { transform: translateX(0); }

@@ -1,517 +1,917 @@
 {% extends 'base.html' %}
-{% block body_class %}student-dashboard-page{% endblock %}
+{% block body_class %}student-panel-page{% endblock %}
 {% block content %}
 
 <style>
-  :root {
-    --panel: rgba(17, 24, 39, .62);
-    --panel2: rgba(2, 6, 23, .55);
-    --line: rgba(255, 255, 255, .08);
-    --muted: #94a3b8;
-    --text: #e5e7eb;
-    --green: #22c55e;
-    --blue: #3b82f6;
-    --blue2: #2563eb;
-  }
+/* ── CSS custom properties ─────────────────────────────────────── */
+:root {
+  --sp-bg:        #0b1220;
+  --sp-card:      rgba(17,24,39,.72);
+  --sp-card2:     rgba(10,16,30,.65);
+  --sp-border:    rgba(255,255,255,.07);
+  --sp-text:      #e5e7eb;
+  --sp-muted:     #94a3b8;
+  --sp-green:     #22c55e;
+  --sp-blue:      #3b82f6;
+  --sp-red:       #ef4444;
+  --sp-yellow:    #f59e0b;
+  --sp-purple:    #a78bfa;
+  --sp-radius:    20px;
+  --sp-shadow:    0 18px 45px rgba(0,0,0,.22);
+}
+html[data-role-theme="light"] {
+  --sp-bg:        #f1f5f9;
+  --sp-card:      #ffffff;
+  --sp-card2:     #f8fafc;
+  --sp-border:    rgba(0,0,0,.08);
+  --sp-text:      #1e293b;
+  --sp-muted:     #64748b;
+  --sp-shadow:    0 4px 20px rgba(0,0,0,.08);
+}
 
-  /* wrap */
-  .sdash-wrap {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 10px 12px 26px;
-    color: var(--text);
-  }
+/* ── Layout ─────────────────────────────────────────────────────── */
+.sp-wrap { max-width:1240px; margin:0 auto; padding:10px 14px 80px; color:var(--sp-text); }
 
-  /* ✅ TOP BAR */
-  .sdash-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 18px 18px;
-    border-radius: 18px;
-    background: var(--panel);
-    border: 1px solid rgba(255, 255, 255, .06);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, .22);
-    margin: 10px 0 18px;
-    position: relative;
-    z-index: 50;
-  }
+/* ── Top bar ────────────────────────────────────────────────────── */
+.sp-topbar {
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:16px 20px; border-radius:var(--sp-radius);
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  backdrop-filter:blur(12px); box-shadow:var(--sp-shadow);
+  margin-bottom:18px;
+  position:relative; z-index:1300;
+}
+.sp-topbar-left { display:flex; align-items:center; gap:12px; }
+.sp-ico {
+  width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
+  background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.22);
+  color:var(--sp-green); font-size:18px;
+}
+.sp-title { margin:0; font-size:28px; font-weight:950; color:var(--sp-text); }
+.sp-sub { color:var(--sp-muted); font-size:13px; font-weight:700; margin-top:3px; }
+.sp-actions { display:flex; align-items:center; gap:8px; }
+.sp-icon-btn {
+  width:42px; height:42px; border-radius:13px; display:grid; place-items:center;
+  border:1px solid var(--sp-border); background:var(--sp-card2);
+  color:var(--sp-muted); text-decoration:none; transition:.18s;
+}
+.sp-icon-btn:hover { color:var(--sp-text); transform:translateY(-1px); }
 
-  .sdash-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+/* Avatar */
+.sp-avatar {
+  width:46px; height:46px; border-radius:999px; overflow:hidden;
+  background:linear-gradient(135deg,var(--sp-blue),#1d4ed8);
+  border:1px solid var(--sp-border); display:flex;
+  align-items:center; justify-content:center;
+  font-weight:950; color:#fff; font-size:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25); transition:.18s;
+}
+.sp-avatar:hover { transform:translateY(-2px); }
+.sp-avatar img { width:100%; height:100%; object-fit:cover; border-radius:999px; }
 
-  .sdash-ico {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    background: rgba(34, 197, 94, .12);
-    border: 1px solid rgba(34, 197, 94, .22);
-    color: var(--green);
-    font-size: 18px;
-  }
+/* ── KPI cards ──────────────────────────────────────────────────── */
+.sp-kpi-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+@media(max-width:900px){ .sp-kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:500px){ .sp-kpi-grid{ grid-template-columns:1fr; } }
 
-  .sdash-title {
-    margin: 0;
-    font-size: 32px;
-    font-weight: 950;
-    letter-spacing: .2px;
-    color: #fff;
-  }
+.sp-kpi {
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  border-radius:var(--sp-radius); padding:18px 18px 14px;
+  box-shadow:var(--sp-shadow); position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:8px;
+}
+.sp-kpi-label {
+  font-size:12px; font-weight:800; text-transform:uppercase;
+  letter-spacing:.5px; color:var(--sp-muted);
+  display:flex; align-items:center; gap:6px;
+}
+.sp-kpi-val { font-size:34px; font-weight:950; line-height:1; color:var(--sp-text); }
+.sp-kpi-val.green { color:var(--sp-green); }
+.sp-kpi-val.red   { color:var(--sp-red);   }
+.sp-kpi-val.blue  { color:var(--sp-blue);  }
+.sp-kpi-val.yellow{ color:var(--sp-yellow);}
+.sp-kpi-sub { font-size:12px; color:var(--sp-muted); font-weight:700; }
+.sp-kpi-glow {
+  position:absolute; right:-20px; bottom:-24px;
+  width:80px; height:80px; border-radius:999px; opacity:.08;
+}
+.kpi-glow-green { background:var(--sp-green); }
+.kpi-glow-red   { background:var(--sp-red);   }
+.kpi-glow-blue  { background:var(--sp-blue);  }
+.kpi-glow-yellow{ background:var(--sp-yellow);}
 
-  .sdash-sub {
-    margin-top: 4px;
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 13px;
-  }
+/* skeleton */
+.sp-skel {
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%);
+  background-size:200% 100%;
+  animation:sp-shimmer 1.4s ease-in-out infinite;
+  border-radius:8px; display:inline-block;
+}
+html[data-role-theme="light"] .sp-skel {
+  background:linear-gradient(90deg,#e2e8f0 25%,#cbd5e1 50%,#e2e8f0 75%);
+  background-size:200% 100%;
+}
+@keyframes sp-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-  /* right icons */
-  .sdash-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+/* ── Tabs ───────────────────────────────────────────────────────── */
+.sp-tabs {
+  display:flex; gap:4px; overflow-x:auto;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:16px; padding:5px; margin-bottom:18px;
+  scrollbar-width:none;
+}
+.sp-tabs::-webkit-scrollbar { display:none; }
+.sp-tab {
+  flex-shrink:0; padding:9px 18px; border-radius:12px;
+  font-size:13px; font-weight:800; cursor:pointer;
+  border:none; background:transparent; color:var(--sp-muted);
+  transition:.18s; display:flex; align-items:center; gap:6px;
+}
+.sp-tab:hover { color:var(--sp-text); background:var(--sp-border); }
+.sp-tab.active {
+  background:var(--sp-blue); color:#fff;
+  box-shadow:0 4px 14px rgba(59,130,246,.35);
+}
 
-  .icon-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    background: rgba(15, 23, 42, .75);
-    color: rgba(226, 232, 240, .75);
-    display: grid;
-    place-items: center;
-    transition: .2s;
-  }
+/* ── Panel card ─────────────────────────────────────────────────── */
+.sp-panel {
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  border-radius:var(--sp-radius); box-shadow:var(--sp-shadow);
+  padding:22px;
+}
+.sp-panel-title {
+  font-size:16px; font-weight:950; color:var(--sp-text);
+  display:flex; align-items:center; gap:8px; margin:0 0 16px;
+}
 
-  .icon-btn:hover {
-    transform: translateY(-1px);
-    color: #fff;
-    border-color: rgba(255, 255, 255, .16);
-  }
+/* ── Next lessons ───────────────────────────────────────────────── */
+.sp-lessons { display:flex; flex-direction:column; gap:10px; }
+.sp-lesson {
+  display:flex; align-items:center; gap:14px;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:14px; padding:12px 14px;
+}
+.sp-lesson-day {
+  font-size:11px; font-weight:900; text-transform:uppercase;
+  letter-spacing:.5px; padding:4px 8px; border-radius:8px;
+  background:rgba(59,130,246,.12); color:var(--sp-blue);
+  flex-shrink:0;
+}
+.sp-lesson-day.today { background:rgba(34,197,94,.12); color:var(--sp-green); }
+.sp-lesson-info { flex:1; min-width:0; }
+.sp-lesson-name { font-weight:900; font-size:14px; color:var(--sp-text); }
+.sp-lesson-meta { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-lesson-time {
+  font-size:13px; font-weight:950; color:var(--sp-text);
+  flex-shrink:0; text-align:right;
+}
 
-  /* ✅ AVATAR BUTTON (rasm + dumaloq) */
-  .avatar-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 999px;
-    overflow: hidden;
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, .14);
-    background: linear-gradient(135deg, var(--blue), var(--blue2));
-    color: #fff;
-    font-weight: 950;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 12px 26px rgba(0, 0, 0, .35);
-    transition: .18s ease;
-  }
+/* ── Payment badge ──────────────────────────────────────────────── */
+.sp-pay-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:12px;
+  font-size:14px; font-weight:900;
+}
+.sp-pay-badge.paid   { background:rgba(34,197,94,.12); color:var(--sp-green); border:1px solid rgba(34,197,94,.2); }
+.sp-pay-badge.debt   { background:rgba(239,68,68,.12); color:var(--sp-red);   border:1px solid rgba(239,68,68,.2); }
+.sp-pay-badge.loading{ background:var(--sp-card2); color:var(--sp-muted); border:1px solid var(--sp-border); }
 
-  .avatar-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, .45), 0 0 0 4px rgba(59, 130, 246, .12);
-    border-color: rgba(59, 130, 246, .45);
-  }
+/* ── Group cards ────────────────────────────────────────────────── */
+.sp-group-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px;
+}
+.sp-group-card {
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px;
+}
+.sp-group-header { display:flex; align-items:flex-start; gap:10px; }
+.sp-group-badge {
+  width:38px; height:38px; border-radius:12px; display:grid; place-items:center;
+  font-size:15px; flex-shrink:0;
+}
+.sp-group-badge.active { background:rgba(34,197,94,.12); color:var(--sp-green); border:1px solid rgba(34,197,94,.2); }
+.sp-group-badge.inactive { background:rgba(148,163,184,.1); color:var(--sp-muted); border:1px solid var(--sp-border); }
+.sp-group-name { font-weight:950; font-size:15px; color:var(--sp-text); }
+.sp-group-teacher { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-group-sched { display:flex; flex-wrap:wrap; gap:6px; }
+.sp-sched-pill {
+  font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px;
+  background:rgba(59,130,246,.1); color:var(--sp-blue);
+  border:1px solid rgba(59,130,246,.15);
+}
+.sp-group-price {
+  font-size:13px; font-weight:900; color:var(--sp-text);
+  display:flex; align-items:center; gap:6px;
+}
+.sp-group-inactive-tag {
+  font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px;
+  background:rgba(239,68,68,.1); color:var(--sp-red); border:1px solid rgba(239,68,68,.15);
+}
 
-  .avatar-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border-radius: 999px;
-  }
+/* ── Attendance calendar ────────────────────────────────────────── */
+.sp-att-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px; flex-wrap:wrap; gap:10px;
+}
+.sp-month-nav { display:flex; align-items:center; gap:8px; }
+.sp-month-btn {
+  width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+  border:1px solid var(--sp-border); background:var(--sp-card2);
+  color:var(--sp-muted); cursor:pointer; transition:.18s; font-size:14px;
+}
+.sp-month-btn:hover { color:var(--sp-text); border-color:var(--sp-blue); }
+.sp-month-label { font-weight:950; font-size:15px; color:var(--sp-text); min-width:120px; text-align:center; }
 
-  /* dropdown menu theme */
-  .dropdown-menu {
-    background: #0b1220;
-    border: 1px solid rgba(255, 255, 255, .10);
-    box-shadow: 0 22px 50px rgba(0, 0, 0, .35);
-    border-radius: 14px;
-    padding: 8px;
-    z-index: 9999;
-    min-width: 240px;
-  }
+.sp-att-stats {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;
+}
+.sp-att-stat {
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:14px; padding:12px; text-align:center;
+}
+.sp-att-stat-val { font-size:26px; font-weight:950; color:var(--sp-text); }
+.sp-att-stat-val.green { color:var(--sp-green); }
+.sp-att-stat-val.red   { color:var(--sp-red); }
+.sp-att-stat-lbl { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:4px; }
 
-  .dropdown-item {
-    color: #e5e7eb;
-    border-radius: 10px;
-    padding: 10px 10px;
-    font-weight: 800;
-  }
+.sp-cal-weekdays {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  text-align:center; margin-bottom:6px;
+}
+.sp-cal-wd { font-size:11px; font-weight:800; color:var(--sp-muted); padding:4px 0; }
+.sp-cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:4px;
+}
+.sp-cal-day {
+  aspect-ratio:1; border-radius:10px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:13px; font-weight:800;
+  color:var(--sp-text); position:relative;
+}
+.sp-cal-day.no_class { background:rgba(255,255,255,.02); color:var(--sp-muted); }
+html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02); }
+.sp-cal-day.present  { background:rgba(34,197,94,.15); color:var(--sp-green); border:1px solid rgba(34,197,94,.25); }
+.sp-cal-day.absent   { background:rgba(239,68,68,.12); color:var(--sp-red);   border:1px solid rgba(239,68,68,.2); }
+.sp-cal-day.partial  { background:rgba(245,158,11,.12);color:var(--sp-yellow);border:1px solid rgba(245,158,11,.2); }
+.sp-cal-day.empty    { background:transparent; }
+.sp-cal-today { outline:2px solid var(--sp-blue); outline-offset:2px; }
 
-  .dropdown-item:hover {
-    background: rgba(255, 255, 255, .06);
-    color: #fff;
-  }
+.sp-att-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:14px; }
+.sp-leg { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:700; color:var(--sp-muted); }
+.sp-leg-dot { width:10px; height:10px; border-radius:4px; flex-shrink:0; }
+.sp-leg-dot.present { background:var(--sp-green); }
+.sp-leg-dot.absent  { background:var(--sp-red); }
+.sp-leg-dot.partial { background:var(--sp-yellow); }
+.sp-leg-dot.no_class{ background:var(--sp-border); }
 
-  .dropdown-divider {
-    border-top: 1px solid rgba(255, 255, 255, .08);
-  }
+/* ── Payments ───────────────────────────────────────────────────── */
+.sp-pay-list { display:flex; flex-direction:column; gap:10px; }
+.sp-pay-item {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:14px; padding:12px 14px;
+}
+.sp-pay-left { display:flex; align-items:center; gap:10px; min-width:0; }
+.sp-pay-ico {
+  width:36px; height:36px; border-radius:11px; display:grid; place-items:center;
+  background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.2);
+  color:var(--sp-green); font-size:14px; flex-shrink:0;
+}
+.sp-pay-group { font-weight:900; font-size:13px; color:var(--sp-text); }
+.sp-pay-date  { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-pay-amt   { font-weight:950; font-size:14px; color:var(--sp-green); flex-shrink:0; }
 
-  /* GRID */
-  .sgrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 18px;
-    align-items: start;
-  }
+/* ── Chaqmoq tab ────────────────────────────────────────────────── */
+.sp-bolt-bal {
+  display:flex; flex-direction:column; align-items:center;
+  padding:30px 0 20px; text-align:center;
+}
+.sp-bolt-ico { font-size:56px; color:var(--sp-yellow); margin-bottom:10px; }
+.sp-bolt-val { font-size:64px; font-weight:950; color:var(--sp-yellow); line-height:1; }
+.sp-bolt-lbl { font-size:14px; color:var(--sp-muted); font-weight:700; margin-top:6px; }
 
-  .scard {
-    background: rgba(30, 41, 59, .55);
-    border: 1px solid rgba(255, 255, 255, .06);
-    border-radius: 20px;
-    padding: 18px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
-  }
+.sp-bolt-btns { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+.sp-btn {
+  flex:1; min-width:140px; display:flex; align-items:center; justify-content:center;
+  gap:8px; padding:12px 16px; border-radius:14px; font-weight:950; font-size:14px;
+  text-decoration:none; border:none; cursor:pointer; transition:.18s;
+}
+.sp-btn-blue   { background:linear-gradient(90deg,#3b82f6,#2563eb); color:#fff; }
+.sp-btn-yellow { background:linear-gradient(90deg,#f59e0b,#d97706); color:#fff; }
+.sp-btn:hover  { filter:brightness(1.06); transform:translateY(-1px); }
 
-  .scard h4 {
-    margin: 0 0 10px;
-    font-size: 18px;
-    font-weight: 950;
-    color: #e2e8f0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.sp-bolt-actions { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+.sp-bolt-item {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:14px; padding:12px 14px;
+}
+.sp-bolt-item-left { display:flex; align-items:center; gap:10px; min-width:0; }
+.sp-bolt-sign {
+  width:34px; height:34px; border-radius:11px; display:grid; place-items:center;
+  font-weight:950; font-size:15px; flex-shrink:0;
+}
+.sp-bolt-sign.plus  { background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.2); color:var(--sp-green); }
+.sp-bolt-sign.minus { background:rgba(239,68,68,.12);  border:1px solid rgba(239,68,68,.2);  color:var(--sp-red); }
+.sp-bolt-ttl  { font-weight:900; font-size:13px; color:var(--sp-text); }
+.sp-bolt-time { font-size:11px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-bolt-amt  { font-weight:950; font-size:14px; flex-shrink:0; white-space:nowrap; }
+.sp-bolt-amt.plus  { color:var(--sp-green); }
+.sp-bolt-amt.minus { color:var(--sp-red);   }
 
-  .balance {
-    font-size: 44px;
-    font-weight: 950;
-    color: var(--green);
-    letter-spacing: .5px;
-  }
+/* ── Misc ───────────────────────────────────────────────────────── */
+.sp-empty {
+  text-align:center; padding:40px 20px;
+  color:var(--sp-muted); font-size:14px; font-weight:700;
+}
+.sp-empty i { display:block; font-size:36px; margin-bottom:10px; opacity:.4; }
+.sp-two-col {
+  display:grid; grid-template-columns:1fr 1fr; gap:16px;
+}
+@media(max-width:700px){ .sp-two-col{ grid-template-columns:1fr; } }
+.sp-section-gap { margin-top:18px; }
 
-  .balance small {
-    font-size: 22px;
-    opacity: .9;
-  }
-
-  .sbtn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 14px;
-    border-radius: 16px;
-    font-weight: 950;
-    text-decoration: none;
-    border: 1px solid rgba(255, 255, 255, .10);
-    transition: .2s;
-  }
-
-  .sbtn-blue {
-    background: linear-gradient(90deg, var(--blue), var(--blue2));
-    color: #fff;
-    border-color: rgba(59, 130, 246, .35);
-  }
-
-  .sbtn-green {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    color: #fff;
-    border-color: rgba(34, 197, 94, .35);
-  }
-
-  .sbtn:hover {
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-  }
-
-  .muted {
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 13px;
-    line-height: 1.35;
-    margin-top: 12px;
-  }
-
-  /* last actions */
-  .actions {
-    margin-top: 18px;
-  }
-
-  .actions h5 {
-    font-weight: 950;
-    font-size: 16px;
-    margin: 0 0 12px;
-    color: #e2e8f0;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .alist {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .aitem {
-    background: rgba(15, 23, 42, .55);
-    border: 1px solid rgba(255, 255, 255, .06);
-    border-radius: 16px;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .aleft {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .aplus {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    background: rgba(34, 197, 94, .12);
-    border: 1px solid rgba(34, 197, 94, .20);
-    color: var(--green);
-    font-weight: 950;
-  }
-
-  .aplus.minus {
-    background: rgba(239, 68, 68, .12);
-    border: 1px solid rgba(239, 68, 68, .22);
-    color: #ef4444;
-  }
-
-  .aright.neg {
-    color: #ef4444;
-  }
-
-  .atag {
-    font-size: 12px;
-    font-weight: 900;
-    color: rgba(226, 232, 240, .75);
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid rgba(255, 255, 255, .08);
-    padding: 3px 8px;
-    border-radius: 999px;
-    margin-left: 8px;
-  }
-
-  .atitle {
-    font-weight: 900;
-    color: #e5e7eb;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 520px;
-  }
-
-  .atime {
-    font-size: 12px;
-    color: rgba(148, 163, 184, .85);
-    font-weight: 700;
-  }
-
-  .aright {
-    font-weight: 950;
-    color: var(--green);
-    white-space: nowrap;
-  }
-
-  /* responsive */
-  @media (max-width: 1100px) {
-    .sgrid {
-      grid-template-columns: 1fr;
-    }
-
-    .sdash-title {
-      font-size: 26px;
-    }
-  }
+/* Dropdown */
+.dropdown-menu {
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  box-shadow:0 22px 50px rgba(0,0,0,.3); border-radius:14px; padding:8px; z-index:9999; min-width:220px;
+}
+.dropdown-item { color:var(--sp-text); border-radius:10px; padding:9px 10px; font-weight:800; }
+.dropdown-item:hover { background:var(--sp-border); color:var(--sp-text); }
+.dropdown-divider { border-top:1px solid var(--sp-border); }
 </style>
 
-<div class="sdash-wrap">
+<div class="sp-wrap">
 
-  <div class="sdash-top">
-    <div class="sdash-left">
-      <div class="sdash-ico"><i class="fa-solid fa-graduation-cap"></i></div>
+  <!-- ──────── Top bar ──────── -->
+  <div class="sp-topbar">
+    <div class="sp-topbar-left">
+      <div class="sp-ico"><i class="fa-solid fa-graduation-cap"></i></div>
       <div>
-        <h3 class="sdash-title">O'quvchi paneli</h3>
-        <div class="sdash-sub">Do'kon va reyting bo'limlariga tez kirish</div>
+        <h3 class="sp-title">O'quvchi paneli</h3>
+        <div class="sp-sub" id="sp-greeting">Xush kelibsiz!</div>
       </div>
     </div>
-
-    <div class="sdash-actions">
-      <!-- Notification Bell (Reverted) -->
-      <a href="javascript:void(0)" onclick="toggleNotificationSidebar()" class="icon-btn position-relative"
-        title="Bildirishnomalar">
+    <div class="sp-actions">
+      <a href="javascript:void(0)" onclick="toggleNotificationSidebar()"
+         class="sp-icon-btn position-relative" title="Bildirishnomalar">
         <i class="fa-regular fa-bell"></i>
         {% if unread_notifications_count > 0 %}
-        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
-          style="width:10px;height:10px; top: 12px; right: 8px !important;">
-        </span>
+        <span class="position-absolute bg-danger border border-dark rounded-circle"
+              style="width:8px;height:8px;top:8px;right:8px;"></span>
         {% endif %}
       </a>
-
       {% include "components/profile_dropdown.html" %}
-
     </div>
   </div>
 
-  <!-- ✅ 3 ta blok -->
-  <div class="sgrid">
-
-    <div class="scard text-center">
-      <h4 class="justify-content-center">
-        <i class="fa-solid fa-bolt"></i> Mening Chaqmog'im
-      </h4>
-      <div class="balance" data-balance>
-        {{ balance|default:"0" }} <small>⚡</small>
+  <!-- ──────── KPI cards ──────── -->
+  <div class="sp-kpi-grid">
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-calendar-check" style="color:var(--sp-green)"></i>Davomat</div>
+      <div class="sp-kpi-val green" id="kpi-att">
+        <span class="sp-skel" style="width:60px;height:34px;"></span>
       </div>
+      <div class="sp-kpi-sub" id="kpi-att-sub">So'nggi 30 kun</div>
+      <div class="sp-kpi-glow kpi-glow-green"></div>
     </div>
-
-    <div class="scard">
-      <h4><i class="fa-solid fa-cart-shopping" style="color:#60a5fa;"></i> Do'kon</h4>
-      <a class="sbtn sbtn-blue" href="{% url 'store:products' %}">
-        Mahsulotlarni ko'rish
-      </a>
-      <div class="muted">
-        Savatchaga qo'sh → Manager tasdiqlaydi → Chaqmoq yechiladi.
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-circle-dollar-to-slot" style="color:var(--sp-red)"></i>Joriy qarz</div>
+      <div class="sp-kpi-val" id="kpi-debt">
+        <span class="sp-skel" style="width:80px;height:34px;"></span>
       </div>
+      <div class="sp-kpi-sub" id="kpi-debt-sub">Bu oy</div>
+      <div class="sp-kpi-glow kpi-glow-red"></div>
     </div>
-
-    <div class="scard">
-      <h4><i class="fa-solid fa-trophy" style="color:#22c55e;"></i> Reyting</h4>
-      <a class="sbtn sbtn-green" href="{% url 'chaqmoq:reyting' %}">
-        Umumiy reytingni ko'rish
-      </a>
-      <div class="muted">
-        O'zingizning o'rningizni kuzatib boring va motivatsiyani oshiring.
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-bolt" style="color:var(--sp-yellow)"></i>Chaqmoq⚡</div>
+      <div class="sp-kpi-val yellow" id="kpi-balance">
+        <span class="sp-skel" style="width:55px;height:34px;"></span>
       </div>
+      <div class="sp-kpi-sub">Joriy balans</div>
+      <div class="sp-kpi-glow kpi-glow-yellow"></div>
     </div>
-
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-users" style="color:var(--sp-blue)"></i>Guruhlar</div>
+      <div class="sp-kpi-val blue" id="kpi-groups">
+        <span class="sp-skel" style="width:45px;height:34px;"></span>
+      </div>
+      <div class="sp-kpi-sub" id="kpi-groups-sub">Faol guruhlar</div>
+      <div class="sp-kpi-glow kpi-glow-blue"></div>
+    </div>
   </div>
 
-  <!-- ✅ Oxirgi 10 ta harakat -->
-  <div class="actions scard">
-    <h5><i class="fa-regular fa-clock"></i> Oxirgi harakatlar</h5>
+  <!-- ──────── Tabs ──────── -->
+  <div class="sp-tabs" role="tablist">
+    <button class="sp-tab active" data-tab="home" onclick="switchTab('home',this)">
+      <i class="fa-solid fa-house"></i> Bosh sahifa
+    </button>
+    <button class="sp-tab" data-tab="groups" onclick="switchTab('groups',this)">
+      <i class="fa-solid fa-users"></i> Guruhlarim
+    </button>
+    <button class="sp-tab" data-tab="attendance" onclick="switchTab('attendance',this)">
+      <i class="fa-solid fa-calendar-check"></i> Davomat
+    </button>
+    <button class="sp-tab" data-tab="payments" onclick="switchTab('payments',this)">
+      <i class="fa-solid fa-receipt"></i> To'lovlar
+    </button>
+    <button class="sp-tab" data-tab="chaqmoq" onclick="switchTab('chaqmoq',this)">
+      <i class="fa-solid fa-bolt"></i> Chaqmoq⚡
+    </button>
+  </div>
 
-    <div class="alist" id="student-actions-list" data-deferred="{% if deferred %}1{% else %}0{% endif %}">
-      {% if deferred %}
-      <div class="muted text-center">
-        <i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…
-      </div>
-      {% else %}
-      {% for a in last_actions %}
-      <div class="aitem">
-        <div class="aleft">
-          <div class="aplus {% if a.delta < 0 %}minus{% endif %}">
-            {% if a.delta < 0 %}-{% else %}+{% endif %} </div>
+  <!-- ════════ HOME TAB ════════ -->
+  <div id="tab-home">
+    <div class="sp-two-col">
 
-              <div style="min-width:0;">
-                <div class="atitle">
-                  {{ a.title }}
-                  {% if a.group %}<span class="atag">{{ a.group }}</span>{% endif %}
-                </div>
-
-                <div class="atime">
-                  {{ a.created_at|date:"d.m.Y H:i" }} • {{ a.who }}
-                </div>
-              </div>
-          </div>
-
-          <div class="aright {% if a.delta < 0 %}neg{% endif %}">
-            {{ a.sign }}{{ a.abs_delta }} ⚡
-          </div>
+      <!-- Payment status -->
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-wallet"></i> Bu oy to'lov holati</div>
+        <div id="pay-badge-wrap">
+          <span class="sp-pay-badge loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…</span>
         </div>
-        {% empty %}
-        <div class="muted">Hozircha harakatlar yo'q.</div>
-        {% endfor %}
-        {% endif %}
+      </div>
+
+      <!-- Next lessons -->
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-calendar-day"></i> Keyingi darslar</div>
+        <div class="sp-lessons" id="next-lessons-list">
+          <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+          <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        </div>
       </div>
 
     </div>
 
+    <!-- Recent chaqmoq actions -->
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-regular fa-clock"></i> Oxirgi harakatlar</div>
+      <div class="sp-bolt-actions" id="home-actions-list">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
   </div>
 
-  <script>
-    // ── Deferred student dashboard init ─────────────────────────────
-    // home view skeleton render qiladi; balance + last_actions AJAX bilan keladi.
-    (function () {
-      const centerSlug = "{{ center.slug|default:''|escapejs }}";
-      const slugPrefix = centerSlug ? "/" + centerSlug : "";
+  <!-- ════════ GROUPS TAB ════════ -->
+  <div id="tab-groups" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-panel-title"><i class="fa-solid fa-users"></i> Guruhlarim</div>
+      <div class="sp-group-grid" id="groups-list">
+        <div class="sp-skel" style="height:120px;border-radius:16px;"></div>
+        <div class="sp-skel" style="height:120px;border-radius:16px;"></div>
+      </div>
+    </div>
+  </div>
 
-      function escapeHtml(s) {
-        return String(s || "").replace(/[&<>"']/g, c => ({
-          "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
-        }[c]));
+  <!-- ════════ ATTENDANCE TAB ════════ -->
+  <div id="tab-attendance" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-att-header">
+        <div class="sp-panel-title" style="margin:0"><i class="fa-solid fa-calendar-days"></i> Davomat</div>
+        <div class="sp-month-nav">
+          <button class="sp-month-btn" onclick="attPrevMonth()" title="Oldingi oy">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div class="sp-month-label" id="att-month-label">—</div>
+          <button class="sp-month-btn" onclick="attNextMonth()" title="Keyingi oy">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="sp-att-stats" id="att-stats">
+        <div class="sp-att-stat">
+          <div class="sp-att-stat-val green" id="att-percent">—</div>
+          <div class="sp-att-stat-lbl">Davomat %</div>
+        </div>
+        <div class="sp-att-stat">
+          <div class="sp-att-stat-val" id="att-present">—</div>
+          <div class="sp-att-stat-lbl">Kelgan</div>
+        </div>
+        <div class="sp-att-stat">
+          <div class="sp-att-stat-val red" id="att-absent">—</div>
+          <div class="sp-att-stat-lbl">Kelmagan</div>
+        </div>
+      </div>
+
+      <div class="sp-cal-weekdays">
+        <div class="sp-cal-wd">Du</div>
+        <div class="sp-cal-wd">Se</div>
+        <div class="sp-cal-wd">Ch</div>
+        <div class="sp-cal-wd">Pa</div>
+        <div class="sp-cal-wd">Ju</div>
+        <div class="sp-cal-wd">Sh</div>
+        <div class="sp-cal-wd">Ya</div>
+      </div>
+      <div class="sp-cal-grid" id="att-cal-grid">
+        <div class="sp-skel" style="aspect-ratio:1;border-radius:10px;grid-column:span 7;height:100px;"></div>
+      </div>
+
+      <div class="sp-att-legend">
+        <div class="sp-leg"><div class="sp-leg-dot present"></div> Keldi</div>
+        <div class="sp-leg"><div class="sp-leg-dot absent"></div> Kelmadi</div>
+        <div class="sp-leg"><div class="sp-leg-dot partial"></div> Qisman</div>
+        <div class="sp-leg"><div class="sp-leg-dot no_class"></div> Dars yo'q</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ PAYMENTS TAB ════════ -->
+  <div id="tab-payments" style="display:none">
+    <div class="sp-two-col">
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-circle-check"></i> Joriy oy holati</div>
+        <div id="pay-tab-badge">
+          <span class="sp-pay-badge loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…</span>
+        </div>
+      </div>
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-info-circle"></i> Eslatma</div>
+        <div style="font-size:13px;color:var(--sp-muted);font-weight:700;line-height:1.6;">
+          To'lovlar manager tomonidan kiritiladi. Qarz haqida ma'lumot uchun administrator bilan bog'laning.
+        </div>
+      </div>
+    </div>
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-solid fa-receipt"></i> So'nggi to'lovlar</div>
+      <div class="sp-pay-list" id="payments-list">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ CHAQMOQ TAB ════════ -->
+  <div id="tab-chaqmoq" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-bolt-bal">
+        <div class="sp-bolt-ico"><i class="fa-solid fa-bolt"></i></div>
+        <div class="sp-bolt-val" id="chaqmoq-balance">—</div>
+        <div class="sp-bolt-lbl">Joriy Chaqmoq balans</div>
+        <div class="sp-bolt-btns">
+          <a href="{% url 'store:products' %}" class="sp-btn sp-btn-blue">
+            <i class="fa-solid fa-cart-shopping"></i> Do'kon
+          </a>
+          <a href="{% url 'chaqmoq:reyting' %}" class="sp-btn sp-btn-yellow">
+            <i class="fa-solid fa-trophy"></i> Reyting
+          </a>
+        </div>
+      </div>
+
+      <div class="sp-panel-title" style="border-top:1px solid var(--sp-border);padding-top:18px;margin-top:0;">
+        <i class="fa-regular fa-clock"></i> Chaqmoq tarixi
+      </div>
+      <div class="sp-bolt-actions" id="chaqmoq-history">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end sp-wrap -->
+
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Sening shaxsiy yordamching" ai_widget_greet="o'z guruhlaring, davomating, to'lovlaring va Chaqmoq balling" aiw_prompt_1="Mening qarzim bormi?" aiw_prompt_2="Davomatim qanday?" aiw_prompt_3="Qaysi guruhlardaman?" aiw_prompt_4="Chaqmoq ballarim qancha?" %}
+
+<script>
+(function () {
+  "use strict";
+
+  const centerSlug = "{{ center.slug|default:''|escapejs }}";
+  const slugPfx = centerSlug ? "/" + centerSlug : "";
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      const p = n => String(n).padStart(2, "0");
+      return p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear()
+        + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    } catch (e) { return String(iso); }
+  }
+  function fmtMoney(v) {
+    return Number(v || 0).toLocaleString("uz-UZ") + " so'm";
+  }
+  function api(path) {
+    return fetch(slugPfx + path, { credentials: "same-origin" })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  const tabLoaded = {};
+
+  window.switchTab = function (name, btn) {
+    document.querySelectorAll(".sp-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    ["home", "groups", "attendance", "payments", "chaqmoq"].forEach(t => {
+      const el = document.getElementById("tab-" + t);
+      if (el) el.style.display = t === name ? "" : "none";
+    });
+    if (!tabLoaded[name]) {
+      tabLoaded[name] = true;
+      loadTab(name);
+    }
+  };
+
+  function loadTab(name) {
+    if (name === "groups")     loadGroups();
+    if (name === "attendance") loadAttendance();
+    if (name === "payments")   loadPayments();
+    if (name === "chaqmoq")    loadChaqmoq();
+  }
+
+  // ── Dashboard init (home tab) ─────────────────────────────────────
+  function loadDashboard() {
+    api("/api/student/dashboard/").then(d => {
+      if (!d) return;
+
+      // KPI: attendance
+      const attEl = document.getElementById("kpi-att");
+      if (attEl) attEl.textContent = d.att_rate + "%";
+      const attSub = document.getElementById("kpi-att-sub");
+      if (attSub) attSub.textContent =
+        (d.att_present || 0) + "/" + (d.att_total || 0) + " dars";
+
+      // KPI: debt
+      const debtEl = document.getElementById("kpi-debt");
+      if (debtEl) {
+        const debt = d.debt || 0;
+        debtEl.textContent = debt > 0 ? fmtMoney(debt) : "0 so'm";
+        debtEl.className = "sp-kpi-val " + (debt > 0 ? "red" : "green");
       }
 
-      function formatDate(iso) {
-        if (!iso) return "";
-        try {
-          const d = new Date(iso);
-          if (isNaN(d.getTime())) return String(iso);
-          const pad = n => String(n).padStart(2, "0");
-          return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear() +
-                 " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
-        } catch (e) { return String(iso); }
+      // KPI: balance
+      const balEl = document.getElementById("kpi-balance");
+      if (balEl) balEl.textContent = (d.balance || 0) + " ⚡";
+
+      // KPI: groups
+      const grpEl = document.getElementById("kpi-groups");
+      if (grpEl) grpEl.textContent = d.groups_active || 0;
+      const grpSub = document.getElementById("kpi-groups-sub");
+      if (grpSub) grpSub.textContent =
+        "Jami: " + (d.groups_total || 0) + " guruh";
+
+      // Greeting
+      const grEl = document.getElementById("sp-greeting");
+      if (grEl) {
+        const h = new Date().getHours();
+        const salut = h < 12 ? "Xayrli tong! 🌅" : h < 17 ? "Xayrli kun! ☀️" : "Xayrli kech! 🌙";
+        grEl.textContent = salut;
       }
 
-      function renderActions(items) {
-        const container = document.getElementById("student-actions-list");
-        if (!container) return;
-        if (!items || items.length === 0) {
-          container.innerHTML = '<div class="muted">Hozircha harakatlar yo\'q.</div>';
-          return;
-        }
-        container.innerHTML = items.map(a => {
-          const minus = (a.delta || 0) < 0;
-          const grp = a.group ? '<span class="atag">' + escapeHtml(a.group) + '</span>' : '';
-          return (
-            '<div class="aitem">' +
-              '<div class="aleft">' +
-                '<div class="aplus' + (minus ? ' minus' : '') + '">' + (minus ? '-' : '+') + '</div>' +
-                '<div style="min-width:0;">' +
-                  '<div class="atitle">' + escapeHtml(a.title) + ' ' + grp + '</div>' +
-                  '<div class="atime">' + escapeHtml(formatDate(a.created_at)) + ' • ' + escapeHtml(a.who) + '</div>' +
-                '</div>' +
-              '</div>' +
-              '<div class="aright' + (minus ? ' neg' : '') + '">' + escapeHtml(a.sign) + (a.abs_delta || 0) + ' ⚡</div>' +
-            '</div>'
-          );
-        }).join("");
+      // Payment badge
+      renderPayBadge("pay-badge-wrap", d.payment_status, d.debt);
+      renderPayBadge("pay-tab-badge", d.payment_status, d.debt);
+
+      // Next lessons
+      renderNextLessons(d.next_lessons || []);
+    });
+
+    // Load chaqmoq history for home tab
+    api("/api/dashboard/student-init/").then(d => {
+      if (!d) return;
+      renderChaqmoqHistory("home-actions-list", d.last_actions || []);
+    });
+  }
+
+  function renderPayBadge(containerId, status, debt) {
+    const wrap = document.getElementById(containerId);
+    if (!wrap) return;
+    if (status === "debt") {
+      wrap.innerHTML =
+        '<span class="sp-pay-badge debt"><i class="fa-solid fa-triangle-exclamation"></i> Qarz: ' +
+        esc(fmtMoney(debt)) + "</span>";
+    } else {
+      wrap.innerHTML =
+        '<span class="sp-pay-badge paid"><i class="fa-solid fa-circle-check"></i> To\'langan ✓</span>';
+    }
+  }
+
+  function renderNextLessons(lessons) {
+    const el = document.getElementById("next-lessons-list");
+    if (!el) return;
+    if (!lessons.length) {
+      el.innerHTML =
+        '<div class="sp-empty"><i class="fa-regular fa-calendar-xmark"></i>Bugun va ertaga dars yo\'q</div>';
+      return;
+    }
+    el.innerHTML = lessons.map(l => {
+      const isToday = l.day === "Bugun";
+      const timeStr = l.end_time ? l.start_time + "–" + l.end_time : l.start_time;
+      return (
+        '<div class="sp-lesson">' +
+          '<div class="sp-lesson-day ' + (isToday ? "today" : "") + '">' + esc(l.day) + "</div>" +
+          '<div class="sp-lesson-info">' +
+            '<div class="sp-lesson-name">' + esc(l.group_name) + "</div>" +
+            '<div class="sp-lesson-meta">' +
+              (l.teacher ? '<i class="fa-solid fa-chalkboard-teacher"></i> ' + esc(l.teacher) : "") +
+              (l.room ? " · " + esc(l.room) : "") +
+            "</div>" +
+          "</div>" +
+          '<div class="sp-lesson-time">' + esc(timeStr) + "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  function renderChaqmoqHistory(containerId, actions) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!actions.length) {
+      el.innerHTML = '<div class="sp-empty"><i class="fa-regular fa-clock"></i>Hozircha harakatlar yo\'q.</div>';
+      return;
+    }
+    el.innerHTML = actions.map(a => {
+      const minus = (a.delta || 0) < 0;
+      const grp = a.group ? ' <span style="font-size:11px;background:rgba(255,255,255,.07);padding:2px 7px;border-radius:999px;margin-left:4px;">' + esc(a.group) + '</span>' : "";
+      return (
+        '<div class="sp-bolt-item">' +
+          '<div class="sp-bolt-item-left">' +
+            '<div class="sp-bolt-sign ' + (minus ? "minus" : "plus") + '">' + (minus ? "−" : "+") + "</div>" +
+            '<div>' +
+              '<div class="sp-bolt-ttl">' + esc(a.title) + grp + "</div>" +
+              '<div class="sp-bolt-time">' + esc(fmtDate(a.created_at)) + " · " + esc(a.who) + "</div>" +
+            "</div>" +
+          "</div>" +
+          '<div class="sp-bolt-amt ' + (minus ? "minus" : "plus") + '">' +
+            esc(a.sign) + (a.abs_delta || 0) + " ⚡" +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  // ── Groups tab ────────────────────────────────────────────────────
+  function loadGroups() {
+    api("/api/student/groups/").then(d => {
+      const el = document.getElementById("groups-list");
+      if (!el || !d) return;
+      const groups = d.groups || [];
+      if (!groups.length) {
+        el.innerHTML = '<div class="sp-empty" style="grid-column:span 2"><i class="fa-solid fa-users-slash"></i>Guruhlar yo\'q</div>';
+        return;
       }
+      el.innerHTML = groups.map(g => {
+        const active = g.is_active;
+        const scheds = (g.schedules || []).map(s =>
+          '<span class="sp-sched-pill">' + esc(s.weekday_name) + " " + esc(s.start_time) +
+          (s.end_time ? "–" + esc(s.end_time) : "") + "</span>"
+        ).join("");
+        const price = g.course_price
+          ? '<span>' + Number(g.course_price).toLocaleString("uz-UZ") + " so'm/oy</span>"
+          : (g.monthly_price ? '<span>' + Number(g.monthly_price).toLocaleString("uz-UZ") + " so'm/oy</span>" : "");
+        return (
+          '<div class="sp-group-card">' +
+            '<div class="sp-group-header">' +
+              '<div class="sp-group-badge ' + (active ? "active" : "inactive") + '">' +
+                '<i class="fa-solid fa-' + (active ? "book-open" : "book") + '"></i>' +
+              "</div>" +
+              '<div>' +
+                '<div class="sp-group-name">' + esc(g.name) + "</div>" +
+                '<div class="sp-group-teacher">' +
+                  (g.teacher_name ? '<i class="fa-solid fa-chalkboard-teacher"></i> ' + esc(g.teacher_name) : "") +
+                  (!active ? ' <span class="sp-group-inactive-tag">Arxiv</span>' : "") +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            (scheds ? '<div class="sp-group-sched">' + scheds + "</div>" : "") +
+            (price ? '<div class="sp-group-price"><i class="fa-solid fa-wallet" style="color:var(--sp-muted);font-size:12px;"></i>' + price + "</div>" : "") +
+          "</div>"
+        );
+      }).join("");
+    });
+  }
 
-      function loadStudentInit() {
-        const list = document.getElementById("student-actions-list");
-        const isDeferred = list && list.getAttribute("data-deferred") === "1";
-        if (!isDeferred) return;
-        fetch(slugPrefix + "/api/dashboard/student-init/", { credentials: "same-origin" })
-          .then(r => r.ok ? r.json() : null)
-          .then(data => {
-            if (!data) return;
-            const balEl = document.querySelector("[data-balance]");
-            if (balEl) balEl.innerHTML = (data.balance || 0) + ' <small>⚡</small>';
-            renderActions(data.last_actions || []);
-          })
-          .catch(() => renderActions([]));
+  // ── Attendance tab ────────────────────────────────────────────────
+  let attYear, attMonth;
+  const MONTH_NAMES_UZ = [
+    "Yanvar","Fevral","Mart","Aprel","May","Iyun",
+    "Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr",
+  ];
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function loadAttendance() {
+    const now = new Date();
+    attYear = now.getFullYear();
+    attMonth = now.getMonth() + 1;
+    fetchAttendance();
+  }
+
+  function fetchAttendance() {
+    const monthStr = attYear + "-" + String(attMonth).padStart(2, "0");
+    document.getElementById("att-month-label").textContent =
+      MONTH_NAMES_UZ[attMonth - 1] + " " + attYear;
+
+    api("/api/student/attendance/?month=" + monthStr).then(d => {
+      if (!d) return;
+      const s = d.summary || {};
+      const el = v => document.getElementById(v);
+
+      if (el("att-percent")) el("att-percent").textContent = (s.attendance_percent || 0) + "%";
+      if (el("att-present")) el("att-present").textContent = s.attended_lessons || 0;
+      if (el("att-absent"))  el("att-absent").textContent  = s.missed_lessons  || 0;
+
+      renderCalendar(d.calendar || [], monthStr);
+    });
+  }
+
+  function renderCalendar(days, monthStr) {
+    const grid = document.getElementById("att-cal-grid");
+    if (!grid) return;
+
+    // Find first day of month weekday (Mon=0)
+    const firstDate = new Date(monthStr + "-01");
+    let startOffset = (firstDate.getDay() + 6) % 7; // Mon=0, Sun=6
+
+    let html = "";
+    for (let i = 0; i < startOffset; i++) html += '<div class="sp-cal-day empty"></div>';
+
+    for (const d of days) {
+      const isToday = d.date === todayStr;
+      html += (
+        '<div class="sp-cal-day ' + d.status + (isToday ? " sp-cal-today" : "") + '" title="' + esc(d.date) + '">' +
+          d.day +
+        "</div>"
+      );
+    }
+    grid.innerHTML = html;
+  }
+
+  window.attPrevMonth = function () {
+    attMonth--;
+    if (attMonth < 1) { attMonth = 12; attYear--; }
+    fetchAttendance();
+  };
+  window.attNextMonth = function () {
+    const now = new Date();
+    if (attYear > now.getFullYear() || (attYear === now.getFullYear() && attMonth >= now.getMonth() + 1)) return;
+    attMonth++;
+    if (attMonth > 12) { attMonth = 1; attYear++; }
+    fetchAttendance();
+  };
+
+  // ── Payments tab ──────────────────────────────────────────────────
+  function loadPayments() {
+    api("/api/student/payments/").then(d => {
+      if (!d) return;
+
+      renderPayBadge("pay-tab-badge", d.payment_status, d.current_debt);
+      renderPayBadge("pay-badge-wrap", d.payment_status, d.current_debt);
+
+      const el = document.getElementById("payments-list");
+      if (!el) return;
+      const pays = d.payments || [];
+      if (!pays.length) {
+        el.innerHTML = '<div class="sp-empty"><i class="fa-solid fa-receipt"></i>To\'lovlar mavjud emas</div>';
+        return;
       }
+      el.innerHTML = pays.map(p => (
+        '<div class="sp-pay-item">' +
+          '<div class="sp-pay-left">' +
+            '<div class="sp-pay-ico"><i class="fa-solid fa-circle-check"></i></div>' +
+            '<div>' +
+              '<div class="sp-pay-group">' + esc(p.group_name) + "</div>" +
+              '<div class="sp-pay-date">' + esc(p.paid_date) +
+                (p.note ? " · " + esc(p.note) : "") +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          '<div class="sp-pay-amt">+' + Number(p.amount).toLocaleString("uz-UZ") + " so'm</div>" +
+        "</div>"
+      )).join("");
+    });
+  }
 
-      document.addEventListener("DOMContentLoaded", loadStudentInit);
-    })();
-  </script>
+  // ── Chaqmoq tab ───────────────────────────────────────────────────
+  function loadChaqmoq() {
+    api("/api/dashboard/student-init/").then(d => {
+      if (!d) return;
+      const balEl = document.getElementById("chaqmoq-balance");
+      if (balEl) balEl.textContent = (d.balance || 0) + " ⚡";
+      renderChaqmoqHistory("chaqmoq-history", d.last_actions || []);
+    });
+  }
 
-  {% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Sening shaxsiy yordamching" ai_widget_greet="o'z guruhlaring, davomating, to'lovlaring va Chaqmoq balling" aiw_prompt_1="Mening qarzim bormi?" aiw_prompt_2="Davomatim qanday?" aiw_prompt_3="Qaysi guruhlardaman?" aiw_prompt_4="Chaqmoq ballarim qancha?" %}
+  // ── Bootstrap ─────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", function () {
+    tabLoaded["home"] = true;
+    loadDashboard();
+  });
+})();
+</script>
 
-  {% endblock %}
+{% endblock %}

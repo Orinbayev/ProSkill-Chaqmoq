@@ -692,3 +692,464 @@ def dashboard_student_init_api(request):
         "balance": int(balance or 0),
         "last_actions": last_actions,
     })
+
+
+# ─────────────────────── Student Panel APIs ──────────────────────────────────
+
+def _sp_student_only(request):
+    role = getattr(request.user, "role", None)
+    if role != "student" and not request.user.is_superuser:
+        return JsonResponse({"detail": "forbidden"}, status=403)
+    return None
+
+
+def _sp_center(request):
+    from core.tenant import get_request_center
+    return get_request_center(request) or getattr(request.user, "center", None)
+
+
+@login_required
+def student_panel_dashboard_api(request):
+    """Student panel — KPI cards + next lessons."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from datetime import date, timedelta
+    from core.mobile_api import (
+        _student_open_debt,
+        _student_attendance_summary,
+        _student_groups,
+    )
+    from chaqmoq.views import _get_balances_with_legacy_fallback
+    from education.models import GroupSchedule
+
+    user = request.user
+    center = _sp_center(request)
+
+    balance = _get_balances_with_legacy_fallback([user.id], center=center).get(user.id, 0)
+    debt = _student_open_debt(user, center)
+
+    today = timezone.localdate()
+    att = _student_attendance_summary(
+        user, center,
+        start_date=today - timedelta(days=30),
+        end_date=today + timedelta(days=1),
+    )
+    att_rate = att.get("recent_attendance_rate", att.get("attendance_rate", 0))
+
+    groups = _student_groups(user, center)
+    active_groups = [g for g in groups if g.get("is_active")]
+    active_ids = [g["id"] for g in active_groups]
+
+    # Next lessons: today + tomorrow (GroupSchedule weekday: Mon=1, Sun=7)
+    tomorrow = today + timedelta(days=1)
+    today_wd = today.weekday() + 1      # Mon→1 … Sun→7
+    tomorrow_wd = tomorrow.weekday() + 1
+
+    schedules = (
+        GroupSchedule.objects
+        .filter(group_id__in=active_ids, weekday__in=[today_wd, tomorrow_wd])
+        .select_related("group", "group__oqituvchi")
+        .order_by("weekday", "start_time")
+    )
+    next_lessons = []
+    for sch in schedules:
+        teacher = sch.group.oqituvchi
+        next_lessons.append({
+            "group_name": sch.group.nom,
+            "day": "Bugun" if sch.weekday == today_wd else "Ertaga",
+            "start_time": sch.start_time.strftime("%H:%M"),
+            "end_time": sch.end_time.strftime("%H:%M") if sch.end_time else "",
+            "room": sch.room or "",
+            "teacher": teacher.get_full_name() if teacher else "",
+        })
+
+    return JsonResponse({
+        "balance": int(balance or 0),
+        "debt": int(debt),
+        "att_rate": att_rate,
+        "att_present": att.get("recent_present_lessons", 0),
+        "att_total": att.get("recent_total_lessons", 0),
+        "groups_total": len(groups),
+        "groups_active": len(active_groups),
+        "payment_status": "debt" if debt > 0 else "paid",
+        "next_lessons": next_lessons,
+    })
+
+
+@login_required
+def student_panel_groups_api(request):
+    """Student panel — groups list with schedules."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from core.mobile_api import _student_groups
+    from education.models import GroupSchedule
+
+    user = request.user
+    center = _sp_center(request)
+
+    groups = _student_groups(user, center)
+    group_ids = [g["id"] for g in groups]
+
+    schedules_qs = (
+        GroupSchedule.objects
+        .filter(group_id__in=group_ids)
+        .order_by("weekday", "start_time")
+    )
+    sched_map: dict[int, list] = {}
+    for sch in schedules_qs:
+        sched_map.setdefault(sch.group_id, []).append({
+            "weekday": sch.weekday,
+            "weekday_name": sch.weekday_uz,
+            "start_time": sch.start_time.strftime("%H:%M"),
+            "end_time": sch.end_time.strftime("%H:%M") if sch.end_time else "",
+            "room": sch.room or "",
+        })
+
+    for g in groups:
+        g["schedules"] = sched_map.get(g["id"], [])
+
+    return JsonResponse({"groups": groups})
+
+
+@login_required
+def student_panel_attendance_api(request):
+    """Student panel — monthly attendance calendar."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from datetime import date, timedelta
+    from collections import defaultdict
+    import calendar as cal_mod
+    from core.mobile_api import _student_monthly_attendance_summary, _add_months
+    from education.models import Attendance
+    from django.db.models import Q
+
+    user = request.user
+    center = _sp_center(request)
+
+    month_str = request.GET.get("month", "")
+    if month_str:
+        try:
+            month_start = date.fromisoformat(month_str + "-01")
+        except ValueError:
+            return JsonResponse({"error": "Invalid month format. Use YYYY-MM."}, status=400)
+    else:
+        month_start = timezone.localdate().replace(day=1)
+
+    month_end = _add_months(month_start, 1)
+    summary = _student_monthly_attendance_summary(user, center, month_start)
+
+    att_qs = (
+        Attendance.objects
+        .filter(student=user, group__center=center, date__gte=month_start, date__lt=month_end)
+        .values("date", "status", "present", "forced")
+    )
+
+    day_map: dict[str, list] = defaultdict(list)
+    for att in att_qs:
+        is_present = att.get("forced") or att.get("present") or att.get("status") == "present"
+        day_map[att["date"].isoformat()].append("present" if is_present else att.get("status", "absent"))
+
+    calendar_days = []
+    cur = month_start
+    while cur < month_end:
+        iso = cur.isoformat()
+        entries = day_map.get(iso, [])
+        if entries:
+            all_p = all(e == "present" for e in entries)
+            any_p = any(e == "present" for e in entries)
+            status = "present" if all_p else ("partial" if any_p else "absent")
+        else:
+            status = "no_class"
+        calendar_days.append({"date": iso, "day": cur.day, "weekday": cur.weekday(), "status": status})
+        cur += timedelta(days=1)
+
+    return JsonResponse({
+        "month": month_start.strftime("%Y-%m"),
+        "summary": summary,
+        "calendar": calendar_days,
+    })
+
+
+@login_required
+def student_panel_payments_api(request):
+    """Student panel — payment history + current month status."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from core.mobile_api import _student_open_debt
+    from education.models import Payment
+
+    user = request.user
+    center = _sp_center(request)
+
+    debt = _student_open_debt(user, center)
+
+    payments = (
+        Payment.objects
+        .filter(student=user, center=center, is_deleted=False)
+        .select_related("group")
+        .order_by("-paid_date", "-id")[:30]
+    )
+    payments_list = [
+        {
+            "id": p.id,
+            "group_name": p.group.nom if p.group else "",
+            "amount": p.summa,
+            "payment_type": p.payment_type,
+            "paid_date": p.paid_date.isoformat(),
+            "note": p.note or "",
+        }
+        for p in payments
+    ]
+
+    return JsonResponse({
+        "current_debt": int(debt),
+        "payment_status": "debt" if debt > 0 else "paid",
+        "payments": payments_list,
+    })
+
+
+# ─────────────────────── Parent Panel APIs ───────────────────────────────────
+
+def _pp_resolve_child(request, child_pk: int):
+    """Returns (child, center) or JsonResponse error."""
+    from accounts.models import User
+    user = request.user
+    role = getattr(user, "role", None)
+    if role != "parent" and not user.is_superuser:
+        return None, None, JsonResponse({"detail": "forbidden"}, status=403)
+
+    center = _sp_center(request)
+    child_qs = user.children.filter(pk=child_pk, role="student")
+    if center:
+        child_qs = child_qs.filter(center=center)
+    try:
+        child = child_qs.get()
+    except Exception:
+        return None, None, JsonResponse({"detail": "child not found"}, status=404)
+    return child, center, None
+
+
+@login_required
+def parent_panel_children_api(request):
+    """Parent panel — list of linked children with basic stats."""
+    from datetime import timedelta
+    from core.mobile_api import _student_open_debt, _student_balance, _student_attendance_summary
+
+    user = request.user
+    if getattr(user, "role", None) != "parent" and not user.is_superuser:
+        return JsonResponse({"detail": "forbidden"}, status=403)
+
+    center = _sp_center(request)
+    children = user.children.filter(role="student").order_by("ism", "familya")
+    if center:
+        children = children.filter(center=center)
+
+    result = []
+    today = timezone.localdate()
+    for ch in children:
+        att = _student_attendance_summary(
+            ch, center,
+            start_date=today - timezone.timedelta(days=30),
+            end_date=today + timezone.timedelta(days=1),
+        )
+        result.append({
+            "id": ch.id,
+            "full_name": ch.get_full_name(),
+            "balance": _student_balance(ch, center),
+            "debt": _student_open_debt(ch, center),
+            "att_rate": att.get("recent_attendance_rate", att.get("attendance_rate", 0)),
+        })
+
+    return JsonResponse({"children": result})
+
+
+@login_required
+def parent_panel_child_dashboard_api(request, child_pk: int):
+    """Parent panel — KPI + next lessons for one child."""
+    from datetime import timedelta
+    from core.mobile_api import (
+        _student_open_debt, _student_attendance_summary, _student_groups, _student_balance,
+    )
+    from education.models import GroupSchedule
+
+    child, center, err = _pp_resolve_child(request, child_pk)
+    if err:
+        return err
+
+    balance = _student_balance(child, center)
+    debt = _student_open_debt(child, center)
+    today = timezone.localdate()
+
+    att = _student_attendance_summary(
+        child, center,
+        start_date=today - timezone.timedelta(days=30),
+        end_date=today + timezone.timedelta(days=1),
+    )
+    att_rate = att.get("recent_attendance_rate", att.get("attendance_rate", 0))
+
+    groups = _student_groups(child, center)
+    active_groups = [g for g in groups if g.get("is_active")]
+    active_ids = [g["id"] for g in active_groups]
+
+    tomorrow = today + timezone.timedelta(days=1)
+    today_wd = today.weekday() + 1
+    tomorrow_wd = tomorrow.weekday() + 1
+
+    schedules = (
+        GroupSchedule.objects
+        .filter(group_id__in=active_ids, weekday__in=[today_wd, tomorrow_wd])
+        .select_related("group", "group__oqituvchi")
+        .order_by("weekday", "start_time")
+    )
+    next_lessons = []
+    for sch in schedules:
+        teacher = sch.group.oqituvchi
+        next_lessons.append({
+            "group_name": sch.group.nom,
+            "day": "Bugun" if sch.weekday == today_wd else "Ertaga",
+            "start_time": sch.start_time.strftime("%H:%M"),
+            "end_time": sch.end_time.strftime("%H:%M") if sch.end_time else "",
+            "room": sch.room or "",
+            "teacher": teacher.get_full_name() if teacher else "",
+        })
+
+    return JsonResponse({
+        "child_id": child.id,
+        "full_name": child.get_full_name(),
+        "balance": int(balance or 0),
+        "debt": int(debt),
+        "att_rate": att_rate,
+        "att_present": att.get("recent_present_lessons", 0),
+        "att_total": att.get("recent_total_lessons", 0),
+        "groups_total": len(groups),
+        "groups_active": len(active_groups),
+        "payment_status": "debt" if debt > 0 else "paid",
+        "next_lessons": next_lessons,
+    })
+
+
+@login_required
+def parent_panel_child_groups_api(request, child_pk: int):
+    """Parent panel — groups list for one child."""
+    from core.mobile_api import _student_groups
+    from education.models import GroupSchedule
+
+    child, center, err = _pp_resolve_child(request, child_pk)
+    if err:
+        return err
+
+    groups = _student_groups(child, center)
+    group_ids = [g["id"] for g in groups]
+    sched_map: dict[int, list] = {}
+    for sch in GroupSchedule.objects.filter(group_id__in=group_ids).order_by("weekday", "start_time"):
+        sched_map.setdefault(sch.group_id, []).append({
+            "weekday": sch.weekday,
+            "weekday_name": sch.weekday_uz,
+            "start_time": sch.start_time.strftime("%H:%M"),
+            "end_time": sch.end_time.strftime("%H:%M") if sch.end_time else "",
+            "room": sch.room or "",
+        })
+    for g in groups:
+        g["schedules"] = sched_map.get(g["id"], [])
+
+    return JsonResponse({"groups": groups})
+
+
+@login_required
+def parent_panel_child_attendance_api(request, child_pk: int):
+    """Parent panel — monthly attendance calendar for one child."""
+    from datetime import date, timedelta
+    from collections import defaultdict
+    from core.mobile_api import _student_monthly_attendance_summary, _add_months
+    from education.models import Attendance
+    from django.db.models import Q
+
+    child, center, err = _pp_resolve_child(request, child_pk)
+    if err:
+        return err
+
+    month_str = request.GET.get("month", "")
+    if month_str:
+        try:
+            month_start = date.fromisoformat(month_str + "-01")
+        except ValueError:
+            return JsonResponse({"error": "Invalid month format. Use YYYY-MM."}, status=400)
+    else:
+        month_start = timezone.localdate().replace(day=1)
+
+    month_end = _add_months(month_start, 1)
+    summary = _student_monthly_attendance_summary(child, center, month_start)
+
+    att_qs = (
+        Attendance.objects
+        .filter(student=child, group__center=center, date__gte=month_start, date__lt=month_end)
+        .values("date", "status", "present", "forced")
+    )
+
+    day_map: dict[str, list] = defaultdict(list)
+    for att in att_qs:
+        is_present = att.get("forced") or att.get("present") or att.get("status") == "present"
+        day_map[att["date"].isoformat()].append("present" if is_present else att.get("status", "absent"))
+
+    calendar_days = []
+    cur = month_start
+    while cur < month_end:
+        iso = cur.isoformat()
+        entries = day_map.get(iso, [])
+        if entries:
+            all_p = all(e == "present" for e in entries)
+            any_p = any(e == "present" for e in entries)
+            status = "present" if all_p else ("partial" if any_p else "absent")
+        else:
+            status = "no_class"
+        calendar_days.append({"date": iso, "day": cur.day, "weekday": cur.weekday(), "status": status})
+        cur += timedelta(days=1)
+
+    return JsonResponse({
+        "month": month_start.strftime("%Y-%m"),
+        "summary": summary,
+        "calendar": calendar_days,
+    })
+
+
+@login_required
+def parent_panel_child_payments_api(request, child_pk: int):
+    """Parent panel — payment history for one child."""
+    from core.mobile_api import _student_open_debt
+    from education.models import Payment
+
+    child, center, err = _pp_resolve_child(request, child_pk)
+    if err:
+        return err
+
+    debt = _student_open_debt(child, center)
+    payments = (
+        Payment.objects
+        .filter(student=child, center=center, is_deleted=False)
+        .select_related("group")
+        .order_by("-paid_date", "-id")[:30]
+    )
+    payments_list = [
+        {
+            "id": p.id,
+            "group_name": p.group.nom if p.group else "",
+            "amount": p.summa,
+            "payment_type": p.payment_type,
+            "paid_date": p.paid_date.isoformat(),
+            "note": p.note or "",
+        }
+        for p in payments
+    ]
+    return JsonResponse({
+        "current_debt": int(debt),
+        "payment_status": "debt" if debt > 0 else "paid",
+        "payments": payments_list,
+    })

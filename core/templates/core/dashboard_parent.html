@@ -1,532 +1,932 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block body_class %}parent-dashboard-page{% endblock %}
+{% block body_class %}parent-panel-page{% endblock %}
 {% block content %}
+
 <style>
-    :root {
-        --bg-dark: #020617;
-        --bg-card: #0f172a;
-        --border: rgba(255, 255, 255, 0.08);
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --primary: #f59e0b;
-        --radius: 20px;
-    }
+/* ── reuses student panel vars ───────────────────────────────────── */
+:root {
+  --sp-bg:     #0b1220;
+  --sp-card:   rgba(17,24,39,.72);
+  --sp-card2:  rgba(10,16,30,.65);
+  --sp-border: rgba(255,255,255,.07);
+  --sp-text:   #e5e7eb;
+  --sp-muted:  #94a3b8;
+  --sp-green:  #22c55e;
+  --sp-blue:   #3b82f6;
+  --sp-red:    #ef4444;
+  --sp-yellow: #f59e0b;
+  --sp-radius: 20px;
+  --sp-shadow: 0 18px 45px rgba(0,0,0,.22);
+}
+html[data-role-theme="light"] {
+  --sp-bg:     #f1f5f9;
+  --sp-card:   #ffffff;
+  --sp-card2:  #f8fafc;
+  --sp-border: rgba(0,0,0,.08);
+  --sp-text:   #1e293b;
+  --sp-muted:  #64748b;
+  --sp-shadow: 0 4px 20px rgba(0,0,0,.08);
+}
 
-    .parent-scope {
-        background: var(--bg-dark);
-        min-height: 100vh;
-        padding: 24px;
-        color: var(--text-main);
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
+.sp-wrap { max-width:1240px; margin:0 auto; padding:10px 14px 80px; color:var(--sp-text); }
 
-    .header-section {
-        margin-bottom: 32px;
-    }
+/* top bar */
+.sp-topbar {
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:16px 20px; border-radius:var(--sp-radius);
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  backdrop-filter:blur(12px); box-shadow:var(--sp-shadow); margin-bottom:18px;
+  position:relative; z-index:1300;
+}
+.sp-topbar-left { display:flex; align-items:center; gap:12px; }
+.sp-ico {
+  width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
+  background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.22);
+  color:var(--sp-yellow); font-size:18px;
+}
+.sp-title  { margin:0; font-size:28px; font-weight:950; color:var(--sp-text); }
+.sp-sub    { color:var(--sp-muted); font-size:13px; font-weight:700; margin-top:3px; }
+.sp-actions{ display:flex; align-items:center; gap:8px; }
+.sp-icon-btn {
+  width:42px; height:42px; border-radius:13px; display:grid; place-items:center;
+  border:1px solid var(--sp-border); background:var(--sp-card2);
+  color:var(--sp-muted); text-decoration:none; transition:.18s; cursor:pointer;
+}
+.sp-icon-btn:hover { color:var(--sp-text); transform:translateY(-1px); }
+.sp-avatar {
+  width:46px; height:46px; border-radius:999px; overflow:hidden;
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  border:1px solid var(--sp-border); display:flex; align-items:center;
+  justify-content:center; font-weight:950; color:#fff; font-size:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25); transition:.18s;
+}
+.sp-avatar:hover { transform:translateY(-2px); }
+.sp-avatar img { width:100%; height:100%; object-fit:cover; border-radius:999px; }
 
-    .welcome-text {
-        font-size: 24px;
-        font-weight: 800;
-        margin-bottom: 8px;
-    }
+/* children selector */
+.pp-children-bar {
+  display:flex; gap:8px; overflow-x:auto; margin-bottom:16px;
+  padding-bottom:2px; scrollbar-width:none;
+}
+.pp-children-bar::-webkit-scrollbar { display:none; }
+.pp-child-btn {
+  flex-shrink:0; display:flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:14px; border:1px solid var(--sp-border);
+  background:var(--sp-card); color:var(--sp-muted);
+  font-size:13px; font-weight:800; cursor:pointer; transition:.18s;
+}
+.pp-child-btn:hover { color:var(--sp-text); border-color:var(--sp-yellow); }
+.pp-child-btn.active { border-color:var(--sp-yellow); background:rgba(245,158,11,.1); color:var(--sp-yellow); }
+.pp-child-avatar {
+  width:28px; height:28px; border-radius:999px;
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  display:grid; place-items:center; font-size:11px; font-weight:950; color:#fff;
+}
 
-    .center-name {
-        font-size: 14px;
-        color: var(--primary);
-        font-weight: 600;
-    }
+/* KPI */
+.sp-kpi-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;
+}
+@media(max-width:900px){ .sp-kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:500px){ .sp-kpi-grid{ grid-template-columns:1fr; } }
+.sp-kpi {
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  border-radius:var(--sp-radius); padding:18px 18px 14px;
+  box-shadow:var(--sp-shadow); position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:8px;
+}
+.sp-kpi-label { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--sp-muted); display:flex; align-items:center; gap:6px; }
+.sp-kpi-val { font-size:34px; font-weight:950; line-height:1; color:var(--sp-text); }
+.sp-kpi-val.green { color:var(--sp-green); }
+.sp-kpi-val.red   { color:var(--sp-red);   }
+.sp-kpi-val.blue  { color:var(--sp-blue);  }
+.sp-kpi-val.yellow{ color:var(--sp-yellow);}
+.sp-kpi-sub { font-size:12px; color:var(--sp-muted); font-weight:700; }
+.sp-kpi-glow { position:absolute; right:-20px; bottom:-24px; width:80px; height:80px; border-radius:999px; opacity:.08; }
+.kpi-glow-green  { background:var(--sp-green); }
+.kpi-glow-red    { background:var(--sp-red); }
+.kpi-glow-blue   { background:var(--sp-blue); }
+.kpi-glow-yellow { background:var(--sp-yellow); }
 
-    .children-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 24px;
-        margin-bottom: 40px;
-    }
+/* skeleton */
+.sp-skel {
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%);
+  background-size:200% 100%;
+  animation:sp-shimmer 1.4s ease-in-out infinite;
+  border-radius:8px; display:inline-block;
+}
+html[data-role-theme="light"] .sp-skel {
+  background:linear-gradient(90deg,#e2e8f0 25%,#cbd5e1 50%,#e2e8f0 75%);
+  background-size:200% 100%;
+}
+@keyframes sp-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-    .child-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 24px;
-        transition: 0.3s;
-        position: relative;
-        overflow: hidden;
-    }
+/* tabs */
+.sp-tabs {
+  display:flex; gap:4px; overflow-x:auto;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:16px; padding:5px; margin-bottom:18px; scrollbar-width:none;
+}
+.sp-tabs::-webkit-scrollbar { display:none; }
+.sp-tab {
+  flex-shrink:0; padding:9px 18px; border-radius:12px;
+  font-size:13px; font-weight:800; cursor:pointer;
+  border:none; background:transparent; color:var(--sp-muted); transition:.18s;
+  display:flex; align-items:center; gap:6px;
+}
+.sp-tab:hover { color:var(--sp-text); background:var(--sp-border); }
+.sp-tab.active { background:var(--sp-yellow); color:#1e293b; box-shadow:0 4px 14px rgba(245,158,11,.35); }
 
-    .child-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--primary);
-    }
+/* panel card */
+.sp-panel {
+  background:var(--sp-card); border:1px solid var(--sp-border);
+  border-radius:var(--sp-radius); box-shadow:var(--sp-shadow); padding:22px;
+}
+.sp-panel-title { font-size:16px; font-weight:950; color:var(--sp-text); display:flex; align-items:center; gap:8px; margin:0 0 16px; }
 
-    .child-info {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
+/* next lessons */
+.sp-lessons { display:flex; flex-direction:column; gap:10px; }
+.sp-lesson {
+  display:flex; align-items:center; gap:14px;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:14px; padding:12px 14px;
+}
+.sp-lesson-day { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; padding:4px 8px; border-radius:8px; background:rgba(245,158,11,.12); color:var(--sp-yellow); flex-shrink:0; }
+.sp-lesson-day.today { background:rgba(34,197,94,.12); color:var(--sp-green); }
+.sp-lesson-info { flex:1; min-width:0; }
+.sp-lesson-name { font-weight:900; font-size:14px; color:var(--sp-text); }
+.sp-lesson-meta { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-lesson-time { font-size:13px; font-weight:950; color:var(--sp-text); flex-shrink:0; text-align:right; }
 
-    .child-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: rgba(245, 158, 11, 0.1);
-        display: grid;
-        place-items: center;
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--primary);
-    }
+/* payment badge */
+.sp-pay-badge { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:12px; font-size:14px; font-weight:900; }
+.sp-pay-badge.paid    { background:rgba(34,197,94,.12); color:var(--sp-green); border:1px solid rgba(34,197,94,.2); }
+.sp-pay-badge.debt    { background:rgba(239,68,68,.12); color:var(--sp-red);   border:1px solid rgba(239,68,68,.2); }
+.sp-pay-badge.loading { background:var(--sp-card2); color:var(--sp-muted); border:1px solid var(--sp-border); }
 
-    .child-name {
-        font-size: 18px;
-        font-weight: 700;
-    }
+/* groups */
+.sp-group-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+.sp-group-card { background:var(--sp-card2); border:1px solid var(--sp-border); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.sp-group-header { display:flex; align-items:flex-start; gap:10px; }
+.sp-group-badge { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; font-size:15px; flex-shrink:0; }
+.sp-group-badge.active   { background:rgba(34,197,94,.12); color:var(--sp-green); border:1px solid rgba(34,197,94,.2); }
+.sp-group-badge.inactive { background:rgba(148,163,184,.1); color:var(--sp-muted); border:1px solid var(--sp-border); }
+.sp-group-name    { font-weight:950; font-size:15px; color:var(--sp-text); }
+.sp-group-teacher { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-group-sched   { display:flex; flex-wrap:wrap; gap:6px; }
+.sp-sched-pill { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:rgba(245,158,11,.1); color:var(--sp-yellow); border:1px solid rgba(245,158,11,.15); }
+.sp-group-price { font-size:13px; font-weight:900; color:var(--sp-text); display:flex; align-items:center; gap:6px; }
+.sp-group-inactive-tag { font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(239,68,68,.1); color:var(--sp-red); border:1px solid rgba(239,68,68,.15); }
 
-    .stats-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
-    }
+/* attendance */
+.sp-att-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.sp-month-nav  { display:flex; align-items:center; gap:8px; }
+.sp-month-btn  { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; border:1px solid var(--sp-border); background:var(--sp-card2); color:var(--sp-muted); cursor:pointer; transition:.18s; font-size:14px; }
+.sp-month-btn:hover { color:var(--sp-text); border-color:var(--sp-yellow); }
+.sp-month-label{ font-weight:950; font-size:15px; color:var(--sp-text); min-width:120px; text-align:center; }
+.sp-att-stats  { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+.sp-att-stat   { background:var(--sp-card2); border:1px solid var(--sp-border); border-radius:14px; padding:12px; text-align:center; }
+.sp-att-stat-val { font-size:26px; font-weight:950; color:var(--sp-text); }
+.sp-att-stat-val.green { color:var(--sp-green); }
+.sp-att-stat-val.red   { color:var(--sp-red); }
+.sp-att-stat-lbl { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:4px; }
+.sp-cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:6px; }
+.sp-cal-wd   { font-size:11px; font-weight:800; color:var(--sp-muted); padding:4px 0; }
+.sp-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.sp-cal-day  { aspect-ratio:1; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:var(--sp-text); position:relative; }
+.sp-cal-day.no_class { background:rgba(255,255,255,.02); color:var(--sp-muted); }
+html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02); }
+.sp-cal-day.present { background:rgba(34,197,94,.15);  color:var(--sp-green); border:1px solid rgba(34,197,94,.25); }
+.sp-cal-day.absent  { background:rgba(239,68,68,.12);  color:var(--sp-red);   border:1px solid rgba(239,68,68,.2); }
+.sp-cal-day.partial { background:rgba(245,158,11,.12); color:var(--sp-yellow);border:1px solid rgba(245,158,11,.2); }
+.sp-cal-day.empty   { background:transparent; }
+.sp-cal-today { outline:2px solid var(--sp-yellow); outline-offset:2px; }
+.sp-att-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:14px; }
+.sp-leg     { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:700; color:var(--sp-muted); }
+.sp-leg-dot { width:10px; height:10px; border-radius:4px; flex-shrink:0; }
+.sp-leg-dot.present  { background:var(--sp-green);  }
+.sp-leg-dot.absent   { background:var(--sp-red);    }
+.sp-leg-dot.partial  { background:var(--sp-yellow); }
+.sp-leg-dot.no_class { background:var(--sp-border); }
 
-    .stat-box {
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
-    }
+/* payments */
+.sp-pay-list { display:flex; flex-direction:column; gap:10px; }
+.sp-pay-item { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--sp-card2); border:1px solid var(--sp-border); border-radius:14px; padding:12px 14px; }
+.sp-pay-left { display:flex; align-items:center; gap:10px; min-width:0; }
+.sp-pay-ico  { width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.2); color:var(--sp-green); font-size:14px; flex-shrink:0; }
+.sp-pay-group{ font-weight:900; font-size:13px; color:var(--sp-text); }
+.sp-pay-date { font-size:12px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-pay-amt  { font-weight:950; font-size:14px; color:var(--sp-green); flex-shrink:0; }
 
-    .stat-value {
-        font-size: 20px;
-        font-weight: 800;
-        display: block;
-    }
+/* chaqmoq */
+.sp-bolt-bal   { display:flex; flex-direction:column; align-items:center; padding:30px 0 20px; text-align:center; }
+.sp-bolt-ico   { font-size:56px; color:var(--sp-yellow); margin-bottom:10px; }
+.sp-bolt-val   { font-size:64px; font-weight:950; color:var(--sp-yellow); line-height:1; }
+.sp-bolt-lbl   { font-size:14px; color:var(--sp-muted); font-weight:700; margin-top:6px; }
+.sp-bolt-actions { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+.sp-bolt-item  { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--sp-card2); border:1px solid var(--sp-border); border-radius:14px; padding:12px 14px; }
+.sp-bolt-item-left { display:flex; align-items:center; gap:10px; min-width:0; }
+.sp-bolt-sign  { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; font-weight:950; font-size:15px; flex-shrink:0; }
+.sp-bolt-sign.plus  { background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.2); color:var(--sp-green); }
+.sp-bolt-sign.minus { background:rgba(239,68,68,.12);  border:1px solid rgba(239,68,68,.2);  color:var(--sp-red); }
+.sp-bolt-ttl   { font-weight:900; font-size:13px; color:var(--sp-text); }
+.sp-bolt-time  { font-size:11px; color:var(--sp-muted); font-weight:700; margin-top:2px; }
+.sp-bolt-amt   { font-weight:950; font-size:14px; flex-shrink:0; white-space:nowrap; }
+.sp-bolt-amt.plus  { color:var(--sp-green); }
+.sp-bolt-amt.minus { color:var(--sp-red); }
 
-    .stat-label {
-        font-size: 11px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        font-weight: 700;
-    }
+/* search */
+.pp-search-wrap { background:var(--sp-card); border:1px solid var(--sp-border); border-radius:var(--sp-radius); padding:22px; box-shadow:var(--sp-shadow); margin-top:18px; }
+.pp-search-input {
+  width:100%; height:48px;
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:12px; padding:0 14px 0 44px;
+  color:var(--sp-text); font-size:14px; font-weight:700; outline:none; transition:.18s;
+}
+.pp-search-input::placeholder { color:var(--sp-muted); }
+.pp-search-input:focus { border-color:var(--sp-yellow); }
+.pp-search-wrap-inner { position:relative; }
+.pp-search-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--sp-muted); }
+.pp-result-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid var(--sp-border); transition:.15s; }
+.pp-result-item:last-child { border-bottom:none; }
+.pp-result-item:hover { background:rgba(255,255,255,.02); }
+html[data-role-theme="light"] .pp-result-item:hover { background:rgba(0,0,0,.02); }
+.pp-result-left { display:flex; align-items:center; gap:10px; }
+.pp-result-av { width:36px; height:36px; border-radius:999px; background:rgba(245,158,11,.12); display:grid; place-items:center; font-size:13px; font-weight:800; color:var(--sp-yellow); }
+.pp-result-name { font-weight:800; font-size:14px; color:var(--sp-text); }
+.pp-result-role { font-size:11px; color:var(--sp-muted); font-weight:700; }
+.pp-act-btn { padding:7px 14px; border-radius:10px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:.15s; }
+.pp-act-add { background:rgba(34,197,94,.1); color:var(--sp-green); border-color:rgba(34,197,94,.2); }
+.pp-act-rem { background:rgba(239,68,68,.1); color:var(--sp-red);   border-color:rgba(239,68,68,.2); }
 
-    .search-section {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 24px;
-    }
-
-    .search-box {
-        position: relative;
-        margin-bottom: 20px;
-    }
-
-    .search-input {
-        width: 100%;
-        height: 54px;
-        background: rgba(2, 6, 23, 0.5);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 0 54px;
-        color: white;
-        font-size: 16px;
-        outline: none;
-        transition: 0.2s;
-    }
-
-    .search-input:focus {
-        border-color: var(--primary);
-    }
-
-    .search-icon {
-        position: absolute;
-        left: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-muted);
-    }
-
-    .result-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px;
-        border-bottom: 1px solid var(--border);
-        transition: 0.2s;
-    }
-
-    .result-item:last-child {
-        border-bottom: none;
-    }
-
-    .result-item:hover {
-        background: rgba(255, 255, 255, 0.03);
-    }
-
-    .view-btn {
-        padding: 8px 16px;
-        background: var(--primary);
-        color: black;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 13px;
-    }
-
-    /* ✅ AVATAR BUTTON */
-    .avatar-btn {
-        width: 48px;
-        height: 48px;
-        border-radius: 999px;
-        overflow: hidden;
-        padding: 0;
-        border: 1px solid rgba(255, 255, 255, .14);
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #fff;
-        font-weight: 950;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 12px 26px rgba(0, 0, 0, .35);
-        transition: .18s ease;
-        cursor: pointer;
-    }
-
-    .avatar-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 16px 36px rgba(0, 0, 0, .45), 0 0 0 4px rgba(245, 158, 11, .12);
-        border-color: rgba(245, 158, 11, .45);
-    }
-
-    .avatar-btn img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    /* dropdown menu theme */
-    .dropdown-menu-dark {
-        background: #0f172a;
-        border: 1px solid rgba(255, 255, 255, .10);
-        box-shadow: 0 22px 50px rgba(0, 0, 0, .45);
-        border-radius: 16px;
-        padding: 10px;
-        min-width: 240px;
-    }
-
-    .dropdown-item {
-        color: #e5e7eb;
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-weight: 700;
-        transition: 0.2s;
-    }
-
-    .dropdown-item:hover {
-        background: rgba(255, 255, 255, .06);
-        color: #fff;
-        transform: translateX(4px);
-    }
-
-    .dropdown-item.text-danger:hover {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444 !important;
-    }
-
-    .dropdown-divider {
-        border-top: 1px solid rgba(255, 255, 255, .08);
-        margin: 8px 0;
-    }
+/* misc */
+.sp-empty { text-align:center; padding:40px 20px; color:var(--sp-muted); font-size:14px; font-weight:700; }
+.sp-empty i { display:block; font-size:36px; margin-bottom:10px; opacity:.4; }
+.sp-two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:700px){ .sp-two-col{ grid-template-columns:1fr; } }
+.sp-section-gap { margin-top:18px; }
+.dropdown-menu { background:var(--sp-card); border:1px solid var(--sp-border); box-shadow:0 22px 50px rgba(0,0,0,.3); border-radius:14px; padding:8px; z-index:9999; min-width:220px; }
+.dropdown-item { color:var(--sp-text); border-radius:10px; padding:9px 10px; font-weight:800; }
+.dropdown-item:hover { background:var(--sp-border); color:var(--sp-text); }
+.dropdown-divider { border-top:1px solid var(--sp-border); }
 </style>
 
-<div class="parent-scope">
-    <div class="header-section"
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <div>
-            <h1 class="welcome-text" style="margin: 0; font-weight: 800; font-size: 26px;">Assalomu alaykum,
-                {{request.user.ism }}! 👋</h1>
-            <p class="center-name" style="margin-top: 6px; color: var(--primary); font-weight: 700; font-size: 14px;">
-                <i class="fa-solid fa-location-dot"></i> {{ center.name }}
-            </p>
-        </div>
+<div class="sp-wrap">
 
-        <div style="display: flex; align-items: center; gap: 16px;">
-            {% if center.donation_enabled %}
-            <button type="button" class="btn-action btn-primary" onclick="openParentDonationModal()"
-                style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); border: none; height: 46px; padding: 0 24px; border-radius: 14px; font-weight: 800;">
-                <i class="fa-solid fa-heart"></i> Donat
-            </button>
-            {% endif %}
-
-            <!-- Notification Bell (Reverted) -->
-            <button class="icon-btn-glass position-relative" title="Bildirishnomalar"
-                onclick="toggleNotificationSidebar()"
-                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 44px; height: 44px; border-radius: 12px; color: white;">
-                <i class="fa-regular fa-bell"></i>
-                {% if unread_notifications_count > 0 %}
-                <span
-                    class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
-                    style="width:10px;height:10px;">
-                </span>
-                {% endif %}
-            </button>
-            {% include "components/profile_dropdown.html" %}
-        </div>
+  <!-- ──────── Top bar ──────── -->
+  <div class="sp-topbar">
+    <div class="sp-topbar-left">
+      <div class="sp-ico"><i class="fa-solid fa-children"></i></div>
+      <div>
+        <h3 class="sp-title">Ota-ona paneli</h3>
+        <div class="sp-sub">{{ center.name }}</div>
+      </div>
     </div>
-
-    <div class="dashboard-content" style="display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start;">
-        <!-- Main Content -->
-        <div class="main-column">
-
-            <h2 style="margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-children" style="color: var(--primary);"></i>
-                Mening farzandlarim
-            </h2>
-            <div class="children-grid">
-                {% for child in children %}
-                <div class="child-card">
-                    <div class="dropdown" style="position: absolute; top: 20px; right: 20px; z-index: 10;">
-                        <button class="btn btn-link text-white-50 p-0" type="button" data-bs-toggle="dropdown"
-                            aria-expanded="false">
-                            <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end"
-                            style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1);">
-                            <li>
-                                <button class="dropdown-item text-danger d-flex align-items-center gap-2 small"
-                                    type="button" data-name="{{ child.get_full_name|escapejs }}"
-                                    data-url="{% url 'core:toggle_child' child.id %}"
-                                    onclick="confirmAction(this.dataset.name, 'remove', this.dataset.url)">
-                                    <i class="fa-solid fa-trash"></i> Farzandlardan chiqarish
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="child-info">
-                        <div class="child-avatar">
-                            {{ child.ism|slice:":1" }}{{ child.familya|slice:":1" }}
-                        </div>
-                        <div>
-                            <div class="child-name">{{ child.get_full_name }}</div>
-                        </div>
-                    </div>
-
-                    <div class="stats-row">
-                        <div class="stat-box">
-                            <span class="stat-value" style="color: #4ade80;">#{{ child.calculated_rank }}</span>
-                            <span class="stat-label">Reyting O'rni</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-value" style="color: var(--primary);">{{ child.calculated_balance}}</span>
-                            <span class="stat-label">Chaqmoqlar</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-value" style="color: #60a5fa;">{{ child.enrollment_set.count }}</span>
-                            <span class="stat-label">Guruhlar</span>
-                        </div>
-                    </div>
-
-                    <a href="{% url 'core:user_view' child.id %}"
-                        style="margin-top: 20px; width: 100%; justify-content: center; background: rgba(245, 158, 11, 0.1); color: var(--primary); border: 1px solid rgba(245, 158, 11, 0.2); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; transition: 0.2s;">
-                        <i class="fa-solid fa-chart-line"></i> Reyting & Davomat
-                    </a>
-                    <a href="{% url 'education:student_exam_report' child.id %}"
-                        style="margin-top: 10px; width: 100%; justify-content: center; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; transition: 0.2s;">
-                        <i class="fa-solid fa-file-lines"></i> Imtihon natijalari
-                    </a>
-                </div>
-                {% empty %}
-                <div class="child-card"
-                    style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">
-                    <i class="fa-solid fa-user-slash" style="font-size: 40px; margin-bottom: 16px; opacity: 0.3;"></i>
-                    <p>Sizga birortala ham farzand biriktirilmagan.</p>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="search-section">
-                <h2 style="margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-user-group" style="color: var(--primary);"></i>
-                    Boshqa o'quvchilarni qidirish
-                </h2>
-                <form method="get" class="search-box">
-                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="search-input"
-                        placeholder="O'quvchi ismi yoki familiyasi...">
-                </form>
-
-                {% if request.GET.q %}
-                <div class="search-results">
-                    {% for result in search_results %}
-                    <div class="result-item">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div
-                                style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); display: grid; place-items: center; font-size: 14px; font-weight: 700;">
-                                {{ result.ism|slice:":1" }}
-                            </div>
-                            <div>
-                                <span style="font-weight: 700;">{{ result.get_full_name }}</span>
-                                <div style="font-size: 11px; color: var(--text-muted);">O'quvchi</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 24px;">
-                            <div style="text-align: right;">
-                                <div style="font-weight: 800; color: #4ade80;">#{{ result.calculated_rank }}</div>
-                                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">
-                                    Reyting O'rni
-                                </div>
-                            </div>
-
-                            <div style="display: flex; gap: 10px;">
-                                <a href="{% url 'core:user_view' result.id %}" class="view-btn">
-                                    <i class="fa-solid fa-eye"></i> Ko'rish
-                                </a>
-
-                                {% if result.is_my_child %}
-                                <button type="button" class="view-btn"
-                                    style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 16px; cursor: pointer;"
-                                    data-name="{{ result.get_full_name|escapejs }}"
-                                    data-url="{% url 'core:toggle_child' result.id %}"
-                                    onclick="confirmAction(this.dataset.name, 'remove', this.dataset.url)">
-                                    <i class="fa-solid fa-user-minus"></i> Olib tashlash
-                                </button>
-                                {% else %}
-                                <button type="button" class="view-btn"
-                                    style="background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px 16px; cursor: pointer;"
-                                    data-name="{{ result.get_full_name|escapejs }}"
-                                    data-url="{% url 'core:toggle_child' result.id %}"
-                                    onclick="confirmAction(this.dataset.name, 'add', this.dataset.url)">
-                                    <i class="fa-solid fa-user-plus"></i> Qo'shish
-                                </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                        <i class="fa-solid fa-face-sad-tear"
-                            style="font-size: 30px; margin-bottom: 12px; opacity: 0.3;"></i>
-                        <p>Hech kim topilmadi.</p>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-        </div>
+    <div class="sp-actions">
+      {% if center.donation_enabled %}
+      <button class="sp-icon-btn" onclick="openParentDonationModal()" title="Donat">
+        <i class="fa-solid fa-heart" style="color:var(--sp-red);"></i>
+      </button>
+      {% endif %}
+      <a href="javascript:void(0)" onclick="toggleNotificationSidebar()"
+         class="sp-icon-btn position-relative" title="Bildirishnomalar">
+        <i class="fa-regular fa-bell"></i>
+        {% if unread_notifications_count > 0 %}
+        <span class="position-absolute bg-danger border border-dark rounded-circle"
+              style="width:8px;height:8px;top:8px;right:8px;"></span>
+        {% endif %}
+      </a>
+      {% include "components/profile_dropdown.html" %}
     </div>
+  </div>
 
-</div>
-</div>
+  {% if children %}
+
+  <!-- ──────── Children selector ──────── -->
+  <div class="pp-children-bar" id="pp-children-bar">
+    {% for child in children %}
+    <button class="pp-child-btn {% if forloop.first %}active{% endif %}"
+            data-child-id="{{ child.id }}"
+            onclick="selectChild({{ child.id }}, this)">
+      <div class="pp-child-avatar">{{ child.ism|slice:":1" }}{{ child.familya|slice:":1" }}</div>
+      {{ child.get_full_name }}
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- ──────── KPI cards ──────── -->
+  <div class="sp-kpi-grid">
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-calendar-check" style="color:var(--sp-green)"></i>Davomat</div>
+      <div class="sp-kpi-val green" id="kpi-att"><span class="sp-skel" style="width:60px;height:34px;"></span></div>
+      <div class="sp-kpi-sub" id="kpi-att-sub">So'nggi 30 kun</div>
+      <div class="sp-kpi-glow kpi-glow-green"></div>
+    </div>
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-circle-dollar-to-slot" style="color:var(--sp-red)"></i>Joriy qarz</div>
+      <div class="sp-kpi-val" id="kpi-debt"><span class="sp-skel" style="width:80px;height:34px;"></span></div>
+      <div class="sp-kpi-sub">Bu oy</div>
+      <div class="sp-kpi-glow kpi-glow-red"></div>
+    </div>
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-bolt" style="color:var(--sp-yellow)"></i>Chaqmoq⚡</div>
+      <div class="sp-kpi-val yellow" id="kpi-balance"><span class="sp-skel" style="width:55px;height:34px;"></span></div>
+      <div class="sp-kpi-sub">Joriy balans</div>
+      <div class="sp-kpi-glow kpi-glow-yellow"></div>
+    </div>
+    <div class="sp-kpi">
+      <div class="sp-kpi-label"><i class="fa-solid fa-users" style="color:var(--sp-blue)"></i>Guruhlar</div>
+      <div class="sp-kpi-val blue" id="kpi-groups"><span class="sp-skel" style="width:45px;height:34px;"></span></div>
+      <div class="sp-kpi-sub" id="kpi-groups-sub">Faol guruhlar</div>
+      <div class="sp-kpi-glow kpi-glow-blue"></div>
+    </div>
+  </div>
+
+  <!-- ──────── Tabs ──────── -->
+  <div class="sp-tabs">
+    <button class="sp-tab active" data-tab="home" onclick="switchTab('home',this)">
+      <i class="fa-solid fa-house"></i> Bosh sahifa
+    </button>
+    <button class="sp-tab" data-tab="groups" onclick="switchTab('groups',this)">
+      <i class="fa-solid fa-users"></i> Guruhlar
+    </button>
+    <button class="sp-tab" data-tab="attendance" onclick="switchTab('attendance',this)">
+      <i class="fa-solid fa-calendar-check"></i> Davomat
+    </button>
+    <button class="sp-tab" data-tab="payments" onclick="switchTab('payments',this)">
+      <i class="fa-solid fa-receipt"></i> To'lovlar
+    </button>
+    <button class="sp-tab" data-tab="chaqmoq" onclick="switchTab('chaqmoq',this)">
+      <i class="fa-solid fa-bolt"></i> Chaqmoq⚡
+    </button>
+  </div>
+
+  <!-- ════════ HOME ════════ -->
+  <div id="tab-home">
+    <div class="sp-two-col">
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-wallet"></i> Bu oy to'lov holati</div>
+        <div id="pay-badge-wrap">
+          <span class="sp-pay-badge loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…</span>
+        </div>
+      </div>
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-calendar-day"></i> Keyingi darslar</div>
+        <div class="sp-lessons" id="next-lessons-list">
+          <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+          <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-regular fa-clock"></i> Oxirgi Chaqmoq harakatlari</div>
+      <div class="sp-bolt-actions" id="home-chaqmoq-list">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ GROUPS ════════ -->
+  <div id="tab-groups" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-panel-title"><i class="fa-solid fa-users"></i> Guruhlar</div>
+      <div class="sp-group-grid" id="groups-list">
+        <div class="sp-skel" style="height:120px;border-radius:16px;"></div>
+        <div class="sp-skel" style="height:120px;border-radius:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ ATTENDANCE ════════ -->
+  <div id="tab-attendance" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-att-header">
+        <div class="sp-panel-title" style="margin:0"><i class="fa-solid fa-calendar-days"></i> Davomat</div>
+        <div class="sp-month-nav">
+          <button class="sp-month-btn" onclick="attPrevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
+          <div class="sp-month-label" id="att-month-label">—</div>
+          <button class="sp-month-btn" onclick="attNextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+      <div class="sp-att-stats">
+        <div class="sp-att-stat"><div class="sp-att-stat-val green" id="att-percent">—</div><div class="sp-att-stat-lbl">Davomat %</div></div>
+        <div class="sp-att-stat"><div class="sp-att-stat-val" id="att-present">—</div><div class="sp-att-stat-lbl">Kelgan</div></div>
+        <div class="sp-att-stat"><div class="sp-att-stat-val red" id="att-absent">—</div><div class="sp-att-stat-lbl">Kelmagan</div></div>
+      </div>
+      <div class="sp-cal-weekdays">
+        <div class="sp-cal-wd">Du</div><div class="sp-cal-wd">Se</div><div class="sp-cal-wd">Ch</div>
+        <div class="sp-cal-wd">Pa</div><div class="sp-cal-wd">Ju</div><div class="sp-cal-wd">Sh</div><div class="sp-cal-wd">Ya</div>
+      </div>
+      <div class="sp-cal-grid" id="att-cal-grid">
+        <div class="sp-skel" style="aspect-ratio:1;border-radius:10px;grid-column:span 7;height:100px;"></div>
+      </div>
+      <div class="sp-att-legend">
+        <div class="sp-leg"><div class="sp-leg-dot present"></div> Keldi</div>
+        <div class="sp-leg"><div class="sp-leg-dot absent"></div> Kelmadi</div>
+        <div class="sp-leg"><div class="sp-leg-dot partial"></div> Qisman</div>
+        <div class="sp-leg"><div class="sp-leg-dot no_class"></div> Dars yo'q</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ PAYMENTS ════════ -->
+  <div id="tab-payments" style="display:none">
+    <div class="sp-two-col">
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-circle-check"></i> Joriy oy holati</div>
+        <div id="pay-tab-badge">
+          <span class="sp-pay-badge loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…</span>
+        </div>
+      </div>
+      <div class="sp-panel">
+        <div class="sp-panel-title"><i class="fa-solid fa-info-circle"></i> Eslatma</div>
+        <div style="font-size:13px;color:var(--sp-muted);font-weight:700;line-height:1.6;">
+          To'lovlar manager tomonidan kiritiladi. Qarz yoki to'lov haqida markazga murojaat qiling.
+        </div>
+      </div>
+    </div>
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-solid fa-receipt"></i> So'nggi to'lovlar</div>
+      <div class="sp-pay-list" id="payments-list">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ CHAQMOQ ════════ -->
+  <div id="tab-chaqmoq" style="display:none">
+    <div class="sp-panel">
+      <div class="sp-bolt-bal">
+        <div class="sp-bolt-ico"><i class="fa-solid fa-bolt"></i></div>
+        <div class="sp-bolt-val" id="chaqmoq-balance">—</div>
+        <div class="sp-bolt-lbl" id="chaqmoq-child-name">Joriy Chaqmoq balans</div>
+      </div>
+      <div class="sp-panel-title" style="border-top:1px solid var(--sp-border);padding-top:18px;margin-top:0;">
+        <i class="fa-regular fa-clock"></i> Chaqmoq tarixi
+      </div>
+      <div class="sp-bolt-actions" id="chaqmoq-history">
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+        <div class="sp-skel" style="height:56px;border-radius:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No children yet -->
+  <div class="sp-panel" style="text-align:center;padding:60px 20px;">
+    <div style="font-size:56px;color:var(--sp-muted);opacity:.3;margin-bottom:16px;"><i class="fa-solid fa-children"></i></div>
+    <div style="font-size:18px;font-weight:950;color:var(--sp-text);margin-bottom:8px;">Farzandlar biriktirilmagan</div>
+    <div style="font-size:14px;color:var(--sp-muted);font-weight:700;">Quyida qidiruv orqali farzandingizni qo'shing.</div>
+  </div>
+  {% endif %}
+
+  <!-- ──────── Search section ──────── -->
+  <div class="pp-search-wrap">
+    <div class="sp-panel-title"><i class="fa-solid fa-user-group" style="color:var(--sp-yellow)"></i> O'quvchi qidirish</div>
+    <form method="get">
+      <div class="pp-search-wrap-inner">
+        <i class="fa-solid fa-magnifying-glass pp-search-ico"></i>
+        <input type="text" name="q" value="{{ request.GET.q|default:'' }}"
+               class="pp-search-input" placeholder="Ism yoki familiya…" autocomplete="off">
+      </div>
+    </form>
+    {% if request.GET.q %}
+    <div style="margin-top:12px;">
+      {% for result in search_results %}
+      <div class="pp-result-item">
+        <div class="pp-result-left">
+          <div class="pp-result-av">{{ result.ism|slice:":1" }}{{ result.familya|slice:":1" }}</div>
+          <div>
+            <div class="pp-result-name">{{ result.get_full_name }}</div>
+            <div class="pp-result-role">O'quvchi</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          {% if result.is_my_child %}
+          <button class="pp-act-btn pp-act-rem"
+                  data-name="{{ result.get_full_name|escapejs }}"
+                  data-url="{% url 'core:toggle_child' result.id %}"
+                  onclick="confirmAction(this.dataset.name,'remove',this.dataset.url)">
+            <i class="fa-solid fa-user-minus"></i> Olib tashlash
+          </button>
+          {% else %}
+          <button class="pp-act-btn pp-act-add"
+                  data-name="{{ result.get_full_name|escapejs }}"
+                  data-url="{% url 'core:toggle_child' result.id %}"
+                  onclick="confirmAction(this.dataset.name,'add',this.dataset.url)">
+            <i class="fa-solid fa-user-plus"></i> Qo'shish
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="sp-empty"><i class="fa-solid fa-face-sad-tear"></i>Hech kim topilmadi.</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+</div><!-- end sp-wrap -->
 
 {% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Farzand(lar)ingiz haqida" ai_widget_greet="farzandingiz guruhlari, davomat va to'lovlari" aiw_prompt_1="Farzandimning davomat holati qanday?" aiw_prompt_2="Qarzimiz qancha?" aiw_prompt_3="Farzandim qaysi guruhda?" aiw_prompt_4="Bu oy nima to'lashim kerak?" %}
+
+<script>
+(function () {
+  "use strict";
+
+  const centerSlug = "{{ center.slug|default:''|escapejs }}";
+  const slugPfx = centerSlug ? "/" + centerSlug : "";
+
+  // State
+  let currentChildId = {% if children %}{{ children.0.id }}{% else %}null{% endif %};
+  let activeTab = "home";
+  const tabLoaded = {};         // key: `${childId}-${tab}`
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+  }
+  function fmtMoney(v) { return Number(v || 0).toLocaleString("uz-UZ") + " so'm"; }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      const p = n => String(n).padStart(2, "0");
+      return p(d.getDate()) + "." + p(d.getMonth()+1) + "." + d.getFullYear()
+        + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    } catch(e) { return String(iso); }
+  }
+  function api(path) {
+    return fetch(slugPfx + path, { credentials: "same-origin" })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+  }
+  function cacheKey(tab) { return currentChildId + "-" + tab; }
+
+  // ── Child selector ────────────────────────────────────────────────
+  window.selectChild = function(childId, btn) {
+    currentChildId = childId;
+    document.querySelectorAll(".pp-child-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    // Reset loaded cache for this child
+    Object.keys(tabLoaded).forEach(k => {
+      if (k.startsWith(childId + "-")) delete tabLoaded[k];
+    });
+    // Reload current tab
+    resetTabSkeleton();
+    loadCurrentTab();
+  };
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  window.switchTab = function(name, btn) {
+    activeTab = name;
+    document.querySelectorAll(".sp-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    ["home","groups","attendance","payments","chaqmoq"].forEach(t => {
+      const el = document.getElementById("tab-" + t);
+      if (el) el.style.display = t === name ? "" : "none";
+    });
+    if (!tabLoaded[cacheKey(name)]) {
+      tabLoaded[cacheKey(name)] = true;
+      loadTab(name);
+    }
+  };
+
+  function loadCurrentTab() {
+    const key = cacheKey(activeTab);
+    if (!tabLoaded[key]) {
+      tabLoaded[key] = true;
+      loadTab(activeTab);
+    }
+  }
+
+  function loadTab(name) {
+    if (!currentChildId) return;
+    if (name === "home")       loadHome();
+    if (name === "groups")     loadGroups();
+    if (name === "attendance") { attYear = null; loadAttendance(); }
+    if (name === "payments")   loadPayments();
+    if (name === "chaqmoq")    loadChaqmoq();
+  }
+
+  function resetTabSkeleton() {
+    const skel = '<div class="sp-skel" style="height:56px;border-radius:14px;"></div>';
+    ["home-chaqmoq-list", "groups-list", "att-cal-grid", "payments-list", "chaqmoq-history"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = skel + skel;
+    });
+    ["kpi-att","kpi-debt","kpi-balance","kpi-groups"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="sp-skel" style="width:55px;height:34px;"></span>';
+    });
+    ["pay-badge-wrap","pay-tab-badge"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="sp-pay-badge loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…</span>';
+    });
+    document.getElementById("next-lessons-list").innerHTML = skel + skel;
+  }
+
+  // ── Home tab ──────────────────────────────────────────────────────
+  function loadHome() {
+    api("/api/parent/child/" + currentChildId + "/dashboard/").then(d => {
+      if (!d) return;
+
+      // KPIs
+      const $ = id => document.getElementById(id);
+      if ($("kpi-att")) $("kpi-att").textContent = d.att_rate + "%";
+      if ($("kpi-att-sub")) $("kpi-att-sub").textContent = (d.att_present||0) + "/" + (d.att_total||0) + " dars";
+      if ($("kpi-debt")) {
+        const debt = d.debt || 0;
+        $("kpi-debt").textContent = debt > 0 ? fmtMoney(debt) : "0 so'm";
+        $("kpi-debt").className = "sp-kpi-val " + (debt > 0 ? "red" : "green");
+      }
+      if ($("kpi-balance")) $("kpi-balance").textContent = (d.balance||0) + " ⚡";
+      if ($("kpi-groups"))  $("kpi-groups").textContent  = d.groups_active||0;
+      if ($("kpi-groups-sub")) $("kpi-groups-sub").textContent = "Jami: " + (d.groups_total||0) + " guruh";
+      if ($("chaqmoq-balance")) $("chaqmoq-balance").textContent = (d.balance||0) + " ⚡";
+      if ($("chaqmoq-child-name")) $("chaqmoq-child-name").textContent = esc(d.full_name) + " ning Chaqmoq balans";
+
+      renderPayBadge("pay-badge-wrap", d.payment_status, d.debt);
+      renderPayBadge("pay-tab-badge",  d.payment_status, d.debt);
+      renderNextLessons(d.next_lessons || []);
+    });
+
+    // Chaqmoq history (uses mobile student endpoint via parent context - not available, show placeholder)
+    const el = document.getElementById("home-chaqmoq-list");
+    if (el) el.innerHTML =
+      '<div class="sp-empty" style="padding:20px"><i class="fa-solid fa-bolt"></i>' +
+      'Chaqmoq tarixi farzand panelida ko\'rinadi.</div>';
+  }
+
+  function renderPayBadge(id, status, debt) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (status === "debt") {
+      el.innerHTML = '<span class="sp-pay-badge debt"><i class="fa-solid fa-triangle-exclamation"></i> Qarz: ' + esc(fmtMoney(debt)) + "</span>";
+    } else {
+      el.innerHTML = "<span class=\"sp-pay-badge paid\"><i class=\"fa-solid fa-circle-check\"></i> To'langan ✓</span>";
+    }
+  }
+
+  function renderNextLessons(lessons) {
+    const el = document.getElementById("next-lessons-list");
+    if (!el) return;
+    if (!lessons.length) {
+      el.innerHTML = '<div class="sp-empty" style="padding:20px"><i class="fa-regular fa-calendar-xmark"></i>Bugun va ertaga dars yo\'q</div>';
+      return;
+    }
+    el.innerHTML = lessons.map(l => {
+      const isToday = l.day === "Bugun";
+      const timeStr = l.end_time ? l.start_time + "–" + l.end_time : l.start_time;
+      return (
+        '<div class="sp-lesson">' +
+          '<div class="sp-lesson-day ' + (isToday ? "today" : "") + '">' + esc(l.day) + "</div>" +
+          '<div class="sp-lesson-info">' +
+            '<div class="sp-lesson-name">' + esc(l.group_name) + "</div>" +
+            '<div class="sp-lesson-meta">' +
+              (l.teacher ? '<i class="fa-solid fa-chalkboard-teacher"></i> ' + esc(l.teacher) : "") +
+              (l.room ? " · " + esc(l.room) : "") +
+            "</div>" +
+          "</div>" +
+          '<div class="sp-lesson-time">' + esc(timeStr) + "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  // ── Groups tab ────────────────────────────────────────────────────
+  function loadGroups() {
+    api("/api/parent/child/" + currentChildId + "/groups/").then(d => {
+      const el = document.getElementById("groups-list");
+      if (!el || !d) return;
+      const groups = d.groups || [];
+      if (!groups.length) {
+        el.innerHTML = '<div class="sp-empty" style="grid-column:span 2"><i class="fa-solid fa-users-slash"></i>Guruhlar yo\'q</div>';
+        return;
+      }
+      el.innerHTML = groups.map(g => {
+        const active = g.is_active;
+        const scheds = (g.schedules || []).map(s =>
+          '<span class="sp-sched-pill">' + esc(s.weekday_name) + " " + esc(s.start_time) +
+          (s.end_time ? "–" + esc(s.end_time) : "") + "</span>"
+        ).join("");
+        const price = g.course_price || g.monthly_price
+          ? '<span>' + Number(g.course_price || g.monthly_price).toLocaleString("uz-UZ") + " so'm/oy</span>"
+          : "";
+        return (
+          '<div class="sp-group-card">' +
+            '<div class="sp-group-header">' +
+              '<div class="sp-group-badge ' + (active ? "active" : "inactive") + '">' +
+                '<i class="fa-solid fa-' + (active ? "book-open" : "book") + '"></i></div>' +
+              '<div><div class="sp-group-name">' + esc(g.name) + "</div>" +
+              '<div class="sp-group-teacher">' +
+                (g.teacher_name ? '<i class="fa-solid fa-chalkboard-teacher"></i> ' + esc(g.teacher_name) : "") +
+                (!active ? ' <span class="sp-group-inactive-tag">Arxiv</span>' : "") +
+              "</div></div>" +
+            "</div>" +
+            (scheds ? '<div class="sp-group-sched">' + scheds + "</div>" : "") +
+            (price  ? '<div class="sp-group-price"><i class="fa-solid fa-wallet" style="color:var(--sp-muted);font-size:12px;"></i>' + price + "</div>" : "") +
+          "</div>"
+        );
+      }).join("");
+    });
+  }
+
+  // ── Attendance tab ────────────────────────────────────────────────
+  let attYear = null, attMonth = null;
+  const MONTH_NAMES_UZ = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function loadAttendance() {
+    const now = new Date();
+    attYear  = now.getFullYear();
+    attMonth = now.getMonth() + 1;
+    fetchAttendance();
+  }
+
+  function fetchAttendance() {
+    if (!currentChildId) return;
+    const monthStr = attYear + "-" + String(attMonth).padStart(2, "0");
+    document.getElementById("att-month-label").textContent =
+      MONTH_NAMES_UZ[attMonth - 1] + " " + attYear;
+
+    api("/api/parent/child/" + currentChildId + "/attendance/?month=" + monthStr).then(d => {
+      if (!d) return;
+      const s = d.summary || {};
+      const $ = id => document.getElementById(id);
+      if ($("att-percent")) $("att-percent").textContent = (s.attendance_percent || 0) + "%";
+      if ($("att-present")) $("att-present").textContent = s.attended_lessons || 0;
+      if ($("att-absent"))  $("att-absent").textContent  = s.missed_lessons  || 0;
+      renderCalendar(d.calendar || [], monthStr);
+    });
+  }
+
+  function renderCalendar(days, monthStr) {
+    const grid = document.getElementById("att-cal-grid");
+    if (!grid) return;
+    const firstDate = new Date(monthStr + "-01");
+    const startOffset = (firstDate.getDay() + 6) % 7;
+    let html = "";
+    for (let i = 0; i < startOffset; i++) html += '<div class="sp-cal-day empty"></div>';
+    for (const d of days) {
+      const isToday = d.date === todayStr;
+      html += '<div class="sp-cal-day ' + d.status + (isToday ? " sp-cal-today" : "") + '">' + d.day + "</div>";
+    }
+    grid.innerHTML = html;
+  }
+
+  window.attPrevMonth = function() {
+    if (!attYear) return;
+    attMonth--;
+    if (attMonth < 1) { attMonth = 12; attYear--; }
+    fetchAttendance();
+  };
+  window.attNextMonth = function() {
+    if (!attYear) return;
+    const now = new Date();
+    if (attYear > now.getFullYear() || (attYear === now.getFullYear() && attMonth >= now.getMonth() + 1)) return;
+    attMonth++;
+    if (attMonth > 12) { attMonth = 1; attYear++; }
+    fetchAttendance();
+  };
+
+  // ── Payments tab ──────────────────────────────────────────────────
+  function loadPayments() {
+    api("/api/parent/child/" + currentChildId + "/payments/").then(d => {
+      if (!d) return;
+      renderPayBadge("pay-tab-badge",  d.payment_status, d.current_debt);
+      renderPayBadge("pay-badge-wrap", d.payment_status, d.current_debt);
+      const el = document.getElementById("payments-list");
+      if (!el) return;
+      const pays = d.payments || [];
+      if (!pays.length) {
+        el.innerHTML = '<div class="sp-empty"><i class="fa-solid fa-receipt"></i>To\'lovlar mavjud emas</div>';
+        return;
+      }
+      el.innerHTML = pays.map(p => (
+        '<div class="sp-pay-item">' +
+          '<div class="sp-pay-left">' +
+            '<div class="sp-pay-ico"><i class="fa-solid fa-circle-check"></i></div>' +
+            '<div><div class="sp-pay-group">' + esc(p.group_name) + "</div>" +
+            '<div class="sp-pay-date">' + esc(p.paid_date) + (p.note ? " · " + esc(p.note) : "") + "</div></div>" +
+          "</div>" +
+          '<div class="sp-pay-amt">+' + Number(p.amount).toLocaleString("uz-UZ") + " so'm</div>" +
+        "</div>"
+      )).join("");
+    });
+  }
+
+  // ── Chaqmoq tab ───────────────────────────────────────────────────
+  function loadChaqmoq() {
+    // Chaqmoq balance is already loaded in loadHome, just update if needed
+    api("/api/parent/child/" + currentChildId + "/dashboard/").then(d => {
+      if (!d) return;
+      const balEl = document.getElementById("chaqmoq-balance");
+      if (balEl) balEl.textContent = (d.balance || 0) + " ⚡";
+      const lblEl = document.getElementById("chaqmoq-child-name");
+      if (lblEl) lblEl.textContent = esc(d.full_name) + " ning Chaqmoq balans";
+      const histEl = document.getElementById("chaqmoq-history");
+      if (histEl) histEl.innerHTML =
+        '<div class="sp-empty"><i class="fa-solid fa-bolt"></i>Batafsil tarix faqat farzandning o\'z panelida ko\'rinadi.</div>';
+    });
+  }
+
+  // ── Bootstrap ─────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", function () {
+    if (currentChildId) {
+      tabLoaded[cacheKey("home")] = true;
+      loadHome();
+    }
+  });
+})();
+
+// ── Confirm modal (keep existing logic) ──────────────────────────
+function confirmAction(name, action, url) {
+  const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+  document.getElementById('confirmActionForm').action = url;
+  const text  = document.getElementById('confirmModalText');
+  const btn   = document.getElementById('confirmModalBtn');
+  const title = document.getElementById('confirmModalTitle');
+  if (action === 'add') {
+    title.innerText = "Farzand qo'shish";
+    text.innerHTML = "<span class='fw-bold text-warning'>" + name + "</span> ni farzandlaringiz qatoriga qo'shishni hohlaysizmi?";
+    btn.className = 'btn btn-success btn-sm'; btn.innerText = "Ha, qo'shish";
+  } else {
+    title.innerText = "Farzandni o'chirish";
+    text.innerHTML = "<span class='fw-bold text-warning'>" + name + "</span> ni farzandlaringiz safidan olib tashlamoqchimisiz?";
+    btn.className = 'btn btn-danger btn-sm'; btn.innerText = "Ha, o'chirish";
+  }
+  modal.show();
+}
+function openParentDonationModal() {
+  new bootstrap.Modal(document.getElementById('parentDonationModal')).show();
+}
+</script>
+
 {% endblock %}
 
 {% block modals %}
-<!-- Custom Confirmation Modal -->
-<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 100000;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: white;">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="confirmModalTitle">Tasdiqlash</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="confirmModalText" class="mb-0"></p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Bekor
-                    qilish</button>
-                <form id="confirmActionForm" method="post" action="">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm" id="confirmModalBtn">Tasdiqlash</button>
-                </form>
-            </div>
-        </div>
+<!-- Confirm modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index:100000;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--sp-card);border:1px solid var(--sp-border);color:var(--sp-text);">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="confirmModalTitle">Tasdiqlash</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"><p id="confirmModalText" class="mb-0"></p></div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Bekor qilish</button>
+        <form id="confirmActionForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm" id="confirmModalBtn">Tasdiqlash</button>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
-
-<script>
-    function confirmAction(name, action, url) {
-        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-        const form = document.getElementById('confirmActionForm');
-        const text = document.getElementById('confirmModalText');
-        const btn = document.getElementById('confirmModalBtn');
-        const title = document.getElementById('confirmModalTitle');
-
-        form.action = url;
-
-        if (action === 'add') {
-            title.innerText = "Farzand qo'shish";
-            text.innerHTML = `<span class="fw-bold text-warning">${name}</span> ni farzandlaringiz qatoriga qo'shishni hohlaysizmi?`;
-            btn.className = 'btn btn-success btn-sm';
-            btn.innerText = "Ha, qo'shish";
-        } else {
-            title.innerText = "Farzandni o'chirish";
-            text.innerHTML = `<span class="fw-bold text-warning">${name}</span> ni farzandlaringiz safidan olib tashlamoqchimisiz?`;
-            btn.className = 'btn btn-danger btn-sm';
-            btn.innerText = "Ha, o'chirish";
-        }
-
-        modal.show();
-    }
-
-    function openParentDonationModal() {
-        const modal = new bootstrap.Modal(document.getElementById('parentDonationModal'));
-        modal.show();
-    }
-</script>
 
 {% if center.donation_enabled %}
 <div class="modal fade" id="parentDonationModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass"
-            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; color: white; overflow: hidden;">
-            <div class="modal-header border-0 bg-transparent p-4 pb-0">
-                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-heart text-danger"></i> Qo'llab-quvvatlash
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4 text-center">
-                <div class="mb-4">
-                    <h3 class="fw-bold mb-1">Markazni qo'llab-quvvatlash</h3>
-                    <p class="text-white-50 small">Sizning yordamingiz biz uchun muhim!</p>
-                </div>
-
-                {% if center.donation_qr_image %}
-                <div class="p-3 bg-white rounded-4 mb-4 d-inline-block shadow-lg">
-                    <img src="{{ center.donation_qr_image.url }}" alt="QR Code"
-                        style="width: 100%; max-width: 240px; border-radius: 12px;">
-                </div>
-                {% endif %}
-
-                {% if center.donation_card_number %}
-                <div
-                    class="card-details bg-dark bg-opacity-50 p-4 rounded-4 border border-white border-opacity-10 text-start">
-                    <div class="text-white-50 small text-uppercase fw-bold mb-2 ls-1" style="font-size: 10px;">Karta
-                        raqami</div>
-                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-                        <span class="fs-4 fw-bold text-white font-monospace">{{ center.donation_card_number }}</span>
-                        <button type="button" class="btn btn-outline-warning btn-sm border-0"
-                            data-copy="{{ center.donation_card_number }}"
-                            onclick="navigator.clipboard.writeText(this.dataset.copy); alert('Nusxalandi!')">
-                            <i class="fa-regular fa-copy fs-5"></i>
-                        </button>
-                    </div>
-                    {% if center.donation_card_holder %}
-                    <div class="text-white-50 fw-600">{{ center.donation_card_holder }}</div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            <div class="modal-footer border-0 p-4 pt-0">
-                <button type="button" class="btn btn-secondary w-100 rounded-3 py-2 fw-bold"
-                    data-bs-dismiss="modal">Yopish</button>
-            </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--sp-card);border:1px solid var(--sp-border);border-radius:24px;color:var(--sp-text);overflow:hidden;">
+      <div class="modal-header border-0 p-4 pb-0">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-heart text-danger"></i> Qo'llab-quvvatlash</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <h3 class="fw-bold mb-1">Markazni qo'llab-quvvatlash</h3>
+        <p style="color:var(--sp-muted);font-size:13px;">Sizning yordamingiz biz uchun muhim!</p>
+        {% if center.donation_qr_image %}
+        <div class="p-3 bg-white rounded-4 mb-4 d-inline-block shadow-lg">
+          <img src="{{ center.donation_qr_image.url }}" alt="QR Code" style="width:100%;max-width:240px;border-radius:12px;">
         </div>
+        {% endif %}
+        {% if center.donation_card_number %}
+        <div style="background:var(--sp-card2);padding:16px;border-radius:14px;border:1px solid var(--sp-border);text-align:left;">
+          <div style="font-size:11px;font-weight:800;color:var(--sp-muted);text-transform:uppercase;margin-bottom:8px;">Karta raqami</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:20px;font-weight:950;font-family:monospace;">{{ center.donation_card_number }}</span>
+            <button type="button" class="btn btn-sm" style="border:1px solid var(--sp-border);color:var(--sp-muted);"
+                    data-copy="{{ center.donation_card_number }}"
+                    onclick="navigator.clipboard.writeText(this.dataset.copy)">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+          {% if center.donation_card_holder %}<div style="color:var(--sp-muted);font-size:13px;margin-top:4px;">{{ center.donation_card_holder }}</div>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer border-0 p-4 pt-0">
+        <button type="button" class="btn btn-secondary w-100 rounded-3 py-2 fw-bold" data-bs-dismiss="modal">Yopish</button>
+      </div>
     </div>
+  </div>
 </div>
 {% endif %}
 {% endblock %}

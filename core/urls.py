@@ -57,6 +57,16 @@ urlpatterns = [
     # ✅ Skeleton-first home uchun deferred yuklash endpointlari
     path('api/dashboard/low-activity/', api_views.dashboard_low_activity_api, name='dashboard_low_activity_api'),
     path('api/dashboard/student-init/', api_views.dashboard_student_init_api, name='dashboard_student_init_api'),
+    path('api/student/dashboard/',    api_views.student_panel_dashboard_api,  name='student_panel_dashboard_api'),
+    path('api/student/groups/',       api_views.student_panel_groups_api,     name='student_panel_groups_api'),
+    path('api/student/attendance/',   api_views.student_panel_attendance_api, name='student_panel_attendance_api'),
+    path('api/student/payments/',     api_views.student_panel_payments_api,   name='student_panel_payments_api'),
+    # Parent panel APIs
+    path('api/parent/children/',                    api_views.parent_panel_children_api,           name='parent_panel_children_api'),
+    path('api/parent/child/<int:child_pk>/dashboard/', api_views.parent_panel_child_dashboard_api, name='parent_panel_child_dashboard_api'),
+    path('api/parent/child/<int:child_pk>/groups/',    api_views.parent_panel_child_groups_api,    name='parent_panel_child_groups_api'),
+    path('api/parent/child/<int:child_pk>/attendance/', api_views.parent_panel_child_attendance_api, name='parent_panel_child_attendance_api'),
+    path('api/parent/child/<int:child_pk>/payments/',  api_views.parent_panel_child_payments_api,  name='parent_panel_child_payments_api'),
     path('api/dashboard/manager/', api_views.manager_dashboard_api, name='manager_dashboard_api'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('dashboard/students/dangerous/', views.dangerous_students, name='dangerous_students'),
