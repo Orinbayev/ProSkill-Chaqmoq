@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block body_class %}game-rating-page{% endblock %}
+{% block title %}O'yinlar Reytingi | Chaqmoq ⚡{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════════════════
+   GAME RATING PAGE — works in both dark & light themes
+   Uses app's CSS variables: --bg, --surface, --surface-2,
+   --text, --muted, --border, --info, --primary, --shadow
+══════════════════════════════════════════════════════════ */
+
+/* Page vars (theme-aware) */
+.gr-page {
+  --gr-accent:   #06b6d4;
+  --gr-accent2:  #22d3ee;
+  --gr-gold:     #f59e0b;
+  --gr-silver:   #94a3b8;
+  --gr-bronze:   #cd7c2e;
+  --gr-green:    #10b981;
+  --gr-purple:   #8b5cf6;
+  --gr-r:        16px;
+  --gr-rl:       22px;
+
+  /* Override theme surface for rating cards */
+  background: var(--bg, #070a12);
+  min-height: 100vh;
+}
+
+/* Wrap */
+.gr-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px 72px;
+}
+
+/* ── HEADER ── */
+.gr-header {
+  position: relative;
+  padding: 36px 0 0;
+  overflow: hidden;
+}
+.gr-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 800px 300px at 50% -40px,
+    rgba(6,182,212,.12), transparent 65%);
+  pointer-events: none;
+}
+
+.gr-header-inner {
+  position: relative;
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+
+.gr-title-block h1 {
+  font-size: 28px; font-weight: 800;
+  color: var(--text, #e5e7eb);
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 6px;
+}
+.gr-title-block h1 span { color: var(--gr-accent); }
+.gr-title-block p {
+  font-size: 14px;
+  color: var(--muted, #94a3b8);
+  margin: 0;
+}
+
+/* Global stat pills */
+.gr-global-stats {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+}
+.gr-stat-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface, #0b1220);
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 40px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--muted, #94a3b8);
+  box-shadow: var(--shadow, 0 4px 12px rgba(0,0,0,.3));
+}
+.gr-stat-pill b {
+  font-size: 15px; font-weight: 700;
+  color: var(--text, #e5e7eb);
+}
+.gr-stat-pill i { color: var(--gr-accent); }
+
+/* ── PERIOD TABS ── */
+.gr-tabs {
+  display: flex; gap: 6px;
+  margin-top: 24px;
+  background: var(--surface, #0b1220);
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 14px;
+  padding: 6px;
+  width: fit-content;
+}
+.gr-tab {
+  background: transparent; border: none;
+  color: var(--muted, #94a3b8);
+  font-size: 13px; font-weight: 500;
+  padding: 8px 20px; border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.gr-tab:hover { color: var(--gr-accent2); text-decoration: none; }
+.gr-tab.active {
+  background: linear-gradient(135deg, rgba(6,182,212,.25), rgba(6,182,212,.1));
+  color: var(--gr-accent2);
+  border: 1px solid rgba(6,182,212,.3);
+  box-shadow: 0 2px 12px rgba(6,182,212,.15);
+}
+
+/* ── PODIUM (top 3) ── */
+.gr-podium {
+  display: flex; align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 36px; margin-bottom: 32px;
+  min-height: 200px;
+}
+.gr-podium-item {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; max-width: 200px;
+  animation: gr-fadein .5s ease both;
+}
+.gr-podium-item:nth-child(1) { animation-delay: .1s; }
+.gr-podium-item:nth-child(2) { animation-delay: .0s; }
+.gr-podium-item:nth-child(3) { animation-delay: .2s; }
+
+.gr-podium-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; position: relative;
+  color: #fff; flex-shrink: 0;
+  transition: transform .3s ease;
+}
+.gr-podium-avatar:hover { transform: scale(1.08); }
+
+.gr-podium-avatar.gold   {
+  background: linear-gradient(135deg, #92400e, #fbbf24);
+  box-shadow: 0 0 28px rgba(245,158,11,.45), 0 0 0 3px rgba(245,158,11,.25);
+}
+.gr-podium-avatar.silver {
+  background: linear-gradient(135deg, #475569, #cbd5e1);
+  box-shadow: 0 0 20px rgba(148,163,184,.35), 0 0 0 3px rgba(148,163,184,.2);
+}
+.gr-podium-avatar.bronze {
+  background: linear-gradient(135deg, #78350f, #f97316);
+  box-shadow: 0 0 20px rgba(205,124,46,.35), 0 0 0 3px rgba(205,124,46,.2);
+}
+
+/* crown for #1 */
+.gr-podium-avatar.gold::before {
+  content: '👑';
+  position: absolute; top: -20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  animation: gr-crown 2s ease-in-out infinite;
+}
+@keyframes gr-crown {
+  0%,100% { transform: translateX(-50%) rotate(-8deg); }
+  50%      { transform: translateX(-50%) rotate(8deg); }
+}
+
+.gr-podium-name {
+  margin-top: 10px;
+  font-size: 14px; font-weight: 700;
+  color: var(--text, #e5e7eb);
+  text-align: center; max-width: 150px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gr-podium-center {
+  font-size: 11px; color: var(--muted, #94a3b8);
+  text-align: center; max-width: 130px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-top: 2px;
+}
+.gr-podium-coins {
+  margin-top: 6px;
+  font-size: 15px; font-weight: 800;
+  display: flex; align-items: center; gap: 5px;
+}
+.gr-podium-coins i { font-size: 13px; color: var(--gr-gold); }
+
+.gr-podium-base {
+  width: 100%; border-radius: 14px 14px 0 0;
+  margin-top: 12px; padding: 10px 0;
+  text-align: center;
+  font-size: 22px; font-weight: 900; letter-spacing: -.01em;
+}
+.gr-podium-item:nth-child(1) .gr-podium-base {  /* #2 — left silver */
+  height: 80px; background: linear-gradient(135deg, rgba(148,163,184,.25), rgba(148,163,184,.1));
+  border: 1px solid rgba(148,163,184,.25); color: var(--gr-silver);
+}
+.gr-podium-item:nth-child(2) .gr-podium-base {  /* #1 — center gold */
+  height: 120px; background: linear-gradient(135deg, rgba(245,158,11,.25), rgba(245,158,11,.1));
+  border: 1px solid rgba(245,158,11,.35); color: var(--gr-gold);
+}
+.gr-podium-item:nth-child(3) .gr-podium-base {  /* #3 — right bronze */
+  height: 60px; background: linear-gradient(135deg, rgba(205,124,46,.25), rgba(205,124,46,.1));
+  border: 1px solid rgba(205,124,46,.25); color: var(--gr-bronze);
+}
+
+/* ── LEADERBOARD TABLE ── */
+.gr-table-wrap {
+  background: var(--surface, #0b1220);
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: var(--gr-rl);
+  overflow: hidden;
+  box-shadow: var(--shadow, 0 4px 20px rgba(0,0,0,.3));
+}
+
+.gr-table-head {
+  display: grid;
+  grid-template-columns: 52px 1fr 160px 80px 80px 70px;
+  padding: 12px 20px;
+  background: var(--surface-2, #0f1b33);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.08));
+  font-size: 11px; font-weight: 600;
+  color: var(--muted, #94a3b8);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+@media(max-width:640px){
+  .gr-table-head { grid-template-columns: 44px 1fr 100px 60px; }
+  .gr-table-head .gr-th-games,
+  .gr-table-head .gr-th-level { display: none; }
+}
+
+.gr-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 160px 80px 80px 70px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.06));
+  align-items: center;
+  transition: background .18s ease;
+}
+.gr-row:last-child { border-bottom: none; }
+.gr-row:hover { background: var(--surface-2, rgba(255,255,255,.03)); }
+.gr-row.is-me {
+  background: rgba(6,182,212,.07) !important;
+  border-color: rgba(6,182,212,.2) !important;
+}
+.gr-row.top3 { background: rgba(245,158,11,.04); }
+
+@media(max-width:640px){
+  .gr-row { grid-template-columns: 44px 1fr 100px 60px; }
+  .gr-row .gr-td-games,
+  .gr-row .gr-td-level { display: none; }
+}
+
+/* Rank cell */
+.gr-rank {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.gr-rank.r1 { background: rgba(245,158,11,.2); color: var(--gr-gold);   font-size: 18px; }
+.gr-rank.r2 { background: rgba(148,163,184,.15); color: var(--gr-silver); font-size: 18px; }
+.gr-rank.r3 { background: rgba(205,124,46,.15); color: var(--gr-bronze); font-size: 18px; }
+.gr-rank.rn { background: var(--surface-2, rgba(255,255,255,.06)); color: var(--muted, #94a3b8); font-size: 12px; }
+
+/* Player cell */
+.gr-player { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.gr-player-name {
+  font-size: 14px; font-weight: 600;
+  color: var(--text, #e5e7eb);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.gr-me-badge {
+  font-size: 10px; font-weight: 700;
+  background: var(--gr-accent); color: #000;
+  padding: 1px 7px; border-radius: 20px; flex-shrink: 0;
+}
+
+/* Center cell */
+.gr-center {
+  font-size: 12px; color: var(--muted, #94a3b8);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.gr-center i { font-size: 10px; color: var(--gr-accent); }
+
+/* Coins cell */
+.gr-coins {
+  font-size: 14px; font-weight: 700;
+  color: var(--gr-accent);
+  display: flex; align-items: center; gap: 5px;
+}
+.gr-coins i { color: var(--gr-gold); font-size: 12px; }
+
+/* Games count cell */
+.gr-games-cell {
+  font-size: 13px; color: var(--muted, #94a3b8);
+  display: flex; align-items: center; gap: 4px;
+}
+.gr-games-cell i { font-size: 11px; }
+
+/* Level cell */
+.gr-level {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted, #94a3b8);
+}
+.gr-level-dots {
+  display: flex; gap: 2px;
+}
+.gr-level-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--gr-accent);
+  opacity: .25;
+}
+.gr-level-dot.on { opacity: 1; }
+
+/* ── EMPTY STATE ── */
+.gr-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted, #94a3b8);
+}
+.gr-empty i { font-size: 48px; display: block; margin-bottom: 16px; opacity: .3; }
+.gr-empty h3 { font-size: 18px; color: var(--text, #e5e7eb); margin-bottom: 8px; }
+
+/* ── MY POSITION STICKY BAR ── */
+.gr-my-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  backdrop-filter: blur(20px);
+  background: rgba(6,182,212,.12);
+  border-top: 1px solid rgba(6,182,212,.3);
+  padding: 12px 20px;
+  display: flex; align-items: center; gap: 16px;
+  animation: gr-slidein .4s ease;
+}
+@keyframes gr-slidein {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.gr-my-bar-rank {
+  font-size: 24px; font-weight: 800;
+  color: var(--gr-accent); min-width: 60px;
+}
+.gr-my-bar-info { flex: 1; }
+.gr-my-bar-name { font-size: 14px; font-weight: 700; color: var(--text, #e5e7eb); }
+.gr-my-bar-center { font-size: 12px; color: var(--muted, #94a3b8); }
+.gr-my-bar-coins {
+  font-size: 16px; font-weight: 700;
+  color: var(--gr-accent); display: flex; align-items: center; gap: 6px;
+}
+.gr-my-bar-coins i { color: var(--gr-gold); }
+.gr-my-bar-label {
+  font-size: 10px; font-weight: 700;
+  background: var(--gr-accent); color: #000;
+  padding: 3px 10px; border-radius: 20px; letter-spacing: .08em;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes gr-fadein {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+.gr-row { animation: gr-fadein .3s ease both; }
+
+/* ── LIGHT MODE OVERRIDES ── */
+
+/* Page background — main fix */
+html[data-role-theme="light"] .gr-page {
+  background: #F6F7FB !important;
+}
+html[data-role-theme="light"] .gr-header::before {
+  background: radial-gradient(ellipse 800px 300px at 50% -40px,
+    rgba(6,182,212,.08), transparent 65%);
+}
+html[data-role-theme="light"] .gr-title-block p { color: #64748b; }
+html[data-role-theme="light"] .gr-my-bar {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+html[data-role-theme="light"] .gr-table-wrap {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0,0,0,.07);
+}
+html[data-role-theme="light"] .gr-table-head {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+html[data-role-theme="light"] .gr-row { border-color: #f1f5f9; }
+html[data-role-theme="light"] .gr-row:hover { background: #f8fafc !important; }
+html[data-role-theme="light"] .gr-row.is-me { background: rgba(6,182,212,.07) !important; }
+html[data-role-theme="light"] .gr-row.top3  { background: rgba(245,158,11,.04) !important; }
+html[data-role-theme="light"] .gr-player-name { color: #0f172a; }
+html[data-role-theme="light"] .gr-center      { color: #64748b; }
+html[data-role-theme="light"] .gr-coins       { color: #0891b2; }
+html[data-role-theme="light"] .gr-games-cell  { color: #64748b; }
+html[data-role-theme="light"] .gr-level       { color: #64748b; }
+html[data-role-theme="light"] .gr-rank.rn     { background: #f1f5f9; color: #64748b; }
+
+html[data-role-theme="light"] .gr-stat-pill {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  color: #64748b;
+}
+html[data-role-theme="light"] .gr-stat-pill b { color: #0f172a; }
+
+html[data-role-theme="light"] .gr-tabs {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html[data-role-theme="light"] .gr-tab        { color: #64748b; }
+html[data-role-theme="light"] .gr-tab:hover  { color: #0891b2; }
+html[data-role-theme="light"] .gr-tab.active {
+  background: linear-gradient(135deg, rgba(6,182,212,.12), rgba(6,182,212,.05));
+  color: #0891b2; border-color: rgba(6,182,212,.3);
+}
+
+html[data-role-theme="light"] .gr-title-block h1 { color: #0f172a; }
+html[data-role-theme="light"] .gr-title-block p  { color: #64748b; }
+
+html[data-role-theme="light"] .gr-podium-name   { color: #0f172a; }
+html[data-role-theme="light"] .gr-podium-center { color: #64748b; }
+
+html[data-role-theme="light"] .gr-my-bar {
+  background: rgba(6,182,212,.09);
+  border-color: rgba(6,182,212,.25);
+}
+html[data-role-theme="light"] .gr-my-bar-name   { color: #0f172a; }
+html[data-role-theme="light"] .gr-my-bar-center { color: #64748b; }
+
+html[data-role-theme="light"] .gr-empty h3 { color: #0f172a; }
+html[data-role-theme="light"] .gr-empty    { color: #94a3b8; }
+
+/* ── ICON / COIN COLOUR HELPERS ── */
+.gr-icon-gold   { color: var(--gr-gold);   }
+.gr-icon-accent { color: var(--gr-accent); }
+.gr-coins-silver { color: var(--gr-silver); }
+.gr-coins-gold   { color: var(--gr-gold);   }
+.gr-coins-bronze { color: var(--gr-bronze); }
+
+/* ── EMPTY STATE BUTTON ── */
+.gr-empty-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 16px; background: #06b6d4; color: #000;
+  font-weight: 700; padding: 12px 28px; border-radius: 12px;
+  text-decoration: none;
+}
+.gr-empty-btn:hover { background: #22d3ee; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gr-page">
+<div class="gr-wrap">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="gr-header">
+    <div class="gr-header-inner">
+      <div class="gr-title-block">
+        <h1>
+          <i class="fa-solid fa-trophy gr-icon-gold"></i>
+          Global <span>Reyting</span>
+        </h1>
+        <p>⚡ Barcha o'quv markazlar orasidagi o'yin musobaqasi</p>
+      </div>
+
+      <div class="gr-global-stats">
+        <div class="gr-stat-pill">
+          <i class="fa-solid fa-users"></i>
+          <div><b>{{ total_players }}</b><br>o'quvchi</div>
+        </div>
+        <div class="gr-stat-pill">
+          <i class="fa-solid fa-circle-dot gr-icon-accent"></i>
+          <div><b>{{ total_coins_global|intcomma }}</b><br>jami ball</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Period tabs -->
+    <div class="gr-tabs">
+      <a href="?period=week"
+         class="gr-tab {% if period == 'week' %}active{% endif %}">
+        <i class="fa-solid fa-calendar-week"></i> Bu hafta
+      </a>
+      <a href="?period=month"
+         class="gr-tab {% if period == 'month' %}active{% endif %}">
+        <i class="fa-solid fa-calendar-days"></i> Bu oy
+      </a>
+      <a href="?period=all"
+         class="gr-tab {% if period == 'all' %}active{% endif %}">
+        <i class="fa-solid fa-infinity"></i> Hammasi
+      </a>
+    </div>
+  </div>
+
+  {% if leaderboard %}
+
+  <!-- ═══ PODIUM (top 3) ═══ -->
+  {% if leaderboard|length >= 2 %}
+  <div class="gr-podium">
+    {# Order: 2nd (left), 1st (center), 3rd (right) #}
+    {% with p2=leaderboard.1 p1=leaderboard.0 %}
+    {% if leaderboard|length >= 3 %}{% with p3=leaderboard.2 %}
+
+    <!-- #2 silver (left) -->
+    <div class="gr-podium-item">
+      <div class="gr-podium-avatar silver">{{ p2.name|slice:":1" }}</div>
+      <div class="gr-podium-name">{{ p2.name }}</div>
+      <div class="gr-podium-center">🏫 {{ p2.center }}</div>
+      <div class="gr-podium-coins gr-coins-silver">
+        <i class="fa-solid fa-circle-dot"></i>{{ p2.coins|intcomma }}
+      </div>
+      <div class="gr-podium-base">🥈</div>
+    </div>
+
+    <!-- #1 gold (center) -->
+    <div class="gr-podium-item">
+      <div class="gr-podium-avatar gold">{{ p1.name|slice:":1" }}</div>
+      <div class="gr-podium-name">{{ p1.name }}</div>
+      <div class="gr-podium-center">🏫 {{ p1.center }}</div>
+      <div class="gr-podium-coins gr-coins-gold">
+        <i class="fa-solid fa-circle-dot"></i>{{ p1.coins|intcomma }}
+      </div>
+      <div class="gr-podium-base">🥇</div>
+    </div>
+
+    <!-- #3 bronze (right) -->
+    <div class="gr-podium-item">
+      <div class="gr-podium-avatar bronze">{{ p3.name|slice:":1" }}</div>
+      <div class="gr-podium-name">{{ p3.name }}</div>
+      <div class="gr-podium-center">🏫 {{ p3.center }}</div>
+      <div class="gr-podium-coins gr-coins-bronze">
+        <i class="fa-solid fa-circle-dot"></i>{{ p3.coins|intcomma }}
+      </div>
+      <div class="gr-podium-base">🥉</div>
+    </div>
+
+    {% endwith %}{% endif %}
+    {% endwith %}
+  </div>
+  {% endif %}
+
+  <!-- ═══ TABLE (rank 4–100) ═══ -->
+  <div class="gr-table-wrap">
+    <!-- Head -->
+    <div class="gr-table-head">
+      <div>#</div>
+      <div>O'quvchi</div>
+      <div>Markaz</div>
+      <div class="gr-th-games">O'yinlar</div>
+      <div>Ball</div>
+      <div class="gr-th-level">Daraja</div>
+    </div>
+
+    <!-- All rows (including top 3 for completeness in table) -->
+    {% for row in leaderboard %}
+    <div class="gr-row {% if row.is_me %}is-me{% elif row.rank <= 3 %}top3{% endif %}">
+
+      <!-- Rank -->
+      <div>
+        <div class="gr-rank {% if row.rank == 1 %}r1{% elif row.rank == 2 %}r2{% elif row.rank == 3 %}r3{% else %}rn{% endif %}">
+          {% if row.rank == 1 %}🥇
+          {% elif row.rank == 2 %}🥈
+          {% elif row.rank == 3 %}🥉
+          {% else %}{{ row.rank }}{% endif %}
+        </div>
+      </div>
+
+      <!-- Player -->
+      <div class="gr-player">
+        <div class="gr-player-name">
+          {{ row.name }}
+          {% if row.is_me %}<span class="gr-me-badge">⚡ Sen</span>{% endif %}
+        </div>
+      </div>
+
+      <!-- Center -->
+      <div class="gr-center">
+        <i class="fa-solid fa-building"></i>
+        {{ row.center }}
+      </div>
+
+      <!-- Games count -->
+      <div class="gr-games-cell gr-td-games">
+        <i class="fa-solid fa-gamepad gr-icon-accent"></i>
+        {{ row.games }}
+      </div>
+
+      <!-- Coins -->
+      <div class="gr-coins">
+        <i class="fa-solid fa-circle-dot"></i>
+        {{ row.coins|intcomma }}
+      </div>
+
+      <!-- Level dots -->
+      <div class="gr-level gr-td-level">
+        <div class="gr-level-dots">
+          {% for i in "123456789" %}
+          <div class="gr-level-dot {% if forloop.counter <= row.level %}on{% endif %}"></div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- Empty -->
+  <div class="gr-empty">
+    <i class="fa-solid fa-trophy"></i>
+    <h3>Hali reyting yo'q</h3>
+    <p>O'yin o'ynab birinchi bo'lib reytingga kiring!</p>
+    <a href="{% url 'core:game_hub' %}" class="gr-empty-btn">
+      <i class="fa-solid fa-gamepad"></i> O'yinlarga o'tish
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+</div>
+
+<!-- ═══ MY POSITION STICKY BAR (if outside top-100) ═══ -->
+{% if my_row %}
+<div class="gr-my-bar">
+  <div class="gr-my-bar-rank">#{{ my_row.rank }}</div>
+  <div class="gr-my-bar-info">
+    <div class="gr-my-bar-name">{{ my_row.name }}</div>
+    <div class="gr-my-bar-center">🏫 {{ my_row.center }}</div>
+  </div>
+  <div class="gr-my-bar-coins">
+    <i class="fa-solid fa-circle-dot"></i>{{ my_row.coins|intcomma }}
+  </div>
+  <span class="gr-my-bar-label">SEN</span>
+</div>
+{% endif %}
+{% endblock %}

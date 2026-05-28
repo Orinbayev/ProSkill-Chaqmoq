@@ -580,6 +580,13 @@
 
   {% block modals %}{% endblock %}
 
+  <!-- ── AI Yordamchi Widget (har bir sahifada bir marta ko'rinadi) ── -->
+  {% block ai_widget %}
+  {% if request.user.is_authenticated %}
+  {% include "partials/ai_chat_widget.html" %}
+  {% endif %}
+  {% endblock %}
+
   <!-- 🔔 NOTIFICATION SIDEBAR (Restored) -->
   <div id="notificationSidebar" class="notification-sidebar">
     <div class="ns-header">

@@ -75,6 +75,81 @@
         border-radius: 50%;
         box-shadow: 0 0 5px #ef4444;
       }
+
+      /* ── O'yinlar sidebar button ── */
+      .sidebar-games-btn {
+        background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(139,92,246,.12)) !important;
+        border: 1px solid rgba(139,92,246,.25) !important;
+        border-radius: 12px !important;
+        margin: 2px 0 !important;
+        position: relative;
+        overflow: hidden;
+      }
+      .sidebar-games-btn:hover {
+        background: linear-gradient(135deg, rgba(99,102,241,.32), rgba(139,92,246,.22)) !important;
+        border-color: rgba(139,92,246,.5) !important;
+        transform: translateX(2px);
+      }
+      .sidebar-games-btn .si-ico {
+        color: #a78bfa !important;
+      }
+      .sidebar-games-btn .si-text {
+        color: #c4b5fd !important;
+        font-weight: 700 !important;
+      }
+      .sidebar-games-btn.active,
+      .sidebar-games-btn:active {
+        background: linear-gradient(135deg, rgba(99,102,241,.4), rgba(139,92,246,.3)) !important;
+        border-color: rgba(139,92,246,.7) !important;
+      }
+      /* pulse glow on the icon */
+      @keyframes gamesIconPulse {
+        0%, 100% { filter: drop-shadow(0 0 4px rgba(167,139,250,.5)); }
+        50%       { filter: drop-shadow(0 0 10px rgba(167,139,250,.9)); }
+      }
+      .sidebar-games-btn .si-ico i {
+        animation: gamesIconPulse 2.4s ease-in-out infinite;
+      }
+      /* shine sweep */
+      .sidebar-games-btn::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+        animation: gamesBtnShine 3s ease-in-out infinite;
+      }
+      @keyframes gamesBtnShine {
+        0%   { left: -100%; }
+        40%  { left: 120%; }
+        100% { left: 120%; }
+      }
+      /* collapsed sidebar: just show icon */
+      body.sidebar-collapsed .sidebar-games-btn .si-text { display: none; }
+
+      /* ── Global Reyting sidebar button ── */
+      .sidebar-rating-btn {
+        background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(251,191,36,.08)) !important;
+        border: 1px solid rgba(245,158,11,.22) !important;
+        border-radius: 12px !important;
+        margin: 2px 0 !important;
+      }
+      .sidebar-rating-btn:hover {
+        background: linear-gradient(135deg, rgba(245,158,11,.28), rgba(251,191,36,.16)) !important;
+        border-color: rgba(245,158,11,.45) !important;
+      }
+      .sidebar-rating-btn .si-ico { color: #fbbf24 !important; }
+      .sidebar-rating-btn .si-text { color: #fde68a !important; font-weight: 700 !important; }
+      .sidebar-rating-btn.active {
+        background: linear-gradient(135deg, rgba(245,158,11,.35), rgba(251,191,36,.22)) !important;
+        border-color: rgba(245,158,11,.6) !important;
+      }
+      body.sidebar-collapsed .sidebar-rating-btn .si-text { display: none; }
+
+      /* Light mode overrides */
+      html[data-role-theme="light"] .sidebar-rating-btn { background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(251,191,36,.06)) !important; }
+      html[data-role-theme="light"] .sidebar-rating-btn .si-ico  { color: #d97706 !important; }
+      html[data-role-theme="light"] .sidebar-rating-btn .si-text { color: #92400e !important; }
     </style>
 
     <!-- ================================
@@ -300,6 +375,14 @@
       <span class="si-ico"><i class="fa-solid fa-house"></i></span>
       <span class="si-text">Asosiy</span>
     </a>
+
+    <a href="{% url 'core:game_hub' %}"
+      class="sidebar-item sidebar-games-btn {% if vn == 'core:game_hub' or vn == 'core:game_play' %}active{% endif %}"
+      data-title="O'yinlar">
+      <span class="si-ico"><i class="fa-solid fa-gamepad"></i></span>
+      <span class="si-text">O'yinlar 🎮</span>
+    </a>
+
 
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
@@ -611,6 +694,22 @@
   <a href="{% url 'core:group_permissions_settings' %}" class="floating-item {% if vn == 'core:group_permissions_settings' %}active{% endif %}">
     <div class="fi-icon"><i class="fa-solid fa-shield-halved"></i></div>
     <span>Ruxsatlar</span>
+  </a>
+  {% endif %}
+  {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+  <a href="{% url 'core:game_settings' %}" class="floating-item {% if vn == 'core:game_settings' %}active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-gamepad"></i></div>
+    <span>O'yin Boshqaruvi</span>
+  </a>
+  <a href="{% url 'core:game_questions' %}" class="floating-item {% if vn == 'core:game_questions' %}active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-list-check"></i></div>
+    <span>O'yin Savollari</span>
+  </a>
+  {% endif %}
+  {% if request.user.is_superuser %}
+  <a href="{% url 'core:game_super_admin' %}" class="floating-item {% if vn == 'core:game_super_admin' %}active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-globe"></i></div>
+    <span>Global O'yinlar</span>
   </a>
   {% endif %}
       </div>

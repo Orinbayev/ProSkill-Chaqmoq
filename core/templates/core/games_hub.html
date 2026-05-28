@@ -1,0 +1,1163 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block body_class %}gm2-page{% endblock %}
+{% block title %}🎮 O'yin Markazi | Chaqmoq{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════════
+   GAME HUB v3 — Professional Gaming Center
+   Dark/Light adaptive · Mobile-first
+══════════════════════════════════════════════════ */
+.gm2-page {
+  --c1:     #06b6d4;
+  --c2:     #8b5cf6;
+  --c3:     #f59e0b;
+  --c4:     #10b981;
+  --c5:     #ef4444;
+  --bg:     #070b14;
+  --surf:   rgba(13,22,42,.85);
+  --surf2:  rgba(255,255,255,.04);
+  --border: rgba(255,255,255,.08);
+  --text:   #e2e8f0;
+  --sub:    #94a3b8;
+  --r:      14px;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--text);
+}
+html[data-role-theme="light"] .gm2-page {
+  --bg:     #f0f4f8;
+  --surf:   #ffffff;
+  --surf2:  rgba(0,0,0,.03);
+  --border: rgba(0,0,0,.09);
+  --text:   #0f172a;
+  --sub:    #64748b;
+}
+.gm2-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ══════════ HEADER ══════════ */
+.gm2-header {
+  padding: 28px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+.gm2-header-glow {
+  position: absolute;
+  top: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 800px; height: 300px;
+  background: radial-gradient(ellipse, rgba(6,182,212,.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+.gm2-hdr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: relative;
+}
+.gm2-hdr-left h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1;
+}
+.gm2-hdr-accent { color: var(--c1); }
+.gm2-hdr-sub {
+  font-size: 13px;
+  color: var(--sub);
+}
+.gm2-hdr-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gm2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  transition: border-color .2s;
+}
+.gm2-pill i { font-size: 14px; }
+.gm2-pill.p-ball { border-color: rgba(245,158,11,.25); }
+.gm2-pill.p-ball i { color: var(--c3); }
+.gm2-pill.p-day { border-color: rgba(6,182,212,.25); }
+.gm2-pill.p-day i { color: var(--c1); }
+.gm2-pill.p-streak { border-color: rgba(139,92,246,.25); }
+.gm2-pill.p-streak i { color: var(--c2); }
+html[data-role-theme="light"] .gm2-pill { background: #fff; }
+
+/* ══════════ TAB NAV ══════════ */
+.gm2-tabnav {
+  display: flex;
+  gap: 2px;
+  margin: 24px 0 0;
+  border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gm2-tabnav::-webkit-scrollbar { display: none; }
+.gm2-tabx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px 13px;
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .18s, border-color .18s, background .18s;
+  border-radius: 8px 8px 0 0;
+  position: relative;
+}
+.gm2-tabx .tbadge {
+  background: var(--surf2);
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--sub);
+  transition: all .18s;
+}
+.gm2-tabx:hover { color: var(--text); background: var(--surf2); }
+.gm2-tabx.on {
+  color: var(--c1);
+  border-bottom-color: var(--c1);
+  background: rgba(6,182,212,.06);
+}
+.gm2-tabx.on .tbadge {
+  background: rgba(6,182,212,.18);
+  color: var(--c1);
+}
+
+/* ══════════ TAB PANELS ══════════ */
+.gm2-panel {
+  display: none;
+  padding-top: 24px;
+  animation: gm2FadeUp .28s ease both;
+}
+.gm2-panel.on { display: block; }
+@keyframes gm2FadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════
+   PANEL 1 — O'YINLAR
+══════════════════════════════════════ */
+
+/* Daily progress strip */
+.gm2-dp-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
+}
+html[data-role-theme="light"] .gm2-dp-strip { background: #fff; }
+.gm2-dp-label {
+  font-size: 13px; font-weight: 700; color: var(--sub); white-space: nowrap;
+}
+.gm2-dp-track {
+  flex: 1; height: 8px;
+  background: var(--surf2);
+  border-radius: 4px; overflow: hidden;
+}
+.gm2-dp-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--c4), var(--c1));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.gm2-dp-count {
+  font-size: 14px; font-weight: 900; color: var(--c1); white-space: nowrap;
+}
+
+/* Category chips */
+.gm2-cats {
+  display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.gm2-chip {
+  padding: 6px 15px; border-radius: 20px;
+  font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--border);
+  background: var(--surf2);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all .16s;
+  user-select: none;
+}
+.gm2-chip:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+.gm2-chip.on { background: var(--c1); border-color: var(--c1); color: #000; }
+html[data-role-theme="light"] .gm2-chip.on { color: #fff; }
+html[data-role-theme="light"] .gm2-chip { background: #f1f5f9; }
+
+/* Game grid */
+.gm2-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px,1fr));
+  gap: 13px;
+}
+
+/* GAME CARD */
+.gm2-card {
+  border-radius: 16px;
+  background: var(--surf);
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.4,0,.2,1),
+              box-shadow .18s, border-color .18s;
+  display: flex; flex-direction: column;
+  position: relative;
+  animation: gm2CardIn .35s ease both;
+}
+@keyframes gm2CardIn {
+  from { opacity: 0; transform: scale(.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+.gm2-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 44px rgba(0,0,0,.3);
+}
+.gm2-card.played { border-color: rgba(16,185,129,.4); }
+html[data-role-theme="light"] .gm2-card { background: #fff; }
+html[data-role-theme="light"] .gm2-card.played { border-color: rgba(16,185,129,.5); }
+html[data-role-theme="light"] .gm2-card:hover { box-shadow: 0 12px 36px rgba(0,0,0,.1); }
+
+/* Card top */
+.gm2-ctop {
+  height: 88px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px; line-height: 1;
+  position: relative; overflow: hidden;
+}
+.gm2-ctop-bg {
+  position: absolute; inset: 0; opacity: .18;
+}
+/* Category gradients */
+.gm2-card[data-cat="math"]      .gm2-ctop-bg { background: linear-gradient(135deg,#3b82f6,#6366f1); }
+.gm2-card[data-cat="times"]     .gm2-ctop-bg { background: linear-gradient(135deg,#2563eb,#4f46e5); }
+.gm2-card[data-cat="language"]  .gm2-ctop-bg { background: linear-gradient(135deg,#10b981,#06b6d4); }
+.gm2-card[data-cat="science"]   .gm2-ctop-bg { background: linear-gradient(135deg,#f59e0b,#ef4444); }
+.gm2-card[data-cat="geography"] .gm2-ctop-bg { background: linear-gradient(135deg,#06b6d4,#0284c7); }
+.gm2-card[data-cat="logic"]     .gm2-ctop-bg { background: linear-gradient(135deg,#8b5cf6,#ec4899); }
+.gm2-card[data-cat="board"]     .gm2-ctop-bg { background: linear-gradient(135deg,#475569,#1e293b); }
+.gm2-card[data-cat="memory"]    .gm2-ctop-bg { background: linear-gradient(135deg,#f472b6,#a21caf); }
+/* Category glow on hover */
+.gm2-card[data-cat="math"]:hover      { border-color: rgba(59,130,246,.55);  box-shadow: 0 16px 44px rgba(59,130,246,.14); }
+.gm2-card[data-cat="times"]:hover     { border-color: rgba(79,70,229,.55);   box-shadow: 0 16px 44px rgba(79,70,229,.14); }
+.gm2-card[data-cat="language"]:hover  { border-color: rgba(16,185,129,.55);  box-shadow: 0 16px 44px rgba(16,185,129,.14); }
+.gm2-card[data-cat="science"]:hover   { border-color: rgba(245,158,11,.55);  box-shadow: 0 16px 44px rgba(245,158,11,.14); }
+.gm2-card[data-cat="geography"]:hover { border-color: rgba(6,182,212,.55);   box-shadow: 0 16px 44px rgba(6,182,212,.14); }
+.gm2-card[data-cat="logic"]:hover     { border-color: rgba(139,92,246,.55);  box-shadow: 0 16px 44px rgba(139,92,246,.14); }
+.gm2-card[data-cat="board"]:hover     { border-color: rgba(100,116,139,.55); box-shadow: 0 16px 44px rgba(100,116,139,.14); }
+.gm2-card[data-cat="memory"]:hover    { border-color: rgba(244,114,182,.55); box-shadow: 0 16px 44px rgba(244,114,182,.14); }
+
+/* Played badge */
+.gm2-played-badge {
+  position: absolute; top: 7px; right: 7px;
+  background: rgba(16,185,129,.92);
+  color: #fff; font-size: 10px; font-weight: 800;
+  padding: 3px 7px; border-radius: 7px;
+  display: flex; align-items: center; gap: 3px;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
+/* Card body */
+.gm2-cbody {
+  padding: 10px 12px 13px;
+  display: flex; flex-direction: column; gap: 6px; flex: 1;
+}
+.gm2-cname {
+  font-size: 12px; font-weight: 700; line-height: 1.3; color: var(--text);
+}
+.gm2-clevels {
+  display: flex; gap: 2px;
+}
+.gm2-ldot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--border); transition: background .2s;
+}
+.gm2-ldot.on { background: var(--c1); }
+
+/* Card action button */
+.gm2-cbtn {
+  margin-top: 4px; width: 100%; padding: 8px 0;
+  border: none; border-radius: 10px;
+  font-size: 12px; font-weight: 800; cursor: pointer;
+  transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.gm2-cbtn.play {
+  background: var(--c1); color: #000;
+}
+.gm2-cbtn.play:hover { background: #22d3ee; transform: scale(1.03); }
+.gm2-cbtn.replay {
+  background: rgba(16,185,129,.1); color: var(--c4);
+  border: 1px solid rgba(16,185,129,.3);
+}
+.gm2-cbtn.replay:hover { background: rgba(16,185,129,.18); }
+.gm2-cbtn.off {
+  background: var(--surf2); color: var(--sub);
+  border: 1px solid var(--border); cursor: not-allowed;
+}
+
+/* Disabled card */
+.gm2-card.off-card { opacity: .45; pointer-events: none; }
+
+/* Empty state */
+.gm2-empty {
+  text-align: center; padding: 60px 20px; color: var(--sub);
+  grid-column: 1/-1;
+}
+.gm2-empty i { font-size: 40px; margin-bottom: 12px; display: block; }
+
+/* ══════════════════════════════════════
+   PANEL 2 — REYTING
+══════════════════════════════════════ */
+.gm2-rperiod {
+  display: flex; gap: 4px; margin-bottom: 22px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 12px; padding: 4px; width: fit-content;
+}
+html[data-role-theme="light"] .gm2-rperiod { background: #fff; }
+.gm2-rp-btn {
+  padding: 7px 18px; border: none; background: transparent;
+  color: var(--sub); font-size: 13px; font-weight: 700;
+  border-radius: 9px; cursor: pointer; transition: all .18s;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.gm2-rp-btn:hover { color: var(--text); }
+.gm2-rp-btn.on { background: var(--c1); color: #000; }
+html[data-role-theme="light"] .gm2-rp-btn.on { color: #fff; }
+
+/* Podium */
+.gm2-podium {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 8px; margin-bottom: 28px; padding: 0 10px;
+}
+.gm2-pod {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 7px; flex: 1; max-width: 150px;
+}
+.gm2-pod-av {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: #000;
+  position: relative; flex-shrink: 0;
+}
+.gm2-pod-av.gold {
+  background: linear-gradient(135deg,#fbbf24,#d97706);
+  box-shadow: 0 0 24px rgba(251,191,36,.45);
+  width: 68px; height: 68px; font-size: 26px;
+}
+.gm2-pod-av.silver { background: linear-gradient(135deg,#94a3b8,#64748b); color: #fff; }
+.gm2-pod-av.bronze { background: linear-gradient(135deg,#cd7c2e,#92400e); color: #fff; }
+.gm2-pod-crown {
+  position: absolute; top: -18px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  animation: crownB 2.2s ease-in-out infinite;
+  filter: drop-shadow(0 2px 8px rgba(251,191,36,.7));
+}
+@keyframes crownB {
+  0%,100% { transform: translateX(-50%) rotate(-8deg); }
+  50%     { transform: translateX(-50%) translateY(-4px) rotate(8deg); }
+}
+.gm2-pod-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  text-align: center; max-width: 130px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gm2-pod-ctr {
+  font-size: 11px; color: var(--sub); text-align: center;
+  max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gm2-pod-balls {
+  font-size: 12px; font-weight: 800; color: var(--c3);
+  display: flex; align-items: center; gap: 4px;
+}
+.gm2-pod-base {
+  width: 100%; text-align: center; font-size: 24px;
+  padding: 8px 0; border-radius: 10px;
+  background: var(--surf2); border: 1px solid var(--border);
+}
+.gm2-pod.rank1 .gm2-pod-base {
+  background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.3);
+  font-size: 30px;
+}
+
+/* Leaderboard table */
+.gm2-lb {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+html[data-role-theme="light"] .gm2-lb { background: #fff; }
+.gm2-lb-h {
+  display: grid;
+  grid-template-columns: 54px 1fr 130px 70px 80px;
+  padding: 10px 18px;
+  background: var(--surf2); border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: .7px;
+}
+.gm2-lb-r {
+  display: grid;
+  grid-template-columns: 54px 1fr 130px 70px 80px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; align-items: center;
+  transition: background .14s;
+}
+.gm2-lb-r:last-child { border-bottom: none; }
+.gm2-lb-r:hover { background: var(--surf2); }
+.gm2-lb-r.me { background: rgba(6,182,212,.07); }
+.gm2-lb-r.t3 { background: rgba(245,158,11,.04); }
+html[data-role-theme="light"] .gm2-lb-r.me { background: rgba(6,182,212,.08); }
+
+.gm2-rk {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+  background: var(--surf2); color: var(--sub);
+  border: 1px solid var(--border);
+}
+.gm2-rk.r1 { background: rgba(251,191,36,.18); color: #fbbf24; border-color: rgba(251,191,36,.35); }
+.gm2-rk.r2 { background: rgba(148,163,184,.12); color: #94a3b8; border-color: rgba(148,163,184,.3); }
+.gm2-rk.r3 { background: rgba(205,124,46,.12); color: #cd7c2e; border-color: rgba(205,124,46,.3); }
+.gm2-lb-pname { font-weight: 700; color: var(--text); }
+.gm2-me-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-left: 6px; background: rgba(6,182,212,.15);
+  color: var(--c1); font-size: 10px; font-weight: 800;
+  padding: 2px 7px; border-radius: 6px;
+}
+.gm2-lb-ctr { font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm2-lb-balls { font-weight: 800; color: var(--c3); text-align: right; }
+.gm2-lb-lvl { display: flex; gap: 2px; flex-wrap: wrap; }
+.gm2-ldot2 { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.gm2-ldot2.on { background: var(--c1); }
+
+/* My sticky bar */
+.gm2-mybar {
+  position: sticky; bottom: 16px; margin-top: 12px;
+  background: rgba(6,182,212,.12);
+  border: 1px solid rgba(6,182,212,.3);
+  border-radius: 12px; padding: 12px 18px;
+  display: flex; align-items: center; gap: 14px;
+  backdrop-filter: blur(10px);
+  font-size: 13px; font-weight: 700; color: var(--text);
+  z-index: 10;
+}
+.gm2-mybar-rank { font-size: 18px; font-weight: 900; color: var(--c1); }
+
+/* Rating empty */
+.gm2-rt-empty {
+  text-align: center; padding: 60px 20px; color: var(--sub);
+}
+.gm2-rt-empty i { font-size: 44px; margin-bottom: 12px; display: block; }
+.gm2-rt-empty a {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: 14px; background: var(--c1); color: #000;
+  font-weight: 800; padding: 11px 26px; border-radius: 12px;
+  text-decoration: none; font-size: 14px;
+}
+html[data-role-theme="light"] .gm2-rt-empty a { color: #fff; }
+
+/* ══════════════════════════════════════
+   PANEL 3 — STATISTIKA
+══════════════════════════════════════ */
+
+/* Wallet card */
+.gm2-wallet {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 18px; padding: 22px;
+  margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+html[data-role-theme="light"] .gm2-wallet { background: #fff; }
+.gm2-wallet::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,158,11,.12), transparent 70%);
+  pointer-events: none;
+}
+.gm2-wallet-inner {
+  display: flex; align-items: center; gap: 22px;
+}
+.gm2-wallet-ring {
+  position: relative; width: 96px; height: 96px; flex-shrink: 0;
+}
+.gm2-wallet-ring svg { transform: rotate(-90deg); }
+.gm2-wallet-ring-val {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: var(--c3); line-height: 1;
+}
+.gm2-wallet-ring-sub { font-size: 9px; color: var(--sub); font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+.gm2-wallet-info { flex: 1; }
+.gm2-wallet-num { font-size: 32px; font-weight: 900; color: var(--text); line-height: 1; }
+.gm2-wallet-lbl { font-size: 13px; color: var(--sub); margin: 4px 0 14px; }
+.gm2-wallet-prog {
+  height: 7px; background: var(--surf2); border-radius: 4px; overflow: hidden; margin-bottom: 6px;
+}
+.gm2-wallet-pfill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--c3), #fbbf24);
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.gm2-wallet-plbl {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--sub); margin-bottom: 14px;
+}
+
+/* Convert button */
+.gm2-conv-btn {
+  width: 100%; padding: 12px 0;
+  border: none; border-radius: 13px;
+  font-size: 14px; font-weight: 800; cursor: pointer;
+  transition: all .2s; display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+}
+.gm2-conv-btn.yes {
+  background: linear-gradient(135deg, var(--c3), #d97706);
+  color: #000; box-shadow: 0 4px 20px rgba(245,158,11,.3);
+}
+.gm2-conv-btn.yes:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,158,11,.45); }
+.gm2-conv-btn.no {
+  background: var(--surf2); color: var(--sub);
+  border: 1px solid var(--border); cursor: not-allowed;
+}
+.gm2-conv-msg {
+  margin-top: 10px; padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; display: none;
+}
+
+/* Stats grid */
+.gm2-sg {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;
+}
+.gm2-sc {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px;
+}
+html[data-role-theme="light"] .gm2-sc { background: #fff; }
+.gm2-sc-lbl {
+  font-size: 11px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: .7px;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+}
+.gm2-sc-val { font-size: 30px; font-weight: 900; line-height: 1; }
+.gm2-sc-sub { font-size: 12px; color: var(--sub); margin-top: 3px; }
+
+/* Daily checklist */
+.gm2-dcl {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px; margin-bottom: 16px;
+}
+html[data-role-theme="light"] .gm2-dcl { background: #fff; }
+.gm2-dcl-h {
+  font-size: 13px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: .7px;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+}
+.gm2-dcl-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(78px,1fr)); gap: 8px;
+}
+.gm2-dc-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 9px 4px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--surf2);
+  font-size: 10px; font-weight: 700; color: var(--sub);
+  text-align: center; line-height: 1.3;
+  transition: all .18s;
+}
+.gm2-dc-item.done {
+  border-color: rgba(16,185,129,.4);
+  background: rgba(16,185,129,.08);
+  color: var(--c4);
+}
+html[data-role-theme="light"] .gm2-dc-item { background: #f8fafc; }
+html[data-role-theme="light"] .gm2-dc-item.done { background: rgba(16,185,129,.07); }
+.gm2-dc-emo { font-size: 18px; }
+
+/* Recent sessions */
+.gm2-recent {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+html[data-role-theme="light"] .gm2-recent { background: #fff; }
+.gm2-recent-h {
+  padding: 14px 18px;
+  font-size: 13px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: .7px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 7px;
+}
+.gm2-sess {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  font-size: 13px; transition: background .14s;
+}
+.gm2-sess:last-child { border-bottom: none; }
+.gm2-sess:hover { background: var(--surf2); }
+.gm2-sess-emo { font-size: 24px; flex-shrink: 0; }
+.gm2-sess-inf { flex: 1; }
+.gm2-sess-nm { font-weight: 700; color: var(--text); }
+.gm2-sess-dt { font-size: 11px; color: var(--sub); margin-top: 1px; }
+.gm2-sess-bl { font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.gm2-sess-bl.got { color: var(--c4); }
+.gm2-sess-bl.miss { color: var(--sub); }
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media (max-width: 600px) {
+  .gm2-grid { grid-template-columns: repeat(auto-fill, minmax(136px,1fr)); gap: 10px; }
+  .gm2-lb-h, .gm2-lb-r { grid-template-columns: 46px 1fr 0 60px 0; }
+  .gm2-lb-h > :nth-child(3), .gm2-lb-h > :nth-child(5),
+  .gm2-lb-r > :nth-child(3), .gm2-lb-r > :nth-child(5) { display: none; }
+  .gm2-hdr-pills { display: none; }
+  .gm2-sg { grid-template-columns: 1fr 1fr; }
+  .gm2-wallet-num { font-size: 26px; }
+}
+@media (max-width: 400px) {
+  .gm2-sg { grid-template-columns: 1fr; }
+  .gm2-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gm2-wrap">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="gm2-header">
+    <div class="gm2-header-glow"></div>
+    <div class="gm2-hdr-row">
+      <div class="gm2-hdr-left">
+        <h1>🎮 O'yin <span class="gm2-hdr-accent">Markazi</span></h1>
+        <div class="gm2-hdr-sub">
+          {% if is_student %}{{ student_name }} · {% endif %}Kunlik limit: {{ daily_balls }}/{{ total_games }} ball
+        </div>
+      </div>
+      {% if is_student %}
+      <div class="gm2-hdr-pills">
+        <div class="gm2-pill p-ball">
+          <i class="fa-solid fa-circle-dot"></i>
+          <span id="hdr-balls">{{ total_balls }}</span> ball
+        </div>
+        <div class="gm2-pill p-day">
+          <i class="fa-solid fa-calendar-day"></i>
+          Bugun {{ daily_balls }}/{{ total_games }}
+        </div>
+        <div class="gm2-pill p-streak">
+          <i class="fa-solid fa-fire-flame-curved"></i>
+          {{ streak }}🔥
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab nav -->
+    <div class="gm2-tabnav" id="gm2-tabnav">
+      <button class="gm2-tabx" data-panel="games" onclick="gm2Tab('games',this)">
+        <i class="fa-solid fa-gamepad"></i> O'yinlar
+        <span class="tbadge" id="tab-badge-games">{{ enabled_count }}</span>
+      </button>
+      <button class="gm2-tabx" data-panel="rating" onclick="gm2Tab('rating',this)">
+        <i class="fa-solid fa-trophy"></i> Reyting
+      </button>
+      {% if is_student %}
+      <button class="gm2-tabx" data-panel="stats" onclick="gm2Tab('stats',this)">
+        <i class="fa-solid fa-chart-bar"></i> Statistika
+        {% if can_convert %}<span class="tbadge" style="background:rgba(245,158,11,.2);color:var(--c3)">⚡</span>{% endif %}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       PANEL 1 — O'YINLAR
+  ══════════════════════════════════ -->
+  <div class="gm2-panel" id="panel-games">
+
+    <!-- Daily progress -->
+    <div class="gm2-dp-strip">
+      <div class="gm2-dp-label"><i class="fa-solid fa-bolt" style="color:var(--c3)"></i> Kunlik</div>
+      <div class="gm2-dp-track">
+        <div class="gm2-dp-fill" id="dp-fill" style="width:{{ daily_pct_bar }}%"></div>
+      </div>
+      <div class="gm2-dp-count" id="dp-count">{{ daily_balls }}/{{ total_games }}</div>
+    </div>
+
+    <!-- Category chips (JS rendered) -->
+    <div class="gm2-cats" id="gm2-cats"></div>
+
+    <!-- Games grid (JS rendered) -->
+    <div class="gm2-grid" id="gm2-grid"></div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       PANEL 2 — REYTING
+  ══════════════════════════════════ -->
+  <div class="gm2-panel" id="panel-rating">
+
+    <!-- Period selector -->
+    <div class="gm2-rperiod">
+      <a href="?rperiod=week#rating"   class="gm2-rp-btn {% if global_period == 'week' %}on{% endif %}">
+        <i class="fa-solid fa-calendar-week"></i> Bu hafta
+      </a>
+      <a href="?rperiod=month#rating"  class="gm2-rp-btn {% if global_period == 'month' %}on{% endif %}">
+        <i class="fa-solid fa-calendar-days"></i> Bu oy
+      </a>
+      <a href="?rperiod=all#rating"    class="gm2-rp-btn {% if global_period == 'all' %}on{% endif %}">
+        <i class="fa-solid fa-infinity"></i> Hammasi
+      </a>
+    </div>
+
+    {% if global_leaderboard %}
+
+    <!-- Podium top 3 -->
+    {% if global_leaderboard|length >= 2 %}
+    <div class="gm2-podium">
+      {% with p1=global_leaderboard.0 p2=global_leaderboard.1 %}
+
+      <!-- #2 silver -->
+      <div class="gm2-pod rank2">
+        <div class="gm2-pod-av silver">{{ p2.name|slice:":1" }}</div>
+        <div class="gm2-pod-name">{{ p2.name }}</div>
+        <div class="gm2-pod-ctr">🏫 {{ p2.center }}</div>
+        <div class="gm2-pod-balls"><i class="fa-solid fa-circle-dot"></i>{{ p2.balls }}</div>
+        <div class="gm2-pod-base">🥈</div>
+      </div>
+
+      <!-- #1 gold -->
+      <div class="gm2-pod rank1">
+        <div class="gm2-pod-av gold">
+          <span class="gm2-pod-crown">👑</span>
+          {{ p1.name|slice:":1" }}
+        </div>
+        <div class="gm2-pod-name">{{ p1.name }}</div>
+        <div class="gm2-pod-ctr">🏫 {{ p1.center }}</div>
+        <div class="gm2-pod-balls"><i class="fa-solid fa-circle-dot"></i>{{ p1.balls }}</div>
+        <div class="gm2-pod-base">🥇</div>
+      </div>
+
+      {% if global_leaderboard|length >= 3 %}{% with p3=global_leaderboard.2 %}
+      <!-- #3 bronze -->
+      <div class="gm2-pod rank3">
+        <div class="gm2-pod-av bronze">{{ p3.name|slice:":1" }}</div>
+        <div class="gm2-pod-name">{{ p3.name }}</div>
+        <div class="gm2-pod-ctr">🏫 {{ p3.center }}</div>
+        <div class="gm2-pod-balls"><i class="fa-solid fa-circle-dot"></i>{{ p3.balls }}</div>
+        <div class="gm2-pod-base">🥉</div>
+      </div>
+      {% endwith %}{% endif %}
+
+      {% endwith %}
+    </div>
+    {% endif %}
+
+    <!-- Full leaderboard table -->
+    <div class="gm2-lb">
+      <div class="gm2-lb-h">
+        <div>#</div>
+        <div>O'quvchi</div>
+        <div>Markaz</div>
+        <div style="text-align:right">Ball</div>
+        <div>Daraja</div>
+      </div>
+      {% for row in global_leaderboard %}
+      <div class="gm2-lb-r {% if row.is_me %}me{% elif row.rank <= 3 %}t3{% endif %}">
+        <div>
+          <div class="gm2-rk {% if row.rank == 1 %}r1{% elif row.rank == 2 %}r2{% elif row.rank == 3 %}r3{% endif %}">
+            {% if row.rank == 1 %}🥇
+            {% elif row.rank == 2 %}🥈
+            {% elif row.rank == 3 %}🥉
+            {% else %}{{ row.rank }}{% endif %}
+          </div>
+        </div>
+        <div class="gm2-lb-pname">
+          {{ row.name }}
+          {% if row.is_me %}<span class="gm2-me-badge">⚡ Sen</span>{% endif %}
+        </div>
+        <div class="gm2-lb-ctr"><i class="fa-solid fa-building" style="margin-right:4px"></i>{{ row.center }}</div>
+        <div class="gm2-lb-balls" style="text-align:right">
+          <i class="fa-solid fa-circle-dot" style="margin-right:3px;font-size:10px"></i>{{ row.balls }}
+        </div>
+        <div class="gm2-lb-lvl">
+          {% for i in "123456789" %}
+          <div class="gm2-ldot2 {% if forloop.counter <= row.level %}on{% endif %}"></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if my_global_row %}
+    <div class="gm2-mybar">
+      <div class="gm2-mybar-rank">#{{ my_global_row.rank }}</div>
+      <div>
+        <div style="font-weight:700">{{ my_global_row.name }} <span class="gm2-me-badge">⚡ Sen</span></div>
+        <div style="font-size:12px;color:var(--sub)">{{ my_global_row.balls }} ball · {{ my_global_row.center }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="gm2-rt-empty">
+      <i class="fa-solid fa-trophy"></i>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Hali reyting ma'lumotlari yo'q</div>
+      <div>O'yin o'ynab ball to'plang — reyting paydo bo'ladi!</div>
+      <a href="#" onclick="gm2Tab('games',document.querySelector('[data-panel=games]'));return false">
+        <i class="fa-solid fa-gamepad"></i> O'ynashni boshlash
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══════════════════════════════════
+       PANEL 3 — STATISTIKA
+  ══════════════════════════════════ -->
+  {% if is_student %}
+  <div class="gm2-panel" id="panel-stats">
+
+    <!-- Ball wallet -->
+    <div class="gm2-wallet">
+      <div class="gm2-wallet-inner">
+        <!-- SVG ring -->
+        <div class="gm2-wallet-ring">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
+            <circle cx="48" cy="48" r="40" fill="none"
+              stroke="#f59e0b" stroke-width="8"
+              stroke-linecap="round"
+              stroke-dasharray="251.3"
+              stroke-dashoffset="{{ wallet_ring_offset }}"
+              id="wallet-ring-arc"
+              style="transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1)"/>
+          </svg>
+          <div class="gm2-wallet-ring-val">
+            <span id="wlt-ring-val">{{ total_balls }}</span>
+            <span class="gm2-wallet-ring-sub">ball</span>
+          </div>
+        </div>
+        <!-- Info -->
+        <div class="gm2-wallet-info">
+          <div class="gm2-wallet-num" id="wlt-total">{{ total_balls }}</div>
+          <div class="gm2-wallet-lbl">
+            {{ min_balls }} ball to'plang → <strong style="color:var(--c3)">{{ chaqmoq_per_conv }} ⚡</strong> oling
+          </div>
+          <div class="gm2-wallet-prog">
+            <div class="gm2-wallet-pfill" id="wlt-prog"
+              style="width:{% if total_balls %}{% widthratio total_balls min_balls 100 %}{% else %}0{% endif %}%;max-width:100%"></div>
+          </div>
+          <div class="gm2-wallet-plbl">
+            <span id="wlt-cur">{{ total_balls }}/{{ min_balls }}</span>
+            <span>{{ lifetime_balls }} lifetime</span>
+          </div>
+          <button class="gm2-conv-btn {% if can_convert %}yes{% else %}no{% endif %}"
+            id="conv-btn" onclick="doConvert()"
+            {% if not can_convert %}disabled{% endif %}>
+            <i class="fa-solid fa-bolt"></i>
+            {% if can_convert %}{{ total_balls }} ball → {{ chaqmoq_per_conv }} ⚡ Almashtir!
+            {% else %}{{ total_balls }}/{{ min_balls }} ball kerak{% endif %}
+          </button>
+          <div class="gm2-conv-msg" id="conv-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="gm2-sg">
+      <div class="gm2-sc">
+        <div class="gm2-sc-lbl"><i class="fa-solid fa-fire-flame-curved" style="color:#ef4444"></i> Seriya</div>
+        <div class="gm2-sc-val" style="color:var(--c5)">{{ streak }}</div>
+        <div class="gm2-sc-sub">kun ketma-ket</div>
+      </div>
+      <div class="gm2-sc">
+        <div class="gm2-sc-lbl"><i class="fa-solid fa-star" style="color:#fbbf24"></i> Daraja</div>
+        <div class="gm2-sc-val" style="color:var(--c3)">{{ best_level }}</div>
+        <div class="gm2-sc-sub">eng yuqori</div>
+      </div>
+      <div class="gm2-sc">
+        <div class="gm2-sc-lbl"><i class="fa-solid fa-circle-dot" style="color:#10b981"></i> Bugun</div>
+        <div class="gm2-sc-val" style="color:var(--c4)">{{ daily_balls }}</div>
+        <div class="gm2-sc-sub">/ {{ total_games }} ball</div>
+      </div>
+      <div class="gm2-sc">
+        <div class="gm2-sc-lbl"><i class="fa-solid fa-infinity" style="color:#8b5cf6"></i> Jami</div>
+        <div class="gm2-sc-val" style="color:var(--c2)">{{ lifetime_balls }}</div>
+        <div class="gm2-sc-sub">ball ever</div>
+      </div>
+    </div>
+
+    <!-- Daily checklist -->
+    <div class="gm2-dcl">
+      <div class="gm2-dcl-h"><i class="fa-solid fa-list-check" style="color:var(--c1)"></i> Bugungi o'yinlar</div>
+      <div class="gm2-dcl-grid" id="dcl-grid"></div>
+    </div>
+
+    <!-- Recent sessions -->
+    {% if recent_sessions %}
+    <div class="gm2-recent">
+      <div class="gm2-recent-h"><i class="fa-solid fa-clock-rotate-left"></i> So'nggi o'yinlar</div>
+      {% for s in recent_sessions %}
+      <div class="gm2-sess">
+        <div class="gm2-sess-emo">{{ s.game_emoji }}</div>
+        <div class="gm2-sess-inf">
+          <div class="gm2-sess-nm">{{ s.game_name }}</div>
+          <div class="gm2-sess-dt">Ball: {{ s.score }} · {{ s.played_at|date:"d.m H:i" }}</div>
+        </div>
+        <div class="gm2-sess-bl {% if s.balls_earned %}got{% else %}miss{% endif %}">
+          {% if s.balls_earned %}<i class="fa-solid fa-circle-dot"></i> +1{% else %}—{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+</div><!-- gm2-wrap -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+"use strict";
+
+/* ── Data from server ── */
+const GAMES        = {{ games_json|safe }};
+const DAILY_BALLS  = {{ daily_balls }};
+const TOTAL_GAMES  = {{ total_games }};
+const MIN_BALLS    = {{ min_balls }};
+const IS_STUDENT   = {{ is_student|yesno:"true,false" }};
+const CAN_CONVERT  = {{ can_convert|yesno:"true,false" }};
+const TOTAL_BALLS  = {{ total_balls }};
+
+/* ── Category map ── */
+const SLUG_CAT = {
+  math_sprint:"math", times_table:"times", number_sequence:"math",
+  formula_fill:"math", english_words:"language", word_scramble:"language",
+  geography_quiz:"geography", science_quiz:"science", shapes_quiz:"science",
+  quick_quiz:"logic", true_false:"logic", chess:"board", checkers:"board",
+  crossword:"logic", memory_match:"memory",
+};
+const CAT_LABEL = {
+  math:"➕ Matematika", times:"✖️ Ko'paytma", language:"🔤 Inglizcha",
+  geography:"🌍 Geografiya", science:"🔬 Fan", logic:"🧩 Mantiq",
+  board:"♟️ Taxtacha", memory:"🃏 Xotira",
+};
+const CAT_ORDER = ["math","times","language","geography","science","logic","board","memory"];
+
+/* ── Tab switching ── */
+function gm2Tab(name, btn) {
+  document.querySelectorAll(".gm2-panel").forEach(p => p.classList.remove("on"));
+  document.querySelectorAll(".gm2-tabx").forEach(b => b.classList.remove("on"));
+  const panel = document.getElementById("panel-" + name);
+  if (panel) panel.classList.add("on");
+  if (btn) btn.classList.add("on");
+  if (typeof btn === "string") {
+    const b = document.querySelector(`[data-panel="${name}"]`);
+    if (b) b.classList.add("on");
+  }
+  history.replaceState(null, "", location.pathname + (location.search||"") + "#" + name);
+}
+window.gm2Tab = gm2Tab;
+
+/* ── Init tab from hash ── */
+function initTab() {
+  const hash = location.hash.replace("#","") || "games";
+  const tabs = ["games","rating","stats"];
+  const target = tabs.includes(hash) ? hash : "games";
+  const btn = document.querySelector(`[data-panel="${target}"]`);
+  gm2Tab(target, btn);
+}
+
+/* ── Render category chips ── */
+let activeCat = "all";
+function renderCats() {
+  const usedCats = new Set(GAMES.map(g => SLUG_CAT[g.slug] || "logic").filter(Boolean));
+  const row = document.getElementById("gm2-cats");
+  if (!row) return;
+  const chips = [{ id:"all", label:"🎮 Barchasi" }];
+  CAT_ORDER.forEach(c => { if (usedCats.has(c)) chips.push({ id:c, label: CAT_LABEL[c]||c }); });
+  row.innerHTML = chips.map(c =>
+    `<div class="gm2-chip ${c.id===activeCat?"on":""}" onclick="setCat('${c.id}')">${c.label}</div>`
+  ).join("");
+}
+window.setCat = function(cat) { activeCat = cat; renderCats(); renderGrid(); };
+
+/* ── Render game grid ── */
+function renderGrid() {
+  const grid = document.getElementById("gm2-grid");
+  if (!grid) return;
+  const filtered = GAMES.filter(g => {
+    if (!g.is_enabled) return false;
+    if (activeCat === "all") return true;
+    return (SLUG_CAT[g.slug] || "logic") === activeCat;
+  });
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="gm2-empty"><i class="fa-solid fa-face-thinking"></i>Bu kategoriyada o'yin yo'q</div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((g, idx) => {
+    const cat = SLUG_CAT[g.slug] || "logic";
+    const lvl = g.current_level || 1;
+    const dots = Array.from({length:9}, (_,i) =>
+      `<div class="gm2-ldot ${i<lvl?"on":""}"></div>`
+    ).join("");
+    const playedBadge = g.played_today
+      ? `<div class="gm2-played-badge"><i class="fa-solid fa-check"></i> O'ynaldi</div>` : "";
+    const btnClass = g.played_today ? "replay" : "play";
+    const btnTxt = g.played_today ? `<i class="fa-solid fa-rotate-right"></i> Qayta` : `<i class="fa-solid fa-play"></i> O'ynash`;
+    return `<div class="gm2-card ${g.played_today?"played":""}" data-cat="${cat}"
+        style="animation-delay:${idx*30}ms"
+        onclick="location.href='/games/${g.slug}/'">
+      <div class="gm2-ctop">
+        <div class="gm2-ctop-bg"></div>
+        ${g.emoji}
+        ${playedBadge}
+      </div>
+      <div class="gm2-cbody">
+        <div class="gm2-cname">${escH(g.name)}</div>
+        <div class="gm2-clevels">${dots}</div>
+        <button class="gm2-cbtn ${btnClass}" onclick="event.stopPropagation();location.href='/games/${g.slug}/'">
+          ${btnTxt}
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ── Render daily checklist ── */
+function renderDailyList() {
+  const grid = document.getElementById("dcl-grid");
+  if (!grid) return;
+  grid.innerHTML = GAMES.filter(g => g.is_enabled).map(g =>
+    `<div class="gm2-dc-item ${g.played_today?"done":""}">
+      <div class="gm2-dc-emo">${g.emoji}</div>
+      <div>${escH(g.name.split(" ")[0])}</div>
+      ${g.played_today?'<div style="font-size:14px">✅</div>':''}
+    </div>`
+  ).join("");
+}
+
+/* ── Convert balls ── */
+function getCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : "";
+}
+window.doConvert = function() {
+  const btn = document.getElementById("conv-btn");
+  const msg = document.getElementById("conv-msg");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Almashtirilmoqda...';
+  fetch("/api/student/game/convert-balls/", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+    body: "{}",
+  }).then(r => r.json()).then(d => {
+    msg.style.display = "block";
+    if (d.ok) {
+      const rem = d.remaining_balls;
+      const minB = MIN_BALLS;
+      // Update wallet UI
+      ["wlt-total","wlt-ring-val","hdr-balls"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = rem;
+      });
+      const prog = document.getElementById("wlt-prog");
+      if (prog) prog.style.width = Math.min(rem/minB*100,100) + "%";
+      const cur = document.getElementById("wlt-cur");
+      if (cur) cur.textContent = rem + "/" + minB;
+      const arc = document.getElementById("wallet-ring-arc");
+      if (arc) {
+        const pct = Math.min(rem / minB, 1);
+        arc.setAttribute("stroke-dashoffset", (251.3 * (1 - pct)).toFixed(1));
+      }
+      msg.style.background = "rgba(16,185,129,.14)";
+      msg.style.border = "1px solid rgba(16,185,129,.3)";
+      msg.style.color = "#10b981";
+      msg.textContent = `✅ ${d.balls_spent} ball → ${d.chaqmoq_earned} ⚡ chaqmoq olindi! Qoldi: ${rem} ball`;
+      if (rem < minB) {
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> ${rem}/${minB} ball kerak`;
+        btn.className = "gm2-conv-btn no";
+        btn.style.cursor = "not-allowed";
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> ${rem} ball → ${d.chaqmoq_earned} ⚡ Almashtir!`;
+        btn.className = "gm2-conv-btn yes";
+        btn.disabled = false;
+      }
+    } else {
+      msg.style.background = "rgba(239,68,68,.1)";
+      msg.style.border = "1px solid rgba(239,68,68,.25)";
+      msg.style.color = "#ef4444";
+      msg.textContent = d.error || "Xatolik yuz berdi";
+      btn.innerHTML = `<i class="fa-solid fa-bolt"></i> ${d.total_balls || 0}/${MIN_BALLS} ball kerak`;
+      btn.className = "gm2-conv-btn no";
+    }
+  }).catch(() => {
+    msg.style.display = "block";
+    msg.style.color = "#ef4444";
+    msg.textContent = "Server bilan aloqa uzildi";
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.orig || '<i class="fa-solid fa-bolt"></i> Almashtir';
+  });
+};
+
+/* ── Helpers ── */
+function escH(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ── INIT ── */
+document.addEventListener("DOMContentLoaded", function() {
+  renderCats();
+  renderGrid();
+  renderDailyList();
+  initTab();
+  // Wallet ring arc
+  const arc = document.getElementById("wallet-ring-arc");
+  if (arc) {
+    const pct = Math.min(TOTAL_BALLS / MIN_BALLS, 1);
+    arc.setAttribute("stroke-dashoffset", (251.3 * (1 - pct)).toFixed(1));
+  }
+});
+
+})();
+</script>
+{% endblock %}

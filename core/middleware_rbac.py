@@ -52,6 +52,9 @@ class RoleBasedAccessMiddleware:
                 'core:notifications_mark_read',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
+                'core:game_hub',
+                'core:game_play',
+                'core:game_rating',
                 'logout',
             },
         },
@@ -76,6 +79,7 @@ class RoleBasedAccessMiddleware:
             'names': {
                 'core:home',
                 'core:dashboard_teacher',
+                'core:game_rating',
                 'core:user_view',
                 'core:user_edit',
                 'core:profile',

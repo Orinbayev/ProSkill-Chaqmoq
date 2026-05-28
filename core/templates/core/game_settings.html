@@ -1,0 +1,911 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}game-settings-page{% endblock %}
+
+{% block title %}O'yin Boshqaruvi | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --bg-dark: #020617;
+    --bg-card: rgba(15, 23, 42, 0.5);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --radius: 16px;
+  }
+
+  body {
+    background: radial-gradient(1200px 520px at 50% -10%, rgba(59, 130, 246, .08), transparent 60%),
+        linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
+    color: var(--text-main);
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .game-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px;
+  }
+
+  /* ---- Header ---- */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .back-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .page-subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* ---- Superuser banner ---- */
+  .superuser-banner {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    padding: 13px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .superuser-banner i { color: var(--primary); flex-shrink: 0; }
+  .superuser-banner b { color: #60a5fa; }
+
+  /* ---- Tabs ---- */
+  .tabs-nav {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 24px;
+    width: fit-content;
+    backdrop-filter: blur(20px);
+  }
+  .tab-btn {
+    padding: 8px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ---- Game Grid ---- */
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .games-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---- Game Card ---- */
+  .game-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    position: relative;
+    border-left: 3px solid var(--green);
+    transition: border-left-color 0.3s, opacity 0.3s;
+  }
+  .game-card.disabled-global {
+    border-left-color: var(--red);
+    opacity: 0.55;
+  }
+  .game-card.center-disabled {
+    border-left-color: var(--red);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .card-game-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .game-emoji {
+    font-size: 36px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .game-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .global-off-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    letter-spacing: 0.3px;
+  }
+
+  /* Toggle switch in card header */
+  .card-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .toggle-label-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* iOS-style toggle */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: .3s;
+    border-radius: 26px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #64748b;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  input:checked + .slider { background: var(--green); border-color: var(--green); }
+  input:checked + .slider:before {
+    transform: translateX(22px);
+    background: white;
+  }
+  input:disabled + .slider { opacity: 0.4; cursor: not-allowed; }
+
+  /* Globally off overlay text */
+  .global-off-warning {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 18px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #f87171;
+  }
+  .game-card.disabled-global .global-off-warning { display: flex; }
+
+  /* Inputs section */
+  .card-body {
+    padding: 14px 18px 16px;
+  }
+  .inputs-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .input-group {
+    flex: 1;
+    min-width: 0;
+  }
+  .input-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    letter-spacing: 0.3px;
+  }
+  .compact-input {
+    width: 100%;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 0 11px;
+    transition: border-color 0.2s, background 0.2s;
+    box-sizing: border-box;
+  }
+  .compact-input:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.04);
+  }
+  .compact-input::-webkit-inner-spin-button,
+  .compact-input::-webkit-outer-spin-button { opacity: 0.5; }
+
+  .input-hint {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  .save-btn {
+    width: 100%;
+    height: 38px;
+    border: none;
+    border-radius: 9px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .save-btn:hover { opacity: 0.88; }
+  .save-btn:active { transform: scale(0.98); }
+  .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ---- Suggestions Tab ---- */
+  .suggestions-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+  }
+  .suggestions-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .suggestions-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0;
+  }
+  .count-pill {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+  }
+
+  .suggestion-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 16px 20px;
+    gap: 14px;
+    transition: background 0.2s;
+  }
+  .suggestion-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+  .suggestion-row:hover { background: rgba(255, 255, 255, 0.02); }
+
+  .suggestion-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    min-width: 0;
+  }
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: #93c5fd;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .suggestion-info { min-width: 0; }
+  .suggestion-student {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 2px;
+  }
+  .suggestion-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+  }
+  .suggestion-game-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fbbf24;
+    margin: 0 0 4px;
+  }
+  .suggestion-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .suggestion-action { flex-shrink: 0; margin-top: 2px; }
+  .review-btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .review-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
+  .review-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .reviewed-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #34d399;
+  }
+
+  .empty-state {
+    padding: 44px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .empty-state .empty-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+  }
+
+  /* ---- Toast ---- */
+  .toast-fixed {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast-item {
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    pointer-events: all;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-6px); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-wrap">
+
+  <!-- ===== Page Header ===== -->
+  <div class="page-header">
+    <a href="/" class="back-btn" title="Bosh sahifaga qaytish">
+      <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    <div>
+      <h1 class="page-title">🎮 O'yin Boshqaruvi</h1>
+      <p class="page-subtitle">{{ center_name }}</p>
+    </div>
+  </div>
+
+  <!-- Superuser info banner -->
+  {% if is_superuser %}
+  <div class="superuser-banner">
+    <i class="fa-solid fa-crown fa-fw"></i>
+    <p>Siz <b>Super Admin</b> sifatida tizimga kirdingiz. Barcha o'yinlarni global darajada yoqish yoki o'chirishingiz mumkin. O'zgarishlar barcha markazlarga ta'sir qiladi.</p>
+  </div>
+  {% endif %}
+
+  <!-- ===== BALLS CONFIG CARD ===== -->
+  {% if balls_config %}
+  <div style="background:var(--card,rgba(15,23,42,.6));border:1px solid var(--border,rgba(255,255,255,.08));border-radius:16px;padding:22px 24px;margin-bottom:24px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;">
+    <div style="flex:1;min-width:220px">
+      <div style="font-size:13px;font-weight:700;color:var(--muted,#94a3b8);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+        <i class="fa-solid fa-circle-bolt" style="color:#f59e0b;margin-right:6px"></i>Ball → Chaqmoq Sozlamasi
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:12px;color:var(--muted,#94a3b8);display:block;margin-bottom:4px">Minimal ball (almashtirish uchun)</label>
+          <input type="number" id="bcMinBalls" min="1" max="9999" value="{{ balls_config.min_balls_to_convert }}"
+            style="background:rgba(255,255,255,.07);border:1px solid var(--border,rgba(255,255,255,.08));border-radius:10px;padding:8px 14px;color:var(--text,#f8fafc);font-size:15px;font-weight:700;width:120px;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted,#94a3b8);display:block;margin-bottom:4px">Chaqmoq (1 konvertatsiyada)</label>
+          <input type="number" id="bcChaqmoq" min="1" max="999" value="{{ balls_config.chaqmoq_per_conversion }}"
+            style="background:rgba(255,255,255,.07);border:1px solid var(--border,rgba(255,255,255,.08));border-radius:10px;padding:8px 14px;color:#f59e0b;font-size:15px;font-weight:700;width:100px;">
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted,#94a3b8);margin-top:8px">
+        Misol: o'quvchi <span id="bcExMin">{{ balls_config.min_balls_to_convert }}</span> ball to'plaganda <span id="bcExChq" style="color:#f59e0b">{{ balls_config.chaqmoq_per_conversion }} ⚡</span> oladi
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <button onclick="saveBallsConfig()"
+        style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;">
+        <i class="fa-solid fa-floppy-disk"></i> Saqlash
+      </button>
+      <span id="bcSaveMsg" style="font-size:12px;display:none"></span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== Tabs Navigation ===== -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('games', this)">
+      <i class="fa-solid fa-gamepad"></i>&nbsp; O'yinlar Sozlamalari
+    </button>
+    <button class="tab-btn" onclick="switchTab('suggestions', this)">
+      <i class="fa-solid fa-lightbulb"></i>&nbsp; O'yin Takliflari
+      <span style="margin-left:4px; padding:1px 7px; border-radius:20px; background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; font-size:11px;">{{ suggestions|length }}</span>
+    </button>
+  </div>
+
+  <!-- ===================================================
+       TAB 1 — Game Settings
+       =================================================== -->
+  <div id="tab-games" class="tab-content active">
+    {% if games %}
+    <div class="games-grid">
+      {% for game in games %}
+      <div class="game-card {% if not game.is_globally_enabled %}disabled-global{% elif not game.is_center_enabled %}center-disabled{% endif %}"
+           id="card-{{ game.slug }}">
+
+        <!-- Card Top: emoji + name + toggle -->
+        <div class="card-top">
+          <div class="card-game-info">
+            <span class="game-emoji">{{ game.emoji }}</span>
+            <div>
+              <p class="game-name">{{ game.name }}</p>
+              {% if not game.is_globally_enabled %}
+              <span class="global-off-badge">
+                <i class="fa-solid fa-lock fa-fw" style="font-size:9px;"></i>
+                Global o'chirilgan
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="card-toggle-wrap">
+            <span class="toggle-label-text">Holat</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                id="toggle-{{ game.slug }}"
+                {% if game.is_center_enabled %}checked{% endif %}
+                {% if not game.is_globally_enabled %}disabled{% endif %}
+                onchange="toggleGame('{{ game.slug }}', this.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Global off warning -->
+        <div class="global-off-warning">
+          <i class="fa-solid fa-triangle-exclamation fa-fw"></i>
+          Super Admin tomonidan o'chirilgan — siz yoqa olmaysiz
+        </div>
+
+        <!-- Card Body: inputs + save -->
+        <div class="card-body">
+          <div class="inputs-row">
+            <div class="input-group">
+              <label for="coins-{{ game.slug }}">Max Chaqmoq ⚡</label>
+              <input
+                type="number"
+                class="compact-input"
+                id="coins-{{ game.slug }}"
+                value="{{ game.center_max_coins }}"
+                min="0"
+                placeholder="0"
+                {% if not game.is_globally_enabled %}disabled{% endif %}
+              >
+            </div>
+            <div class="input-group">
+              <label for="score-{{ game.slug }}">Min Ball 🏆</label>
+              <input
+                type="number"
+                class="compact-input"
+                id="score-{{ game.slug }}"
+                value="{{ game.center_min_score }}"
+                min="0"
+                placeholder="0"
+                {% if not game.is_globally_enabled %}disabled{% endif %}
+              >
+            </div>
+          </div>
+          <p class="input-hint">
+            (0 = standart: ⚡ {{ game.max_coins_default }} ta &nbsp;|&nbsp; 🏆 min {{ game.min_score_default }} ball)
+          </p>
+          <button
+            class="save-btn"
+            id="save-btn-{{ game.slug }}"
+            onclick="saveGameConfig('{{ game.slug }}')"
+            {% if not game.is_globally_enabled %}disabled{% endif %}
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            Saqlash
+          </button>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="suggestions-section">
+      <div class="empty-state">
+        <div class="empty-icon">🎮</div>
+        <p>Hozircha hech qanday o'yin mavjud emas.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ===================================================
+       TAB 2 — Suggestions
+       =================================================== -->
+  <div id="tab-suggestions" class="tab-content">
+    <div class="suggestions-section">
+      <div class="suggestions-header">
+        <i class="fa-solid fa-lightbulb" style="color: var(--orange);"></i>
+        <h2 class="suggestions-header-title">O'yin Takliflari</h2>
+        <span class="count-pill">{{ suggestions|length }}</span>
+      </div>
+
+      {% if suggestions %}
+        {% for s in suggestions %}
+        <div class="suggestion-row" id="suggestion-row-{{ s.pk }}">
+          <div class="suggestion-left">
+            <div class="avatar-circle">{{ s.student.get_full_name|first|upper }}</div>
+            <div class="suggestion-info">
+              <p class="suggestion-student">{{ s.student.get_full_name }}</p>
+              <p class="suggestion-meta">
+                <i class="fa-regular fa-clock" style="font-size:10px;"></i>
+                {{ s.created_at|date:"d.m.Y H:i" }}
+              </p>
+              <p class="suggestion-game-name">
+                <i class="fa-solid fa-gamepad" style="font-size:11px; opacity:.7;"></i>
+                {{ s.game_name }}
+              </p>
+              {% if s.description %}
+              <p class="suggestion-desc">{{ s.description }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="suggestion-action">
+            {% if s.is_reviewed %}
+            <span class="reviewed-badge" id="reviewed-badge-{{ s.pk }}">
+              <i class="fa-solid fa-circle-check"></i>
+              Ko'rildi
+            </span>
+            {% else %}
+            <button
+              class="review-btn"
+              id="review-btn-{{ s.pk }}"
+              onclick="markReviewed({{ s.pk }})"
+            >
+              <i class="fa-solid fa-check"></i> Ko'rildi
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">💡</div>
+        <p>Hozircha taklif yo'q</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /game-wrap -->
+
+<!-- Toast container -->
+<div class="toast-fixed" id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ---- Helpers ---- */
+  function getCsrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function showToast(msg, success) {
+    const container = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast-item';
+    const icon = success
+      ? 'fa-circle-check" style="color:#10b981'
+      : 'fa-circle-xmark" style="color:#ef4444';
+    t.innerHTML = `<i class="fa-solid ${icon};"></i> ${msg}`;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  /* ---- Tab switching ---- */
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  /* ---- Save game config (max_coins + min_score) ---- */
+  function saveGameConfig(slug) {
+    const coinsInput = document.getElementById('coins-' + slug);
+    const scoreInput = document.getElementById('score-' + slug);
+    const saveBtn    = document.getElementById('save-btn-' + slug);
+    const isEnabled  = document.getElementById('toggle-' + slug).checked;
+
+    const payload = {
+      slug:       slug,
+      is_enabled: isEnabled,
+      max_coins:  parseInt(coinsInput.value, 10) || 0,
+      min_score:  parseInt(scoreInput.value, 10) || 0,
+    };
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';
+
+    fetch('/api/games/config/', {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-CSRFToken':      getCsrf(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok || data.success) {
+        showToast('Saqlandi ✓', true);
+      } else {
+        showToast(data.error || 'Xatolik yuz berdi', false);
+      }
+    })
+    .catch(() => showToast("Server bilan aloqa uzildi", false))
+    .finally(() => {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Saqlash';
+    });
+  }
+
+  /* ---- Toggle game on/off immediately ---- */
+  function toggleGame(slug, newVal) {
+    const card    = document.getElementById('card-' + slug);
+    const saveBtn = document.getElementById('save-btn-' + slug);
+
+    fetch('/api/games/config/', {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-CSRFToken':      getCsrf(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ slug: slug, is_enabled: newVal }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok || data.success) {
+        // Update card left-border color
+        if (newVal) {
+          card.classList.remove('center-disabled');
+          showToast("O'yin yoqildi ✓", true);
+        } else {
+          card.classList.add('center-disabled');
+          showToast("O'yin o'chirildi", true);
+        }
+      } else {
+        // Revert toggle
+        const toggle = document.getElementById('toggle-' + slug);
+        toggle.checked = !newVal;
+        showToast(data.error || "Xatolik yuz berdi", false);
+      }
+    })
+    .catch(() => {
+      const toggle = document.getElementById('toggle-' + slug);
+      toggle.checked = !newVal;
+      showToast("Server bilan aloqa uzildi", false);
+    });
+  }
+
+  /* ---- Mark suggestion as reviewed ---- */
+  function markReviewed(pk) {
+    const btn = document.getElementById('review-btn-' + pk);
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    fetch('/api/games/suggestions/' + pk + '/review/', {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-CSRFToken':      getCsrf(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok || data.success) {
+        // Replace button with green badge
+        btn.outerHTML = `
+          <span class="reviewed-badge" id="reviewed-badge-${pk}">
+            <i class="fa-solid fa-circle-check"></i>
+            Ko'rildi
+          </span>`;
+        showToast("Taklif ko'rildi ✓", true);
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Ko\'rildi';
+        showToast(data.error || "Xatolik yuz berdi", false);
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Ko\'rildi';
+      showToast("Server bilan aloqa uzildi", false);
+    });
+  }
+
+  /* ---- Save balls config ---- */
+  function saveBallsConfig() {
+    const minBalls = parseInt(document.getElementById('bcMinBalls').value, 10) || 100;
+    const chaqmoq  = parseInt(document.getElementById('bcChaqmoq').value, 10)  || 5;
+    const msgEl    = document.getElementById('bcSaveMsg');
+    msgEl.style.display = 'none';
+
+    fetch('/api/games/balls-config/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body: JSON.stringify({ min_balls_to_convert: minBalls, chaqmoq_per_conversion: chaqmoq }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      msgEl.style.display = 'block';
+      if (d.ok) {
+        msgEl.style.color = '#10b981';
+        msgEl.textContent = '✓ Saqlandi';
+        document.getElementById('bcExMin').textContent = minBalls;
+        document.getElementById('bcExChq').textContent = chaqmoq + ' ⚡';
+        showToast('Ball sozlamasi saqlandi ✓', true);
+      } else {
+        msgEl.style.color = '#ef4444';
+        msgEl.textContent = d.error || 'Xatolik';
+        showToast('Xatolik yuz berdi', false);
+      }
+    })
+    .catch(() => { showToast('Server bilan aloqa uzildi', false); });
+  }
+</script>
+{% endblock %}

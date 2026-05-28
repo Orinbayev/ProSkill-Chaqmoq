@@ -531,8 +531,6 @@ html[data-role-theme="light"] .pp-result-item:hover { background:rgba(0,0,0,.02)
 
 </div><!-- end sp-wrap -->
 
-{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Farzand(lar)ingiz haqida" ai_widget_greet="farzandingiz guruhlari, davomat va to'lovlari" aiw_prompt_1="Farzandimning davomat holati qanday?" aiw_prompt_2="Qarzimiz qancha?" aiw_prompt_3="Farzandim qaysi guruhda?" aiw_prompt_4="Bu oy nima to'lashim kerak?" %}
-
 <script>
 (function () {
   "use strict";
@@ -868,6 +866,10 @@ function openParentDonationModal() {
 }
 </script>
 
+{% endblock %}
+
+{% block ai_widget %}
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Farzand(lar)ingiz haqida" ai_widget_greet="farzandingiz guruhlari, davomat va to'lovlari" aiw_prompt_1="Farzandimning davomat holati qanday?" aiw_prompt_2="Qarzimiz qancha?" aiw_prompt_3="Farzandim qaysi guruhda?" aiw_prompt_4="Bu oy nima to'lashim kerak?" %}
 {% endblock %}
 
 {% block modals %}

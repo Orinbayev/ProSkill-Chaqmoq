@@ -507,6 +507,9 @@ html[data-role-theme="light"] {
 <script>
 (function(){
   'use strict';
+  /* Bir sahifada widget 2 marta yuklanishini oldini olish */
+  if (window._aiwReady) return;
+  window._aiwReady = true;
   const CHAT_API         = "{% url 'core:director_boshqaruv_chat' %}";
   const CHAT_HISTORY_API = "{% url 'core:director_boshqaruv_chat_history' %}";
   const CHAT_CLEAR_API   = "{% url 'core:director_boshqaruv_chat_clear' %}";
@@ -840,6 +843,9 @@ html[data-role-theme="light"] {
 <script>
 (function(){
   'use strict';
+  /* Bir sahifada widget 2 marta yuklanishini oldini olish */
+  if (window._aiwReady) return;
+  window._aiwReady = true;
   const fab   = document.getElementById('aiwFab');
   const ov    = document.getElementById('aiwOverlay');
   const modal = document.getElementById('aiwBuyModal');

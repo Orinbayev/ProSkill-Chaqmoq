@@ -18,6 +18,29 @@
   --sp-purple:    #a78bfa;
   --sp-radius:    20px;
   --sp-shadow:    0 18px 45px rgba(0,0,0,.22);
+  /* Game overlay – dark */
+  --go-backdrop:       rgba(2,6,23,.93);
+  --go-bg:             rgba(15,23,42,.98);
+  --go-border:         rgba(255,255,255,.08);
+  --go-sep:            rgba(255,255,255,.07);
+  --go-text:           #f8fafc;
+  --go-subtext:        rgba(148,163,184,.8);
+  --go-close-bg:       rgba(255,255,255,.05);
+  --go-close-bd:       rgba(255,255,255,.1);
+  --go-close-color:    rgba(226,232,240,.7);
+  --go-prob-bg:        rgba(255,255,255,.04);
+  --go-prob-bd:        rgba(255,255,255,.07);
+  --go-inp-bg:         rgba(255,255,255,.06);
+  --go-inp-bd:         rgba(255,255,255,.12);
+  --go-shadow:         0 30px 80px rgba(0,0,0,.6);
+  --mm-card-bg:        rgba(59,130,246,.1);
+  --mm-card-bd:        rgba(59,130,246,.2);
+  --mm-back-bg:        rgba(30,41,59,.95);
+  --gq-opt-bg:         rgba(255,255,255,.05);
+  --gq-opt-bd:         rgba(255,255,255,.1);
+  --grp-close-bg:      rgba(255,255,255,.08);
+  --grp-close-bd:      rgba(255,255,255,.1);
+  --grp-close-color:   rgba(226,232,240,.8);
 }
 html[data-role-theme="light"] {
   --sp-bg:        #f1f5f9;
@@ -27,6 +50,29 @@ html[data-role-theme="light"] {
   --sp-text:      #1e293b;
   --sp-muted:     #64748b;
   --sp-shadow:    0 4px 20px rgba(0,0,0,.08);
+  /* Game overlay – light */
+  --go-backdrop:       rgba(100,116,139,.5);
+  --go-bg:             #ffffff;
+  --go-border:         rgba(0,0,0,.1);
+  --go-sep:            rgba(0,0,0,.08);
+  --go-text:           #1e293b;
+  --go-subtext:        #64748b;
+  --go-close-bg:       rgba(0,0,0,.04);
+  --go-close-bd:       rgba(0,0,0,.1);
+  --go-close-color:    #64748b;
+  --go-prob-bg:        rgba(0,0,0,.03);
+  --go-prob-bd:        rgba(0,0,0,.08);
+  --go-inp-bg:         #f8fafc;
+  --go-inp-bd:         rgba(0,0,0,.15);
+  --go-shadow:         0 10px 40px rgba(0,0,0,.18);
+  --mm-card-bg:        rgba(59,130,246,.07);
+  --mm-card-bd:        rgba(59,130,246,.25);
+  --mm-back-bg:        #e2e8f0;
+  --gq-opt-bg:         #f8fafc;
+  --gq-opt-bd:         rgba(0,0,0,.1);
+  --grp-close-bg:      rgba(0,0,0,.04);
+  --grp-close-bd:      rgba(0,0,0,.1);
+  --grp-close-color:   #475569;
 }
 
 /* ── Layout ─────────────────────────────────────────────────────── */
@@ -343,6 +389,370 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
 .dropdown-item { color:var(--sp-text); border-radius:10px; padding:9px 10px; font-weight:800; }
 .dropdown-item:hover { background:var(--sp-border); color:var(--sp-text); }
 .dropdown-divider { border-top:1px solid var(--sp-border); }
+
+/* ── Games hub ───────────────────────────────────────────────────── */
+.game-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;
+}
+.game-card {
+  background:var(--sp-card2); border:1px solid var(--sp-border);
+  border-radius:18px; padding:20px 18px;
+  display:flex; flex-direction:column; gap:10px;
+  transition:.2s; cursor:pointer; position:relative; overflow:hidden;
+}
+.game-card:hover { transform:translateY(-3px); border-color:var(--sp-blue); box-shadow:0 8px 28px rgba(59,130,246,.18); }
+.game-card.earned { border-color:rgba(34,197,94,.3); }
+.game-card.coming-soon { opacity:.55; cursor:default; }
+.game-card:hover.coming-soon { transform:none; box-shadow:none; }
+.game-card-emoji { font-size:40px; line-height:1; }
+.game-card-name { font-size:16px; font-weight:950; color:var(--sp-text); }
+.game-card-desc { font-size:12px; color:var(--sp-muted); font-weight:700; line-height:1.4; flex:1; }
+.game-card-footer { display:flex; align-items:center; justify-content:space-between; margin-top:4px; }
+.game-card-coins { font-size:12px; font-weight:800; color:var(--sp-yellow); }
+.game-card-play {
+  padding:7px 18px; border-radius:10px; font-size:13px; font-weight:900;
+  border:none; cursor:pointer; transition:.18s;
+  background:linear-gradient(90deg,var(--sp-blue),#1d4ed8); color:#fff;
+}
+.game-card-play:hover { filter:brightness(1.1); }
+.game-card-earned-tag {
+  font-size:11px; font-weight:900; padding:4px 10px; border-radius:999px;
+  background:rgba(34,197,94,.12); color:var(--sp-green);
+  border:1px solid rgba(34,197,94,.2);
+}
+.game-card-soon-tag {
+  font-size:11px; font-weight:900; padding:4px 10px; border-radius:999px;
+  background:rgba(148,163,184,.1); color:var(--sp-muted);
+  border:1px solid var(--sp-border);
+}
+.game-hist-item {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 14px; border-bottom:1px solid var(--sp-border);
+}
+.game-hist-item:last-child { border-bottom:none; }
+.game-hist-left { display:flex; align-items:center; gap:10px; }
+.game-hist-emoji { font-size:22px; }
+.game-hist-name { font-weight:800; font-size:13px; color:var(--sp-text); }
+.game-hist-date { font-size:11px; color:var(--sp-muted); font-weight:700; margin-top:1px; }
+.game-hist-score { font-weight:950; font-size:14px; color:var(--sp-text); text-align:right; }
+.game-hist-coins { font-size:11px; color:var(--sp-yellow); font-weight:800; }
+
+/* ── Game overlay ────────────────────────────────────────────────── */
+.game-overlay {
+  position:fixed; inset:0; background:var(--go-backdrop);
+  z-index:9900; display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  animation:go-in .2s ease;
+}
+@keyframes go-in { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+.game-overlay-inner {
+  background:var(--go-bg); border:1px solid var(--go-border);
+  border-radius:24px; width:100%; max-width:520px;
+  box-shadow:var(--go-shadow); overflow:hidden;
+}
+.go-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 22px 14px; border-bottom:1px solid var(--go-sep);
+}
+.go-title { font-size:20px; font-weight:950; color:var(--go-text); }
+.go-close {
+  width:36px; height:36px; border-radius:10px; border:1px solid var(--go-close-bd);
+  background:var(--go-close-bg); color:var(--go-close-color);
+  cursor:pointer; display:grid; place-items:center; font-size:16px; transition:.15s;
+}
+.go-close:hover { background:rgba(239,68,68,.15); color:#ef4444; }
+.go-body { padding:22px; display:flex; flex-direction:column; gap:18px; }
+.go-timer-row {
+  display:flex; align-items:center; gap:24px;
+}
+.go-timer-wrap { position:relative; width:64px; height:64px; flex-shrink:0; }
+.go-timer-svg  { width:64px; height:64px; position:absolute; inset:0; }
+.go-timer-val  {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:950; color:var(--go-text);
+}
+.go-score-wrap { text-align:center; }
+.go-score-val  { font-size:32px; font-weight:950; color:var(--go-text); line-height:1; }
+.go-score-lbl  { font-size:11px; font-weight:800; color:var(--go-subtext); margin-top:4px; text-transform:uppercase; }
+.go-problem {
+  text-align:center; font-size:42px; font-weight:950; color:var(--go-text);
+  background:var(--go-prob-bg); border:1px solid var(--go-prob-bd);
+  border-radius:16px; padding:18px 0; letter-spacing:2px;
+}
+.go-input-row { display:flex; gap:10px; }
+.go-input {
+  flex:1; height:52px; border-radius:14px; border:1px solid var(--go-inp-bd);
+  background:var(--go-inp-bg); color:var(--go-text); font-size:22px; font-weight:950;
+  text-align:center; outline:none; transition:.18s;
+}
+.go-input:focus { border-color:var(--sp-blue); background:rgba(59,130,246,.08); }
+.go-submit-btn {
+  width:52px; height:52px; border-radius:14px; border:none;
+  background:linear-gradient(135deg,var(--sp-green),#16a34a);
+  color:#fff; font-size:20px; cursor:pointer; transition:.18s;
+}
+.go-submit-btn:hover { filter:brightness(1.1); transform:scale(1.04); }
+.go-feedback { min-height:26px; text-align:center; font-size:16px; font-weight:900; }
+.go-feedback.ok  { color:var(--sp-green); }
+.go-feedback.err { color:var(--sp-red); }
+
+/* Memory grid */
+.mm-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+}
+.mm-card {
+  aspect-ratio:1; border-radius:14px; display:flex; align-items:center;
+  justify-content:center; font-size:28px; cursor:pointer;
+  background:var(--mm-card-bg); border:1px solid var(--mm-card-bd);
+  transition:.25s; user-select:none;
+  transform-style:preserve-3d; position:relative;
+}
+.mm-card .mm-front, .mm-card .mm-back {
+  position:absolute; inset:0; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  backface-visibility:hidden;
+}
+.mm-card .mm-front { background:var(--mm-card-bg); color:var(--go-close-color); font-size:24px; }
+.mm-card .mm-back  { background:var(--mm-back-bg); font-size:28px; transform:rotateY(180deg); }
+.mm-card.flipped   { transform:rotateY(180deg); }
+.mm-card.matched   { border-color:rgba(34,197,94,.4); background:rgba(34,197,94,.08); opacity:.75; pointer-events:none; }
+
+/* Game result popup */
+.game-result-popup {
+  position:fixed; inset:0; background:var(--go-backdrop);
+  z-index:9950; display:flex; align-items:center; justify-content:center;
+  padding:16px; animation:go-in .25s ease;
+}
+.grp-box {
+  background:var(--go-bg); border:1px solid var(--go-border);
+  border-radius:24px; padding:36px 28px; text-align:center;
+  max-width:360px; width:100%;
+  box-shadow:var(--go-shadow);
+}
+.grp-emoji  { font-size:56px; margin-bottom:12px; }
+.grp-title  { font-size:24px; font-weight:950; color:var(--go-text); margin-bottom:8px; }
+.grp-score  { font-size:16px; font-weight:800; color:var(--go-subtext); margin-bottom:12px; }
+.grp-coins  {
+  font-size:22px; font-weight:950; color:var(--sp-yellow);
+  background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.2);
+  border-radius:14px; padding:12px 20px; margin-bottom:12px;
+}
+.grp-already { font-size:13px; color:var(--sp-green); font-weight:800; margin-bottom:12px; }
+.grp-btns { display:flex; gap:10px; margin-top:16px; }
+.grp-btn { flex:1; padding:12px; border-radius:14px; font-size:14px; font-weight:900; border:none; cursor:pointer; transition:.18s; }
+.grp-btn-play  { background:linear-gradient(90deg,var(--sp-blue),#1d4ed8); color:#fff; }
+.grp-btn-close { background:var(--grp-close-bg); color:var(--grp-close-color); border:1px solid var(--grp-close-bd); }
+.grp-btn:hover { filter:brightness(1.08); }
+
+/* Quiz options */
+.gq-opt {
+  width:100%; padding:14px 18px; border-radius:14px; text-align:left;
+  border:1px solid var(--gq-opt-bd); background:var(--gq-opt-bg);
+  color:var(--go-text); font-size:15px; font-weight:700; cursor:pointer; transition:.15s;
+}
+.gq-opt:hover:not(:disabled) { background:rgba(59,130,246,.15); border-color:rgba(59,130,246,.4); }
+.gq-opt.correct { background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.5); color:var(--sp-green); }
+.gq-opt.wrong   { background:rgba(239,68,68,.15);  border-color:rgba(239,68,68,.4);  color:var(--sp-red); }
+.gq-opt:disabled { cursor:default; }
+
+/* ── Board games (Chess & Checkers) ─────────────────────────────── */
+.board-wrap { width:100%; max-width:400px; margin:0 auto; }
+.board-grid {
+  display:grid; grid-template-columns:repeat(8,1fr);
+  width:100%; border-radius:10px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.board-sq {
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; transition:background .1s;
+}
+.board-sq.light { background:#f0d9b5; }
+.board-sq.dark  { background:#b58863; }
+.board-sq.sq-sel   { background:#6ec56e !important; }
+.board-sq.sq-hint  { background:rgba(100,197,100,.55) !important; cursor:pointer; }
+.board-sq.sq-last  { background:rgba(205,208,90,.65) !important; }
+.board-sq.sq-check { background:rgba(220,50,50,.65) !important; animation:check-pulse .5s ease infinite alternate; }
+@keyframes check-pulse { from{filter:brightness(1)} to{filter:brightness(1.25)} }
+
+/* Chess pieces */
+.chess-piece {
+  font-size:clamp(16px,4.5vw,30px); line-height:1; user-select:none;
+  transition:transform .12s;
+  display:block; text-align:center;
+}
+.chess-piece.cp-w { color:#fff; text-shadow:0 0 2px #000,0 1px 4px rgba(0,0,0,.9); }
+.chess-piece.cp-b { color:#111; text-shadow:0 0 1px rgba(255,255,255,.4); }
+.board-sq:hover .chess-piece { transform:scale(1.12); }
+.sq-hint .chess-piece { transform:scale(1.08); }
+/* Hint dot */
+.board-hint-dot {
+  width:30%; height:30%; border-radius:50%;
+  background:rgba(0,0,0,.25); pointer-events:none;
+}
+
+/* Checkers pieces */
+.ck-piece {
+  width:72%; height:72%; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .15s, box-shadow .15s; position:relative;
+  font-size:clamp(10px,2.5vw,16px);
+}
+.ck-piece.ck-red {
+  background:radial-gradient(circle at 35% 35%,#e74c3c,#922b21);
+  box-shadow:0 3px 0 #641e16, 0 4px 8px rgba(0,0,0,.35);
+}
+.ck-piece.ck-blk {
+  background:radial-gradient(circle at 35% 35%,#5d6d7e,#1c2833);
+  box-shadow:0 3px 0 #0d1117, 0 4px 8px rgba(0,0,0,.35);
+}
+.ck-piece.ck-king::after { content:'♛'; color:rgba(255,220,50,.95); }
+.board-sq.sq-sel .ck-piece { transform:scale(1.14); box-shadow:0 6px 16px rgba(0,0,0,.55); }
+.ck-hint-dot { width:32%; height:32%; border-radius:50%; background:rgba(0,0,0,.22); pointer-events:none; }
+
+/* Board info bar */
+.board-info {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 2px; margin-bottom:6px;
+}
+.board-turn-pill {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 14px; border-radius:20px;
+  background:var(--go-prob-bg); border:1px solid var(--go-border);
+  font-size:12px; font-weight:800; color:var(--go-text);
+}
+.board-turn-dot {
+  width:14px; height:14px; border-radius:50%; flex-shrink:0;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.board-score-pill {
+  display:flex; gap:12px; padding:7px 14px; border-radius:20px;
+  background:var(--go-prob-bg); border:1px solid var(--go-border);
+  font-size:12px; font-weight:800; color:var(--go-text);
+}
+.board-status {
+  text-align:center; font-size:13px; font-weight:800;
+  color:var(--go-text); min-height:22px; padding:2px 0 6px;
+}
+.board-restart-btn {
+  padding:7px 16px; border-radius:12px; font-size:12px; font-weight:800;
+  border:1px solid var(--go-border); background:var(--go-close-bg);
+  color:var(--go-text); cursor:pointer; transition:.15s;
+}
+.board-restart-btn:hover { background:rgba(59,130,246,.15); border-color:var(--sp-blue); color:var(--sp-blue); }
+
+/* Level badge on game cards */
+.game-lvl-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#fff; font-size:11px; font-weight:700;
+  padding:2px 8px; border-radius:20px; letter-spacing:.3px;
+}
+
+/* Level-up toast */
+.lvl-toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(40px);
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#fff; font-size:15px; font-weight:700;
+  padding:12px 28px; border-radius:50px; z-index:9999;
+  box-shadow:0 8px 32px rgba(245,158,11,.5);
+  opacity:0; pointer-events:none;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+.lvl-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* True/False game */
+.tf-statement {
+  font-size:clamp(16px,4vw,22px); font-weight:600; text-align:center;
+  line-height:1.5; padding:20px; border-radius:16px;
+  background:var(--go-input-bg); color:var(--go-text);
+  margin:16px 0 20px; min-height:80px; display:flex; align-items:center; justify-content:center;
+}
+.tf-btn-row { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.tf-btn {
+  flex:1; min-width:130px; max-width:180px; padding:16px 12px;
+  border:none; border-radius:18px; font-size:18px; font-weight:700; cursor:pointer;
+  transition:all .2s; color:#fff;
+}
+.tf-btn.tf-true  { background:linear-gradient(135deg,#22c55e,#16a34a); }
+.tf-btn.tf-false { background:linear-gradient(135deg,#ef4444,#dc2626); }
+.tf-btn:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 8px 20px rgba(0,0,0,.3); }
+.tf-btn:disabled { opacity:.5; transform:none; cursor:not-allowed; }
+
+/* Formula Fill game */
+.ff-formula {
+  font-size:clamp(15px,4vw,21px); font-weight:700; text-align:center;
+  padding:20px 16px; background:var(--go-input-bg); border-radius:16px;
+  color:var(--go-text); margin:12px 0 8px; line-height:1.6;
+  border:2px solid rgba(59,130,246,.25);
+  font-family:'Courier New',monospace;
+}
+.ff-blank { display:inline-block; min-width:60px; border-bottom:3px solid var(--sp-blue); padding:0 8px; }
+.ff-hint  { font-size:13px; color:var(--go-muted); text-align:center; margin-bottom:12px; }
+.ff-progress { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+.ff-dot { width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.2); transition:background .3s; }
+.ff-dot.done { background:var(--sp-green); }
+.ff-dot.cur  { background:var(--sp-blue); transform:scale(1.3); }
+.ff-dot.wrong{ background:var(--sp-red); }
+
+/* Crossword game */
+.cw-split { display:flex; gap:20px; flex-wrap:wrap; }
+.cw-grid-wrap { flex:0 0 auto; }
+.cw-grid {
+  display:grid; gap:2px; background:var(--go-input-bg);
+  border-radius:12px; padding:10px; border:2px solid rgba(255,255,255,.08);
+}
+.cw-cell {
+  width:34px; height:34px; border-radius:6px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; text-transform:uppercase;
+  position:relative; transition:all .2s;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  color:var(--go-text);
+}
+.cw-cell.black { background:rgba(0,0,0,.4); border-color:rgba(0,0,0,.4); cursor:default; }
+.cw-cell.active { background:rgba(59,130,246,.25); border-color:var(--sp-blue); }
+.cw-cell.correct { background:rgba(34,197,94,.25); border-color:var(--sp-green); color:var(--sp-green); }
+.cw-cell.wrong-cell { background:rgba(239,68,68,.2); border-color:var(--sp-red); }
+.cw-cell-num { position:absolute; top:1px; left:2px; font-size:8px; font-weight:700; opacity:.7; }
+.cw-clues { flex:1; min-width:200px; max-height:320px; overflow-y:auto; }
+.cw-clue-section { margin-bottom:12px; }
+.cw-clue-section h5 { font-size:12px; font-weight:700; color:var(--go-muted); text-transform:uppercase; letter-spacing:1px; margin:0 0 6px; }
+.cw-clue-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.cw-clue-num { font-size:12px; font-weight:700; color:var(--sp-blue); min-width:20px; }
+.cw-clue-text { font-size:13px; color:var(--go-text); flex:1; }
+.cw-clue-len { font-size:11px; color:var(--go-muted); }
+.cw-clue-row.solved .cw-clue-text { text-decoration:line-through; opacity:.5; }
+.cw-input-area { margin-top:14px; }
+.cw-input-label { font-size:12px; color:var(--go-muted); margin-bottom:6px; }
+.cw-check-btn {
+  width:100%; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:700;
+  background:linear-gradient(135deg,var(--sp-blue),#6366f1); color:#fff; cursor:pointer;
+  margin-top:8px; transition:all .2s;
+}
+.cw-check-btn:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(59,130,246,.4); }
+
+/* Suggestion form */
+.game-suggest-panel {
+  background:var(--go-bg); border:1px solid var(--go-border); border-radius:20px;
+  padding:24px; margin-top:16px;
+}
+.game-suggest-title { font-size:15px; font-weight:700; color:var(--go-text); margin-bottom:4px; }
+.game-suggest-sub   { font-size:13px; color:var(--go-muted); margin-bottom:16px; }
+.game-suggest-fields { display:flex; flex-direction:column; gap:10px; }
+.game-suggest-input {
+  background:var(--go-input-bg); border:1px solid var(--go-border);
+  border-radius:12px; padding:12px 16px; font-size:14px; color:var(--go-text);
+  outline:none; transition:border-color .2s; resize:none;
+}
+.game-suggest-input:focus { border-color:var(--sp-blue); }
+.game-suggest-btn {
+  align-self:flex-end; padding:10px 24px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,var(--sp-blue),#6366f1); color:#fff;
+  font-size:14px; font-weight:700; cursor:pointer; transition:all .2s;
+}
+.game-suggest-btn:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(59,130,246,.4); }
+.game-suggest-btn:disabled { opacity:.6; transform:none; cursor:not-allowed; }
 </style>
 
 <div class="sp-wrap">
@@ -421,6 +831,9 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
     </button>
     <button class="sp-tab" data-tab="chaqmoq" onclick="switchTab('chaqmoq',this)">
       <i class="fa-solid fa-bolt"></i> Chaqmoq⚡
+    </button>
+    <button class="sp-tab" data-tab="games" onclick="switchTab('games',this)">
+      <i class="fa-solid fa-gamepad"></i> O'yinlar
     </button>
   </div>
 
@@ -575,9 +988,282 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
     </div>
   </div>
 
+  <!-- ════════ GAMES TAB ════════ -->
+  <div id="tab-games" style="display:none">
+
+    <!-- Game hub -->
+    <div class="sp-panel" id="game-hub">
+      <div class="sp-panel-title"><i class="fa-solid fa-gamepad"></i> O'yin Markazi</div>
+      <div class="game-grid" id="game-cards-grid">
+        <div class="sp-skel" style="height:160px;border-radius:18px;"></div>
+        <div class="sp-skel" style="height:160px;border-radius:18px;"></div>
+        <div class="sp-skel" style="height:160px;border-radius:18px;"></div>
+        <div class="sp-skel" style="height:160px;border-radius:18px;"></div>
+      </div>
+    </div>
+
+    <!-- Recent game history -->
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-solid fa-chart-bar"></i> So'nggi natijalar</div>
+      <div id="game-history-list">
+        <div class="sp-skel" style="height:48px;border-radius:12px;"></div>
+        <div class="sp-skel" style="height:48px;border-radius:12px;margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Game suggestion form -->
+    <div class="sp-panel sp-section-gap">
+      <div class="sp-panel-title"><i class="fa-solid fa-lightbulb"></i> Yangi o'yin taklif qiling</div>
+      <div class="game-suggest-panel">
+        <div class="game-suggest-title">💡 O'yin g'oyangiz bormi?</div>
+        <div class="game-suggest-sub">Qanday o'yin qo'shilishini xohlasangiz, bizga bildiring!</div>
+        <div class="game-suggest-fields">
+          <input id="gs-name" class="game-suggest-input" type="text" placeholder="O'yin nomi (masalan: Rebuslar, Sudoku…)" maxlength="100">
+          <textarea id="gs-desc" class="game-suggest-input" rows="3" placeholder="O'yin qanday o'ynaladi? Qisqacha tushuntiring…" maxlength="500"></textarea>
+          <button class="game-suggest-btn" onclick="submitGameSuggestion()" id="gs-submit-btn">
+            <i class="fa-solid fa-paper-plane"></i> Yuborish
+          </button>
+        </div>
+        <div id="gs-msg" style="margin-top:10px;font-size:13px;display:none;"></div>
+      </div>
+    </div>
+
+  </div>
+
 </div><!-- end sp-wrap -->
 
-{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Sening shaxsiy yordamching" ai_widget_greet="o'z guruhlaring, davomating, to'lovlaring va Chaqmoq balling" aiw_prompt_1="Mening qarzim bormi?" aiw_prompt_2="Davomatim qanday?" aiw_prompt_3="Qaysi guruhlardaman?" aiw_prompt_4="Chaqmoq ballarim qancha?" %}
+<!-- ════════ GAME OVERLAYS ════════ -->
+
+<!-- Math Sprint -->
+<div id="game-math-sprint" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner">
+    <div class="go-header">
+      <div class="go-title" id="ms-title">🧮 Math Sprint</div>
+      <button class="go-close" onclick="closeGame('math_sprint')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body">
+      <div class="go-timer-row">
+        <div class="go-timer-wrap">
+          <svg class="go-timer-svg" viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+            <circle id="ms-timer-arc" cx="22" cy="22" r="19" fill="none" stroke="var(--sp-blue)" stroke-width="3" stroke-dasharray="119.38" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+          </svg>
+          <div class="go-timer-val" id="ms-timer">60</div>
+        </div>
+        <div class="go-score-wrap"><div class="go-score-val" id="ms-score">0</div><div class="go-score-lbl">To'g'ri</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="ms-level" style="color:var(--sp-yellow)">1</div><div class="go-score-lbl">Daraja</div></div>
+      </div>
+      <div class="go-problem" id="ms-problem">—</div>
+      <div class="go-input-row">
+        <input id="ms-answer" type="number" class="go-input" placeholder="Javob…" autocomplete="off" inputmode="numeric">
+        <button class="go-submit-btn" onclick="msCheck()"><i class="fa-solid fa-check"></i></button>
+      </div>
+      <div class="go-feedback" id="ms-feedback"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Memory Match -->
+<div id="game-memory-match" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner">
+    <div class="go-header">
+      <div class="go-title">🧠 Memory Match</div>
+      <button class="go-close" onclick="closeGame('memory_match')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body">
+      <div class="go-timer-row" style="justify-content:center;gap:32px;">
+        <div class="go-score-wrap"><div class="go-score-val" id="mm-moves">0</div><div class="go-score-lbl">Harakatlar</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="mm-pairs" style="color:var(--sp-green)">0/8</div><div class="go-score-lbl">Juftlar</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="mm-timer" style="color:var(--sp-yellow)">0s</div><div class="go-score-lbl">Vaqt</div></div>
+      </div>
+      <div class="mm-grid" id="mm-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Universal Quiz (Geography, English, Science, Quick Quiz, Word Scramble, Number Sequence, Shapes) -->
+<div id="game-quiz" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner" style="max-width:580px;">
+    <div class="go-header">
+      <div class="go-title" id="gq-title">Quiz</div>
+      <button class="go-close" onclick="closeQuiz()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span id="gq-counter" style="font-size:13px;font-weight:800;color:rgba(148,163,184,.8);">1/10</span>
+        <span id="gq-score-top" style="font-size:13px;font-weight:800;color:var(--sp-green);">0 ✓</span>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:4px;margin-bottom:16px;">
+        <div id="gq-progress" style="height:100%;background:var(--sp-blue);border-radius:4px;transition:width .3s;width:0%"></div>
+      </div>
+      <div class="go-problem" id="gq-question" style="font-size:22px;min-height:72px;display:flex;align-items:center;justify-content:center;padding:16px 20px;"></div>
+      <div id="gq-options" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Chess -->
+<div id="game-chess" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner" style="max-width:520px;">
+    <div class="go-header">
+      <div class="go-title" id="chess-overlay-title">♟ Shaxmat</div>
+      <button class="go-close" onclick="closeGame('chess')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body" style="padding:14px 18px;gap:8px;">
+      <div class="board-info">
+        <div class="board-turn-pill">
+          <div class="board-turn-dot" id="chess-turn-dot" style="background:#e8e8e8;border:2px solid #aaa;"></div>
+          <span id="chess-turn-text">Sizning navbatingiz</span>
+        </div>
+        <div class="board-score-pill">
+          <span>Siz: <b id="chess-score-w">0</b></span>
+          <span>AI: <b id="chess-score-b">0</b></span>
+        </div>
+        <button class="board-restart-btn" onclick="startChess()">↺ Qayta</button>
+      </div>
+      <div class="board-wrap">
+        <div class="board-grid" id="chess-board"></div>
+      </div>
+      <div class="board-status" id="chess-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Checkers -->
+<div id="game-checkers" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner" style="max-width:520px;">
+    <div class="go-header">
+      <div class="go-title">🔴 Shashka</div>
+      <button class="go-close" onclick="closeGame('checkers')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body" style="padding:14px 18px;gap:8px;">
+      <div class="board-info">
+        <div class="board-turn-pill">
+          <div class="board-turn-dot" id="ck-turn-dot" style="background:#e74c3c;"></div>
+          <span id="ck-turn-text">Sizning navbatingiz</span>
+        </div>
+        <div class="board-score-pill">
+          <span>🔴 <b id="ck-score-r">12</b></span>
+          <span>⚫ <b id="ck-score-b">12</b></span>
+        </div>
+        <button class="board-restart-btn" onclick="startCheckers()">↺ Qayta</button>
+      </div>
+      <div class="board-wrap">
+        <div class="board-grid" id="checkers-board"></div>
+      </div>
+      <div class="board-status" id="ck-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Game result popup -->
+<!-- True / False -->
+<div id="game-true-false" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner">
+    <div class="go-header">
+      <div class="go-title">✅ Rost yoki Yolg'on?</div>
+      <button class="go-close" onclick="closeGame('true_false')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body">
+      <div class="go-timer-row">
+        <div class="go-timer-wrap">
+          <svg class="go-timer-svg" viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+            <circle id="tf-timer-arc" cx="22" cy="22" r="19" fill="none" stroke="var(--sp-green)" stroke-width="3" stroke-dasharray="119.38" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+          </svg>
+          <div class="go-timer-val" id="tf-timer">10</div>
+        </div>
+        <div class="go-score-wrap"><div class="go-score-val" id="tf-score">0</div><div class="go-score-lbl">To'g'ri</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="tf-qnum" style="color:var(--sp-yellow)">1/15</div><div class="go-score-lbl">Savol</div></div>
+      </div>
+      <div class="tf-statement" id="tf-statement">Yuklanmoqda…</div>
+      <div class="tf-btn-row">
+        <button class="tf-btn tf-true" id="tf-btn-true" onclick="tfAnswer(true)">✅ Rost</button>
+        <button class="tf-btn tf-false" id="tf-btn-false" onclick="tfAnswer(false)">❌ Yolg'on</button>
+      </div>
+      <div class="go-feedback" id="tf-feedback"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Formula Fill -->
+<div id="game-formula-fill" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner">
+    <div class="go-header">
+      <div class="go-title">🔢 Formula To'ldirish</div>
+      <button class="go-close" onclick="closeGame('formula_fill')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body">
+      <div class="go-timer-row">
+        <div class="go-score-wrap"><div class="go-score-val" id="ff-score">0</div><div class="go-score-lbl">To'g'ri</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="ff-qnum" style="color:var(--sp-yellow)">1/10</div><div class="go-score-lbl">Savol</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="ff-wrong" style="color:var(--sp-red)">0</div><div class="go-score-lbl">Xato</div></div>
+      </div>
+      <div class="ff-progress" id="ff-progress"></div>
+      <div class="ff-formula" id="ff-formula">—</div>
+      <div class="ff-hint" id="ff-hint"></div>
+      <div class="go-input-row">
+        <input id="ff-answer" type="text" class="go-input" placeholder="Javob…" autocomplete="off" spellcheck="false">
+        <button class="go-submit-btn" onclick="ffCheck()"><i class="fa-solid fa-check"></i></button>
+      </div>
+      <div class="go-feedback" id="ff-feedback"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Crossword -->
+<div id="game-crossword" class="game-overlay" style="display:none">
+  <div class="game-overlay-inner" style="max-width:700px">
+    <div class="go-header">
+      <div class="go-title">📝 Krossvord</div>
+      <button class="go-close" onclick="closeGame('crossword')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="go-body" style="padding-top:10px">
+      <div class="go-timer-row">
+        <div class="go-score-wrap"><div class="go-score-val" id="cw-score">0</div><div class="go-score-lbl">Topildi</div></div>
+        <div class="go-score-wrap"><div class="go-score-val" id="cw-total" style="color:var(--sp-yellow)">0</div><div class="go-score-lbl">Jami so'z</div></div>
+        <div class="go-score-wrap">
+          <div class="go-score-val" id="cw-timer" style="color:var(--sp-blue)">180</div>
+          <div class="go-score-lbl">Vaqt</div>
+        </div>
+      </div>
+      <div class="cw-split">
+        <div class="cw-grid-wrap">
+          <div class="cw-grid" id="cw-grid"></div>
+        </div>
+        <div class="cw-clues" id="cw-clues"></div>
+      </div>
+      <div class="cw-input-area">
+        <div class="cw-input-label" id="cw-input-label">So'z tanlang…</div>
+        <div class="go-input-row">
+          <input id="cw-answer" type="text" class="go-input" placeholder="Javobni kiriting…" autocomplete="off" spellcheck="false">
+          <button class="go-submit-btn" onclick="cwCheck()"><i class="fa-solid fa-check"></i></button>
+        </div>
+        <div class="go-feedback" id="cw-feedback"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Game result popup -->
+<div id="game-result-popup" class="game-result-popup" style="display:none">
+  <div class="grp-box">
+    <div class="grp-emoji" id="grp-emoji">🎉</div>
+    <div class="grp-title" id="grp-title">O'yin tugadi!</div>
+    <div class="grp-score" id="grp-score"></div>
+    <div class="grp-coins" id="grp-coins" style="display:none"></div>
+    <div class="grp-already" id="grp-already" style="display:none">
+      Bugun uchun mukofot allaqachon olindingiz ✓
+    </div>
+    <div class="grp-btns">
+      <button class="grp-btn grp-btn-play" id="grp-play-again">Qayta o'ynash</button>
+      <button class="grp-btn grp-btn-close" onclick="closeResultPopup()">Yopish</button>
+    </div>
+  </div>
+</div>
+
+<!-- Level-up toast -->
+<div class="lvl-toast" id="lvl-toast">⭐ Tabriklaymiz! Yangi daraja!</div>
 
 <script>
 (function () {
@@ -616,14 +1302,29 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
 
   window.switchTab = function (name, btn) {
     document.querySelectorAll(".sp-tab").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    ["home", "groups", "attendance", "payments", "chaqmoq"].forEach(t => {
+    if (btn) btn.classList.add("active");
+    ["home", "groups", "attendance", "payments", "chaqmoq", "games"].forEach(t => {
       const el = document.getElementById("tab-" + t);
       if (el) el.style.display = t === name ? "" : "none";
     });
     if (!tabLoaded[name]) {
       tabLoaded[name] = true;
       loadTab(name);
+    }
+    // Update URL hash silently
+    history.replaceState(null, "", name === "home" ? "/" : "/#" + name + "-tab");
+  };
+
+  // Open games tab from URL hash (called from sidebar button or direct link)
+  window.openGamesTab = function () {
+    const btn = document.querySelector('[data-tab="games"]');
+    if (btn) {
+      switchTab("games", btn);
+      btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      // Animate the games tab button briefly
+      btn.style.transition = "background .3s, transform .2s";
+      btn.style.transform = "scale(1.08)";
+      setTimeout(() => { btn.style.transform = ""; }, 300);
     }
   };
 
@@ -632,6 +1333,7 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
     if (name === "attendance") loadAttendance();
     if (name === "payments")   loadPayments();
     if (name === "chaqmoq")    loadChaqmoq();
+    if (name === "games")      loadGames();
   }
 
   // ── Dashboard init (home tab) ─────────────────────────────────────
@@ -910,8 +1612,1307 @@ html[data-role-theme="light"] .sp-cal-day.no_class { background:rgba(0,0,0,.02);
   document.addEventListener("DOMContentLoaded", function () {
     tabLoaded["home"] = true;
     loadDashboard();
+
+    // Auto-open tab from URL hash (e.g. /#games-tab from sidebar button)
+    const hash = window.location.hash;
+    if (hash === "#games-tab") {
+      openGamesTab();
+    } else if (hash && hash !== "#home-tab") {
+      const tabName = hash.replace("#", "").replace("-tab", "");
+      const btn = document.querySelector('[data-tab="' + tabName + '"]');
+      if (btn) switchTab(tabName, btn);
+    }
   });
+
+  // Also respond to hash changes while staying on the page
+  window.addEventListener("hashchange", function () {
+    if (window.location.hash === "#games-tab") openGamesTab();
+  });
+})();
+
+// ═══════════════════ GAME ENGINE ════════════════════════════════════
+(function () {
+  "use strict";
+
+  const slugPfx = (function () {
+    const m = location.pathname.match(/^\/([^/]+)\//);
+    return m ? "/" + m[1] : "";
+  })();
+
+  function getCsrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : "";
+  }
+
+  // ── Metadata ──────────────────────────────────────────────────────
+  const GAME_INFO = {
+    math_sprint:     { desc: "60 soniyada imkon qadar ko'proq misol yeching!",  color:"var(--sp-blue)",   playable:true },
+    times_table:     { desc: "Ko'paytirish jadvalini o'rgan va tez javob ber!", color:"var(--sp-purple)", playable:true },
+    memory_match:    { desc: "Juft kartalarni toping — xotirangizni sinang!",   color:"var(--sp-green)",  playable:true },
+    number_sequence: { desc: "Ketma-ketlikdagi keyingi sonni top!",             color:"var(--sp-yellow)", playable:true },
+    english_words:   { desc: "O'zbek so'zlarining inglizcha tarjimasini bil!",  color:"var(--sp-blue)",   playable:true },
+    word_scramble:   { desc: "To'g'ri yozilgan so'zni tanlang!",               color:"var(--sp-green)",  playable:true },
+    geography_quiz:  { desc: "Dunyo poytaxtlarini bilasanmi?",                  color:"var(--sp-teal)",   playable:true },
+    science_quiz:    { desc: "Fan va tabiat savollari — bilimingni sin!",       color:"var(--sp-yellow)", playable:true },
+    shapes_quiz:     { desc: "Geometrik shakllar va formulalar savollari!",     color:"var(--sp-purple)", playable:true },
+    quick_quiz:      { desc: "Tez bilim — har sohadan qiziqarli savollar!",    color:"var(--sp-red)",    playable:true },
+    chess:           { desc: "AI ga qarshi haqiqiy shaxmat o'ynang!",          color:"var(--sp-blue)",   playable:true },
+    checkers:        { desc: "AI ga qarshi shashka — donalarni yut!",          color:"var(--sp-red)",    playable:true },
+    true_false:      { desc: "Ha yoki Yo'q! Bilimingni 15 savolda sin!",       color:"var(--sp-green)",  playable:true },
+    formula_fill:    { desc: "Formula blanklarini to'g'ri to'ldiring!",        color:"var(--sp-yellow)", playable:true },
+    crossword:       { desc: "Krossvord — so'zlarni tavsifdan toping!",        color:"var(--sp-purple)", playable:true },
+  };
+
+  const GAME_EMOJIS = {
+    math_sprint:"🧮", times_table:"📊", memory_match:"🧠",
+    number_sequence:"🧩", english_words:"🔡", word_scramble:"🔤",
+    geography_quiz:"🌍", science_quiz:"🔬", shapes_quiz:"📐", quick_quiz:"⚡",
+    chess:"♟", checkers:"🔴",
+    true_false:"✅", formula_fill:"🔢", crossword:"📝",
+  };
+
+  const OVERLAY_MAP = {
+    math_sprint:"game-math-sprint", times_table:"game-math-sprint",
+    memory_match:"game-memory-match",
+    number_sequence:"game-quiz", english_words:"game-quiz", word_scramble:"game-quiz",
+    geography_quiz:"game-quiz", science_quiz:"game-quiz",
+    shapes_quiz:"game-quiz", quick_quiz:"game-quiz",
+    chess:"game-chess", checkers:"game-checkers",
+    true_false:"game-true-false", formula_fill:"game-formula-fill", crossword:"game-crossword",
+  };
+
+  // ── Game hub ──────────────────────────────────────────────────────
+  window.loadGames = function () {
+    fetch(slugPfx + "/api/student/game/status/", { credentials: "same-origin" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!d) return; renderGameCards(d.games || []); renderGameHistory(d.recent || []); })
+      .catch(() => {});
+  };
+
+  function renderGameCards(games) {
+    const grid = document.getElementById("game-cards-grid");
+    if (!grid) return;
+    grid.innerHTML = games.map(g => {
+      const info  = GAME_INFO[g.slug] || { desc: "", color: "var(--sp-blue)", playable: false };
+      const earned = g.earned_today, coming = !info.playable;
+      const lvl = g.current_level || 1;
+      return (
+        '<div class="game-card' + (earned?" earned":"") + (coming?" coming-soon":"") + '"' +
+        ' onclick="' + (!coming ? 'window.location.href=\'/games/' + g.slug + '/\'' : '') + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+            '<div class="game-card-emoji">' + g.emoji + '</div>' +
+            '<span class="game-lvl-badge">⭐ ' + lvl + ' daraja</span>' +
+          '</div>' +
+          '<div class="game-card-name">' + g.name + '</div>' +
+          '<div class="game-card-desc">' + info.desc + '</div>' +
+          '<div class="game-card-footer">' +
+            '<div class="game-card-coins">⚡ max ' + g.max_coins + ' tanga/kun</div>' +
+            (coming ? '<span class="game-card-soon-tag">Tez kunda</span>'
+             : earned ? '<span class="game-card-earned-tag">✓ Bugun olindi</span>'
+             : '<button class="game-card-play">O\'ynash</button>') +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function renderGameHistory(recent) {
+    const el = document.getElementById("game-history-list");
+    if (!el) return;
+    if (!recent.length) {
+      el.innerHTML = '<div class="sp-empty" style="padding:24px"><i class="fa-solid fa-gamepad"></i>Hali o\'yin o\'ynamagansiz.</div>';
+      return;
+    }
+    el.innerHTML = recent.map(r => {
+      const d = new Date(r.played_at);
+      const pad = n => String(n).padStart(2, "0");
+      const ds = pad(d.getDate()) + "." + pad(d.getMonth()+1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+      return (
+        '<div class="game-hist-item">' +
+          '<div class="game-hist-left">' +
+            '<div class="game-hist-emoji">' + (GAME_EMOJIS[r.game_slug] || "🎮") + '</div>' +
+            '<div><div class="game-hist-name">' + r.game_name + '</div>' +
+            '<div class="game-hist-date">' + ds + '</div></div>' +
+          '</div>' +
+          '<div class="game-hist-score">' + r.score + ' pt' +
+            (r.coins_earned > 0 ? '<div class="game-hist-coins">+' + r.coins_earned + ' ⚡</div>' : '') +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  // ── Open / close ──────────────────────────────────────────────────
+  let _currentGame = null;
+
+  window.openGame = function (slug) {
+    _currentGame = slug;
+    const overlayId = OVERLAY_MAP[slug];
+    if (!overlayId) return;
+    document.body.style.overflow = "hidden";
+    const overlay = document.getElementById(overlayId);
+    if (!overlay) return;
+    overlay.style.display = "flex";
+    if (slug === "math_sprint") {
+      const t = overlay.querySelector(".go-title"); if (t) t.textContent = "🧮 Math Sprint";
+      startMathSprint();
+    } else if (slug === "times_table") {
+      const t = overlay.querySelector(".go-title"); if (t) t.textContent = "📊 Ko'paytirish";
+      startTimesTable();
+    } else if (slug === "memory_match") {
+      startMemoryMatch();
+    } else if (slug === "chess") {
+      startChess();
+    } else if (slug === "checkers") {
+      startCheckers();
+    } else if (slug === "true_false") {
+      startTrueFalse();
+    } else if (slug === "formula_fill") {
+      startFormulaFill();
+    } else if (slug === "crossword") {
+      startCrossword();
+    } else {
+      startQuiz(slug);
+    }
+  };
+
+  window.closeGame = function (slug) {
+    const id = slug || _currentGame;
+    const oid = OVERLAY_MAP[id];
+    if (oid) document.getElementById(oid).style.display = "none";
+    document.body.style.overflow = "";
+    _currentGame = null;
+    if (id === "math_sprint" || id === "times_table") stopMathSprint();
+    if (id === "memory_match") stopMemoryMatch();
+    if (id === "chess") stopChess();
+    if (id === "checkers") stopCheckers();
+    if (id === "true_false") stopTrueFalse();
+    if (id === "formula_fill") stopFormulaFill();
+    if (id === "crossword") stopCrossword();
+  };
+
+  // ── Result helpers ────────────────────────────────────────────────
+  function submitResult(slug, score, duration_sec, level) {
+    return fetch(slugPfx + "/api/student/game/result/", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+      body: JSON.stringify({ game_slug: slug, score, duration_sec, level }),
+    }).then(r => r.ok ? r.json() : { ok: false, coins_earned: 0 })
+      .catch(() => ({ ok: false, coins_earned: 0 }));
+  }
+
+  function showLevelUpToast(newLevel) {
+    const t = document.getElementById("lvl-toast");
+    if (!t) return;
+    t.textContent = "⭐ " + newLevel + "-darajaga o'tdingiz! Tabriklaymiz!";
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3200);
+  }
+
+  function showResult(slug, title, scoreText, coins, alreadyEarned, onPlayAgain, levelUp, newLevel) {
+    document.getElementById("grp-emoji").textContent = (GAME_EMOJIS[slug] || "🎮");
+    document.getElementById("grp-title").textContent = title;
+    document.getElementById("grp-score").textContent = scoreText;
+    const coinsEl = document.getElementById("grp-coins");
+    const alrEl   = document.getElementById("grp-already");
+    if (coins > 0) {
+      coinsEl.textContent = "+" + coins + " ⚡ Chaqmoq olindi!";
+      coinsEl.style.display = ""; alrEl.style.display = "none";
+    } else if (alreadyEarned) {
+      coinsEl.style.display = "none"; alrEl.style.display = "";
+    } else {
+      coinsEl.style.display = "none"; alrEl.style.display = "none";
+    }
+    document.getElementById("grp-play-again").onclick = () => { closeResultPopup(); onPlayAgain(); };
+    if (coins > 0 || levelUp) {
+      fetch(slugPfx + "/api/student/game/status/", { credentials: "same-origin" })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) { renderGameCards(d.games || []); renderGameHistory(d.recent || []); } });
+    }
+    document.getElementById("game-result-popup").style.display = "flex";
+    if (levelUp && newLevel) setTimeout(() => showLevelUpToast(newLevel), 500);
+  }
+
+  window.closeResultPopup = function () {
+    document.getElementById("game-result-popup").style.display = "none";
+    if (_currentGame) {
+      const oid = OVERLAY_MAP[_currentGame];
+      if (oid) document.getElementById(oid).style.display = "none";
+      document.body.style.overflow = "";
+      _currentGame = null;
+    }
+  };
+
+  // ════ MATH SPRINT & TIMES TABLE ══════════════════════════════════
+  let msInterval = null, msTime = 60, msScore = 0, msLevel = 1, msStart = 0;
+  let msCorrectAnswer = 0, _msMode = "all";
+
+  function startMathSprint()  { _msMode = "all";   _startMathEngine(); }
+  function startTimesTable()  { _msMode = "times"; _startMathEngine(); }
+
+  function _startMathEngine() {
+    stopMathSprint();
+    msTime = 60; msScore = 0; msLevel = 1; msStart = Date.now();
+    document.getElementById("ms-score").textContent = "0";
+    document.getElementById("ms-level").textContent = "1";
+    document.getElementById("ms-feedback").textContent = "";
+    document.getElementById("ms-feedback").className = "go-feedback";
+    nextMathProblem();
+    msInterval = setInterval(msTickTimer, 1000);
+    const inp = document.getElementById("ms-answer");
+    inp.value = ""; inp.focus();
+    inp.onkeydown = e => { if (e.key === "Enter") msCheck(); };
+  }
+
+  function stopMathSprint() { if (msInterval) { clearInterval(msInterval); msInterval = null; } }
+
+  function msTickTimer() {
+    msTime--;
+    document.getElementById("ms-timer").textContent = msTime;
+    const arc = document.getElementById("ms-timer-arc");
+    if (arc) arc.style.strokeDashoffset = String(119.38 * (1 - msTime / 60));
+    if (msTime <= 0) {
+      stopMathSprint();
+      const slug = _currentGame || "math_sprint";
+      const dur  = Math.round((Date.now() - msStart) / 1000);
+      submitResult(slug, msScore, dur, msLevel).then(r => {
+        showResult(slug, msScore >= 5 ? "Ajoyib!" : "O'yin tugadi!",
+          msScore + " ta to'g'ri javob",
+          r.coins_earned || 0, r.already_earned_today || false,
+          () => openGame(slug), r.level_up || false, r.new_level || 1);
+      });
+    }
+  }
+
+  function nextMathProblem() {
+    let op, a, b;
+    if (_msMode === "times") {
+      op = "×"; a = rand(2, 9 + msLevel); b = rand(2, 12); msCorrectAnswer = a * b;
+    } else {
+      const ops = msLevel <= 2 ? ["+","-"] : msLevel <= 4 ? ["+","-","×"] : ["+","-","×","÷"];
+      op = ops[Math.floor(Math.random() * ops.length)];
+      if (op==="+") { a=rand(1,20+msLevel*5); b=rand(1,20+msLevel*5); msCorrectAnswer=a+b; }
+      else if (op==="-") { a=rand(10,50+msLevel*5); b=rand(1,a); msCorrectAnswer=a-b; }
+      else if (op==="×") { a=rand(2,5+msLevel); b=rand(2,12); msCorrectAnswer=a*b; }
+      else { b=rand(2,9); a=b*rand(2,12); msCorrectAnswer=a/b; }
+    }
+    document.getElementById("ms-problem").textContent = a + " " + op + " " + b + " = ?";
+    document.getElementById("ms-answer").value = "";
+  }
+
+  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  window.msCheck = function () {
+    const inp = document.getElementById("ms-answer");
+    const val = parseInt(inp.value, 10);
+    const fb  = document.getElementById("ms-feedback");
+    if (isNaN(val)) return;
+    if (val === msCorrectAnswer) {
+      msScore++;
+      document.getElementById("ms-score").textContent = msScore;
+      if (msScore % 10 === 0) { msLevel++; document.getElementById("ms-level").textContent = msLevel; }
+      fb.textContent = "✓ To'g'ri!"; fb.className = "go-feedback ok";
+    } else {
+      fb.textContent = "✗ Xato! Javob: " + msCorrectAnswer; fb.className = "go-feedback err";
+    }
+    setTimeout(() => { fb.textContent = ""; fb.className = "go-feedback"; }, 700);
+    nextMathProblem(); inp.focus();
+  };
+
+  // ════ MEMORY MATCH ════════════════════════════════════════════════
+  const MM_EMOJIS = ["🍕","🍦","🎸","🚀","🦁","🌺","⚽","🎯",
+                     "🍕","🍦","🎸","🚀","🦁","🌺","⚽","🎯"];
+  let mmFlipped = [], mmMatched = 0, mmMoves = 0, mmTimer = 0, mmInterval2 = null;
+  let mmCards = [], mmLocked = false, mmStartTime = 0;
+
+  function startMemoryMatch() {
+    stopMemoryMatch();
+    mmMatched = 0; mmMoves = 0; mmTimer = 0; mmLocked = false;
+    document.getElementById("mm-moves").textContent = "0";
+    document.getElementById("mm-pairs").textContent = "0/8";
+    document.getElementById("mm-timer").textContent = "0s";
+    const shuffled = [...MM_EMOJIS].sort(() => Math.random() - 0.5);
+    mmCards = shuffled;
+    document.getElementById("mm-grid").innerHTML = shuffled.map((em, i) => (
+      '<div class="mm-card" id="mmc-' + i + '" onclick="mmFlip(' + i + ')">' +
+        '<div class="mm-front"><i class="fa-solid fa-question" style="font-size:20px;opacity:.2;"></i></div>' +
+        '<div class="mm-back">' + em + '</div>' +
+      '</div>'
+    )).join("");
+    mmStartTime = Date.now();
+    mmInterval2 = setInterval(() => {
+      mmTimer = Math.round((Date.now() - mmStartTime) / 1000);
+      document.getElementById("mm-timer").textContent = mmTimer + "s";
+    }, 1000);
+  }
+
+  function stopMemoryMatch() { if (mmInterval2) { clearInterval(mmInterval2); mmInterval2 = null; } mmFlipped = []; }
+
+  window.mmFlip = function (idx) {
+    if (mmLocked) return;
+    const card = document.getElementById("mmc-" + idx);
+    if (!card || card.classList.contains("flipped") || card.classList.contains("matched")) return;
+    card.classList.add("flipped");
+    mmFlipped.push(idx);
+    if (mmFlipped.length === 2) {
+      mmLocked = true; mmMoves++;
+      document.getElementById("mm-moves").textContent = mmMoves;
+      const [a, b] = mmFlipped;
+      if (mmCards[a] === mmCards[b]) {
+        mmMatched++;
+        document.getElementById("mm-pairs").textContent = mmMatched + "/8";
+        document.getElementById("mmc-"+a).classList.add("matched");
+        document.getElementById("mmc-"+b).classList.add("matched");
+        mmFlipped = []; mmLocked = false;
+        if (mmMatched === 8) {
+          stopMemoryMatch();
+          submitResult("memory_match", 1, mmTimer, 1).then(r => {
+            showResult("memory_match", "Barcha juftlar topildi! 🎉",
+              mmMoves + " ta harakat, " + mmTimer + " soniya",
+              r.coins_earned || 0, r.already_earned_today || false,
+              () => openGame("memory_match"), r.level_up || false, r.new_level || 1);
+          });
+        }
+      } else {
+        setTimeout(() => {
+          document.getElementById("mmc-"+a).classList.remove("flipped");
+          document.getElementById("mmc-"+b).classList.remove("flipped");
+          mmFlipped = []; mmLocked = false;
+        }, 900);
+      }
+    }
+  };
+
+  // ════ UNIVERSAL QUIZ ENGINE ═══════════════════════════════════════
+  const QUIZ_BANKS = {
+    geography_quiz: [
+      {q:"Frantsiyaning poytaxti?",       opts:["Paris","Rim","Madrid","Berlin"],          a:0},
+      {q:"Yaponiyaning poytaxti?",         opts:["Pekin","Tokio","Seul","Bangkok"],         a:1},
+      {q:"Braziliyaning poytaxti?",        opts:["Rio de Janeyro","San-Paulo","Braziliya","Buenos-Ayres"], a:2},
+      {q:"Avstraliyaning poytaxti?",       opts:["Sidney","Melburn","Kanberra","Brisben"],  a:2},
+      {q:"Kanada poytaxti?",               opts:["Toronto","Monreal","Vankuver","Ottawa"],  a:3},
+      {q:"Rossiyaning poytaxti?",          opts:["Moskva","Sankt-Peterburg","Novosibirsk","Yekaterinburg"], a:0},
+      {q:"Xitoyning poytaxti?",            opts:["Shanxay","Pekin","Gonkong","Chengdu"],    a:1},
+      {q:"Hindistonning poytaxti?",        opts:["Mumbay","Nyu-Delhi","Kalkutta","Bangalore"], a:1},
+      {q:"Misrning poytaxti?",             opts:["Aleksandriya","Qohira","Luxor","Giza"],   a:1},
+      {q:"O'zbekistonning poytaxti?",      opts:["Samarqand","Buxoro","Toshkent","Namangan"], a:2},
+      {q:"Germaniyaning poytaxti?",        opts:["Myunxen","Gamburg","Frankfurt","Berlin"], a:3},
+      {q:"Italiyaning poytaxti?",          opts:["Milan","Venetsiya","Rim","Florentsiya"],  a:2},
+      {q:"Ispaniyaning poytaxti?",         opts:["Barselona","Valensiya","Madrid","Sevil"], a:2},
+      {q:"Qozog'istonning poytaxti?",      opts:["Olma-Ota","Astana","Shimkent","Qaraganda"], a:1},
+      {q:"Turkiyaning poytaxti?",          opts:["Istanbul","Izmir","Anqara","Bursa"],      a:2},
+    ],
+    english_words: [
+      {q:"\"Kitob\" inglizcha?",           opts:["Notebook","Book","Pen","Paper"],          a:1},
+      {q:"\"Daraxt\" inglizcha?",          opts:["Flower","Grass","Tree","Leaf"],           a:2},
+      {q:"\"Maktab\" inglizcha?",          opts:["Library","Office","School","College"],    a:2},
+      {q:"\"Suv\" inglizcha?",             opts:["Milk","Water","Juice","Tea"],             a:1},
+      {q:"\"Uy\" inglizcha?",              opts:["Room","Garden","House","Street"],         a:2},
+      {q:"\"O'qituvchi\" inglizcha?",      opts:["Student","Teacher","Doctor","Driver"],    a:1},
+      {q:"\"Quyosh\" inglizcha?",          opts:["Moon","Star","Cloud","Sun"],              a:3},
+      {q:"\"Ot\" (hayvon) inglizcha?",     opts:["Dog","Cat","Horse","Cow"],                a:2},
+      {q:"\"Rang\" inglizcha?",            opts:["Sound","Shape","Color","Size"],           a:2},
+      {q:"\"Yil\" inglizcha?",             opts:["Week","Month","Day","Year"],              a:3},
+      {q:"\"Do'st\" inglizcha?",           opts:["Enemy","Friend","Brother","Sister"],      a:1},
+      {q:"\"Non\" inglizcha?",             opts:["Rice","Bread","Cake","Soup"],             a:1},
+      {q:"\"Havo\" inglizcha?",            opts:["Water","Fire","Air","Earth"],             a:2},
+      {q:"\"Bola\" inglizcha?",            opts:["Man","Woman","Child","Baby"],             a:2},
+      {q:"\"Kechqurun\" inglizcha?",       opts:["Morning","Afternoon","Evening","Night"],  a:2},
+    ],
+    science_quiz: [
+      {q:"Suvning kimyoviy formulasi?",    opts:["CO₂","H₂O","O₂","NaCl"],                 a:1},
+      {q:"Quyosh sistemasidagi eng katta sayyora?", opts:["Saturn","Yer","Mars","Yupiter"], a:3},
+      {q:"Inson tanasida necha suyak bor?",opts:["106","206","306","406"],                  a:1},
+      {q:"Fotosintez uchun qaysi gaz kerak?", opts:["Kislorod","Vodorod","CO₂","Azot"],    a:2},
+      {q:"Yorug'lik tezligi taxminan?",    opts:["100,000 km/s","200,000 km/s","300,000 km/s","400,000 km/s"], a:2},
+      {q:"DNA nima?",                      opts:["Protein","Irsiy ma'lumot molekulasi","Vitamin","Ferment"], a:1},
+      {q:"Yer o'z o'qi atrofida necha soatda aylanadi?", opts:["12","24","36","48"],        a:1},
+      {q:"Eng yengil kimyoviy element?",   opts:["Kislorod","Geliy","Vodorod","Uglerod"],  a:2},
+      {q:"Qon guruhlarining turi nechta?", opts:["2","3","4","5"],                          a:2},
+      {q:"Osmon nima uchun ko'k?",         opts:["Suv bug'i","Yorug'lik tarqalishi","Ozon","Kislorod"], a:1},
+      {q:"Magnetning qutblari nechtadan?", opts:["1","2","3","4"],                          a:1},
+      {q:"Yerga eng yaqin sayyora?",       opts:["Mars","Venus","Merkuriy","Saturn"],       a:1},
+      {q:"Issiqlik qanday o'lchanadi?",    opts:["Metr","Kilogramm","Daraja Celsius","Sekund"], a:2},
+      {q:"Asal qaysi hayvon tomonidan yasaladi?", opts:["Kapalak","Qo'ng'iz","Ari","Chivin"], a:2},
+      {q:"Inson eshita oladigan tovush chastotasi?", opts:["20–200 Hz","20–20,000 Hz","200–2,000 Hz","2–200 kHz"], a:1},
+    ],
+    quick_quiz: [
+      {q:"O'zbekiston mustaqilligini qachon oldi?", opts:["1990","1991","1992","1993"],    a:1},
+      {q:"Bir yilda necha kun bor?",        opts:["355","360","365","370"],                a:2},
+      {q:"Eng katta okean?",               opts:["Atlantika","Hind","Arktika","Tinch okean"], a:3},
+      {q:"Futbol jamoasida nechta futbolchi?", opts:["9","10","11","12"],                 a:2},
+      {q:"\"Cho'l kemasi\" deb qaysi hayvon ataladi?", opts:["Fil","Zirafa","Tuya","Ot"],a:2},
+      {q:"π (pi) taxminiy qiymati?",       opts:["2.71","3.14","1.41","1.73"],           a:1},
+      {q:"Eng uzun daryo?",                opts:["Amazon","Nil","Yangtze","Mississippi"], a:1},
+      {q:"Xona temperaturasida suyuq metal?", opts:["Temir","Mis","Simob","Rux"],        a:2},
+      {q:"1 kilometr necha metr?",         opts:["10","100","1000","10000"],              a:2},
+      {q:"Dunyodagi eng baland tog'?",     opts:["K2","Elbrus","Everest","Kilimanjaro"], a:2},
+      {q:"Shaxmat taxtasida nechta katak?",opts:["32","48","64","81"],                   a:2},
+      {q:"Bir daqiqada necha sekund?",     opts:["30","45","60","100"],                  a:2},
+      {q:"Eng katta kontinent?",           opts:["Afrika","Amerika","Yevropa","Osiyo"],  a:3},
+      {q:"Inson yuragi 1 daqiqada necha marta uradi?", opts:["40","60–80","100–120","140–160"], a:1},
+      {q:"Dunyodagi eng katta cho'l?",     opts:["Sahara","Gobi","Arabiston","Antarktida"], a:3},
+    ],
+    word_scramble: [
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["MATEMATICS","MATHEMATICS","MATHMATICS","MATHEMATCS"],  a:1},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["GEOGRAFY","GEOGRAHY","GEOGRAPHY","GIOGRAPHY"],         a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["BIOLOGIY","BIOLOGI","BIOLOGY","BIOLOGHY"],             a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["PHYSIC","PHYICS","PHYSYCS","PHYSICS"],                 a:3},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["LITARATURE","LITERTURE","LITERATURE","LITTERATURE"],   a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["CHEMESTRY","CHEMISTRY","CHEMISTERY","CHIMISTRY"],      a:1},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["CALENDER","CALANDAR","CALENDAR","CALANDER"],           a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["RECIEVE","RECEIVE","RECEVE","RECEEVE"],                a:1},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["BELEIVE","BELEEVE","BELIEVE","BILIEVE"],               a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["BEGINING","BEGINNING","BEGGINING","BEGININING"],       a:1},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["GRAMMER","GRAMMARR","GRAMMAR","GRAMAR"],               a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["KNOWLEGE","KNOWEDGE","KNOLEDGE","KNOWLEDGE"],          a:3},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["WRITTING","WRITNG","WRITING","WRITEING"],              a:2},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["EXCELENT","EXCELLENT","EXCELLANT","EXCILENT"],         a:1},
+      {q:"Qaysi so'z to'g'ri yozilgan?",   opts:["NECESARY","NECCESSARY","NECESSARY","NECESSERY"],       a:2},
+    ],
+    number_sequence: [
+      {q:"2, 4, 6, 8, __?",        opts:["9","10","11","12"],    a:1},
+      {q:"1, 3, 5, 7, __?",        opts:["8","9","10","11"],     a:1},
+      {q:"2, 4, 8, 16, __?",       opts:["24","28","32","64"],   a:2},
+      {q:"1, 4, 9, 16, __?",       opts:["20","24","25","30"],   a:2},
+      {q:"1, 1, 2, 3, 5, __?",     opts:["6","7","8","9"],       a:2},
+      {q:"10, 20, 30, 40, __?",    opts:["45","48","50","55"],   a:2},
+      {q:"100, 50, 25, __?",       opts:["10","12","12.5","15"], a:2},
+      {q:"3, 6, 9, 12, __?",       opts:["14","15","16","18"],   a:1},
+      {q:"1, 2, 4, 7, 11, __?",    opts:["14","15","16","17"],   a:2},
+      {q:"5, 10, 20, 40, __?",     opts:["60","70","80","100"],  a:2},
+      {q:"1, 8, 27, 64, __?",      opts:["100","125","128","256"], a:1},
+      {q:"2, 3, 5, 7, 11, __?",    opts:["12","13","14","15"],   a:1},
+      {q:"0, 1, 3, 6, 10, __?",    opts:["12","13","14","15"],   a:3},
+      {q:"256, 128, 64, 32, __?",  opts:["8","12","16","24"],    a:2},
+      {q:"3, 9, 27, 81, __?",      opts:["162","243","324","405"], a:1},
+    ],
+    shapes_quiz: [
+      {q:"Uchburchak nechta tomonli?",          opts:["2","3","4","5"],         a:1},
+      {q:"Kvadratning burchaklari nechta?",      opts:["2","3","4","6"],         a:2},
+      {q:"Doira doimiyligi π taxminan?",         opts:["2.71","3.14","4.00","1.73"], a:1},
+      {q:"Kvadratning perimetri = ?",            opts:["a²","4a","2a","a+4"],    a:1},
+      {q:"To'rtburchakning yuz formulasi?",      opts:["a+b","a×b","2(a+b)","a²"], a:1},
+      {q:"Doira yuzining formulasi?",            opts:["πr","πr²","2πr","πd"],   a:1},
+      {q:"Kubning nechta qirrasi bor?",          opts:["6","8","10","12"],        a:3},
+      {q:"Uchburchakning burchaklari yig'indisi?", opts:["90°","180°","270°","360°"], a:1},
+      {q:"Pifagor teoremasi: a²+b²=?",           opts:["c","c²","2c","c+1"],     a:1},
+      {q:"To'g'ri burchakli uchburchakdagi eng uzun tomon?", opts:["Katetlar","Gipotenuza","Median","Balandlik"], a:1},
+    ],
+  };
+
+  const QUIZ_TITLES = {
+    geography_quiz:"🌍 Geografiya", english_words:"🔡 Ingliz So'zlari",
+    science_quiz:"🔬 Fan Savollari", quick_quiz:"⚡ Tez Bilim",
+    word_scramble:"🔤 So'z Topish", number_sequence:"🧩 Ketma-Ketlik",
+    shapes_quiz:"📐 Geometriya",
+  };
+
+  let _qSlug = "", _qQuestions = [], _qIdx = 0, _qScore = 0, _qTotal = 10, _qStart = 0;
+
+  function startQuiz(slug) {
+    _qSlug = slug;
+    const bank = QUIZ_BANKS[slug] || [];
+    if (!bank.length) return;
+    _qQuestions = [...bank].sort(() => Math.random() - 0.5).slice(0, 10);
+    _qIdx = 0; _qScore = 0; _qTotal = _qQuestions.length; _qStart = Date.now();
+    const titleEl = document.getElementById("gq-title");
+    if (titleEl) titleEl.textContent = QUIZ_TITLES[slug] || "Quiz";
+    showQuizQuestion();
+  }
+
+  function showQuizQuestion() {
+    if (_qIdx >= _qTotal) { endQuiz(); return; }
+    const q = _qQuestions[_qIdx];
+    const ctr = document.getElementById("gq-counter");
+    if (ctr) ctr.textContent = (_qIdx + 1) + " / " + _qTotal;
+    const scoreTop = document.getElementById("gq-score-top");
+    if (scoreTop) scoreTop.textContent = _qScore + " ✓";
+    const prog = document.getElementById("gq-progress");
+    if (prog) prog.style.width = Math.round(_qIdx / _qTotal * 100) + "%";
+    const qEl = document.getElementById("gq-question");
+    if (qEl) qEl.textContent = q.q;
+    const optsEl = document.getElementById("gq-options");
+    if (!optsEl) return;
+    optsEl.innerHTML = q.opts.map((opt, i) => (
+      '<button class="gq-opt" onclick="quizAnswer(' + i + ')">' + opt + '</button>'
+    )).join("");
+  }
+
+  window.quizAnswer = function (idx) {
+    const q = _qQuestions[_qIdx];
+    document.querySelectorAll(".gq-opt").forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.a) btn.classList.add("correct");
+      else if (i === idx) btn.classList.add("wrong");
+    });
+    if (idx === q.a) _qScore++;
+    _qIdx++;
+    setTimeout(showQuizQuestion, 900);
+  };
+
+  function endQuiz() {
+    const dur = Math.round((Date.now() - _qStart) / 1000);
+    submitResult(_qSlug, _qScore, dur, 1).then(r => {
+      showResult(_qSlug,
+        _qScore >= Math.ceil(_qTotal * 0.6) ? "Yaxshi natija! 🎉" : "Davom eting!",
+        _qScore + " / " + _qTotal + " to'g'ri javob",
+        r.coins_earned || 0, r.already_earned_today || false,
+        () => openGame(_qSlug), r.level_up || false, r.new_level || 1);
+    });
+  }
+
+  window.closeQuiz = function () {
+    document.getElementById("game-quiz").style.display = "none";
+    document.body.style.overflow = "";
+    _currentGame = null;
+  };
+
+  // ════ CHESS ENGINE ════════════════════════════════════════════════
+  const _CU = {
+    wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
+    bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟",
+  };
+  const _CV = {K:100,Q:9,R:5,B:3,N:3,P:1};
+  let _cb=[], _cTurn="w", _cSel=null, _cHints=[], _cLast=null, _cOver=false, _cStart=0;
+  let _cAiTimer=null;
+
+  function _cbInit() {
+    _cb=[
+      ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+      ["bP","bP","bP","bP","bP","bP","bP","bP"],
+      ["","","","","","","",""],["","","","","","","",""],
+      ["","","","","","","",""],["","","","","","","",""],
+      ["wP","wP","wP","wP","wP","wP","wP","wP"],
+      ["wR","wN","wB","wQ","wK","wB","wN","wR"],
+    ];
+  }
+  const _cc=p=>p?p[0]:null, _ct=p=>p?p[1]:null;
+
+  function _cPseudo(bd,r,c) {
+    const p=bd[r][c]; if(!p) return [];
+    const col=_cc(p),typ=_ct(p),opp=col==="w"?"b":"w", ms=[];
+    const inB=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+    const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(inB(nr,nc)){if(_cc(bd[nr][nc])===col)break;ms.push([nr,nc]);if(bd[nr][nc])break;nr+=dr;nc+=dc;}};
+    if(typ==="P"){const d=col==="w"?-1:1,sr=col==="w"?6:1;if(inB(r+d,c)&&!bd[r+d][c]){ms.push([r+d,c]);if(r===sr&&!bd[r+2*d][c])ms.push([r+2*d,c]);}for(const dc of[-1,1])if(inB(r+d,c+dc)&&_cc(bd[r+d][c+dc])===opp)ms.push([r+d,c+dc]);}
+    else if(typ==="N"){for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){const nr=r+dr,nc=c+dc;if(inB(nr,nc)&&_cc(bd[nr][nc])!==col)ms.push([nr,nc]);}}
+    else if(typ==="B"){[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([a,b])=>slide(a,b));}
+    else if(typ==="R"){[[-1,0],[1,0],[0,-1],[0,1]].forEach(([a,b])=>slide(a,b));}
+    else if(typ==="Q"){[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([a,b])=>slide(a,b));}
+    else if(typ==="K"){for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){const nr=r+dr,nc=c+dc;if(inB(nr,nc)&&_cc(bd[nr][nc])!==col)ms.push([nr,nc]);}}
+    return ms;
+  }
+
+  function _cCheck(bd,col){
+    let kr=-1,kc=-1;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(bd[r][c]===col+"K"){kr=r;kc=c;}
+    if(kr<0)return true;
+    const opp=col==="w"?"b":"w";
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(_cc(bd[r][c])===opp)if(_cPseudo(bd,r,c).some(([mr,mc])=>mr===kr&&mc===kc))return true;
+    return false;
+  }
+
+  function _cLegal(bd,r,c){
+    return _cPseudo(bd,r,c).filter(([nr,nc])=>{const cp=bd.map(row=>[...row]);cp[nr][nc]=cp[r][c];cp[r][c]="";return!_cCheck(cp,_cc(bd[r][c]));});
+  }
+
+  function _cAllLegal(bd,col){
+    const all=[];
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(_cc(bd[r][c])===col)_cLegal(bd,r,c).forEach(([nr,nc])=>all.push([r,c,nr,nc]));
+    return all;
+  }
+
+  function startChess() {
+    if(_cAiTimer){clearTimeout(_cAiTimer);_cAiTimer=null;}
+    _cbInit(); _cTurn="w"; _cSel=null; _cHints=[]; _cLast=null; _cOver=false; _cStart=Date.now();
+    _renderChess();
+    document.getElementById("chess-status").textContent="";
+    _cUpdateTurn();
+  }
+  function stopChess(){if(_cAiTimer){clearTimeout(_cAiTimer);_cAiTimer=null;}}
+
+  function _cUpdateTurn(){
+    const dot=document.getElementById("chess-turn-dot"), txt=document.getElementById("chess-turn-text");
+    if(_cTurn==="w"){
+      if(dot){dot.style.background="#e8e8e8";dot.style.border="2px solid #888";}
+      if(txt)txt.textContent="Sizning navbatingiz ♙";
+    } else {
+      if(dot){dot.style.background="#1a1a1a";dot.style.border="2px solid #444";}
+      if(txt)txt.textContent="AI o'ylayapti ♟…";
+    }
+  }
+
+  function _renderChess(){
+    const grid=document.getElementById("chess-board"); if(!grid)return;
+    const wChk=_cCheck(_cb,"w"), bChk=_cCheck(_cb,"b");
+    grid.innerHTML="";
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const sq=document.createElement("div");
+      sq.className="board-sq "+((r+c)%2===0?"light":"dark");
+      const hint=_cHints.some(([hr,hc])=>hr===r&&hc===c);
+      const last=_cLast&&((_cLast[0]===r&&_cLast[1]===c)||(_cLast[2]===r&&_cLast[3]===c));
+      const sel=_cSel&&_cSel[0]===r&&_cSel[1]===c;
+      if(sel)sq.classList.add("sq-sel");
+      else if(hint)sq.classList.add("sq-hint");
+      else if(last)sq.classList.add("sq-last");
+      if(_cb[r][c]==="wK"&&wChk)sq.classList.add("sq-check");
+      if(_cb[r][c]==="bK"&&bChk)sq.classList.add("sq-check");
+      const piece=_cb[r][c];
+      if(piece){
+        const sp=document.createElement("span");
+        sp.className="chess-piece "+(_cc(piece)==="w"?"cp-w":"cp-b");
+        sp.textContent=_CU[piece]||"?";
+        sq.appendChild(sp);
+      } else if(hint){
+        const dot=document.createElement("div"); dot.className="board-hint-dot"; sq.appendChild(dot);
+      }
+      const rr=r,cc=c;
+      sq.onclick=()=>_cClick(rr,cc);
+      grid.appendChild(sq);
+    }
+  }
+
+  window._cClick=function(r,c){
+    if(_cOver||_cTurn!=="w")return;
+    if(_cSel){
+      const[sr,sc]=_cSel;
+      if(_cHints.some(([hr,hc])=>hr===r&&hc===c)){_cExec(sr,sc,r,c);return;}
+    }
+    if(_cc(_cb[r][c])==="w"){_cSel=[r,c];_cHints=_cLegal(_cb,r,c);}
+    else{_cSel=null;_cHints=[];}
+    _renderChess();
+  };
+
+  function _cExec(sr,sc,nr,nc){
+    _cb[nr][nc]=_cb[sr][sc]; _cb[sr][sc]="";
+    if(_ct(_cb[nr][nc])==="P"){if(_cc(_cb[nr][nc])==="w"&&nr===0)_cb[nr][nc]="wQ";if(_cc(_cb[nr][nc])==="b"&&nr===7)_cb[nr][nc]="bQ";}
+    _cLast=[sr,sc,nr,nc]; _cSel=null; _cHints=[]; _cTurn="b";
+    _renderChess(); _cUpdateTurn();
+    _cAiTimer=setTimeout(()=>{
+      if(_cOver)return;
+      const aiM=_cAI();
+      if(!aiM){_cOver=true;_cEnd("w");return;}
+      const[ar,ac,anr,anc]=aiM;
+      _cb[anr][anc]=_cb[ar][ac]; _cb[ar][ac]="";
+      if(_ct(_cb[anr][anc])==="P"&&anr===7)_cb[anr][anc]="bQ";
+      _cLast=[ar,ac,anr,anc]; _cTurn="w";
+      _renderChess(); _cUpdateTurn();
+      const pMoves=_cAllLegal(_cb,"w");
+      if(!pMoves.length){_cOver=true;_cEnd(_cCheck(_cb,"w")?"b":"draw");return;}
+      document.getElementById("chess-status").textContent=_cCheck(_cb,"w")?"⚠️ Shoh ostida!":"";
+    }, 420);
+  }
+
+  function _cAI(){
+    const moves=_cAllLegal(_cb,"b"); if(!moves.length)return null;
+    const scored=moves.map(([r,c,nr,nc])=>{
+      let s=0;
+      if(_cb[nr][nc])s+=_CV[_ct(_cb[nr][nc])]*12;
+      s+=(3.5-Math.abs(nr-3.5))*.4+(3.5-Math.abs(nc-3.5))*.4;
+      const cp=_cb.map(row=>[...row]);cp[nr][nc]=cp[r][c];cp[r][c]="";
+      if(_cCheck(cp,"w"))s+=6;
+      return{m:[r,c,nr,nc],s};
+    });
+    scored.sort((a,b)=>b.s-a.s);
+    const top=scored[0].s;
+    const best=scored.filter(x=>x.s>=top-.5);
+    return best[Math.floor(Math.random()*best.length)].m;
+  }
+
+  function _cEnd(winner){
+    _cOver=true;
+    const dur=Math.round((Date.now()-_cStart)/1000);
+    const won=winner==="w";
+    submitResult("chess",won?1:0,dur,1).then(r=>{
+      const title=winner==="draw"?"Durang! 🤝":won?"G'alaba! 🏆 Shoh mat!":"AI g'alaba 🤖 Siz mat bo'ldingiz";
+      document.getElementById("chess-status").textContent=title;
+      setTimeout(()=>showResult("chess",title,"Shaxmat o'yini tugadi",r.coins_earned||0,r.already_earned_today||false,()=>openGame("chess"),r.level_up||false,r.new_level||1),900);
+    });
+  }
+
+  // ════ CHECKERS ENGINE ════════════════════════════════════════════
+  // Values: -1=light(unused), 0=empty, 1=red, 2=black, 3=red king, 4=black king
+  let _ckB=[], _ckTurn=1, _ckSel=null, _ckHints=[], _ckOver=false, _ckStart=0, _ckMJ=null;
+  let _ckAiTimer=null;
+
+  function _ckInit(){
+    _ckB=[];
+    for(let r=0;r<8;r++){_ckB.push([]);for(let c=0;c<8;c++){
+      if((r+c)%2===1){if(r<3)_ckB[r].push(2);else if(r>4)_ckB[r].push(1);else _ckB[r].push(0);}
+      else _ckB[r].push(-1);
+    }}
+  }
+  const _ckR=v=>v===1||v===3, _ckBl=v=>v===2||v===4, _ckK=v=>v===3||v===4;
+
+  function _ckMoves(bd,r,c,mustCap){
+    const v=bd[r][c]; if(v<=0)return [];
+    const isR=_ckR(v),isK=_ckK(v),dirs=[];
+    if(isR||isK)dirs.push([-1,-1],[-1,1]);
+    if(!isR||isK)dirs.push([1,-1],[1,1]);
+    const caps=[],moves=[];
+    for(const[dr,dc]of dirs){
+      const nr=r+dr,nc=c+dc;
+      if(nr<0||nr>=8||nc<0||nc>=8)continue;
+      const t=bd[nr][nc];
+      if(t===-1)continue;
+      if(t===0){moves.push({r:nr,c:nc,cap:null,fr:r,fc:c});}
+      else if((isR&&_ckBl(t))||(!isR&&_ckR(t))){
+        const jr=r+2*dr,jc=c+2*dc;
+        if(jr>=0&&jr<8&&jc>=0&&jc<8&&bd[jr][jc]===0)
+          caps.push({r:jr,c:jc,cap:[nr,nc],fr:r,fc:c});
+      }
+    }
+    if(caps.length||mustCap)return caps;
+    return moves;
+  }
+
+  function _ckHasCap(bd,redTurn){
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++)
+      if((redTurn?_ckR:_ckBl)(bd[r][c]))if(_ckMoves(bd,r,c,true).length)return true;
+    return false;
+  }
+
+  function _ckCount(bd,isR){let n=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if((isR?_ckR:_ckBl)(bd[r][c]))n++;return n;}
+
+  function _ckUpdateScore(){
+    const sr=document.getElementById("ck-score-r"),sb=document.getElementById("ck-score-b");
+    if(sr)sr.textContent=_ckCount(_ckB,true);
+    if(sb)sb.textContent=_ckCount(_ckB,false);
+  }
+
+  function startCheckers(){
+    if(_ckAiTimer){clearTimeout(_ckAiTimer);_ckAiTimer=null;}
+    _ckInit(); _ckTurn=1; _ckSel=null; _ckHints=[]; _ckOver=false; _ckStart=Date.now(); _ckMJ=null;
+    _renderCk(); _ckUpdateScore();
+    document.getElementById("ck-status").textContent="";
+    _ckUpdateTurn();
+  }
+  function stopCheckers(){if(_ckAiTimer){clearTimeout(_ckAiTimer);_ckAiTimer=null;}}
+
+  function _ckUpdateTurn(){
+    const dot=document.getElementById("ck-turn-dot"),txt=document.getElementById("ck-turn-text");
+    if(_ckTurn===1){
+      if(dot)dot.style.background="#e74c3c";
+      if(txt)txt.textContent="Sizning navbatingiz 🔴";
+    } else {
+      if(dot)dot.style.background="#2c3e50";
+      if(txt)txt.textContent="AI o'ylayapti ⚫…";
+    }
+  }
+
+  function _renderCk(){
+    const grid=document.getElementById("checkers-board"); if(!grid)return;
+    grid.innerHTML="";
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const sq=document.createElement("div");
+      const isLight=(r+c)%2===0;
+      sq.className="board-sq "+(isLight?"light":"dark");
+      const v=_ckB[r][c];
+      const isSel=_ckSel&&_ckSel[0]===r&&_ckSel[1]===c;
+      const isHint=_ckHints.some(h=>h.r===r&&h.c===c);
+      if(isSel)sq.classList.add("sq-sel");
+      else if(isHint)sq.classList.add("sq-hint");
+      if(v>0){
+        const p=document.createElement("div");
+        p.className="ck-piece "+(_ckR(v)?"ck-red":"ck-blk")+(_ckK(v)?" ck-king":"");
+        sq.appendChild(p);
+      } else if(v===0&&isHint){
+        const dot=document.createElement("div"); dot.className="ck-hint-dot"; sq.appendChild(dot);
+      }
+      const rr=r,cc2=c;
+      if(!isLight) sq.onclick=()=>_ckClick(rr,cc2);
+      grid.appendChild(sq);
+    }
+  }
+
+  window._ckClick=function(r,c){
+    if(_ckOver||_ckTurn!==1)return;
+    const v=_ckB[r][c];
+    const hasCap=_ckHasCap(_ckB,true);
+    if(_ckMJ){
+      const[mr,mc]=_ckMJ;
+      if(r===mr&&c===mc){_ckSel=[r,c];_ckHints=_ckMoves(_ckB,r,c,true);_renderCk();return;}
+      const mv=_ckHints.find(h=>h.r===r&&h.c===c);
+      if(mv){_ckApply(mv);return;}
+      return;
+    }
+    if(_ckSel){
+      const mv=_ckHints.find(h=>h.r===r&&h.c===c);
+      if(mv){_ckApply(mv);return;}
+    }
+    if(_ckR(v)){
+      const ms=_ckMoves(_ckB,r,c,hasCap);
+      if(hasCap&&!ms.length){_ckSel=null;_ckHints=[];_renderCk();return;}
+      _ckSel=[r,c];_ckHints=ms;_renderCk();
+    } else {_ckSel=null;_ckHints=[];_renderCk();}
+  };
+
+  function _ckApply(mv){
+    const{r,c,cap,fr,fc}=mv, v=_ckB[fr][fc];
+    _ckB[r][c]=v; _ckB[fr][fc]=0;
+    if(cap)_ckB[cap[0]][cap[1]]=0;
+    if(v===1&&r===0)_ckB[r][c]=3;
+    if(v===2&&r===7)_ckB[r][c]=4;
+    _ckSel=null; _ckHints=[]; _ckMJ=null;
+    _ckUpdateScore();
+    if(_ckCount(_ckB,false)===0){_renderCk();_ckEnd(1);return;}
+    if(cap){const more=_ckMoves(_ckB,r,c,true);if(more.length){_ckMJ=[r,c];_ckSel=[r,c];_ckHints=more;_renderCk();return;}}
+    _ckTurn=2; _renderCk(); _ckUpdateTurn();
+    _ckAiTimer=setTimeout(_ckAI,520);
+  }
+
+  function _ckAI(){
+    if(_ckOver)return;
+    const hasCap=_ckHasCap(_ckB,false);
+    const all=[];
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(_ckBl(_ckB[r][c]))_ckMoves(_ckB,r,c,hasCap).forEach(m=>all.push({...m,sr:r,sc:c}));
+    if(!all.length){_ckEnd(1);return;}
+    const caps=all.filter(m=>m.cap);
+    const pool=caps.length?caps:all;
+    const mv=pool[Math.floor(Math.random()*pool.length)];
+    const v=_ckB[mv.sr][mv.sc];
+    _ckB[mv.r][mv.c]=v; _ckB[mv.sr][mv.sc]=0;
+    if(mv.cap)_ckB[mv.cap[0]][mv.cap[1]]=0;
+    if(v===2&&mv.r===7)_ckB[mv.r][mv.c]=4;
+    // AI multi-jump
+    if(mv.cap){const more=_ckMoves(_ckB,mv.r,mv.c,true);if(more.length){const j=more[Math.floor(Math.random()*more.length)];_ckB[j.r][j.c]=_ckB[mv.r][mv.c];_ckB[mv.r][mv.c]=0;_ckB[j.cap[0]][j.cap[1]]=0;_ckUpdateScore();}}
+    _ckUpdateScore();
+    if(_ckCount(_ckB,true)===0){_renderCk();_ckEnd(2);return;}
+    _ckTurn=1; _renderCk(); _ckUpdateTurn();
+    const redM=[];const rc2=_ckHasCap(_ckB,true);for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(_ckR(_ckB[r][c]))_ckMoves(_ckB,r,c,rc2).forEach(m=>redM.push(m));
+    if(!redM.length){_ckEnd(2);}
+  }
+
+  function _ckEnd(winner){
+    _ckOver=true;
+    const dur=Math.round((Date.now()-_ckStart)/1000);
+    const won=winner===1;
+    submitResult("checkers",won?1:0,dur,1).then(r=>{
+      const title=won?"G'alaba! 🏆 Barcha dona yutildi!":"AI g'alaba 🤖 Hayriyat, keyingi gal!";
+      document.getElementById("ck-status").textContent=title;
+      setTimeout(()=>showResult("checkers",title,"Shashka o'yini tugadi",r.coins_earned||0,r.already_earned_today||false,()=>openGame("checkers"),r.level_up||false,r.new_level||1),900);
+    });
+  }
+
+  // ════ TRUE / FALSE ENGINE ════════════════════════════════════════
+  const TF_BANK = [
+    {q:"Quyosh yulduz hisoblanadi",                               a:true},
+    {q:"O'zbekiston poytaxti Samarqand shahri",                   a:false},
+    {q:"Suv H₂O kimyoviy formulasiga ega",                       a:true},
+    {q:"Yerning o'z o'qi atrofida aylanish davri 24 soat",        a:true},
+    {q:"Inson tanasida 200 ta suyak mavjud",                      a:false},
+    {q:"Yorug'lik tezligi taxminan 300 000 km/s",                a:true},
+    {q:"Afrika materik emas, davlat hisoblanadi",                  a:false},
+    {q:"Pi (π) soni taxminan 3.14 ga teng",                       a:true},
+    {q:"O'simliklar fotosintez orqali kislorod ishlab chiqaradi", a:true},
+    {q:"Atlantika okeani dunyodagi eng katta okean",               a:false},
+    {q:"Nil daryosi dunyodagi eng uzun daryo",                     a:true},
+    {q:"Olmos eng qattiq tabiiy material hisoblanadi",             a:true},
+    {q:"Qon guruhlari 4 xil: I, II, III, IV",                     a:true},
+    {q:"Elektronlar musbat zaryadlangan zarrachalar",              a:false},
+    {q:"Quyosh sistemasida 8 ta sayyora mavjud",                  a:true},
+    {q:"Eng yengil kimyoviy element — geliy (He)",                 a:false},
+    {q:"Yer quyosh atrofida taxminan 365 kunda aylanib chiqadi",  a:true},
+    {q:"O'zbekiston 1 sentyabr 1991 yilda mustaqillikka erishdi", a:true},
+    {q:"Betonni ixtiro qilgan buyuk olim — Edison",                a:false},
+    {q:"Milliy futbol jamoa o'yinida 11 nafar o'yinchi ishtirok etadi", a:true},
+  ];
+
+  let _tfQ=[], _tfIdx=0, _tfScore=0, _tfTimer=0, _tfInterval=null, _tfStart=0, _tfLocked=false;
+
+  window.startTrueFalse = function() {
+    stopTrueFalse();
+    const shuffled = [...TF_BANK].sort(()=>Math.random()-.5);
+    _tfQ = shuffled.slice(0, 15);
+    _tfIdx = 0; _tfScore = 0; _tfStart = Date.now(); _tfLocked = false;
+    _tfShowQ();
+  };
+
+  window.stopTrueFalse = function() {
+    if (_tfInterval) { clearInterval(_tfInterval); _tfInterval = null; }
+  };
+
+  function _tfShowQ() {
+    if (_tfIdx >= _tfQ.length) { _tfEnd(); return; }
+    const q = _tfQ[_tfIdx];
+    document.getElementById("tf-statement").textContent = q.q;
+    document.getElementById("tf-qnum").textContent = (_tfIdx+1) + "/" + _tfQ.length;
+    document.getElementById("tf-feedback").textContent = "";
+    document.getElementById("tf-feedback").className = "go-feedback";
+    document.getElementById("tf-btn-true").disabled = false;
+    document.getElementById("tf-btn-false").disabled = false;
+    _tfLocked = false;
+    _tfTimer = 10;
+    document.getElementById("tf-timer").textContent = _tfTimer;
+    const arc = document.getElementById("tf-timer-arc");
+    if (arc) arc.style.strokeDashoffset = "0";
+    if (_tfInterval) clearInterval(_tfInterval);
+    _tfInterval = setInterval(() => {
+      _tfTimer--;
+      document.getElementById("tf-timer").textContent = _tfTimer;
+      if (arc) arc.style.strokeDashoffset = String(119.38 * (1 - _tfTimer / 10));
+      if (_tfTimer <= 0) { _tfTimeout(); }
+    }, 1000);
+  }
+
+  function _tfTimeout() {
+    if (_tfLocked) return;
+    _tfLocked = true;
+    clearInterval(_tfInterval);
+    document.getElementById("tf-btn-true").disabled = true;
+    document.getElementById("tf-btn-false").disabled = true;
+    const fb = document.getElementById("tf-feedback");
+    const ans = _tfQ[_tfIdx].a;
+    fb.textContent = "⏰ Vaqt tugadi! To'g'ri javob: " + (ans ? "✅ Rost" : "❌ Yolg'on");
+    fb.className = "go-feedback err";
+    setTimeout(() => { _tfIdx++; _tfShowQ(); }, 1500);
+  }
+
+  window.tfAnswer = function(val) {
+    if (_tfLocked) return;
+    _tfLocked = true;
+    clearInterval(_tfInterval);
+    document.getElementById("tf-btn-true").disabled = true;
+    document.getElementById("tf-btn-false").disabled = true;
+    const correct = _tfQ[_tfIdx].a === val;
+    const fb = document.getElementById("tf-feedback");
+    if (correct) {
+      _tfScore++;
+      document.getElementById("tf-score").textContent = _tfScore;
+      fb.textContent = "✅ To'g'ri!";
+      fb.className = "go-feedback ok";
+    } else {
+      const ans = _tfQ[_tfIdx].a;
+      fb.textContent = "❌ Xato! To'g'ri javob: " + (ans ? "✅ Rost" : "❌ Yolg'on");
+      fb.className = "go-feedback err";
+    }
+    setTimeout(() => { _tfIdx++; _tfShowQ(); }, 1200);
+  };
+
+  function _tfEnd() {
+    stopTrueFalse();
+    const dur = Math.round((Date.now() - _tfStart) / 1000);
+    submitResult("true_false", _tfScore, dur, 1).then(r => {
+      showResult("true_false",
+        _tfScore >= 10 ? "A'lo natija! 🎉" : _tfScore >= 6 ? "Yaxshi! 👍" : "Davom eting!",
+        _tfScore + " / " + _tfQ.length + " to'g'ri javob",
+        r.coins_earned||0, r.already_earned_today||false,
+        ()=>openGame("true_false"), r.level_up||false, r.new_level||1);
+    });
+  }
+
+  // ════ FORMULA FILL ENGINE ════════════════════════════════════════
+  const FF_BANK = [
+    {formula:"Aylana yuzasi = π × ___²",             blank:"r",       hint:"radius belgisi"},
+    {formula:"Tezlik = masofa ÷ ___",                blank:"t",       hint:"vaqt (t)"},
+    {formula:"Uchburchak yuzasi = (a × h) ÷ ___",   blank:"2",       hint:"butun son"},
+    {formula:"Kub hajmi = a ___",                    blank:"³",       hint:"darajasi (³)"},
+    {formula:"Suv kimyoviy formulasi = H₂___",       blank:"O",       hint:"kislorod belgisi"},
+    {formula:"Nyuton 2-qonuni: F = m × ___",         blank:"a",       hint:"tezlanish (a)"},
+    {formula:"To'g'ri to'rtburchak P = 2 × (a + ___)", blank:"b",    hint:"kenglik (b)"},
+    {formula:"Foiz = (qism ÷ butun) × ___",          blank:"100",     hint:"foiz koeffitsienti"},
+    {formula:"Elektr quvvati: P = U × ___",          blank:"I",       hint:"tok kuchi (I)"},
+    {formula:"Kvadrat yuzasi = ___ ²",               blank:"a",       hint:"tomon uzunligi (a)"},
+    {formula:"Ishning ta'rifi: A = F × ___",         blank:"s",       hint:"ko'chish masofasi (s)"},
+    {formula:"CO₂ = ___ + O₂ (kimyoviy reaksiya)",  blank:"C",       hint:"uglerod belgisi"},
+  ];
+
+  let _ffQ=[], _ffIdx=0, _ffScore=0, _ffWrong=0, _ffStart=0, _ffDots=[];
+
+  window.startFormulaFill = function() {
+    const shuffled = [...FF_BANK].sort(()=>Math.random()-.5);
+    _ffQ = shuffled.slice(0, 10);
+    _ffIdx = 0; _ffScore = 0; _ffWrong = 0; _ffStart = Date.now();
+    _ffDots = new Array(_ffQ.length).fill("cur");
+    _ffDots[0] = "cur";
+    document.getElementById("ff-score").textContent = "0";
+    document.getElementById("ff-wrong").textContent = "0";
+    _ffRender();
+  };
+
+  window.stopFormulaFill = function() {};
+
+  function _ffRender() {
+    if (_ffIdx >= _ffQ.length) { _ffEnd(); return; }
+    const q = _ffQ[_ffIdx];
+    document.getElementById("ff-formula").textContent = q.formula;
+    document.getElementById("ff-hint").textContent = "Maslahat: " + q.hint;
+    document.getElementById("ff-qnum").textContent = (_ffIdx+1) + "/" + _ffQ.length;
+    document.getElementById("ff-feedback").textContent = "";
+    document.getElementById("ff-feedback").className = "go-feedback";
+    const inp = document.getElementById("ff-answer");
+    inp.value = ""; inp.focus();
+    inp.onkeydown = e => { if (e.key === "Enter") ffCheck(); };
+    // dots
+    const prog = document.getElementById("ff-progress");
+    prog.innerHTML = _ffDots.map((d,i) =>
+      '<div class="ff-dot ' + (i<_ffIdx ? (d==="done"?"done":"wrong") : i===_ffIdx?"cur":"") + '"></div>'
+    ).join("");
+  }
+
+  window.ffCheck = function() {
+    if (_ffIdx >= _ffQ.length) return;
+    const inp = document.getElementById("ff-answer");
+    const val = inp.value.trim().toLowerCase();
+    const ans = _ffQ[_ffIdx].blank.toLowerCase();
+    const fb = document.getElementById("ff-feedback");
+    if (val === ans || val === ans.replace("³","3").replace("²","2")) {
+      _ffScore++;
+      document.getElementById("ff-score").textContent = _ffScore;
+      _ffDots[_ffIdx] = "done";
+      fb.textContent = "✅ To'g'ri!"; fb.className = "go-feedback ok";
+    } else {
+      _ffWrong++;
+      document.getElementById("ff-wrong").textContent = _ffWrong;
+      _ffDots[_ffIdx] = "wrong";
+      fb.textContent = "❌ Xato! To'g'ri javob: " + _ffQ[_ffIdx].blank;
+      fb.className = "go-feedback err";
+    }
+    setTimeout(() => { _ffIdx++; _ffRender(); }, 1200);
+  };
+
+  function _ffEnd() {
+    const dur = Math.round((Date.now() - _ffStart) / 1000);
+    submitResult("formula_fill", _ffScore, dur, 1).then(r => {
+      showResult("formula_fill",
+        _ffScore >= 8 ? "Zo'r! 🎉" : _ffScore >= 5 ? "Yaxshi natija! 👍" : "Formulalarni o'rganib chiqing!",
+        _ffScore + " / " + _ffQ.length + " to'g'ri javob",
+        r.coins_earned||0, r.already_earned_today||false,
+        ()=>openGame("formula_fill"), r.level_up||false, r.new_level||1);
+    });
+  }
+
+  // ════ CROSSWORD ENGINE ════════════════════════════════════════════
+  // 6×7 grid. Words: MATH(across,r0,c2-5), STAR(across,r1,c0-3),
+  //   MARS(down,c2,r0-3), ARC(down,c3,r0-2), SUN(across,r5,c2-4)
+  const CW_ROWS = 6, CW_COLS = 7;
+  const CW_WORDS = [
+    {id:1, dir:"across", row:0, col:2, word:"MATH",  clue:"Matematika (inglizcha)"},
+    {id:1, dir:"down",   row:0, col:2, word:"MARS",  clue:"Qizil sayyora"},
+    {id:2, dir:"down",   row:0, col:3, word:"ARC",   clue:"Yoy (geometriya)"},
+    {id:3, dir:"across", row:1, col:0, word:"STAR",  clue:"Yulduz (inglizcha)"},
+    {id:4, dir:"across", row:5, col:2, word:"SUN",   clue:"Quyosh (inglizcha)"},
+  ];
+
+  let _cwGrid=[], _cwInput=[], _cwSolved={}, _cwScore=0, _cwTimer=0, _cwInterval=null, _cwStart=0;
+  let _cwActive=null; // {wordIdx, wordObj}
+
+  function _cwBuild() {
+    _cwGrid = [];
+    for (let r=0;r<CW_ROWS;r++) { _cwGrid.push([]); for(let c=0;c<CW_COLS;c++) _cwGrid[r].push(""); }
+    CW_WORDS.forEach(w => {
+      for (let i=0;i<w.word.length;i++) {
+        const r = w.dir==="across" ? w.row : w.row+i;
+        const c = w.dir==="across" ? w.col+i : w.col;
+        _cwGrid[r][c] = w.word[i];
+      }
+    });
+    _cwInput = [];
+    for (let r=0;r<CW_ROWS;r++) { _cwInput.push([]); for(let c=0;c<CW_COLS;c++) _cwInput[r].push(_cwGrid[r][c]==="."||_cwGrid[r][c]==="" ? null : ""); }
+  }
+
+  function _cwCellsFor(w) {
+    return w.word.split("").map((_,i)=>({
+      r: w.dir==="across" ? w.row : w.row+i,
+      c: w.dir==="across" ? w.col+i : w.col,
+    }));
+  }
+
+  function _cwClueNums() {
+    // unique cells that start a word → assign display number
+    const map = {};
+    CW_WORDS.forEach(w => { const k=w.row+","+w.col; if (!map[k]) map[k]=w.id; });
+    return map;
+  }
+
+  function _cwRender() {
+    const grid = document.getElementById("cw-grid");
+    if (!grid) return;
+    grid.style.gridTemplateColumns = "repeat("+CW_COLS+",34px)";
+    grid.innerHTML = "";
+    const numMap = _cwClueNums();
+    for (let r=0;r<CW_ROWS;r++) {
+      for (let c=0;c<CW_COLS;c++) {
+        const cell = document.createElement("div");
+        const letter = _cwGrid[r][c];
+        if (!letter) {
+          cell.className = "cw-cell black"; grid.appendChild(cell); continue;
+        }
+        const entered = _cwInput[r][c];
+        const correct = entered !== "" && entered !== null && entered.toUpperCase() === letter;
+        cell.className = "cw-cell" + (correct?" correct":"");
+        // Check if active word passes through this cell
+        if (_cwActive) {
+          const cells = _cwCellsFor(_cwActive.wordObj);
+          if (cells.some(x=>x.r===r&&x.c===c)) cell.classList.add("active");
+        }
+        // Number
+        const numKey = r+","+c;
+        if (numMap[numKey] !== undefined) {
+          const sp = document.createElement("span"); sp.className="cw-cell-num";
+          sp.textContent = numMap[numKey]; cell.appendChild(sp);
+        }
+        // Entered letter
+        if (entered) {
+          const t = document.createElement("span");
+          t.textContent = entered.toUpperCase();
+          t.style.cssText="position:relative;z-index:1;";
+          cell.appendChild(t);
+        }
+        cell.onclick = () => _cwCellClick(r, c);
+        grid.appendChild(cell);
+      }
+    }
+    // Clues
+    const cluesEl = document.getElementById("cw-clues");
+    if (cluesEl) {
+      const across = CW_WORDS.filter(w=>w.dir==="across");
+      const down   = CW_WORDS.filter(w=>w.dir==="down");
+      let html = '<div class="cw-clue-section"><h5>↔ Gorizontal</h5>';
+      across.forEach((w,i) => {
+        const solved = _cwWordSolved(w);
+        html += '<div class="cw-clue-row' + (solved?" solved":"") + '" onclick="_cwSelectWord('+CW_WORDS.indexOf(w)+')" style="cursor:pointer">' +
+          '<span class="cw-clue-num">'+w.id+'</span><span class="cw-clue-text">'+w.clue+'</span>' +
+          '<span class="cw-clue-len">('+w.word.length+')</span></div>';
+      });
+      html += '</div><div class="cw-clue-section"><h5>↕ Vertikal</h5>';
+      down.forEach((w,i) => {
+        const solved = _cwWordSolved(w);
+        html += '<div class="cw-clue-row' + (solved?" solved":"") + '" onclick="_cwSelectWord('+CW_WORDS.indexOf(w)+')" style="cursor:pointer">' +
+          '<span class="cw-clue-num">'+w.id+'</span><span class="cw-clue-text">'+w.clue+'</span>' +
+          '<span class="cw-clue-len">('+w.word.length+')</span></div>';
+      });
+      cluesEl.innerHTML = html + '</div>';
+    }
+  }
+
+  function _cwWordSolved(w) {
+    return _cwCellsFor(w).every(({r,c})=> (_cwInput[r]&&_cwInput[r][c]||"").toUpperCase()===_cwGrid[r][c]);
+  }
+
+  window._cwSelectWord = function(idx) {
+    _cwActive = {wordIdx:idx, wordObj:CW_WORDS[idx]};
+    const label = document.getElementById("cw-input-label");
+    const w = CW_WORDS[idx];
+    if (label) label.textContent = (w.dir==="across"?"↔":"↕") + " " + w.id + ". " + w.clue + " ("+w.word.length+" harf)";
+    const inp = document.getElementById("cw-answer");
+    if (inp) { inp.value=""; inp.focus(); }
+    document.getElementById("cw-feedback").textContent="";
+    _cwRender();
+  };
+
+  function _cwCellClick(r, c) {
+    const letter = _cwGrid[r][c];
+    if (!letter) return;
+    // Find words passing through this cell, toggle between them
+    const matching = CW_WORDS.map((w,i)=>({w,i})).filter(({w})=>_cwCellsFor(w).some(x=>x.r===r&&x.c===c));
+    if (!matching.length) return;
+    let nextIdx = 0;
+    if (_cwActive) {
+      const cur = matching.findIndex(x=>x.i===_cwActive.wordIdx);
+      nextIdx = (cur+1) % matching.length;
+    }
+    _cwSelectWord(matching[nextIdx].i);
+  }
+
+  window.cwCheck = function() {
+    if (!_cwActive) return;
+    const w = _cwActive.wordObj;
+    const inp = document.getElementById("cw-answer");
+    const val = (inp.value||"").trim().toUpperCase();
+    const fb = document.getElementById("cw-feedback");
+    if (val.length !== w.word.length) {
+      fb.textContent = "❗ "+w.word.length+" ta harf kerak!"; fb.className="go-feedback err"; return;
+    }
+    const cells = _cwCellsFor(w);
+    cells.forEach(({r,c},i) => { _cwInput[r][c] = val[i]; });
+    const correct = val === w.word;
+    if (correct && !_cwSolved[_cwActive.wordIdx]) {
+      _cwSolved[_cwActive.wordIdx] = true;
+      _cwScore++;
+      document.getElementById("cw-score").textContent = _cwScore;
+      fb.textContent = "✅ To'g'ri!"; fb.className="go-feedback ok";
+    } else if (correct) {
+      fb.textContent = "✅ Allaqachon topilgan!"; fb.className="go-feedback ok";
+    } else {
+      fb.textContent = "❌ Xato — qayta urinib ko'ring!"; fb.className="go-feedback err";
+    }
+    _cwRender();
+    if (_cwScore >= CW_WORDS.length) { setTimeout(_cwEnd, 800); return; }
+    inp.value = "";
+  };
+
+  window.startCrossword = function() {
+    stopCrossword();
+    _cwSolved = {}; _cwScore = 0; _cwActive = null; _cwStart = Date.now();
+    _cwBuild();
+    _cwTimer = 180;
+    document.getElementById("cw-score").textContent = "0";
+    document.getElementById("cw-total").textContent = CW_WORDS.length;
+    document.getElementById("cw-timer").textContent = _cwTimer;
+    document.getElementById("cw-feedback").textContent = "";
+    document.getElementById("cw-input-label").textContent = "So'z tanlang — clue ustiga bosing";
+    document.getElementById("cw-answer").value = "";
+    _cwRender();
+    _cwInterval = setInterval(() => {
+      _cwTimer--;
+      document.getElementById("cw-timer").textContent = _cwTimer;
+      if (_cwTimer <= 0) { stopCrossword(); _cwEnd(); }
+    }, 1000);
+  };
+
+  window.stopCrossword = function() {
+    if (_cwInterval) { clearInterval(_cwInterval); _cwInterval = null; }
+  };
+
+  function _cwEnd() {
+    stopCrossword();
+    const dur = Math.round((Date.now() - _cwStart) / 1000);
+    submitResult("crossword", _cwScore, dur, 1).then(r => {
+      showResult("crossword",
+        _cwScore >= CW_WORDS.length ? "Barcha so'zlar topildi! 🎉" : _cwScore >= 3 ? "Yaxshi! 👍" : "Davom eting!",
+        _cwScore + " / " + CW_WORDS.length + " so'z topildi",
+        r.coins_earned||0, r.already_earned_today||false,
+        ()=>openGame("crossword"), r.level_up||false, r.new_level||1);
+    });
+  }
+
+  // ════ GAME SUGGESTION ════════════════════════════════════════════
+  window.submitGameSuggestion = function() {
+    const name = (document.getElementById("gs-name")||{}).value||"";
+    const desc = (document.getElementById("gs-desc")||{}).value||"";
+    const btn  = document.getElementById("gs-submit-btn");
+    const msg  = document.getElementById("gs-msg");
+    if (!name.trim()) {
+      msg.style.display=""; msg.style.color="var(--sp-red)";
+      msg.textContent="❗ O'yin nomini kiriting!"; return;
+    }
+    if (btn) btn.disabled = true;
+    fetch(slugPfx + "/api/games/suggestion/", {
+      method:"POST", credentials:"same-origin",
+      headers:{"Content-Type":"application/json","X-CSRFToken":getCsrf()},
+      body: JSON.stringify({game_name:name.trim(), description:desc.trim()}),
+    }).then(r=>r.ok?r.json():{ok:false}).then(d=>{
+      if (btn) btn.disabled = false;
+      if (msg) {
+        msg.style.display="";
+        if (d.ok) {
+          msg.style.color="var(--sp-green)";
+          msg.textContent="✅ Taklifingiz qabul qilindi! Rahmat!";
+          if (document.getElementById("gs-name")) document.getElementById("gs-name").value="";
+          if (document.getElementById("gs-desc")) document.getElementById("gs-desc").value="";
+        } else {
+          msg.style.color="var(--sp-red)";
+          msg.textContent="❗ Xatolik yuz berdi, qayta urinib ko'ring.";
+        }
+      }
+    }).catch(()=>{ if(btn) btn.disabled=false; });
+  };
+
 })();
 </script>
 
+{% endblock %}
+
+{% block ai_widget %}
+{% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Sening shaxsiy yordamching" ai_widget_greet="o'z guruhlaring, davomating, to'lovlaring va Chaqmoq balling" aiw_prompt_1="Mening qarzim bormi?" aiw_prompt_2="Davomatim qanday?" aiw_prompt_3="Qaysi guruhlardaman?" aiw_prompt_4="Chaqmoq ballarim qancha?" %}
 {% endblock %}

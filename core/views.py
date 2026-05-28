@@ -2702,3 +2702,548 @@ def churn_notify_student(request, pk):
     )
     messages.success(request, f"{risk.student.get_full_name()} uchun menejerga xabar yuborildi.")
     return redirect('core:low_activity_students')
+
+
+# ══════════════════════════════════════════════════════════════════
+#  GAME MANAGEMENT VIEWS
+# ══════════════════════════════════════════════════════════════════
+
+@login_required
+def game_settings_view(request):
+    """Director/Manager: O'yin sozlamalari sahifasi."""
+    from core.models import GlobalGameConfig, CenterGameConfig, GameSuggestion, GameBallsConfig
+    from core.api_views import _GAME_CONFIGS, _sp_center
+
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "Ruxsat yo'q.")
+        return redirect("core:home")
+
+    center = _sp_center(request)
+    global_disabled = set(
+        GlobalGameConfig.objects.filter(is_enabled=False).values_list("game_slug", flat=True)
+    )
+    center_cfgs = {
+        cc.game_slug: cc for cc in CenterGameConfig.objects.filter(center=center)
+    }
+    games = []
+    for slug, cfg in _GAME_CONFIGS.items():
+        cc = center_cfgs.get(slug)
+        games.append({
+            "slug": slug,
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "max_coins_default": cfg["max_coins"],
+            "min_score_default": cfg["min_score"],
+            "is_globally_enabled": slug not in global_disabled,
+            "is_center_enabled": cc.is_enabled if cc else True,
+            "center_max_coins": cc.max_coins if cc else 0,
+            "center_min_score": cc.min_score if cc else 0,
+        })
+
+    suggestions = GameSuggestion.objects.filter(center=center).select_related("student")[:60]
+    center_name = getattr(center, "name", "Markaz")
+
+    balls_config, _ = GameBallsConfig.objects.get_or_create(
+        center=center,
+        defaults={"min_balls_to_convert": 100, "chaqmoq_per_conversion": 5},
+    ) if center else (None, False)
+
+    return render(request, "core/game_settings.html", {
+        "games": games,
+        "suggestions": suggestions,
+        "center_name": center_name,
+        "is_superuser": u.is_superuser,
+        "balls_config": balls_config,
+    })
+
+
+@login_required
+def game_super_admin_view(request):
+    """Super Admin: global o'yin yoqish/o'chirish sahifasi."""
+    from core.models import GlobalGameConfig
+    from core.api_views import _GAME_CONFIGS
+
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "Faqat Super Admin uchun.")
+        return redirect("core:home")
+
+    existing = {g.game_slug: g.is_enabled for g in GlobalGameConfig.objects.all()}
+    games = [
+        {
+            "slug": slug,
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "is_enabled": existing.get(slug, True),
+        }
+        for slug, cfg in _GAME_CONFIGS.items()
+    ]
+    return render(request, "core/game_super_admin.html", {"games": games})
+
+
+@login_required
+def game_hub_view(request):
+    """O'yinlar markazi — barcha o'yinlar, stats, leaderboard."""
+    from core.api_views import _GAME_CONFIGS, _sp_center, _get_global_game_cfg, _get_game_center_cfg, _resolve_game_cfg
+    from core.models import StudentGameProgress, GameSession
+
+    center = _sp_center(request)
+    u = request.user
+    role = getattr(u, "role", None)
+    is_student = role == "student"
+
+    today = localdate()
+
+    global_disabled = _get_global_game_cfg()
+    center_cfg_map = _get_game_center_cfg(center)
+
+    # Per-game progress for this student
+    progress_map = {}
+    if is_student and center:
+        progress_map = {
+            p.game_slug: p
+            for p in StudentGameProgress.objects.filter(center=center, student=u)
+        }
+
+    # Balls played today per game
+    today_balls_map = {}
+    if is_student and center:
+        for row in (
+            GameSession.objects.filter(center=center, student=u, played_at__date=today, balls_earned=1)
+            .values("game_slug")
+            .annotate(c=Sum("balls_earned"))
+        ):
+            today_balls_map[row["game_slug"]] = row["c"]
+
+    # Build games list
+    games = []
+    enabled_count = 0
+    for slug, cfg in _GAME_CONFIGS.items():
+        eff = _resolve_game_cfg(slug, cfg, center_cfg_map, global_disabled)
+        p = progress_map.get(slug)
+        is_enabled = eff is not None
+        if is_enabled:
+            enabled_count += 1
+        games.append({
+            "slug": slug,
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "max_coins": eff["max_coins"] if eff else cfg["max_coins"],
+            "is_enabled": is_enabled,
+            "current_level": p.current_level if p else 1,
+            "earned_today": today_balls_map.get(slug, 0),
+            "played_today": today_balls_map.get(slug, 0) > 0,
+        })
+
+    # Overall stats
+    games_today = 0
+    streak = 0
+    best_level = 1
+    if is_student and center:
+        games_today = GameSession.objects.filter(
+            center=center, student=u, balls_earned=1, played_at__date=today
+        ).values("game_slug").distinct().count()
+        best_level = max((p.current_level for p in progress_map.values()), default=1)
+
+    from core.models import StudentBallsWallet, GameBallsConfig
+    wallet = StudentBallsWallet.objects.filter(center=center, student=u).first() if is_student and center else None
+    total_balls = wallet.total_balls if wallet else 0
+    lifetime_balls = wallet.lifetime_balls if wallet else 0
+    daily_balls = games_today
+
+    balls_config = GameBallsConfig.objects.filter(center=center).first() if center else None
+    min_balls = balls_config.min_balls_to_convert if balls_config else 100
+    chaqmoq_per_conv = balls_config.chaqmoq_per_conversion if balls_config else 5
+    can_convert = total_balls >= min_balls
+    wallet_ring_offset = round(251.3 * (1 - min(total_balls / max(min_balls, 1), 1)))
+
+    # Streak (consecutive days with sessions)
+    if is_student and center:
+        d = today
+        for _ in range(30):
+            if GameSession.objects.filter(center=center, student=u, played_at__date=d).exists():
+                streak += 1
+                d -= timedelta(days=1)
+            else:
+                break
+
+    # Center leaderboard (top 5 this week, balls-based)
+    leaderboard = []
+    if center:
+        week_start = today - timedelta(days=today.weekday())
+        lb_rows = list(
+            GameSession.objects.filter(center=center, played_at__date__gte=week_start, balls_earned=1)
+            .values("student_id")
+            .annotate(wk=Count("id"))
+            .order_by("-wk")[:5]
+        )
+        ids = [r["student_id"] for r in lb_rows]
+        names = {u2.id: u2.get_full_name() or u2.email for u2 in User.objects.filter(id__in=ids).only("id", "first_name", "last_name", "email")}
+        leaderboard = [
+            {"name": names.get(r["student_id"], "—"), "coins": r["wk"], "is_me": is_student and r["student_id"] == u.id}
+            for r in lb_rows
+        ]
+
+    # Global leaderboard for rating tab
+    global_period = request.GET.get("rperiod", "week")
+    if global_period == "week":
+        gr_from = today - timedelta(days=today.weekday())
+    elif global_period == "month":
+        gr_from = today.replace(day=1)
+    else:
+        gr_from = None
+
+    from core.models import StudentGameProgress as _SGP
+    from django.db.models import Max as _Max
+    gr_qs = GameSession.objects.filter(balls_earned=1)
+    if gr_from:
+        gr_qs = gr_qs.filter(played_at__date__gte=gr_from)
+
+    gr_rows = list(
+        gr_qs.values("student_id")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:20]
+    )
+    gr_ids = [r["student_id"] for r in gr_rows]
+    gr_users = {
+        u2.id: u2
+        for u2 in User.objects.filter(id__in=gr_ids)
+        .select_related("center")
+        .only("id", "first_name", "last_name", "email", "center")
+    }
+    gr_levels = {
+        row["student_id"]: (row["ml"] or 1)
+        for row in _SGP.objects.filter(student_id__in=gr_ids)
+        .values("student_id")
+        .annotate(ml=_Max("current_level"))
+    }
+
+    def _short(u3):
+        full = u3.get_full_name().strip()
+        if not full:
+            return (u3.email or "O'quvchi").split("@")[0]
+        parts = full.split()
+        return f"{parts[0]} {parts[1][0]}." if len(parts) > 1 else parts[0]
+
+    global_leaderboard = []
+    my_global_rank = None
+    for i, row in enumerate(gr_rows, 1):
+        u2 = gr_users.get(row["student_id"])
+        if not u2:
+            continue
+        is_me = is_student and row["student_id"] == u.id
+        if is_me:
+            my_global_rank = i
+        global_leaderboard.append({
+            "rank": i,
+            "name": _short(u2),
+            "center": u2.center.name if u2.center else "—",
+            "balls": row["total"],
+            "level": gr_levels.get(row["student_id"], 1),
+            "is_me": is_me,
+        })
+
+    # My global position if outside top 20
+    my_global_row = None
+    if is_student and my_global_rank is None:
+        my_balls_qs = GameSession.objects.filter(student=u, balls_earned=1)
+        if gr_from:
+            my_balls_qs = my_balls_qs.filter(played_at__date__gte=gr_from)
+        my_balls = my_balls_qs.aggregate(t=Count("id"))["t"] or 0
+        if my_balls > 0:
+            better = (
+                gr_qs.values("student_id")
+                .annotate(t=Count("id"))
+                .filter(t__gt=my_balls)
+                .count()
+            )
+            my_global_row = {
+                "rank": better + 1,
+                "name": u.get_full_name() or u.email or "O'quvchi",
+                "center": u.center.name if getattr(u, "center", None) else "—",
+                "balls": my_balls,
+                "level": gr_levels.get(u.id, 1),
+                "is_me": True,
+            }
+
+    # Recent sessions (last 8)
+    recent_sessions = []
+    if is_student and center:
+        recent_sessions = list(
+            GameSession.objects.filter(center=center, student=u)
+            .order_by("-played_at")[:8]
+            .values("game_slug", "score", "coins_earned", "balls_earned", "played_at")
+        )
+        for s in recent_sessions:
+            cfg = _GAME_CONFIGS.get(s["game_slug"], {})
+            s["game_name"] = cfg.get("name", s["game_slug"])
+            s["game_emoji"] = cfg.get("emoji", "🎮")
+
+    # Ring: circumference of r=35 ≈ 219.9
+    ratio = min(games_today / max(enabled_count, 1), 1)
+    daily_dashoffset = round(219.9 * (1 - ratio))
+    daily_pct_bar    = round(ratio * 100)
+
+    # Daily challenge: pick an enabled game not yet played today, fallback to first enabled
+    daily_challenge = None
+    for g in games:
+        if g["is_enabled"] and not g["played_today"]:
+            cfg = _GAME_CONFIGS.get(g["slug"], {})
+            daily_challenge = {"slug": g["slug"], "name": g["name"], "emoji": g["emoji"]}
+            break
+    if not daily_challenge:
+        for g in games:
+            if g["is_enabled"]:
+                daily_challenge = {"slug": g["slug"], "name": g["name"], "emoji": g["emoji"]}
+                break
+
+    return render(request, "core/games_hub.html", {
+        "games_json": json.dumps(games),
+        "total_balls": total_balls,
+        "lifetime_balls": lifetime_balls,
+        "daily_balls": daily_balls,
+        "min_balls": min_balls,
+        "chaqmoq_per_conv": chaqmoq_per_conv,
+        "can_convert": can_convert,
+        "wallet_ring_offset": wallet_ring_offset,
+        "total_games": 15,
+        "games_today": games_today,
+        "enabled_count": enabled_count,
+        "streak": streak,
+        "best_level": best_level,
+        "daily_dashoffset": daily_dashoffset,
+        "daily_pct_bar": daily_pct_bar,
+        "recent_sessions": recent_sessions,
+        "leaderboard": leaderboard,
+        "global_leaderboard": global_leaderboard,
+        "global_period": global_period,
+        "my_global_row": my_global_row,
+        "is_student": is_student,
+        "student_name": u.get_full_name() or u.email or "O'quvchi",
+        "daily_challenge": daily_challenge,
+    })
+
+
+@login_required
+def game_play_view(request, game_slug):
+    """O'quvchi: alohida o'yin sahifasi (har bir o'yin uchun)."""
+    from core.api_views import _GAME_CONFIGS, _sp_center, _get_global_game_cfg, _get_game_center_cfg, _resolve_game_cfg
+    from core.models import StudentGameProgress, GameSession
+
+    if game_slug not in _GAME_CONFIGS:
+        from django.http import Http404
+        raise Http404
+
+    center = _sp_center(request)
+    u = request.user
+
+    global_disabled = _get_global_game_cfg()
+    center_cfg_map = _get_game_center_cfg(center)
+    cfg = _GAME_CONFIGS[game_slug]
+    eff = _resolve_game_cfg(game_slug, cfg, center_cfg_map, global_disabled)
+
+    role = getattr(u, "role", None)
+    is_student = role == "student"
+    is_staff = u.is_superuser or role in ("director", "manager", "teacher")
+
+    progress = None
+    if is_student and center:
+        progress, _ = StudentGameProgress.objects.get_or_create(
+            center=center, student=u, game_slug=game_slug,
+            defaults={"current_level": 1},
+        )
+
+    recent_sessions = []
+    if is_student:
+        recent_sessions = list(
+            GameSession.objects.filter(center=center, student=u, game_slug=game_slug)
+            .order_by("-played_at")[:10]
+            .values("score", "coins_earned", "balls_earned", "played_at")
+        )
+
+    today = timezone.localdate()
+    from core.models import StudentBallsWallet
+    wallet = StudentBallsWallet.objects.filter(center=center, student=u).first() if is_student and center else None
+    total_balls = wallet.total_balls if wallet else 0
+
+    # Check if already earned ball today for this game
+    from django.utils.timezone import localdate as _ld
+    already_earned_ball = GameSession.objects.filter(
+        student=u, center=center,
+        game_slug=game_slug, balls_earned=1,
+        played_at__date=_ld()
+    ).exists() if is_student and center else False
+
+    return render(request, "core/game_play.html", {
+        "game_slug": game_slug,
+        "game_cfg": cfg,
+        "eff_cfg": eff,
+        "progress": progress,
+        "recent_sessions": recent_sessions,
+        "total_balls": total_balls,
+        "already_earned_ball": already_earned_ball,
+        "is_enabled": eff is not None,
+        "is_student": is_student,
+        "is_staff": is_staff,
+    })
+
+
+@login_required
+def game_questions_view(request):
+    """Director/Manager: o'yin savollari boshqaruvi sahifasi."""
+    from core.api_views import _GAME_CONFIGS, _sp_center
+    from core.models import GameQuestion
+
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "Ruxsat yo'q.")
+        return redirect("core:home")
+
+    center = _sp_center(request)
+    games_info = []
+    for slug, cfg in _GAME_CONFIGS.items():
+        db_count = GameQuestion.objects.filter(center=center, game_slug=slug, is_active=True).count()
+        ai_count = GameQuestion.objects.filter(center=center, game_slug=slug, is_active=True, is_ai_generated=True).count()
+        games_info.append({
+            "slug": slug,
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "db_count": db_count,
+            "ai_count": ai_count,
+        })
+
+    return render(request, "core/game_questions.html", {
+        "games_info": games_info,
+        "game_configs_json": json.dumps({
+            slug: {"name": cfg["name"], "emoji": cfg["emoji"]}
+            for slug, cfg in _GAME_CONFIGS.items()
+        }),
+    })
+
+
+# ═══════════════════════════════════════════════════════════════
+# GLOBAL GAME RATING  — barcha markazlar orasidagi reyting
+# ═══════════════════════════════════════════════════════════════
+@login_required
+def game_rating_view(request):
+    """Barcha markazlar orasidagi global o'yin reytingi."""
+    from core.models import GameSession, StudentGameProgress
+    from django.db.models import Max
+
+    period   = request.GET.get('period', 'week')
+    today    = localdate()
+
+    if period == 'week':
+        date_from = today - timedelta(days=today.weekday())
+    elif period == 'month':
+        date_from = today.replace(day=1)
+    else:
+        date_from = None   # all-time
+
+    # ── base queryset — use balls_earned for new system, fallback to coins_earned for old data ──
+    qs = GameSession.objects.filter(balls_earned=1)
+    if date_from:
+        qs = qs.filter(played_at__date__gte=date_from)
+
+    # ── top 100 globally (ranked by balls earned) ──
+    top_rows = list(
+        qs.values('student_id')
+        .annotate(total_coins=Count('id'), games_count=Count('id'))
+        .order_by('-total_coins')[:100]
+    )
+
+    student_ids = [r['student_id'] for r in top_rows]
+
+    # Batch-fetch user info (center via FK)
+    users = {
+        u.id: u
+        for u in User.objects.filter(id__in=student_ids)
+        .select_related('center')
+        .only('id', 'first_name', 'last_name', 'email', 'center')
+    }
+
+    # Batch-fetch max level per student
+    levels = {
+        row['student_id']: (row['max_lvl'] or 1)
+        for row in StudentGameProgress.objects
+        .filter(student_id__in=student_ids)
+        .values('student_id')
+        .annotate(max_lvl=Max('current_level'))
+    }
+
+    def _display_name(u):
+        full = u.get_full_name().strip()
+        if not full:
+            return (u.email or "O'quvchi").split('@')[0]
+        parts = full.split()
+        return f"{parts[0]} {parts[1][0]}." if len(parts) > 1 else parts[0]
+
+    leaderboard = []
+    my_rank_in_top = None
+    for i, row in enumerate(top_rows, 1):
+        u = users.get(row['student_id'])
+        if not u:
+            continue
+        entry = {
+            'rank':   i,
+            'name':   _display_name(u),
+            'center': u.center.name if u.center else "—",
+            'coins':  row['total_coins'],
+            'games':  row['games_count'],
+            'level':  levels.get(row['student_id'], 1),
+            'is_me':  row['student_id'] == request.user.id,
+        }
+        if entry['is_me']:
+            my_rank_in_top = i
+        leaderboard.append(entry)
+
+    # ── my position if outside top-100 ──
+    my_row = None
+    u = request.user
+    is_student = getattr(u, 'role', None) == 'student'
+    if is_student and my_rank_in_top is None:
+        my_qs = GameSession.objects.filter(student=u, balls_earned=1)
+        if date_from:
+            my_qs = my_qs.filter(played_at__date__gte=date_from)
+        my_agg   = my_qs.aggregate(total=Count('id'), cnt=Count('id'))
+        my_total = my_agg['total'] or 0
+        if my_total > 0:
+            better_qs = GameSession.objects.filter(balls_earned=1)
+            if date_from:
+                better_qs = better_qs.filter(played_at__date__gte=date_from)
+            my_rank = (
+                better_qs.values('student_id')
+                .annotate(t=Count('id'))
+                .filter(t__gt=my_total)
+                .count()
+            ) + 1
+            my_lvl  = StudentGameProgress.objects.filter(student=u).aggregate(ml=Max('current_level'))['ml'] or 1
+            my_row  = {
+                'rank':   my_rank,
+                'name':   u.get_full_name() or u.email or "O'quvchi",
+                'center': u.center.name if u.center else "—",
+                'coins':  my_total,
+                'games':  my_agg['cnt'] or 0,
+                'level':  my_lvl,
+                'is_me':  True,
+            }
+
+    # ── global stats ──
+    stat_qs = GameSession.objects.filter(balls_earned=1)
+    if date_from:
+        stat_qs = stat_qs.filter(played_at__date__gte=date_from)
+
+    total_players      = stat_qs.values('student_id').distinct().count()
+    total_coins_global = stat_qs.aggregate(t=Count('id'))['t'] or 0
+
+    return render(request, 'core/game_rating.html', {
+        'leaderboard':        leaderboard,
+        'period':             period,
+        'my_row':             my_row,
+        'is_student':         is_student,
+        'total_players':      total_players,
+        'total_coins_global': total_coins_global,
+    })

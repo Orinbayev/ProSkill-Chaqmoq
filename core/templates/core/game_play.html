@@ -1,0 +1,1310 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}game-play-page{% endblock %}
+{% block title %}{{ game_cfg.emoji }} {{ game_cfg.name }} | O'yin{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --bg: #020617;
+  --card: rgba(15,23,42,.6);
+  --border: rgba(255,255,255,.08);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --purple: #8b5cf6;
+  --r: 16px;
+}
+html[data-role-theme="light"] {
+  --bg: #f0f4f8;
+  --card: rgba(255,255,255,.9);
+  --border: rgba(0,0,0,.1);
+  --text: #0f172a;
+  --muted: #64748b;
+}
+body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,sans-serif; min-height: 100vh; }
+
+/* ── TOP BAR ── */
+.gp-topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(2,6,23,.85); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+}
+html[data-role-theme="light"] .gp-topbar { background: rgba(240,244,248,.9); }
+.gp-back {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(255,255,255,.07); border: 1px solid var(--border);
+  color: var(--muted); display: grid; place-items: center;
+  text-decoration: none; transition: .2s; font-size: 14px; flex-shrink: 0;
+}
+.gp-back:hover { background: rgba(255,255,255,.14); color: #fff; }
+.gp-title-wrap { flex: 1; min-width: 0; }
+.gp-game-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.gp-game-slug { font-size: 11px; color: var(--muted); font-family: monospace; }
+.gp-level-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg,#f59e0b,#d97706);
+  color: #000; font-size: 13px; font-weight: 800;
+  padding: 5px 14px; border-radius: 20px;
+}
+
+/* ── LAYOUT ── */
+.gp-wrap { max-width: 780px; margin: 0 auto; padding: 24px 16px; }
+
+/* ── STATS ROW ── */
+.gp-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+.gp-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 18px; flex: 1; min-width: 110px; text-align: center;
+}
+.gp-stat-val { font-size: 22px; font-weight: 800; }
+.gp-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ── LEVEL PROGRESS BAR ── */
+.gp-level-section { margin-bottom: 22px; }
+.gp-level-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.gp-level-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.gp-level-dots { display: flex; gap: 8px; flex-wrap: wrap; }
+.gp-ldot {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  color: var(--muted); transition: all .3s;
+}
+.gp-ldot.done { background: var(--green); border-color: var(--green); color: #fff; }
+.gp-ldot.current { background: var(--yellow); border-color: var(--yellow); color: #000; box-shadow: 0 0 12px rgba(245,158,11,.5); }
+
+/* ── GAME ARENA ── */
+.gp-arena {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden; min-height: 360px;
+}
+
+/* Start Screen */
+.gp-start {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; padding: 48px 24px; text-align: center;
+}
+.gp-start-emoji { font-size: 72px; line-height: 1; }
+.gp-start-name { font-size: 26px; font-weight: 800; }
+.gp-start-desc { color: var(--muted); font-size: 14px; max-width: 340px; line-height: 1.6; }
+.gp-start-info { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.gp-sinfo-item { text-align: center; }
+.gp-sinfo-val { font-size: 20px; font-weight: 800; color: var(--primary); }
+.gp-sinfo-lbl { font-size: 11px; color: var(--muted); }
+.gp-play-btn {
+  background: linear-gradient(135deg,var(--primary),#6366f1);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 17px; font-weight: 800; padding: 14px 48px;
+  cursor: pointer; transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 20px rgba(59,130,246,.4);
+}
+.gp-play-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(59,130,246,.5); }
+.gp-play-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Disabled notice */
+.gp-disabled-notice {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 60px 24px; text-align: center;
+}
+.gp-disabled-icon { font-size: 56px; }
+.gp-disabled-text { font-size: 16px; font-weight: 700; color: var(--red); }
+.gp-disabled-sub { font-size: 13px; color: var(--muted); }
+
+/* Playing screen */
+.gp-playing { padding: 24px; display: none; }
+.gp-q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.gp-q-counter { font-size: 13px; color: var(--muted); font-weight: 700; }
+.gp-q-score { font-size: 13px; color: var(--green); font-weight: 700; }
+.gp-q-progress-wrap { height: 4px; background: rgba(255,255,255,.08); border-radius: 4px; margin-bottom: 20px; }
+.gp-q-progress { height: 100%; background: var(--primary); border-radius: 4px; transition: width .3s; }
+.gp-q-text { font-size: 18px; font-weight: 700; margin-bottom: 22px; line-height: 1.5; }
+.gp-q-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gp-opt {
+  background: rgba(255,255,255,.06); border: 2px solid var(--border);
+  border-radius: 12px; padding: 12px 16px; text-align: left;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  cursor: pointer; transition: all .2s;
+}
+.gp-opt:hover:not(:disabled) { border-color: var(--primary); background: rgba(59,130,246,.12); }
+.gp-opt.correct { border-color: var(--green); background: rgba(16,185,129,.15); color: var(--green); }
+.gp-opt.wrong { border-color: var(--red); background: rgba(239,68,68,.1); color: var(--red); }
+
+/* True/False game */
+.gp-tf-wrap { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 32px 24px; }
+.gp-tf-timer { font-size: 32px; font-weight: 900; color: var(--yellow); }
+.gp-tf-question { font-size: 20px; font-weight: 700; text-align: center; line-height: 1.5; max-width: 500px; }
+.gp-tf-btns { display: flex; gap: 20px; }
+.gp-tf-btn {
+  padding: 16px 40px; border-radius: 16px; border: none;
+  font-size: 22px; font-weight: 900; cursor: pointer; transition: all .2s;
+  min-width: 140px;
+}
+.gp-tf-btn.yes { background: rgba(16,185,129,.2); color: var(--green); border: 2px solid var(--green); }
+.gp-tf-btn.no  { background: rgba(239,68,68,.15); color: var(--red); border: 2px solid var(--red); }
+.gp-tf-btn:hover:not(:disabled) { transform: scale(1.05); }
+.gp-tf-btn:disabled { opacity: .4; cursor: not-allowed; }
+.gp-tf-progress-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.gp-tf-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.15); }
+.gp-tf-dot.ok { background: var(--green); }
+.gp-tf-dot.bad { background: var(--red); }
+
+/* Formula fill */
+.gp-ff-wrap { padding: 28px 24px; display: flex; flex-direction: column; gap: 20px; }
+.gp-ff-question { font-size: 20px; font-weight: 700; text-align: center; }
+.gp-ff-opts { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+.gp-ff-opt {
+  background: rgba(255,255,255,.06); border: 2px solid var(--border);
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 16px; font-weight: 700; text-align: center;
+  cursor: pointer; transition: all .2s; color: var(--text);
+}
+.gp-ff-opt:hover:not(:disabled) { border-color: var(--primary); background: rgba(59,130,246,.12); }
+.gp-ff-opt.correct { border-color: var(--green); background: rgba(16,185,129,.15); color: var(--green); }
+.gp-ff-opt.wrong { border-color: var(--red); background: rgba(239,68,68,.1); color: var(--red); }
+
+/* Result screen */
+.gp-result { display: none; padding: 40px 24px; text-align: center; }
+.gp-result-emoji { font-size: 64px; }
+.gp-result-title { font-size: 24px; font-weight: 800; margin: 12px 0 6px; }
+.gp-result-score { font-size: 15px; color: var(--muted); }
+.gp-result-coins { font-size: 32px; font-weight: 900; color: var(--yellow); margin: 16px 0; }
+.gp-result-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+.gp-result-btn {
+  padding: 12px 28px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.gp-result-btn.primary { background: var(--primary); color: #fff; }
+.gp-result-btn.secondary {
+  background: rgba(255,255,255,.08); color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Level up toast */
+.gp-lvl-toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+  background: linear-gradient(135deg,#f59e0b,#d97706);
+  color: #000; font-weight: 800; font-size: 15px;
+  padding: 12px 28px; border-radius: 40px;
+  box-shadow: 0 8px 32px rgba(245,158,11,.5);
+  opacity: 0; transition: all .4s; z-index: 9999; pointer-events: none; white-space: nowrap;
+}
+.gp-lvl-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* History */
+.gp-history { margin-top: 28px; }
+.gp-hist-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.gp-hist-list { display: flex; flex-direction: column; gap: 8px; }
+.gp-hist-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px;
+}
+.gp-hist-coins { color: var(--yellow); font-weight: 700; }
+.gp-hist-date { color: var(--muted); font-size: 11px; }
+
+@media (max-width: 480px) {
+  .gp-q-opts { grid-template-columns: 1fr; }
+  .gp-tf-btns { flex-direction: column; width: 100%; }
+  .gp-tf-btn { min-width: 0; }
+  .gp-ff-opts { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════
+   CHESS / CHECKERS BOARD
+════════════════════════════════════ */
+.gp-board-wrap {
+  padding: 20px 16px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.gp-board-status {
+  width: 100%; max-width: 420px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+.gp-board-turn {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+}
+.gp-turn-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  transition: background .3s;
+}
+.gp-board-score-val {
+  font-size: 20px; font-weight: 800; color: var(--yellow);
+}
+.gp-board-score-lbl { font-size: 11px; color: var(--muted); }
+
+/* Board grid */
+.gp-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: min(96vw, 420px);
+  aspect-ratio: 1;
+  border: 3px solid #2d1a0a;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+}
+.gp-sq {
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: filter .12s;
+  font-size: clamp(14px, 4.5vw, 34px);
+  line-height: 1;
+}
+.gp-sq.sq-light { background: #f0d9b5; }
+.gp-sq.sq-dark  { background: #b58863; }
+html[data-role-theme="light"] .gp-sq.sq-light { background: #f0d9b5; }
+html[data-role-theme="light"] .gp-sq.sq-dark  { background: #b58863; }
+.gp-sq.sq-selected { background: #7fc97f !important; box-shadow: inset 0 0 0 3px rgba(0,180,0,.6); }
+.gp-sq.sq-move::after {
+  content: '';
+  position: absolute;
+  width: 34%; height: 34%;
+  border-radius: 50%;
+  background: rgba(0,0,0,.22);
+  pointer-events: none;
+}
+.gp-sq.sq-capture { background: rgba(210,40,40,.5) !important; }
+.gp-sq:hover:not(.sq-empty-dark):not(.sq-empty-light) { filter: brightness(1.12); }
+
+/* Piece styling */
+.gp-piece {
+  width: 78%; height: 78%;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75em;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .12s;
+  position: relative;
+  z-index: 1;
+}
+.gp-piece:hover { transform: scale(1.08); }
+.gp-piece:active { transform: scale(.96); }
+
+/* Checker piece colors */
+.gp-checker-w {
+  background: radial-gradient(circle at 35% 35%, #fff8f0, #d4aa7d);
+  border: 3px solid #a07850;
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.4);
+  color: #5a3a1a;
+}
+.gp-checker-b {
+  background: radial-gradient(circle at 35% 35%, #5a3a1a, #2a1a0a);
+  border: 3px solid #1a0a00;
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,.4), 0 3px 8px rgba(0,0,0,.5);
+  color: #d4aa7d;
+}
+.gp-piece.king-crown::after {
+  content: '♛';
+  position: absolute;
+  top: -4px; right: -2px;
+  font-size: .55em;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+
+/* Captured pieces row */
+.gp-captured-row {
+  width: 100%; max-width: 420px;
+  display: flex; justify-content: space-between;
+  font-size: 12px; gap: 8px;
+}
+.gp-cap-group { flex: 1; }
+.gp-cap-label { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.gp-cap-pieces { display: flex; flex-wrap: wrap; gap: 2px; min-height: 20px; font-size: 16px; }
+
+/* Board action buttons */
+.gp-board-btns {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+}
+.gp-board-btn {
+  background: rgba(255,255,255,.08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 22px;
+  font-weight: 700; font-size: 14px;
+  cursor: pointer; transition: background .18s;
+}
+.gp-board-btn:hover { background: rgba(255,255,255,.16); }
+.gp-board-btn.primary-btn {
+  background: linear-gradient(135deg, var(--primary), #6366f1);
+  border-color: transparent; color: #fff;
+}
+
+/* Game message banner */
+.gp-game-msg {
+  width: 100%; max-width: 420px;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px; font-weight: 700;
+  display: none;
+}
+.gp-game-msg.info   { background: rgba(59,130,246,.15);  color: var(--primary); border: 1px solid rgba(59,130,246,.3); }
+.gp-game-msg.warn   { background: rgba(245,158,11,.15);  color: var(--yellow);  border: 1px solid rgba(245,158,11,.3); }
+.gp-game-msg.good   { background: rgba(16,185,129,.15);  color: var(--green);   border: 1px solid rgba(16,185,129,.3); }
+.gp-game-msg.bad    { background: rgba(239,68,68,.12);   color: var(--red);     border: 1px solid rgba(239,68,68,.3); }
+
+/* ════════════════════════════════════
+   MEMORY MATCH  (card flip)
+════════════════════════════════════ */
+.gp-memory-outer { padding: 20px 12px; display: none; flex-direction: column; align-items: center; gap: 14px; }
+.gp-memory-hdr {
+  width: 100%; max-width: 480px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.gp-memory-hdr span { font-size: 14px; color: var(--muted); }
+.gp-memory-hdr b { color: var(--text); }
+.gp-memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%; max-width: 480px;
+}
+.gp-mem-card {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  cursor: pointer;
+  perspective: 600px;
+  position: relative;
+}
+.gp-mem-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .38s cubic-bezier(.4,0,.2,1);
+  border-radius: 12px;
+}
+.gp-mem-card.flipped .gp-mem-inner { transform: rotateY(180deg); }
+.gp-mem-front, .gp-mem-back {
+  position: absolute; inset: 0;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 6px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.gp-mem-front {
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: rgba(255,255,255,.25);
+  font-size: 22px;
+  border: 2px solid rgba(59,130,246,.4);
+  font-weight: 900;
+}
+.gp-mem-back {
+  background: var(--card);
+  border: 2px solid var(--border);
+  color: var(--text);
+  transform: rotateY(180deg);
+  font-size: clamp(10px, 2.5vw, 13px);
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.gp-mem-card.matched .gp-mem-back {
+  border-color: var(--green);
+  background: rgba(16,185,129,.18);
+  color: var(--green);
+}
+.gp-mem-card.matched .gp-mem-inner { transform: rotateY(180deg); }
+
+/* ════════════════════════════════════
+   CROSSWORD  (word typing)
+════════════════════════════════════ */
+.gp-cw-wrap {
+  padding: 28px 20px;
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+.gp-cw-clue {
+  background: rgba(139,92,246,.12);
+  border: 1px solid rgba(139,92,246,.3);
+  border-radius: 14px;
+  padding: 20px 24px;
+  font-size: 18px; font-weight: 700; text-align: center;
+  color: var(--text); max-width: 480px; width: 100%;
+  line-height: 1.5;
+}
+.gp-cw-blanks {
+  display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+}
+.gp-cw-letter {
+  width: 38px; height: 38px;
+  border-bottom: 3px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: var(--primary);
+  text-transform: uppercase;
+}
+.gp-cw-opts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 400px; width: 100%;
+}
+.gp-cw-opt {
+  background: rgba(255,255,255,.06);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+  color: var(--text); text-align: center;
+}
+.gp-cw-opt:hover:not(:disabled) { border-color: var(--purple); background: rgba(139,92,246,.12); }
+.gp-cw-opt.correct { border-color: var(--green); background: rgba(16,185,129,.15); color: var(--green); }
+.gp-cw-opt.wrong   { border-color: var(--red);   background: rgba(239,68,68,.1);  color: var(--red); }
+.gp-cw-progress { width: 100%; max-width: 400px; }
+.gp-cw-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: var(--muted); font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gp-topbar">
+  <a class="gp-back" href="{% url 'core:home' %}#games-tab"><i class="fa-solid fa-arrow-left"></i></a>
+  <div class="gp-title-wrap">
+    <div class="gp-game-title">{{ game_cfg.emoji }} {{ game_cfg.name }}</div>
+    <div class="gp-game-slug">{{ game_slug }}</div>
+  </div>
+  {% if is_student and progress %}
+  <div class="gp-level-badge">⭐ {{ progress.current_level }}-daraja</div>
+  {% endif %}
+  {% if is_staff %}
+  <a href="{% url 'core:game_questions' %}" class="gp-back" title="Savollarni boshqarish" style="width:auto;padding:0 12px;gap:6px;font-size:13px;font-weight:700;">
+    <i class="fa-solid fa-list-check"></i> Savollar
+  </a>
+  {% endif %}
+</div>
+
+<div class="gp-wrap">
+
+  {% if is_student %}
+  <!-- Stats row -->
+  <div class="gp-stats">
+    <div class="gp-stat">
+      <div class="gp-stat-val" style="color:var(--yellow)">{{ total_balls }}</div>
+      <div class="gp-stat-lbl">Jami ball</div>
+    </div>
+    <div class="gp-stat">
+      <div class="gp-stat-val" style="color:var(--green)">{% if already_earned_ball %}✅{% else %}—{% endif %}</div>
+      <div class="gp-stat-lbl">Bugun ball</div>
+    </div>
+    <div class="gp-stat">
+      <div class="gp-stat-val" style="color:var(--primary)">{{ progress.current_level|default:1 }}</div>
+      <div class="gp-stat-lbl">Daraja</div>
+    </div>
+    <div class="gp-stat">
+      <div class="gp-stat-val">{{ game_cfg.min_score }}</div>
+      <div class="gp-stat-lbl">Min ball</div>
+    </div>
+  </div>
+
+  <!-- Level progress dots -->
+  <div class="gp-level-section">
+    <div class="gp-level-header">
+      <div class="gp-level-title">Daraja tarixi</div>
+      <div style="font-size:12px;color:var(--muted)">{{ progress.current_level|default:1 }}-daraja</div>
+    </div>
+    <div class="gp-level-dots" id="gp-level-dots">
+      {% for i in "123456789" %}
+      <div class="gp-ldot {% if forloop.counter < progress.current_level %}done{% elif forloop.counter == progress.current_level %}current{% endif %}">
+        {{ forloop.counter }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if is_staff and not is_student %}
+  <!-- Staff view: show stats info -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:20px;">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">O'yin ma'lumoti</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <div><div style="font-size:22px;font-weight:800;color:var(--primary)">{{ game_cfg.max_coins }}</div><div style="font-size:12px;color:var(--muted)">Maks tanga</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--green)">{{ game_cfg.min_score }}</div><div style="font-size:12px;color:var(--muted)">Min ball</div></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Game arena -->
+  <div class="gp-arena" id="gp-arena">
+    {% if not is_enabled %}
+    <div class="gp-disabled-notice">
+      <div class="gp-disabled-icon">🔒</div>
+      <div class="gp-disabled-text">Bu o'yin hozirda o'chirilgan</div>
+      <div class="gp-disabled-sub">Administrator tomonidan faollashtirilib, keyinroq o'ynash mumkin bo'ladi.</div>
+    </div>
+    {% else %}
+    <!-- Start screen -->
+    <div class="gp-start" id="gp-start">
+      <div class="gp-start-emoji">{{ game_cfg.emoji }}</div>
+      <div class="gp-start-name">{{ game_cfg.name }}</div>
+      <div class="gp-start-desc" id="gp-desc">O'yinni boshlash uchun tugmani bosing!</div>
+      <div class="gp-start-info">
+        <div class="gp-sinfo-item">
+          <div class="gp-sinfo-val">{{ game_cfg.max_coins }}</div>
+          <div class="gp-sinfo-lbl">Tanga</div>
+        </div>
+        <div class="gp-sinfo-item">
+          <div class="gp-sinfo-val" id="gp-q-count">—</div>
+          <div class="gp-sinfo-lbl">Savol</div>
+        </div>
+        <div class="gp-sinfo-item">
+          <div class="gp-sinfo-val">{{ game_cfg.min_score }}</div>
+          <div class="gp-sinfo-lbl">Min ball</div>
+        </div>
+      </div>
+      <button class="gp-play-btn" id="gp-play-btn" onclick="startGame()">▶ O'ynash</button>
+    </div>
+
+    <!-- Quiz playing screen (multiple choice) -->
+    <div class="gp-playing" id="gp-playing">
+      <div class="gp-q-header">
+        <span class="gp-q-counter" id="gp-counter">1 / 10</span>
+        <span class="gp-q-score" id="gp-score-top">0 ✓</span>
+      </div>
+      <div class="gp-q-progress-wrap"><div class="gp-q-progress" id="gp-progress" style="width:0%"></div></div>
+      <div class="gp-q-text" id="gp-question">—</div>
+      <div class="gp-q-opts" id="gp-opts"></div>
+    </div>
+
+    <!-- True/False playing screen -->
+    <div style="display:none;" id="gp-tf">
+      <div class="gp-tf-wrap">
+        <div class="gp-tf-progress-dots" id="gp-tf-dots"></div>
+        <div class="gp-tf-timer" id="gp-tf-timer">10</div>
+        <div class="gp-tf-question" id="gp-tf-q">—</div>
+        <div class="gp-tf-btns">
+          <button class="gp-tf-btn yes" id="gp-tf-yes" onclick="tfAnswer(true)">✅ Ha</button>
+          <button class="gp-tf-btn no"  id="gp-tf-no"  onclick="tfAnswer(false)">❌ Yo'q</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formula Fill playing screen -->
+    <div style="display:none;" id="gp-ff">
+      <div class="gp-ff-wrap">
+        <div class="gp-q-header">
+          <span class="gp-q-counter" id="gp-ff-counter">1 / 10</span>
+          <span class="gp-q-score" id="gp-ff-score">0 ✓</span>
+        </div>
+        <div class="gp-q-progress-wrap"><div class="gp-q-progress" id="gp-ff-progress" style="width:0%"></div></div>
+        <div class="gp-ff-question" id="gp-ff-q">—</div>
+        <div class="gp-ff-opts" id="gp-ff-opts"></div>
+      </div>
+    </div>
+
+    <!-- ══ CHESS ══ -->
+    <div id="gp-chess" class="gp-board-wrap">
+      <div class="gp-board-status">
+        <div class="gp-board-turn">
+          <div class="gp-turn-dot" id="chess-dot" style="background:#fff"></div>
+          <span id="chess-turn-txt">Navbat: Sen (Oq ♔)</span>
+        </div>
+        <div style="text-align:right">
+          <div class="gp-board-score-val" id="chess-score-val">0</div>
+          <div class="gp-board-score-lbl">ball</div>
+        </div>
+      </div>
+      <div class="gp-game-msg" id="chess-msg"></div>
+      <div class="gp-board" id="chess-board"></div>
+      <div class="gp-captured-row">
+        <div class="gp-cap-group">
+          <div class="gp-cap-label">Sen yutsang:</div>
+          <div class="gp-cap-pieces" id="chess-my-cap"></div>
+        </div>
+        <div class="gp-cap-group" style="text-align:right">
+          <div class="gp-cap-label">AI yutsang:</div>
+          <div class="gp-cap-pieces" id="chess-ai-cap" style="justify-content:flex-end"></div>
+        </div>
+      </div>
+      <div class="gp-board-btns">
+        <button class="gp-board-btn primary-btn" onclick="chessNewGame()">🔄 Yangi o'yin</button>
+        <button class="gp-board-btn" onclick="show('gp-result');showResult(window._chessScore||0,9,0,false,1,false)">🏁 Tugatish</button>
+      </div>
+    </div>
+
+    <!-- ══ CHECKERS ══ -->
+    <div id="gp-checkers" class="gp-board-wrap">
+      <div class="gp-board-status">
+        <div class="gp-board-turn">
+          <div class="gp-turn-dot" id="chk-dot" style="background:#2a1a0a;border-color:#d4aa7d"></div>
+          <span id="chk-turn-txt">Navbat: Sen (Qora ⬤)</span>
+        </div>
+        <div style="text-align:right">
+          <div class="gp-board-score-val" id="chk-score-val">0</div>
+          <div class="gp-board-score-lbl">yutilgan</div>
+        </div>
+      </div>
+      <div class="gp-game-msg" id="chk-msg"></div>
+      <div class="gp-board" id="checkers-board"></div>
+      <div class="gp-board-btns">
+        <button class="gp-board-btn primary-btn" onclick="checkersNewGame()">🔄 Yangi o'yin</button>
+        <button class="gp-board-btn" onclick="show('gp-result');showResult(window._chkScore||0,12,0,false,1,false)">🏁 Tugatish</button>
+      </div>
+    </div>
+
+    <!-- ══ MEMORY MATCH ══ -->
+    <div id="gp-memory" class="gp-memory-outer">
+      <div class="gp-memory-hdr">
+        <span>Juftlarni toping!</span>
+        <span>Topildi: <b id="mem-found">0</b> / <b id="mem-tot">8</b></span>
+      </div>
+      <div class="gp-memory-grid" id="mem-grid"></div>
+    </div>
+
+    <!-- ══ CROSSWORD ══ -->
+    <div id="gp-crossword" class="gp-cw-wrap">
+      <div class="gp-cw-progress">
+        <div class="gp-cw-header">
+          <span id="cw-counter">1 / 10</span>
+          <span id="cw-score" style="color:var(--green)">0 ✓</span>
+        </div>
+        <div class="gp-q-progress-wrap"><div class="gp-q-progress" id="cw-progress" style="width:0%"></div></div>
+      </div>
+      <div class="gp-cw-clue" id="cw-clue">—</div>
+      <div class="gp-cw-blanks" id="cw-blanks"></div>
+      <div class="gp-cw-opts" id="cw-opts"></div>
+    </div>
+
+    <!-- Result screen -->
+    <div class="gp-result" id="gp-result">
+      <div class="gp-result-emoji" id="gp-res-emoji">🎉</div>
+      <div class="gp-result-title" id="gp-res-title">Barakalla!</div>
+      <div class="gp-result-score" id="gp-res-score"></div>
+      <div class="gp-result-coins" id="gp-res-coins"></div>
+      <div class="gp-result-btns">
+        <button class="gp-result-btn primary" onclick="startGame()">🔄 Qayta o'ynash</button>
+        <button class="gp-result-btn secondary" onclick="goHome()">🏠 Bosh sahifa</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent history -->
+  {% if recent_sessions %}
+  <div class="gp-history">
+    <div class="gp-hist-title">So'nggi o'yinlar</div>
+    <div class="gp-hist-list">
+      {% for s in recent_sessions %}
+      <div class="gp-hist-item">
+        <span>Ball: <strong>{{ s.score }}</strong></span>
+        <span class="gp-hist-coins">{% if s.balls_earned %}+1 🎯{% else %}—{% endif %}</span>
+        <span class="gp-hist-date">{{ s.played_at|date:"d.m H:i" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- gp-wrap -->
+
+<div class="gp-lvl-toast" id="gp-lvl-toast"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+"use strict";
+
+const GAME_SLUG   = "{{ game_slug }}";
+const IS_STUDENT  = {{ is_student|yesno:"true,false" }};
+const MAX_COINS   = {{ game_cfg.max_coins }};
+const MIN_SCORE   = {{ game_cfg.min_score }};
+const HOME_URL    = "{% url 'core:home' %}";
+const RESULT_API  = "/api/student/game/result/";
+
+const BOARD_SCREENS = ["gp-start","gp-playing","gp-tf","gp-ff",
+                       "gp-chess","gp-checkers","gp-memory","gp-crossword","gp-result"];
+
+let allQuestions = [], gameQuestions = [], qIdx = 0, qScore = 0, qTotal = 10;
+let tfIdx = 0, tfScore = 0, tfQuestions = [], tfTimer = null, tfTimerSec = 10;
+let ffIdx = 0, ffScore = 0, ffQuestions = [];
+
+// ── Helpers ───────────────────────────────────────────────────────
+function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
+function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+function setStyle(id,p,v){ const e=document.getElementById(id); if(e) e.style[p]=v; }
+function setDisabled(id,v){ const e=document.getElementById(id); if(e) e.disabled=v; }
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function getCsrf(){ const m=document.cookie.match(/csrftoken=([^;]+)/); return m?m[1]:""; }
+
+function show(id){
+  BOARD_SCREENS.forEach(i=>{
+    const el=document.getElementById(i);
+    if(!el) return;
+    const visible = i===id;
+    if(i==="gp-playing") el.style.display = visible ? "block" : "none";
+    else el.style.display = visible ? "flex" : "none";
+  });
+}
+
+// ── Load questions ────────────────────────────────────────────────
+function loadQuestions(){
+  fetch("/api/games/"+GAME_SLUG+"/questions/",{credentials:"same-origin"})
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{
+      if(d&&d.questions){
+        allQuestions = d.questions.map(q=>q.question_data||q);
+        const qc=document.getElementById("gp-q-count");
+        if(qc) qc.textContent=Math.min(allQuestions.length,10);
+      }
+    }).catch(()=>{});
+}
+
+// ── Route to engine ───────────────────────────────────────────────
+window.startGame = function(){
+  if(GAME_SLUG==="true_false")   { startTF();        return; }
+  if(GAME_SLUG==="formula_fill") { startFF();        return; }
+  if(GAME_SLUG==="memory_match") { startMemoryNew(); return; }
+  if(GAME_SLUG==="chess")        { chessNewGame();   return; }
+  if(GAME_SLUG==="checkers")     { checkersNewGame();return; }
+  if(GAME_SLUG==="crossword")    { startCrossword(); return; }
+  startQuiz();
+};
+window.goHome = function(){ window.location.href = HOME_URL+"#games-tab"; };
+
+// ══════════════════════════════════════════════════════════════════
+// QUIZ ENGINE
+// ══════════════════════════════════════════════════════════════════
+function startQuiz(){
+  if(!allQuestions.length){ alert("Savollar yuklanmadi, sahifani yangilang."); return; }
+  gameQuestions = shuffle(allQuestions).slice(0,10);
+  qIdx=0; qScore=0; qTotal=gameQuestions.length;
+  show("gp-playing"); showQ();
+}
+function showQ(){
+  if(qIdx>=qTotal){ submitResult(qScore,qTotal); return; }
+  const q=gameQuestions[qIdx];
+  setText("gp-counter",(qIdx+1)+" / "+qTotal);
+  setText("gp-score-top",qScore+" ✓");
+  setStyle("gp-progress","width",Math.round(qIdx/qTotal*100)+"%");
+  setText("gp-question",q.q||"—");
+  const el=document.getElementById("gp-opts"); if(!el) return;
+  el.innerHTML=(q.opts||[]).map((o,i)=>
+    '<button class="gp-opt" onclick="quizAns('+i+')">'+escHtml(o)+'</button>'
+  ).join("");
+}
+window.quizAns=function(idx){
+  const q=gameQuestions[qIdx];
+  document.querySelectorAll(".gp-opt").forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.a) b.classList.add("correct");
+    else if(i===idx) b.classList.add("wrong");
+  });
+  if(idx===q.a) qScore++;
+  qIdx++;
+  setTimeout(showQ,900);
+};
+
+// ══════════════════════════════════════════════════════════════════
+// TRUE / FALSE ENGINE
+// ══════════════════════════════════════════════════════════════════
+function startTF(){
+  if(!allQuestions.length){ alert("Savollar yuklanmadi."); return; }
+  tfQuestions=shuffle(allQuestions).slice(0,20);
+  tfIdx=0; tfScore=0;
+  show("gp-tf");
+  const el=document.getElementById("gp-tf-dots");
+  if(el) el.innerHTML=tfQuestions.map((_,i)=>'<div class="gp-tf-dot" id="tfd-'+i+'"></div>').join("");
+  showTFQ();
+}
+function showTFQ(){
+  if(tfIdx>=tfQuestions.length){ clearInterval(tfTimer); submitResult(tfScore,tfQuestions.length); return; }
+  clearInterval(tfTimer); tfTimerSec=10;
+  const q=tfQuestions[tfIdx];
+  setText("gp-tf-q",q.q||"—"); setText("gp-tf-timer",tfTimerSec);
+  setDisabled("gp-tf-yes",false); setDisabled("gp-tf-no",false);
+  tfTimer=setInterval(()=>{
+    tfTimerSec--; setText("gp-tf-timer",tfTimerSec);
+    if(tfTimerSec<=0){
+      clearInterval(tfTimer);
+      markTFDot(tfIdx,false); tfIdx++;
+      setTimeout(showTFQ,400);
+    }
+  },1000);
+}
+window.tfAnswer=function(ans){
+  clearInterval(tfTimer);
+  const ok=ans===tfQuestions[tfIdx].a;
+  if(ok) tfScore++;
+  markTFDot(tfIdx,ok);
+  setDisabled("gp-tf-yes",true); setDisabled("gp-tf-no",true);
+  tfIdx++; setTimeout(showTFQ,700);
+};
+function markTFDot(i,ok){
+  const d=document.getElementById("tfd-"+i);
+  if(d) d.className="gp-tf-dot "+(ok?"ok":"bad");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FORMULA FILL ENGINE
+// ══════════════════════════════════════════════════════════════════
+function startFF(){
+  if(!allQuestions.length){ alert("Savollar yuklanmadi."); return; }
+  ffQuestions=shuffle(allQuestions).slice(0,10);
+  ffIdx=0; ffScore=0;
+  show("gp-ff"); showFFQ();
+}
+function showFFQ(){
+  if(ffIdx>=ffQuestions.length){ submitResult(ffScore,ffQuestions.length); return; }
+  const q=ffQuestions[ffIdx], total=ffQuestions.length;
+  setText("gp-ff-counter",(ffIdx+1)+" / "+total);
+  setText("gp-ff-score",ffScore+" ✓");
+  setStyle("gp-ff-progress","width",Math.round(ffIdx/total*100)+"%");
+  setText("gp-ff-q",q.q||"—");
+  const el=document.getElementById("gp-ff-opts"); if(!el) return;
+  el.innerHTML=(q.opts||[]).map((o,i)=>
+    '<button class="gp-ff-opt" onclick="ffAns('+i+')">'+escHtml(o)+'</button>'
+  ).join("");
+}
+window.ffAns=function(idx){
+  const q=ffQuestions[ffIdx];
+  document.querySelectorAll(".gp-ff-opt").forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.a) b.classList.add("correct");
+    else if(i===idx) b.classList.add("wrong");
+  });
+  if(idx===q.a) ffScore++;
+  ffIdx++; setTimeout(showFFQ,900);
+};
+
+// ══════════════════════════════════════════════════════════════════
+// CROSSWORD ENGINE  (definition → word, multiple choice)
+// ══════════════════════════════════════════════════════════════════
+let cwIdx=0, cwScore=0, cwQuestions=[];
+function startCrossword(){
+  const qs = allQuestions.length ? allQuestions : [
+    {q:"Yer sayyorasining tabiiy yo'ldoshi",opts:["Quyosh","Oy","Mars","Venera"],a:1},
+    {q:"Suvning kimyoviy formulasi",opts:["CO2","H2O","O2","NaCl"],a:1},
+    {q:"Eng katta okean",opts:["Atlantika","Hind","Arktika","Tinch"],a:3},
+    {q:"Inson tanasidagi eng uzun suyak",opts:["Qo'l","Son","Umurtqa","Qovurg'a"],a:1},
+    {q:"Elektr toki o'lchov birligi",opts:["Vatt","Volt","Amper","Om"],a:2},
+    {q:"Yorug'lik tezligi (km/s)",opts:["100 000","200 000","300 000","400 000"],a:2},
+    {q:"O'zbekistonning poytaxti",opts:["Samarqand","Buxoro","Toshkent","Namangan"],a:2},
+    {q:"Yil nechi oydan iborat?",opts:["10","11","12","13"],a:2},
+    {q:"Kvadratning barcha tomonlari",opts:["Teng","Har xil","Juft","Toq"],a:0},
+    {q:"Quyoshdan eng yaqin sayyora",opts:["Venera","Merkuriy","Yer","Mars"],a:1},
+  ];
+  cwQuestions=shuffle(qs).slice(0,10);
+  cwIdx=0; cwScore=0;
+  show("gp-crossword"); showCW();
+}
+function showCW(){
+  if(cwIdx>=cwQuestions.length){ submitResult(cwScore,cwQuestions.length); return; }
+  const q=cwQuestions[cwIdx], total=cwQuestions.length;
+  const pct=Math.round(cwIdx/total*100);
+  setText("cw-counter",(cwIdx+1)+" / "+total);
+  setText("cw-score",cwScore+" ✓");
+  setStyle("cw-progress","width",pct+"%");
+  setText("cw-clue",q.q||"—");
+  // blanks: show answer length as dashes
+  const ans = (q.opts||[])[q.a]||"";
+  const blanksEl=document.getElementById("cw-blanks");
+  if(blanksEl) blanksEl.innerHTML=ans.split("").map(ch=>
+    '<div class="gp-cw-letter">_</div>'
+  ).join("");
+  const optsEl=document.getElementById("cw-opts");
+  if(optsEl) optsEl.innerHTML=(q.opts||[]).map((o,i)=>
+    '<button class="gp-cw-opt" onclick="cwAns('+i+')">'+escHtml(o)+'</button>'
+  ).join("");
+}
+window.cwAns=function(idx){
+  const q=cwQuestions[cwIdx];
+  document.querySelectorAll(".gp-cw-opt").forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.a) b.classList.add("correct");
+    else if(i===idx) b.classList.add("wrong");
+  });
+  if(idx===q.a){
+    cwScore++;
+    const ans=(q.opts||[])[q.a]||"";
+    const blanksEl=document.getElementById("cw-blanks");
+    if(blanksEl) blanksEl.innerHTML=ans.split("").map(ch=>
+      '<div class="gp-cw-letter" style="color:var(--green);border-color:var(--green)">'+escHtml(ch)+'</div>'
+    ).join("");
+  }
+  cwIdx++; setTimeout(showCW,1000);
+};
+
+// ══════════════════════════════════════════════════════════════════
+// MEMORY MATCH ENGINE  (word pairs, card flip)
+// ══════════════════════════════════════════════════════════════════
+let memPairs=[], memFlipped=[], memMatched=0, memLocked=false;
+function startMemoryNew(){
+  show("gp-memory");
+  // Build pairs from questions (word/match) or fallback
+  const raw = allQuestions.filter(q=>q.word&&q.match);
+  let pairs;
+  if(raw.length>=8){
+    pairs = shuffle(raw).slice(0,8).map(q=>({a:q.word,b:q.match}));
+  } else {
+    pairs = shuffle([
+      {a:"Apple",b:"Olma"},{a:"Book",b:"Kitob"},{a:"Water",b:"Suv"},
+      {a:"House",b:"Uy"},{a:"Sun",b:"Quyosh"},{a:"Moon",b:"Oy"},
+      {a:"Cat",b:"Mushuk"},{a:"Dog",b:"It"},{a:"Bird",b:"Qush"},
+      {a:"Tree",b:"Daraxt"},{a:"Fish",b:"Baliq"},{a:"Star",b:"Yulduz"},
+    ]).slice(0,8);
+  }
+  memPairs=[]; memFlipped=[]; memMatched=0; memLocked=false;
+  // Each pair creates 2 cards
+  pairs.forEach((p,i)=>{ memPairs.push({id:i,face:p.a,pairId:i}); memPairs.push({id:i+100,face:p.b,pairId:i}); });
+  memPairs=shuffle(memPairs);
+  setText("mem-found","0"); setText("mem-tot",""+pairs.length);
+  const grid=document.getElementById("mem-grid");
+  if(!grid) return;
+  grid.innerHTML=memPairs.map((c,i)=>`
+    <div class="gp-mem-card" id="mc-${i}" onclick="memFlip(${i})">
+      <div class="gp-mem-inner">
+        <div class="gp-mem-front">⚡</div>
+        <div class="gp-mem-back">${escHtml(c.face)}</div>
+      </div>
+    </div>`).join("");
+}
+window.memFlip=function(i){
+  if(memLocked||memFlipped.includes(i)) return;
+  const card=document.getElementById("mc-"+i);
+  if(!card||card.classList.contains("matched")) return;
+  card.classList.add("flipped");
+  memFlipped.push(i);
+  if(memFlipped.length===2){
+    memLocked=true;
+    const [a,b]=memFlipped;
+    if(memPairs[a].pairId===memPairs[b].pairId){
+      document.getElementById("mc-"+a).classList.add("matched");
+      document.getElementById("mc-"+b).classList.add("matched");
+      memMatched++;
+      setText("mem-found",""+memMatched);
+      memFlipped=[]; memLocked=false;
+      if(memMatched===memPairs.length/2) setTimeout(()=>submitResult(memMatched,memPairs.length/2),600);
+    } else {
+      setTimeout(()=>{
+        document.getElementById("mc-"+a).classList.remove("flipped");
+        document.getElementById("mc-"+b).classList.remove("flipped");
+        memFlipped=[]; memLocked=false;
+      },900);
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// CHESS ENGINE
+// ══════════════════════════════════════════════════════════════════
+const CHESS_PIECES={
+  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
+  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
+};
+const PIECE_VAL={K:100,Q:9,R:5,B:3,N:3,P:1};
+let cBoard=[],cTurn="w",cSelected=null,cValidMoves=[],cScore=0,cMyCap=[],cAiCap=[],cGameOver=false;
+
+function initChessBoard(){
+  cBoard=Array(8).fill(null).map(()=>Array(8).fill(null));
+  const back=["R","N","B","Q","K","B","N","R"];
+  back.forEach((p,c)=>{ cBoard[0][c]="b"+p; cBoard[7][c]="w"+p; });
+  for(let c=0;c<8;c++){ cBoard[1][c]="bP"; cBoard[6][c]="wP"; }
+}
+window.chessNewGame=function(){
+  initChessBoard(); cTurn="w"; cSelected=null; cValidMoves=[]; cScore=0;
+  cMyCap=[]; cAiCap=[]; cGameOver=false;
+  window._chessScore=0;
+  show("gp-chess");
+  updateChessMsg("Sen oq tarafdasen. Birinchi yur!","info");
+  renderChess();
+};
+function renderChess(){
+  const board=document.getElementById("chess-board"); if(!board) return;
+  board.innerHTML="";
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const sq=document.createElement("div");
+    sq.className="gp-sq "+((r+c)%2===0?"sq-light":"sq-dark");
+    sq.dataset.r=r; sq.dataset.c=c;
+    if(cSelected&&cSelected[0]===r&&cSelected[1]===c) sq.classList.add("sq-selected");
+    if(cValidMoves.some(m=>m[0]===r&&m[1]===c)){
+      sq.classList.add(cBoard[r][c]&&cBoard[r][c][0]==="b"?"sq-capture":"sq-move");
+    }
+    const p=cBoard[r][c];
+    if(p){ const pc=document.createElement("span"); pc.textContent=CHESS_PIECES[p]||p; sq.appendChild(pc); }
+    sq.onclick=()=>chessClick(r,c);
+    board.appendChild(sq);
+  }
+  setText("chess-score-val",cScore);
+  setText("chess-my-cap",cMyCap.map(p=>CHESS_PIECES["b"+p]||p).join(""));
+  setText("chess-ai-cap",cAiCap.map(p=>CHESS_PIECES["w"+p]||p).join(""));
+  const dot=document.getElementById("chess-dot");
+  if(dot){ dot.style.background=cTurn==="w"?"#fff":"#1a0a00"; dot.style.borderColor=cTurn==="w"?"#999":"#d4aa7d"; }
+  setText("chess-turn-txt",cTurn==="w"?"Navbat: Sen (Oq ♔)":"AI yurmoqda...");
+}
+function chessClick(r,c){
+  if(cGameOver||cTurn!=="w") return;
+  const p=cBoard[r][c];
+  if(cSelected){
+    const mv=cValidMoves.find(m=>m[0]===r&&m[1]===c);
+    if(mv){ chessMove(cSelected[0],cSelected[1],r,c,"w"); return; }
+    cSelected=null; cValidMoves=[];
+  }
+  if(p&&p[0]==="w"){ cSelected=[r,c]; cValidMoves=getChessMoves(r,c); }
+  renderChess();
+}
+function chessMove(fr,fc,tr,tc,side){
+  const cap=cBoard[tr][tc];
+  if(cap){
+    const v=PIECE_VAL[cap[1]]||1;
+    cScore+=v; window._chessScore=cScore;
+    if(side==="w") cMyCap.push(cap[1]);
+    else           cAiCap.push(cap[1]);
+    if(cap[1]==="K"){ cGameOver=true; cSelected=null; cValidMoves=[]; renderChess(); updateChessMsg(side==="w"?"🎉 Sen yutding! Shoh tutildi!":"😔 AI yutdi. Shohingiz tutildi!",side==="w"?"good":"bad"); setTimeout(()=>submitResult(cScore,9),1500); return; }
+  }
+  // pawn promotion
+  if(cBoard[fr][fc]==="wP"&&tr===0) cBoard[tr][tc]="wQ";
+  else if(cBoard[fr][fc]==="bP"&&tr===7) cBoard[tr][tc]="bQ";
+  else cBoard[tr][tc]=cBoard[fr][fc];
+  cBoard[fr][fc]=null;
+  cSelected=null; cValidMoves=[]; cTurn=side==="w"?"b":"w";
+  renderChess();
+  if(cTurn==="b") setTimeout(aiChessMove,500);
+}
+function aiChessMove(){
+  if(cGameOver) return;
+  const moves=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(cBoard[r][c]&&cBoard[r][c][0]==="b"){
+      getChessMoves(r,c).forEach(m=>moves.push({fr:r,fc:c,tr:m[0],tc:m[1],cap:cBoard[m[0]][m[1]]}));
+    }
+  }
+  if(!moves.length){ updateChessMsg("🎉 AI harakat qila olmaydi! Sen yutding!","good"); cGameOver=true; return; }
+  // prefer captures
+  const caps=moves.filter(m=>m.cap);
+  const mv=caps.length?caps.sort((a,b)=>(PIECE_VAL[b.cap[1]]||0)-(PIECE_VAL[a.cap[1]]||0))[0]:moves[Math.floor(Math.random()*moves.length)];
+  chessMove(mv.fr,mv.fc,mv.tr,mv.tc,"b");
+  cTurn="w"; renderChess();
+  updateChessMsg("Navbat: Sen (Oq ♔)","info");
+}
+function getChessMoves(r,c){
+  const p=cBoard[r][c]; if(!p) return [];
+  const side=p[0], type=p[1], opp=side==="w"?"b":"w", moves=[];
+  const inB=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+  const free=(r,c)=>inB(r,c)&&!cBoard[r][c];
+  const cap=(r,c)=>inB(r,c)&&cBoard[r][c]&&cBoard[r][c][0]===opp;
+  const slide=(dr,dc)=>{ let nr=r+dr,nc=c+dc; while(inB(nr,nc)){ if(cBoard[nr][nc]){ if(cBoard[nr][nc][0]===opp) moves.push([nr,nc]); break; } moves.push([nr,nc]); nr+=dr; nc+=dc; } };
+  if(type==="P"){
+    const dir=side==="w"?-1:1, start=side==="w"?6:1;
+    if(free(r+dir,c)) moves.push([r+dir,c]);
+    if(r===start&&free(r+dir,c)&&free(r+2*dir,c)) moves.push([r+2*dir,c]);
+    if(cap(r+dir,c-1)) moves.push([r+dir,c-1]);
+    if(cap(r+dir,c+1)) moves.push([r+dir,c+1]);
+  } else if(type==="N"){
+    [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]].forEach(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc; if(inB(nr,nc)&&(!cBoard[nr][nc]||cBoard[nr][nc][0]===opp)) moves.push([nr,nc]);
+    });
+  } else if(type==="R"){ [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>slide(dr,dc)); }
+    else if(type==="B"){ [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>slide(dr,dc)); }
+    else if(type==="Q"){ [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>slide(dr,dc)); }
+    else if(type==="K"){ [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc; if(inB(nr,nc)&&(!cBoard[nr][nc]||cBoard[nr][nc][0]===opp)) moves.push([nr,nc]); }); }
+  return moves;
+}
+function updateChessMsg(msg,type){
+  const el=document.getElementById("chess-msg"); if(!el) return;
+  el.textContent=msg; el.className="gp-game-msg "+(type||"info"); el.style.display="block";
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHECKERS ENGINE
+// ══════════════════════════════════════════════════════════════════
+// Board: 8x8. Pieces on dark squares (r+c) % 2 === 1
+// 0=empty, 'b'=black, 'w'=white, 'bK'=black king, 'wK'=white king
+// Player = black (bottom), AI = white (top)
+let ckBoard=[], ckTurn="b", ckSel=null, ckMoves=[], ckScore=0, ckMustJump=null, ckOver=false;
+
+function initCheckers(){
+  ckBoard=Array(8).fill(null).map(()=>Array(8).fill(0));
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if((r+c)%2===1){
+      if(r<3)  ckBoard[r][c]="w";
+      if(r>=5) ckBoard[r][c]="b";
+    }
+  }
+}
+window.checkersNewGame=function(){
+  initCheckers(); ckTurn="b"; ckSel=null; ckMoves=[]; ckScore=0; ckMustJump=null; ckOver=false;
+  window._chkScore=0;
+  show("gp-checkers");
+  updateCkMsg("Sen qora tarafdasen. Birinchi yur!","info");
+  renderCheckers();
+};
+function renderCheckers(){
+  const board=document.getElementById("checkers-board"); if(!board) return;
+  board.innerHTML="";
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const sq=document.createElement("div");
+    sq.className="gp-sq "+((r+c)%2===0?"sq-light":"sq-dark");
+    sq.dataset.r=r; sq.dataset.c=c;
+    if(ckSel&&ckSel[0]===r&&ckSel[1]===c) sq.classList.add("sq-selected");
+    const isMove=ckMoves.some(m=>m.tr===r&&m.tc===c);
+    if(isMove) sq.classList.add(ckBoard[r][c]?"sq-capture":"sq-move");
+    const p=ckBoard[r][c];
+    if(p){
+      const pc=document.createElement("div");
+      pc.className="gp-piece "+(p.startsWith("b")?"gp-checker-b":"gp-checker-w");
+      if(p==="bK"||p==="wK") pc.classList.add("king-crown");
+      pc.innerHTML=p.startsWith("b")?"⬤":"⬤";
+      pc.style.fontSize=p==="bK"||p==="wK"?"1.2em":"1em";
+      sq.appendChild(pc);
+    }
+    sq.onclick=()=>ckClick(r,c);
+    board.appendChild(sq);
+  }
+  setText("chk-score-val",ckScore);
+  const dot=document.getElementById("chk-dot");
+  if(dot){ dot.style.background=ckTurn==="b"?"#2a1a0a":"#f0d9b5"; }
+  setText("chk-turn-txt",ckTurn==="b"?"Navbat: Sen (Qora)":"AI yurmoqda...");
+}
+function ckClick(r,c){
+  if(ckOver||ckTurn!=="b") return;
+  if(ckMustJump){
+    // must continue jump chain
+    const mv=ckMoves.find(m=>m.tr===r&&m.tc===c);
+    if(mv){ doCheckerMove(mv,"b"); return; }
+    return;
+  }
+  const p=ckBoard[r][c];
+  if(ckSel){
+    const mv=ckMoves.find(m=>m.tr===r&&m.tc===c);
+    if(mv){ doCheckerMove(mv,"b"); return; }
+    ckSel=null; ckMoves=[];
+  }
+  if(p&&p.startsWith("b")){ ckSel=[r,c]; ckMoves=getCkMoves(r,c,"b"); }
+  renderCheckers();
+}
+function doCheckerMove(mv,side){
+  ckBoard[mv.tr][mv.tc]=ckBoard[mv.fr][mv.fc];
+  ckBoard[mv.fr][mv.fc]=0;
+  if(mv.jr!=null){ ckBoard[mv.jr][mv.jc]=0; if(side==="b"){ ckScore++; window._chkScore=ckScore; } }
+  // King promotion
+  if(ckBoard[mv.tr][mv.tc]==="b"&&mv.tr===0) ckBoard[mv.tr][mv.tc]="bK";
+  if(ckBoard[mv.tr][mv.tc]==="w"&&mv.tr===7) ckBoard[mv.tr][mv.tc]="wK";
+  ckSel=null; ckMustJump=null;
+  // Check multi-jump
+  if(mv.jr!=null&&side==="b"){
+    const furtherJumps=getCkJumps(mv.tr,mv.tc,"b");
+    if(furtherJumps.length){ ckSel=[mv.tr,mv.tc]; ckMoves=furtherJumps; ckMustJump=[mv.tr,mv.tc]; renderCheckers(); return; }
+  }
+  ckMoves=[]; ckTurn=side==="b"?"w":"b";
+  // check win
+  const bPieces=[],wPieces=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(ckBoard[r][c]&&ckBoard[r][c].startsWith("b")) bPieces.push([r,c]);
+    if(ckBoard[r][c]&&ckBoard[r][c].startsWith("w")) wPieces.push([r,c]);
+  }
+  if(!wPieces.length){ ckOver=true; renderCheckers(); updateCkMsg("🎉 Sen yutding! Barcha oq donalar tutildi!","good"); setTimeout(()=>submitResult(ckScore,12),1500); return; }
+  if(!bPieces.length){ ckOver=true; renderCheckers(); updateCkMsg("😔 AI yutdi. Barcha qora donalaring tutildi.","bad"); setTimeout(()=>submitResult(0,12),1500); return; }
+  renderCheckers();
+  if(ckTurn==="w") setTimeout(aiCheckerMove,600);
+}
+function getCkMoves(r,c,side){
+  const jumps=getCkJumps(r,c,side);
+  if(jumps.length) return jumps;
+  return getCkSimple(r,c,side);
+}
+function getCkSimple(r,c,side){
+  const p=ckBoard[r][c]; if(!p||!p.startsWith(side)) return [];
+  const dirs=[];
+  if(side==="b"||p==="bK"||p==="wK") dirs.push([-1,-1],[-1,1]);
+  if(side==="w"||p==="bK"||p==="wK") dirs.push([1,-1],[1,1]);
+  return dirs.filter(([dr,dc])=>{
+    const nr=r+dr,nc=c+dc;
+    return nr>=0&&nr<8&&nc>=0&&nc<8&&!ckBoard[nr][nc];
+  }).map(([dr,dc])=>({fr:r,fc:c,tr:r+dr,tc:c+dc,jr:null,jc:null}));
+}
+function getCkJumps(r,c,side){
+  const p=ckBoard[r][c]; if(!p||!p.startsWith(side)) return [];
+  const opp=side==="b"?"w":"b", jumps=[];
+  const dirs=[];
+  if(side==="b"||p==="bK"||p==="wK") dirs.push([-1,-1],[-1,1]);
+  if(side==="w"||p==="bK"||p==="wK") dirs.push([1,-1],[1,1]);
+  dirs.forEach(([dr,dc])=>{
+    const jr=r+dr,jc=c+dc,lr=r+2*dr,lc=c+2*dc;
+    if(lr>=0&&lr<8&&lc>=0&&lc<8&&ckBoard[jr]&&ckBoard[jr][jc]&&ckBoard[jr][jc].startsWith(opp)&&!ckBoard[lr][lc])
+      jumps.push({fr:r,fc:c,tr:lr,tc:lc,jr,jc});
+  });
+  return jumps;
+}
+function aiCheckerMove(){
+  if(ckOver||ckTurn!=="w") return;
+  const allMoves=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(ckBoard[r][c]&&ckBoard[r][c].startsWith("w")){
+      getCkMoves(r,c,"w").forEach(m=>allMoves.push(m));
+    }
+  }
+  if(!allMoves.length){ updateCkMsg("AI harakat qila olmaydi!","good"); ckOver=true; return; }
+  const jumps=allMoves.filter(m=>m.jr!=null);
+  const mv=jumps.length?jumps[Math.floor(Math.random()*jumps.length)]:allMoves[Math.floor(Math.random()*allMoves.length)];
+  doCheckerMove(mv,"w");
+}
+function updateCkMsg(msg,type){
+  const el=document.getElementById("chk-msg"); if(!el) return;
+  el.textContent=msg; el.className="gp-game-msg "+(type||"info"); el.style.display="block";
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SUBMIT RESULT & SHOW RESULT
+// ══════════════════════════════════════════════════════════════════
+function submitResult(score,total){
+  if(!IS_STUDENT){ showResult(score,total,0,false,1,false); return; }
+  fetch(RESULT_API,{
+    method:"POST",credentials:"same-origin",
+    headers:{"Content-Type":"application/json","X-CSRFToken":getCsrf()},
+    body:JSON.stringify({game_slug:GAME_SLUG,score,total}),
+  })
+    .then(r=>r.ok?r.json():{ok:false,balls_earned:0})
+    .then(d=>showResult(score,total,d.total_balls||0,d.already_earned_today||false,d.new_level||1,d.level_up||false))
+    .catch(()=>showResult(score,total,0,false,1,false));
+}
+function showResult(score,total,coins,already,newLevel,levelUp){
+  show("gp-result");
+  const pct=total>0?Math.round(score/total*100):0;
+  const ok=score>=MIN_SCORE;
+  setText("gp-res-emoji",ok?"🎉":"😔");
+  setText("gp-res-title",ok?"Barakalla!":"Yaxshi harakat!");
+  setText("gp-res-score",score+" / "+total+" to'g'ri ("+pct+"%)");
+  if(already) setText("gp-res-coins","✅ Bugun ball allaqachon olindi");
+  else if(coins>0) setText("gp-res-coins","🎯 +1 ball olindi! Jami: "+coins+" ball");
+  else setText("gp-res-coins",ok?"Yaxshi! Davom eting 💪":"Ko'proq mashq qiling 📚");
+  if(newLevel){ const badge=document.querySelector(".gp-level-badge"); if(badge) badge.textContent="⭐ "+newLevel+"-daraja"; updateLevelDots(newLevel); }
+  if(levelUp) showLvlToast(newLevel);
+}
+function updateLevelDots(level){
+  document.querySelectorAll(".gp-ldot").forEach((d,i)=>{
+    const n=i+1; d.className="gp-ldot"+(n<level?" done":n===level?" current":"");
+  });
+}
+function showLvlToast(level){
+  const t=document.getElementById("gp-lvl-toast"); if(!t) return;
+  t.textContent="⭐ Tabriklaymiz! "+level+"-darajaga o'tdingiz!";
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+show("gp-start");
+{% if is_enabled %}loadQuestions();{% endif %}
+
+})();
+</script>
+{% endblock %}

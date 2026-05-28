@@ -1713,3 +1713,210 @@ html[data-role-theme="light"] body.dangerous-page .dg-empty__title {
 html[data-role-theme="light"] body.dangerous-page .dg-empty__copy {
   color: #475569 !important;
 }
+
+/* =====================================================================
+   GAMES HUB PAGE  (gh-page)
+   ===================================================================== */
+html[data-role-theme="light"] body.gh-page {
+  /* Override dark token variables */
+  --bg0: #f0fdfe !important;
+  --bg1: #f8fafc !important;
+  --bg2: #e2e8f0 !important;
+  --surf: rgba(255,255,255,.97) !important;
+  --surf2: rgba(6,182,212,.05) !important;
+  --bdr: rgba(6,182,212,.22) !important;
+  --bdr2: rgba(6,182,212,.42) !important;
+  --txt: #0f172a !important;
+  --sub: #334155 !important;
+  --muted: #64748b !important;
+  --glow: 0 0 24px rgba(6,182,212,.18) !important;
+  --glow-sm: 0 0 12px rgba(6,182,212,.12) !important;
+  --shadow: 0 4px 16px rgba(0,0,0,.07) !important;
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.10) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-page {
+  background: #f0fdfe !important;
+}
+html[data-role-theme="light"] body.gh-page {
+  background: #f0fdfe !important;
+}
+
+/* Hero */
+html[data-role-theme="light"] body.gh-page .gh-hero-title  { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-hero-name   { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-hero-name span { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-level-pill  {
+  background: linear-gradient(135deg, #cffafe, rgba(6,182,212,.12)) !important;
+  border-color: rgba(6,182,212,.4) !important;
+  color: #0e7490 !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-avatar {
+  background: linear-gradient(135deg, #cffafe, #a5f3fc) !important;
+  border-color: rgba(6,182,212,.4) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-ring-track { stroke: #e2e8f0 !important; }
+html[data-role-theme="light"] body.gh-page .gh-ring-label p        { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-ring-label strong   { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-ring-label small    { color: #64748b !important; }
+
+/* Stats strip */
+html[data-role-theme="light"] body.gh-page .gh-stat-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-stat-val  { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-stat-lbl  { color: #64748b !important; }
+html[data-role-theme="light"] body.gh-page .gh-stat-bar  { background: #e2e8f0 !important; }
+
+/* Daily challenge */
+html[data-role-theme="light"] body.gh-page .gh-challenge {
+  background: linear-gradient(135deg, rgba(6,182,212,.08), rgba(14,116,144,.05)) !important;
+  border-color: rgba(6,182,212,.35) !important;
+  box-shadow: 0 4px 20px rgba(6,182,212,.12) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-challenge-info h3 { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-challenge-info p  { color: #334155 !important; }
+
+/* Progress row */
+html[data-role-theme="light"] body.gh-page .gh-progress-row {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-progress-row h4 { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-prog-label      { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-prog-label span { color: #64748b !important; }
+html[data-role-theme="light"] body.gh-page .gh-prog-track      { background: #e2e8f0 !important; }
+
+/* Section title */
+html[data-role-theme="light"] body.gh-page .gh-section-title        { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-section-title span   { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-section-title::after {
+  background: linear-gradient(90deg, rgba(6,182,212,.35), transparent) !important;
+}
+
+/* Category filter */
+html[data-role-theme="light"] body.gh-page .gh-cat-btn {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-cat-btn:hover {
+  border-color: #0891b2 !important;
+  color: #0891b2 !important;
+  background: #f0fdfe !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-cat-btn.active {
+  background: linear-gradient(135deg, #cffafe, rgba(6,182,212,.12)) !important;
+  border-color: #0891b2 !important;
+  color: #0e7490 !important;
+}
+
+/* Game cards */
+html[data-role-theme="light"] body.gh-page .gh-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-card:hover {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 8px 28px rgba(6,182,212,.18) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-card-name   { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-card-cat    { color: #64748b !important; }
+html[data-role-theme="light"] body.gh-page .gh-card-level  { color: #94a3b8 !important; }
+html[data-role-theme="light"] body.gh-page .gh-card-level strong { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-card-lvl-bar { background: #e2e8f0 !important; }
+html[data-role-theme="light"] body.gh-page .gh-card-footer {
+  border-color: #e2e8f0 !important;
+  background: #fafcff !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-card-coins  { color: #334155 !important; }
+
+/* Side panels */
+html[data-role-theme="light"] body.gh-page .gh-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-panel-head {
+  border-color: #e2e8f0 !important;
+  background: #fafcff !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-panel-head h3   { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-panel-head small { color: #64748b !important; }
+
+/* Leaderboard */
+html[data-role-theme="light"] body.gh-page .gh-lb-row { border-color: #f1f5f9 !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-row.is-me { background: rgba(6,182,212,.07) !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-name  { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-name small { color: #64748b !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-coins { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-empty { color: #94a3b8 !important; }
+html[data-role-theme="light"] body.gh-page .gh-lb-rank.rn { background: #f1f5f9 !important; color: #64748b !important; }
+
+/* Achievements */
+html[data-role-theme="light"] body.gh-page .gh-ach.earned {
+  background: linear-gradient(135deg, rgba(6,182,212,.15), rgba(6,182,212,.05)) !important;
+  border-color: rgba(6,182,212,.4) !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-ach.locked {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+html[data-role-theme="light"] body.gh-page .gh-ach-legend { color: #64748b !important; }
+html[data-role-theme="light"] body.gh-page .gh-ach-legend b { color: #0891b2 !important; }
+
+/* Recent sessions */
+html[data-role-theme="light"] body.gh-page .gh-sess-row   { border-color: #f1f5f9 !important; }
+html[data-role-theme="light"] body.gh-page .gh-sess-name  { color: #0f172a !important; }
+html[data-role-theme="light"] body.gh-page .gh-sess-time  { color: #94a3b8 !important; }
+html[data-role-theme="light"] body.gh-page .gh-sess-score { color: #0891b2 !important; }
+html[data-role-theme="light"] body.gh-page .gh-sess-empty { color: #94a3b8 !important; }
+
+/* Empty grid */
+html[data-role-theme="light"] body.gh-page .gh-empty { color: #94a3b8 !important; }
+
+/* =====================================================================
+   SIDEBAR GAMES BUTTON — light mode
+   ===================================================================== */
+html[data-role-theme="light"] .sidebar-games-btn {
+  background: linear-gradient(135deg, rgba(99,102,241,.1), rgba(139,92,246,.07)) !important;
+  border-color: rgba(99,102,241,.25) !important;
+}
+html[data-role-theme="light"] .sidebar-games-btn:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(139,92,246,.12)) !important;
+  border-color: rgba(99,102,241,.45) !important;
+}
+html[data-role-theme="light"] .sidebar-games-btn .si-ico { color: #6d28d9 !important; }
+html[data-role-theme="light"] .sidebar-games-btn .si-text {
+  color: #5b21b6 !important;
+  font-weight: 700 !important;
+}
+html[data-role-theme="light"] .sidebar-games-btn.active {
+  background: linear-gradient(135deg, rgba(99,102,241,.2), rgba(139,92,246,.14)) !important;
+  border-color: rgba(99,102,241,.5) !important;
+}
+html[data-role-theme="light"] .sidebar-games-btn .si-ico i {
+  animation: gamesIconPulse 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(109,40,217,.35)) !important;
+}
+
+/* =====================================================================
+   GAME SETTINGS, SUPER-ADMIN, QUESTIONS pages
+   (these templates have inline light-mode CSS but may miss some elements)
+   ===================================================================== */
+html[data-role-theme="light"] body.game-settings-page,
+html[data-role-theme="light"] body.game-super-admin-page,
+html[data-role-theme="light"] body.game-questions-page {
+  background: #f0f4f8 !important;
+}
+
+/* Card borders that might still look dark */
+html[data-role-theme="light"] body.game-settings-page .gs-card,
+html[data-role-theme="light"] body.game-super-admin-page .gs-card,
+html[data-role-theme="light"] body.game-questions-page .gq-card {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,.09) !important;
+  color: #0f172a !important;
+}

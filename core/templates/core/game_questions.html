@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}game-questions-page{% endblock %}
+{% block title %}O'yin Savollari | Boshqaruv{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --bg: #020617; --card: rgba(15,23,42,.6); --border: rgba(255,255,255,.08);
+  --text: #f8fafc; --muted: #94a3b8; --primary: #3b82f6;
+  --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --r: 16px;
+}
+html[data-role-theme="light"] {
+  --bg: #f0f4f8; --card: rgba(255,255,255,.9); --border: rgba(0,0,0,.1);
+  --text: #0f172a; --muted: #64748b;
+}
+body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,sans-serif; min-height: 100vh; }
+
+.gq-topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(2,6,23,.85); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+}
+html[data-role-theme="light"] .gq-topbar { background: rgba(240,244,248,.9); }
+.gq-back {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(255,255,255,.07); border: 1px solid var(--border);
+  color: var(--muted); display: grid; place-items: center;
+  text-decoration: none; transition: .2s; font-size: 14px; flex-shrink: 0;
+}
+.gq-back:hover { background: rgba(255,255,255,.14); color: #fff; }
+.gq-page-title { font-size: 18px; font-weight: 800; flex: 1; }
+
+.gq-wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+/* Games grid */
+.gq-games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.gq-game-card {
+  background: var(--card); border: 2px solid var(--border);
+  border-radius: var(--r); padding: 16px; cursor: pointer;
+  transition: all .2s; position: relative;
+}
+.gq-game-card:hover, .gq-game-card.active {
+  border-color: var(--primary); background: rgba(59,130,246,.08);
+}
+.gq-card-emoji { font-size: 32px; margin-bottom: 8px; }
+.gq-card-name { font-size: 14px; font-weight: 700; }
+.gq-card-slug { font-size: 11px; color: var(--muted); font-family: monospace; }
+.gq-card-count {
+  margin-top: 8px; font-size: 12px; color: var(--muted);
+  padding-top: 8px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.gq-count-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.gq-count-badge.db { background: rgba(59,130,246,.15); color: var(--primary); }
+.gq-count-badge.ai { background: rgba(245,158,11,.15); color: var(--yellow); }
+
+/* Questions panel */
+.gq-panel {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.gq-panel-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.gq-panel-title { font-size: 16px; font-weight: 800; }
+.gq-panel-actions { display: flex; gap: 8px; }
+.gq-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.gq-btn.primary { background: var(--primary); color: #fff; }
+.gq-btn.ai { background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff; }
+.gq-btn.danger { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+.gq-btn:hover { transform: translateY(-1px); }
+
+/* Questions list */
+.gq-list { max-height: 520px; overflow-y: auto; }
+.gq-q-item {
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.gq-q-item:last-child { border-bottom: none; }
+.gq-q-num { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 24px; padding-top: 2px; }
+.gq-q-body { flex: 1; min-width: 0; }
+.gq-q-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.gq-q-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.gq-q-opt {
+  font-size: 12px; padding: 2px 8px; border-radius: 6px;
+  background: rgba(255,255,255,.06); border: 1px solid var(--border);
+}
+.gq-q-opt.correct { background: rgba(16,185,129,.15); border-color: var(--green); color: var(--green); }
+.gq-q-tf { font-size: 13px; font-weight: 700; }
+.gq-q-tf.t { color: var(--green); }
+.gq-q-tf.f { color: var(--red); }
+.gq-ai-badge {
+  font-size: 10px; font-weight: 700; background: rgba(245,158,11,.15);
+  color: var(--yellow); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+}
+.gq-q-del {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: rgba(239,68,68,.1); color: var(--red);
+  cursor: pointer; font-size: 14px; display: grid; place-items: center; flex-shrink: 0;
+  transition: background .2s;
+}
+.gq-q-del:hover { background: rgba(239,68,68,.25); }
+
+.gq-empty { padding: 48px 24px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Default questions (read-only) */
+.gq-defaults-section { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.gq-defaults-label { font-size: 12px; color: var(--muted); font-weight: 700; padding: 6px 20px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Tabs */
+.gq-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 20px; }
+.gq-tab {
+  padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  border-bottom: 2px solid transparent; color: var(--muted); transition: all .2s;
+}
+.gq-tab.active { border-color: var(--primary); color: var(--text); }
+
+/* AI modal */
+.gq-modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  z-index: 9000; display: none; place-items: center;
+}
+.gq-modal-bg.open { display: grid; }
+.gq-modal {
+  background: #0f172a; border: 1px solid var(--border);
+  border-radius: var(--r); padding: 28px; width: 100%; max-width: 440px;
+  margin: 16px;
+}
+html[data-role-theme="light"] .gq-modal { background: #fff; }
+.gq-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+.gq-form-row { margin-bottom: 14px; }
+.gq-form-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; display: block; }
+.gq-form-input {
+  width: 100%; background: rgba(255,255,255,.06); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px;
+  box-sizing: border-box;
+}
+html[data-role-theme="light"] .gq-form-input { background: rgba(0,0,0,.04); color: var(--text); }
+.gq-modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+.gq-ai-progress { margin-top: 12px; font-size: 13px; color: var(--muted); display: none; }
+
+/* Toast */
+.gq-toast {
+  position: fixed; bottom: 28px; right: 24px; z-index: 9999;
+  background: #1e293b; border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 18px;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  opacity: 0; transform: translateY(10px); transition: all .3s; pointer-events: none;
+}
+.gq-toast.show { opacity: 1; transform: translateY(0); }
+.gq-toast.ok { border-color: var(--green); }
+.gq-toast.err { border-color: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gq-topbar">
+  <a class="gq-back" href="{% url 'core:game_settings' %}"><i class="fa-solid fa-arrow-left"></i></a>
+  <div class="gq-page-title">📚 O'yin Savollari Boshqaruvi</div>
+</div>
+
+<div class="gq-wrap">
+
+  <!-- Games grid -->
+  <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">O'yin tanlang</div>
+  <div class="gq-games-grid" id="gq-games-grid">
+    {% for g in games_info %}
+    <div class="gq-game-card" id="gcard-{{ g.slug }}" onclick="selectGame('{{ g.slug }}')">
+      <div class="gq-card-emoji">{{ g.emoji }}</div>
+      <div class="gq-card-name">{{ g.name }}</div>
+      <div class="gq-card-slug">{{ g.slug }}</div>
+      <div class="gq-card-count">
+        {% if g.db_count %}<span class="gq-count-badge db">{{ g.db_count }} DB</span>{% endif %}
+        {% if g.ai_count %}<span class="gq-count-badge ai">{{ g.ai_count }} AI</span>{% endif %}
+        {% if not g.db_count %}<span style="font-size:11px;color:var(--muted)">Faqat standart</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Questions panel (hidden until game selected) -->
+  <div class="gq-panel" id="gq-panel" style="display:none;">
+    <div class="gq-panel-header">
+      <div>
+        <div class="gq-panel-title" id="gq-panel-title">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="gq-panel-sub">—</div>
+      </div>
+      <div class="gq-panel-actions">
+        <button class="gq-btn ai" onclick="openAIModal()">🤖 AI bilan yaratish</button>
+      </div>
+    </div>
+
+    <div class="gq-tabs">
+      <div class="gq-tab active" id="tab-db" onclick="switchTab('db')">Markazga xos savollar</div>
+      <div class="gq-tab" id="tab-def" onclick="switchTab('def')">Standart savollar</div>
+    </div>
+
+    <div id="gq-db-pane">
+      <div class="gq-list" id="gq-db-list"><div class="gq-empty">Yuklanmoqda...</div></div>
+    </div>
+
+    <div id="gq-def-pane" style="display:none;">
+      <div class="gq-list" id="gq-def-list"><div class="gq-empty">Yuklanmoqda...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- AI Generation Modal -->
+<div class="gq-modal-bg" id="gq-modal-bg">
+  <div class="gq-modal">
+    <div class="gq-modal-title">🤖 AI bilan savollar yaratish</div>
+    <div class="gq-form-row">
+      <label class="gq-form-label">Nechta savol yaratilsin?</label>
+      <input class="gq-form-input" type="number" id="ai-count" value="10" min="1" max="30">
+    </div>
+    <div class="gq-form-row">
+      <label class="gq-form-label">Daraja (Level)</label>
+      <input class="gq-form-input" type="number" id="ai-level" value="1" min="1" max="9">
+    </div>
+    <div class="gq-ai-progress" id="ai-progress">⏳ AI savollar yaratmoqda, kuting...</div>
+    <div class="gq-modal-btns">
+      <button class="gq-btn ai" id="ai-gen-btn" onclick="runAIGenerate()">✨ Yaratish</button>
+      <button class="gq-btn danger" onclick="closeAIModal()">Bekor qilish</button>
+    </div>
+  </div>
+</div>
+
+<div class="gq-toast" id="gq-toast"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+"use strict";
+
+let currentSlug = null;
+let currentTab = "db";
+
+const GAME_CONFIGS = {{ game_configs_json|safe }};
+
+function getCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : "";
+}
+
+function toast(msg, ok) {
+  const t = document.getElementById("gq-toast");
+  t.textContent = msg;
+  t.className = "gq-toast " + (ok ? "ok" : "err") + " show";
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+window.selectGame = function(slug) {
+  currentSlug = slug;
+  document.querySelectorAll(".gq-game-card").forEach(c => c.classList.remove("active"));
+  const card = document.getElementById("gcard-" + slug);
+  if (card) card.classList.add("active");
+
+  const cfg = GAME_CONFIGS[slug] || {};
+  document.getElementById("gq-panel").style.display = "block";
+  document.getElementById("gq-panel-title").textContent = (cfg.emoji || "") + " " + (cfg.name || slug);
+
+  loadQuestions(slug);
+  switchTab(currentTab);
+
+  // Scroll to panel
+  setTimeout(() => {
+    document.getElementById("gq-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 100);
+};
+
+function loadQuestions(slug) {
+  document.getElementById("gq-db-list").innerHTML = '<div class="gq-empty">Yuklanmoqda...</div>';
+  document.getElementById("gq-def-list").innerHTML = '<div class="gq-empty">Yuklanmoqda...</div>';
+
+  fetch("/api/games/" + slug + "/questions/manage/", { credentials: "same-origin" })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d) { toast("Server xatosi", false); return; }
+      document.getElementById("gq-panel-sub").textContent =
+        d.db_count + " ta maxsus savol, " + d.default_count + " ta standart savol";
+      renderDBList(d.db_questions || []);
+      renderDefList(d.default_questions || []);
+    })
+    .catch(() => toast("Yuklab bo'lmadi", false));
+}
+
+function renderDBList(questions) {
+  const el = document.getElementById("gq-db-list");
+  if (!questions.length) {
+    el.innerHTML = '<div class="gq-empty">Hozircha maxsus savollar yo\'q.<br>AI yordamida yarating yoki qo\'lda qo\'shing.</div>';
+    return;
+  }
+  el.innerHTML = questions.map((q, i) => renderQItem(q, i, true)).join("");
+}
+
+function renderDefList(questions) {
+  const el = document.getElementById("gq-def-list");
+  if (!questions.length) {
+    el.innerHTML = '<div class="gq-empty">Bu o\'yin uchun standart savollar mavjud emas.</div>';
+    return;
+  }
+  el.innerHTML = questions.map((q, i) => renderQItem(q, i, false)).join("");
+}
+
+function renderQItem(q, i, canDelete) {
+  const qd = q.question_data || q;
+  let body = "";
+  if (qd.a === true || qd.a === false) {
+    // True/False
+    body = '<div class="gq-q-text">' + escHtml(qd.q || "—") + '</div>'
+         + '<div class="gq-q-tf ' + (qd.a ? "t" : "f") + '">' + (qd.a ? "✅ Ha (To'g'ri)" : "❌ Yo'q (Noto'g'ri)") + '</div>';
+  } else if (qd.opts) {
+    const opts = qd.opts.map((opt, oi) =>
+      '<span class="gq-q-opt' + (oi === qd.a ? " correct" : "") + '">' + escHtml(opt) + '</span>'
+    ).join("");
+    body = '<div class="gq-q-text">' + escHtml(qd.q || "—")
+         + (q.is_ai_generated ? '<span class="gq-ai-badge">AI</span>' : "") + '</div>'
+         + '<div class="gq-q-opts">' + opts + '</div>';
+  } else {
+    body = '<div class="gq-q-text">' + escHtml(JSON.stringify(qd)) + '</div>';
+  }
+
+  const delBtn = canDelete && q.id
+    ? '<button class="gq-q-del" onclick="deleteQ(' + q.id + ')" title="O\'chirish"><i class="fa-solid fa-trash-can"></i></button>'
+    : "";
+
+  return '<div class="gq-q-item"><div class="gq-q-num">' + (i + 1) + '</div><div class="gq-q-body">' + body + '</div>' + delBtn + '</div>';
+}
+
+window.deleteQ = function(id) {
+  if (!currentSlug || !confirm("Bu savolni o'chirmoqchimisiz?")) return;
+  fetch("/api/games/" + currentSlug + "/questions/manage/", {
+    method: "DELETE", credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+    body: JSON.stringify({ id }),
+  }).then(r => r.ok ? r.json() : {ok: false})
+    .then(d => {
+      if (d.ok) { toast("O'chirildi ✓", true); loadQuestions(currentSlug); }
+      else toast("Xatolik", false);
+    });
+};
+
+window.switchTab = function(tab) {
+  currentTab = tab;
+  document.getElementById("tab-db").className = "gq-tab" + (tab === "db" ? " active" : "");
+  document.getElementById("tab-def").className = "gq-tab" + (tab === "def" ? " active" : "");
+  document.getElementById("gq-db-pane").style.display = tab === "db" ? "block" : "none";
+  document.getElementById("gq-def-pane").style.display = tab === "def" ? "block" : "none";
+};
+
+// ── AI Modal ─────────────────────────────────────────────────────
+window.openAIModal = function() {
+  if (!currentSlug) { toast("Avval o'yin tanlang", false); return; }
+  document.getElementById("gq-modal-bg").classList.add("open");
+  document.getElementById("ai-progress").style.display = "none";
+  document.getElementById("ai-gen-btn").disabled = false;
+};
+window.closeAIModal = function() { document.getElementById("gq-modal-bg").classList.remove("open"); };
+
+window.runAIGenerate = function() {
+  const count = parseInt(document.getElementById("ai-count").value) || 10;
+  const level = parseInt(document.getElementById("ai-level").value) || 1;
+  const prog = document.getElementById("ai-progress");
+  const btn = document.getElementById("ai-gen-btn");
+  prog.style.display = "block";
+  btn.disabled = true;
+
+  fetch("/api/games/" + currentSlug + "/questions/ai-generate/", {
+    method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+    body: JSON.stringify({ count, level }),
+  })
+    .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.error || "server xatosi"); }))
+    .then(d => {
+      prog.style.display = "none";
+      btn.disabled = false;
+      closeAIModal();
+      toast("✅ " + d.count + " ta savol yaratildi!", true);
+      loadQuestions(currentSlug);
+      // Update card count badge
+      updateCardBadge(currentSlug);
+    })
+    .catch(e => {
+      prog.style.display = "none";
+      btn.disabled = false;
+      toast("❌ " + e.message, false);
+    });
+};
+
+function updateCardBadge(slug) {
+  fetch("/api/games/" + slug + "/questions/manage/", { credentials: "same-origin" })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d) return;
+      const card = document.getElementById("gcard-" + slug);
+      if (!card) return;
+      const countEl = card.querySelector(".gq-card-count");
+      if (!countEl) return;
+      let html = "";
+      if (d.db_count) html += '<span class="gq-count-badge db">' + d.db_count + ' DB</span>';
+      if (d.db_questions && d.db_questions.filter(q => q.is_ai_generated).length)
+        html += '<span class="gq-count-badge ai">' + d.db_questions.filter(q => q.is_ai_generated).length + ' AI</span>';
+      if (!d.db_count) html += '<span style="font-size:11px;color:var(--muted)">Faqat standart</span>';
+      countEl.innerHTML = html;
+    });
+}
+
+// Close modal on backdrop click
+document.getElementById("gq-modal-bg").addEventListener("click", function(e) {
+  if (e.target === this) closeAIModal();
+});
+
+function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+})();
+</script>
+{% endblock %}

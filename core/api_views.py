@@ -1,9 +1,12 @@
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg
+from django.db import models as db_models
+from django.db.models import Avg, Q
 from django.utils import timezone
+import json
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -1153,3 +1156,974 @@ def parent_panel_child_payments_api(request, child_pk: int):
         "payment_status": "debt" if debt > 0 else "paid",
         "payments": payments_list,
     })
+
+
+# ─────────────────────── Student Games API ───────────────────────────────────
+
+_GAME_CONFIGS = {
+    # Matematik
+    "math_sprint":      {"name": "Math Sprint",        "emoji": "🧮", "max_coins": 15, "min_score": 5,  "coins_per_correct": True},
+    "times_table":      {"name": "Ko'paytirish",        "emoji": "📊", "max_coins": 12, "min_score": 5,  "coins_per_correct": True},
+    "number_sequence":  {"name": "Ketma-ketlik",        "emoji": "🧩", "max_coins": 12, "min_score": 4,  "coins_per_correct": True},
+    # Til
+    "english_words":    {"name": "Inglizcha So'zlar",  "emoji": "🔡", "max_coins": 12, "min_score": 4,  "coins_per_correct": True},
+    "word_scramble":    {"name": "So'z Tartibi",       "emoji": "🔤", "max_coins": 10, "min_score": 4,  "coins_per_correct": True},
+    # Geografiya
+    "geography_quiz":   {"name": "Geografiya",          "emoji": "🌍", "max_coins": 15, "min_score": 4,  "coins_per_correct": True},
+    # Fan
+    "science_quiz":     {"name": "Fan Savollari",       "emoji": "🔬", "max_coins": 15, "min_score": 4,  "coins_per_correct": True},
+    "shapes_quiz":      {"name": "Geometriya",          "emoji": "📐", "max_coins": 10, "min_score": 4,  "coins_per_correct": True},
+    # Umumiy bilim
+    "quick_quiz":       {"name": "Tez Bilim",           "emoji": "⚡", "max_coins": 15, "min_score": 4,  "coins_per_correct": True},
+    # Xotira
+    "memory_match":     {"name": "Memory Match",        "emoji": "🧠", "max_coins": 10, "min_score": 1,  "coins_per_correct": False},
+    # Mantiq o'yinlari
+    "chess":            {"name": "Shaxmat",             "emoji": "♟",  "max_coins": 20, "min_score": 1,  "coins_per_correct": False},
+    "checkers":         {"name": "Shashka",             "emoji": "🔴", "max_coins": 15, "min_score": 1,  "coins_per_correct": False},
+    # Bilim testlari
+    "true_false":       {"name": "Rost yoki Yolg'on?",  "emoji": "✅", "max_coins": 12, "min_score": 6,  "coins_per_correct": False},
+    "formula_fill":     {"name": "Formula To'ldirish",  "emoji": "🔢", "max_coins": 15, "min_score": 5,  "coins_per_correct": True},
+    "crossword":        {"name": "Krossvord",            "emoji": "📝", "max_coins": 15, "min_score": 3,  "coins_per_correct": True},
+}
+
+
+def _get_game_center_cfg(center):
+    """Return {slug: CenterGameConfig} for a center (cached per request cycle)."""
+    from core.models import CenterGameConfig
+    return {cc.game_slug: cc for cc in CenterGameConfig.objects.filter(center=center)}
+
+
+def _get_global_game_cfg():
+    """Return set of globally-disabled game slugs."""
+    from core.models import GlobalGameConfig
+    return set(GlobalGameConfig.objects.filter(is_enabled=False).values_list("game_slug", flat=True))
+
+
+def _resolve_game_cfg(slug, default_cfg, center_cfg_map, global_disabled):
+    """Return effective (max_coins, min_score, is_enabled) for a game."""
+    if slug in global_disabled:
+        return None  # globally disabled
+    cc = center_cfg_map.get(slug)
+    if cc and not cc.is_enabled:
+        return None  # center disabled
+    max_coins = (cc.max_coins if cc and cc.max_coins > 0 else default_cfg["max_coins"])
+    min_score = (cc.min_score if cc and cc.min_score > 0 else default_cfg["min_score"])
+    return {"max_coins": max_coins, "min_score": min_score}
+
+
+@login_required
+@require_GET
+def student_game_status_api(request):
+    """Return list of active games with today's earned status + student level."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from core.models import GameSession, StudentGameProgress
+    user = request.user
+    center = _sp_center(request)
+    today = timezone.localdate()
+
+    global_disabled = _get_global_game_cfg()
+    center_cfg_map = _get_game_center_cfg(center)
+
+    earned_today = set(
+        GameSession.objects.filter(
+            student=user, center=center,
+            coins_earned__gt=0,
+            played_at__date=today,
+        ).values_list("game_slug", flat=True)
+    )
+
+    progress_map = {
+        p.game_slug: p.current_level
+        for p in StudentGameProgress.objects.filter(center=center, student=user)
+    }
+
+    recent = (
+        GameSession.objects.filter(student=user, center=center)
+        .order_by("-played_at")[:10]
+        .values("game_slug", "score", "coins_earned", "played_at")
+    )
+    recent_list = [
+        {
+            "game_slug": s["game_slug"],
+            "game_name": _GAME_CONFIGS.get(s["game_slug"], {}).get("name", s["game_slug"]),
+            "score": s["score"],
+            "coins_earned": s["coins_earned"],
+            "played_at": s["played_at"].isoformat(),
+        }
+        for s in recent
+    ]
+
+    games = []
+    for slug, cfg in _GAME_CONFIGS.items():
+        eff = _resolve_game_cfg(slug, cfg, center_cfg_map, global_disabled)
+        if eff is None:
+            continue
+        games.append({
+            "slug": slug,
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "max_coins": eff["max_coins"],
+            "earned_today": slug in earned_today,
+            "current_level": progress_map.get(slug, 1),
+        })
+
+    return JsonResponse({"games": games, "recent": recent_list})
+
+
+@login_required
+@require_POST
+def student_game_result_api(request):
+    """Submit game result; award 1 ball if eligible (max once per day per game)."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    game_slug = str(data.get("game_slug", ""))
+    score = max(0, int(data.get("score", 0)))
+    duration_sec = max(0, int(data.get("duration_sec", 0)))
+    level = max(1, int(data.get("level", 1)))
+
+    config = _GAME_CONFIGS.get(game_slug)
+    if not config:
+        return JsonResponse({"error": "Unknown game"}, status=400)
+
+    from core.models import GameSession, StudentBallsWallet, StudentGameProgress
+
+    user = request.user
+    center = _sp_center(request)
+    today = timezone.localdate()
+
+    global_disabled = _get_global_game_cfg()
+    center_cfg_map = _get_game_center_cfg(center)
+    eff = _resolve_game_cfg(game_slug, config, center_cfg_map, global_disabled)
+    if eff is None:
+        return JsonResponse({"error": "Game disabled"}, status=403)
+
+    effective_min_score = eff["min_score"]
+    total_games = len(_GAME_CONFIGS)
+
+    already_ball = GameSession.objects.filter(
+        student=user,
+        game_slug=game_slug,
+        balls_earned=1,
+        played_at__date=today,
+    ).exists()
+
+    daily_unique_games = GameSession.objects.filter(
+        student=user,
+        balls_earned=1,
+        played_at__date=today,
+    ).values("game_slug").distinct().count()
+
+    ball = 0
+    if not already_ball and score >= effective_min_score and daily_unique_games < total_games:
+        ball = 1
+        wallet, _ = StudentBallsWallet.objects.get_or_create(
+            center=center, student=user,
+            defaults={"total_balls": 0, "lifetime_balls": 0},
+        )
+        wallet.total_balls += 1
+        wallet.lifetime_balls += 1
+        wallet.last_ball_at = timezone.now()
+        wallet.save(update_fields=["total_balls", "lifetime_balls", "last_ball_at"])
+
+    GameSession.objects.create(
+        center=center,
+        student=user,
+        game_slug=game_slug,
+        score=score,
+        level=level,
+        duration_sec=duration_sec,
+        coins_earned=0,
+        balls_earned=ball,
+    )
+
+    progress, _ = StudentGameProgress.objects.get_or_create(
+        center=center, student=user, game_slug=game_slug,
+        defaults={"current_level": 1, "best_score": 0, "total_sessions": 0},
+    )
+    progress.total_sessions += 1
+    if score > progress.best_score:
+        progress.best_score = score
+    level_up = False
+    if score >= effective_min_score and not already_ball:
+        if progress.current_level < 9:
+            progress.current_level += 1
+            level_up = True
+    progress.save(update_fields=["current_level", "best_score", "total_sessions", "updated_at"])
+
+    try:
+        wallet_obj = StudentBallsWallet.objects.get(center=center, student=user)
+        total_balls = wallet_obj.total_balls
+    except StudentBallsWallet.DoesNotExist:
+        total_balls = 0
+
+    return JsonResponse({
+        "ok": True,
+        "balls_earned": ball,
+        "already_earned_today": already_ball,
+        "daily_balls": daily_unique_games + (1 if ball else 0),
+        "total_balls": total_balls,
+        "total_games": total_games,
+        "new_level": progress.current_level,
+        "level_up": level_up,
+    })
+
+
+@login_required
+@require_POST
+def game_convert_balls_api(request):
+    """Convert accumulated balls to chaqmoq (once per eligibility)."""
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    from core.models import StudentBallsWallet, GameBallsConfig, GameBallsConversionLog
+    from chaqmoq.models import Ledger
+
+    user = request.user
+    center = _sp_center(request)
+
+    config, _ = GameBallsConfig.objects.get_or_create(
+        center=center,
+        defaults={"min_balls_to_convert": 100, "chaqmoq_per_conversion": 5},
+    )
+
+    wallet, _ = StudentBallsWallet.objects.get_or_create(
+        center=center, student=user,
+        defaults={"total_balls": 0, "lifetime_balls": 0},
+    )
+
+    if wallet.total_balls < config.min_balls_to_convert:
+        return JsonResponse({
+            "ok": False,
+            "error": f"Yetarli ball yo'q. Kerak: {config.min_balls_to_convert}, Sizda: {wallet.total_balls}",
+            "total_balls": wallet.total_balls,
+            "min_balls": config.min_balls_to_convert,
+        }, status=400)
+
+    wallet.total_balls -= config.min_balls_to_convert
+    wallet.save(update_fields=["total_balls"])
+
+    Ledger.objects.create(
+        student=user,
+        beruvchi=None,
+        rule=None,
+        rule_nom=f"🎮 O'yin bali: {config.min_balls_to_convert} ball → {config.chaqmoq_per_conversion} ⚡",
+        ball=config.chaqmoq_per_conversion,
+        sana=timezone.now(),
+    )
+
+    GameBallsConversionLog.objects.create(
+        center=center, student=user,
+        balls_spent=config.min_balls_to_convert,
+        chaqmoq_earned=config.chaqmoq_per_conversion,
+    )
+
+    from chaqmoq.views import _get_balances_with_legacy_fallback
+    new_balance = _get_balances_with_legacy_fallback([user.id], center=center).get(user.id, 0)
+
+    return JsonResponse({
+        "ok": True,
+        "balls_spent": config.min_balls_to_convert,
+        "chaqmoq_earned": config.chaqmoq_per_conversion,
+        "remaining_balls": wallet.total_balls,
+        "new_chaqmoq_balance": int(new_balance or 0),
+    })
+
+
+@login_required
+@require_POST
+def game_balls_config_api(request):
+    """Save GameBallsConfig for a center (director/manager only)."""
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    min_balls = max(1, int(data.get("min_balls_to_convert", 100)))
+    chaqmoq = max(1, int(data.get("chaqmoq_per_conversion", 5)))
+
+    from core.models import GameBallsConfig
+    center = _sp_center(request)
+    if not center:
+        return JsonResponse({"error": "No center"}, status=400)
+
+    cfg, _ = GameBallsConfig.objects.get_or_create(
+        center=center,
+        defaults={"min_balls_to_convert": min_balls, "chaqmoq_per_conversion": chaqmoq},
+    )
+    cfg.min_balls_to_convert = min_balls
+    cfg.chaqmoq_per_conversion = chaqmoq
+    cfg.save(update_fields=["min_balls_to_convert", "chaqmoq_per_conversion", "updated_at"])
+
+    return JsonResponse({"ok": True, "min_balls_to_convert": min_balls, "chaqmoq_per_conversion": chaqmoq})
+
+
+# ══════════════════════════════════════════════════════════════════
+#  GAME MANAGEMENT APIs
+# ══════════════════════════════════════════════════════════════════
+
+@login_required
+def game_config_api(request):
+    """GET: list all games + center config. POST: save center game config."""
+    from core.models import GlobalGameConfig, CenterGameConfig, GameSuggestion
+
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    center = _sp_center(request)
+
+    if request.method == "GET":
+        global_disabled = _get_global_game_cfg()
+        center_cfgs = {cc.game_slug: cc for cc in CenterGameConfig.objects.filter(center=center)}
+        result = []
+        for slug, cfg in _GAME_CONFIGS.items():
+            cc = center_cfgs.get(slug)
+            result.append({
+                "slug": slug,
+                "name": cfg["name"],
+                "emoji": cfg["emoji"],
+                "max_coins_default": cfg["max_coins"],
+                "min_score_default": cfg["min_score"],
+                "is_globally_enabled": slug not in global_disabled,
+                "is_center_enabled": cc.is_enabled if cc else True,
+                "center_max_coins": cc.max_coins if cc else 0,
+                "center_min_score": cc.min_score if cc else 0,
+            })
+        suggestions = list(
+            GameSuggestion.objects.filter(center=center)
+            .select_related("student")
+            .values(
+                "id", "game_name", "description", "is_reviewed",
+                "created_at", "student__first_name", "student__last_name",
+            )[:50]
+        )
+        return JsonResponse({"games": result, "suggestions": suggestions})
+
+    # POST — save single game config
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    slug = str(data.get("slug", ""))
+    if slug not in _GAME_CONFIGS:
+        return JsonResponse({"error": "Unknown game"}, status=400)
+
+    cc, _ = CenterGameConfig.objects.get_or_create(center=center, game_slug=slug)
+    if "is_enabled" in data:
+        cc.is_enabled = bool(data["is_enabled"])
+    if "max_coins" in data:
+        cc.max_coins = max(0, int(data["max_coins"]))
+    if "min_score" in data:
+        cc.min_score = max(0, int(data["min_score"]))
+    cc.updated_by = u
+    cc.save()
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def global_game_config_api(request):
+    """GET: list global game states. POST: toggle global enabled. Super admin only."""
+    from core.models import GlobalGameConfig
+
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    if request.method == "GET":
+        existing = {g.game_slug: g.is_enabled for g in GlobalGameConfig.objects.all()}
+        result = [
+            {
+                "slug": slug,
+                "name": cfg["name"],
+                "emoji": cfg["emoji"],
+                "is_enabled": existing.get(slug, True),
+            }
+            for slug, cfg in _GAME_CONFIGS.items()
+        ]
+        return JsonResponse({"games": result})
+
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    slug = str(data.get("slug", ""))
+    if slug not in _GAME_CONFIGS:
+        return JsonResponse({"error": "Unknown game"}, status=400)
+
+    gc, _ = GlobalGameConfig.objects.get_or_create(game_slug=slug)
+    gc.is_enabled = bool(data.get("is_enabled", True))
+    gc.save()
+    return JsonResponse({"ok": True, "is_enabled": gc.is_enabled})
+
+
+@login_required
+@require_POST
+def game_suggestion_api(request):
+    """Student: submit a game suggestion."""
+    from core.models import GameSuggestion
+
+    err = _sp_student_only(request)
+    if err:
+        return err
+
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    game_name = str(data.get("game_name", "")).strip()[:100]
+    description = str(data.get("description", "")).strip()[:500]
+    if not game_name:
+        return JsonResponse({"error": "game_name required"}, status=400)
+
+    center = _sp_center(request)
+    GameSuggestion.objects.create(
+        center=center, student=request.user,
+        game_name=game_name, description=description,
+    )
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def game_suggestion_review_api(request, pk):
+    """Director/Manager: mark a suggestion as reviewed."""
+    from core.models import GameSuggestion
+
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    center = _sp_center(request)
+    try:
+        s = GameSuggestion.objects.get(pk=pk, center=center)
+    except GameSuggestion.DoesNotExist:
+        return JsonResponse({"error": "not found"}, status=404)
+
+    s.is_reviewed = True
+    s.save(update_fields=["is_reviewed"])
+    return JsonResponse({"ok": True})
+
+
+# ── Default question banks (fallback when no DB questions exist) ────────────
+_DEFAULT_QUESTIONS = {
+    "geography_quiz": [
+        {"q": "Frantsiyaning poytaxti?", "opts": ["Paris", "Rim", "Madrid", "Berlin"], "a": 0},
+        {"q": "Yaponiyaning poytaxti?", "opts": ["Pekin", "Tokio", "Seul", "Bangkok"], "a": 1},
+        {"q": "Braziliyaning poytaxti?", "opts": ["Rio de Janeyro", "San-Paulo", "Braziliya", "Buenos-Ayres"], "a": 2},
+        {"q": "Avstraliyaning poytaxti?", "opts": ["Sidney", "Melburn", "Kanberra", "Brisben"], "a": 2},
+        {"q": "Kanada poytaxti?", "opts": ["Toronto", "Monreal", "Vankuver", "Ottawa"], "a": 3},
+        {"q": "Rossiyaning poytaxti?", "opts": ["Moskva", "Sankt-Peterburg", "Novosibirsk", "Yekaterinburg"], "a": 0},
+        {"q": "Xitoyning poytaxti?", "opts": ["Shanxay", "Pekin", "Gonkong", "Chengdu"], "a": 1},
+        {"q": "Hindistonning poytaxti?", "opts": ["Mumbay", "Nyu-Delhi", "Kalkutta", "Bangalore"], "a": 1},
+        {"q": "Misrning poytaxti?", "opts": ["Aleksandriya", "Qohira", "Luxor", "Giza"], "a": 1},
+        {"q": "O'zbekistonning poytaxti?", "opts": ["Samarqand", "Buxoro", "Toshkent", "Namangan"], "a": 2},
+        {"q": "Germaniyaning poytaxti?", "opts": ["Myunxen", "Gamburg", "Frankfurt", "Berlin"], "a": 3},
+        {"q": "Italiyaning poytaxti?", "opts": ["Milan", "Venetsiya", "Rim", "Florentsiya"], "a": 2},
+        {"q": "Ispaniyaning poytaxti?", "opts": ["Barselona", "Valensiya", "Madrid", "Sevil"], "a": 2},
+        {"q": "Qozog'istonning poytaxti?", "opts": ["Olma-Ota", "Astana", "Shimkent", "Qaraganda"], "a": 1},
+        {"q": "Turkiyaning poytaxti?", "opts": ["Istanbul", "Izmir", "Anqara", "Bursa"], "a": 2},
+    ],
+    "english_words": [
+        {"q": "\"Kitob\" inglizcha?", "opts": ["Notebook", "Book", "Pen", "Paper"], "a": 1},
+        {"q": "\"Daraxt\" inglizcha?", "opts": ["Flower", "Grass", "Tree", "Leaf"], "a": 2},
+        {"q": "\"Maktab\" inglizcha?", "opts": ["Library", "Office", "School", "College"], "a": 2},
+        {"q": "\"Suv\" inglizcha?", "opts": ["Milk", "Water", "Juice", "Tea"], "a": 1},
+        {"q": "\"Uy\" inglizcha?", "opts": ["Room", "Garden", "House", "Street"], "a": 2},
+        {"q": "\"O'qituvchi\" inglizcha?", "opts": ["Student", "Teacher", "Doctor", "Driver"], "a": 1},
+        {"q": "\"Quyosh\" inglizcha?", "opts": ["Moon", "Star", "Cloud", "Sun"], "a": 3},
+        {"q": "\"Ot\" (hayvon) inglizcha?", "opts": ["Dog", "Cat", "Horse", "Cow"], "a": 2},
+        {"q": "\"Rang\" inglizcha?", "opts": ["Sound", "Shape", "Color", "Size"], "a": 2},
+        {"q": "\"Yil\" inglizcha?", "opts": ["Week", "Month", "Day", "Year"], "a": 3},
+        {"q": "\"Do'st\" inglizcha?", "opts": ["Enemy", "Friend", "Brother", "Sister"], "a": 1},
+        {"q": "\"Non\" inglizcha?", "opts": ["Rice", "Bread", "Cake", "Soup"], "a": 1},
+        {"q": "\"Havo\" inglizcha?", "opts": ["Water", "Fire", "Air", "Earth"], "a": 2},
+        {"q": "\"Bola\" inglizcha?", "opts": ["Man", "Woman", "Child", "Baby"], "a": 2},
+        {"q": "\"Kechqurun\" inglizcha?", "opts": ["Morning", "Afternoon", "Evening", "Night"], "a": 2},
+    ],
+    "science_quiz": [
+        {"q": "Suvning kimyoviy formulasi?", "opts": ["CO2", "H2O", "O2", "NaCl"], "a": 1},
+        {"q": "Quyosh sistemasidagi eng katta sayyora?", "opts": ["Saturn", "Yer", "Mars", "Yupiter"], "a": 3},
+        {"q": "Inson tanasida necha suyak bor?", "opts": ["106", "206", "306", "406"], "a": 1},
+        {"q": "Fotosintez uchun qaysi gaz kerak?", "opts": ["Kislorod", "Vodorod", "CO2", "Azot"], "a": 2},
+        {"q": "Yorug'lik tezligi taxminan?", "opts": ["100,000 km/s", "200,000 km/s", "300,000 km/s", "400,000 km/s"], "a": 2},
+        {"q": "DNA nima?", "opts": ["Protein", "Irsiy ma'lumot molekulasi", "Vitamin", "Ferment"], "a": 1},
+        {"q": "Yer o'z o'qi atrofida necha soatda aylanadi?", "opts": ["12", "24", "36", "48"], "a": 1},
+        {"q": "Eng yengil kimyoviy element?", "opts": ["Kislorod", "Geliy", "Vodorod", "Uglerod"], "a": 2},
+        {"q": "Qon guruhlarining turi nechta?", "opts": ["2", "3", "4", "5"], "a": 2},
+        {"q": "Osmon nima uchun ko'k?", "opts": ["Suv bug'i", "Yorug'lik tarqalishi", "Ozon", "Kislorod"], "a": 1},
+        {"q": "Magnetning qutblari nechtadan?", "opts": ["1", "2", "3", "4"], "a": 1},
+        {"q": "Yerga eng yaqin sayyora?", "opts": ["Mars", "Venus", "Merkuriy", "Saturn"], "a": 1},
+        {"q": "Issiqlik qanday o'lchanadi?", "opts": ["Metr", "Kilogramm", "Daraja Celsius", "Sekund"], "a": 2},
+        {"q": "Asal qaysi hayvon tomonidan yasaladi?", "opts": ["Kapalak", "Qo'ng'iz", "Ari", "Chivin"], "a": 2},
+        {"q": "Inson eshita oladigan tovush chastotasi?", "opts": ["20-200 Hz", "20-20,000 Hz", "200-2,000 Hz", "2-200 kHz"], "a": 1},
+    ],
+    "quick_quiz": [
+        {"q": "O'zbekiston mustaqilligini qachon oldi?", "opts": ["1990", "1991", "1992", "1993"], "a": 1},
+        {"q": "Bir yilda necha kun bor?", "opts": ["355", "360", "365", "370"], "a": 2},
+        {"q": "Eng katta okean?", "opts": ["Atlantika", "Hind", "Arktika", "Tinch okean"], "a": 3},
+        {"q": "Futbol jamoasida nechta futbolchi?", "opts": ["9", "10", "11", "12"], "a": 2},
+        {"q": "\"Cho'l kemasi\" deb qaysi hayvon ataladi?", "opts": ["Fil", "Zirafa", "Tuya", "Ot"], "a": 2},
+        {"q": "Pi (π) taxminiy qiymati?", "opts": ["2.71", "3.14", "1.41", "1.73"], "a": 1},
+        {"q": "Eng uzun daryo?", "opts": ["Amazon", "Nil", "Yangtze", "Mississippi"], "a": 1},
+        {"q": "Xona temperaturasida suyuq metal?", "opts": ["Temir", "Mis", "Simob", "Rux"], "a": 2},
+        {"q": "1 kilometr necha metr?", "opts": ["10", "100", "1000", "10000"], "a": 2},
+        {"q": "Dunyodagi eng baland tog'?", "opts": ["K2", "Elbrus", "Everest", "Kilimanjaro"], "a": 2},
+        {"q": "Shaxmat taxtasida nechta katak?", "opts": ["32", "48", "64", "81"], "a": 2},
+        {"q": "Bir daqiqada necha sekund?", "opts": ["30", "45", "60", "100"], "a": 2},
+        {"q": "Eng katta kontinent?", "opts": ["Afrika", "Amerika", "Yevropa", "Osiyo"], "a": 3},
+        {"q": "Inson yuragi 1 daqiqada necha marta uradi?", "opts": ["40", "60-80", "100-120", "140-160"], "a": 1},
+        {"q": "Dunyodagi eng katta cho'l?", "opts": ["Sahara", "Gobi", "Arabiston", "Antarktida"], "a": 3},
+    ],
+    "word_scramble": [
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["MATEMATICS", "MATHEMATICS", "MATHMATICS", "MATHEMATCS"], "a": 1},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["GEOGRAFY", "GEOGRAHY", "GEOGRAPHY", "GIOGRAPHY"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["BIOLOGIY", "BIOLOGI", "BIOLOGY", "BIOLOGHY"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["PHYSIC", "PHYICS", "PHYSYCS", "PHYSICS"], "a": 3},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["LITARATURE", "LITERTURE", "LITERATURE", "LITTERATURE"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["CHEMESTRY", "CHEMISTRY", "CHEMISTERY", "CHIMISTRY"], "a": 1},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["CALENDER", "CALANDAR", "CALENDAR", "CALANDER"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["RECIEVE", "RECEIVE", "RECEVE", "RECEEVE"], "a": 1},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["BELEIVE", "BELEEVE", "BELIEVE", "BILIEVE"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["BEGINING", "BEGINNING", "BEGGINING", "BEGININING"], "a": 1},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["GRAMMER", "GRAMMARR", "GRAMMAR", "GRAMAR"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["KNOWLEGE", "KNOWEDGE", "KNOLEDGE", "KNOWLEDGE"], "a": 3},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["WRITTING", "WRITNG", "WRITING", "WRITEING"], "a": 2},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["EXCELENT", "EXCELLENT", "EXCELLANT", "EXCILENT"], "a": 1},
+        {"q": "Qaysi so'z to'g'ri yozilgan?", "opts": ["NECESARY", "NECCESSARY", "NECESSARY", "NECESSERY"], "a": 2},
+    ],
+    "number_sequence": [
+        {"q": "2, 4, 6, 8, __?", "opts": ["9", "10", "11", "12"], "a": 1},
+        {"q": "1, 3, 5, 7, __?", "opts": ["8", "9", "10", "11"], "a": 1},
+        {"q": "2, 4, 8, 16, __?", "opts": ["24", "28", "32", "64"], "a": 2},
+        {"q": "1, 4, 9, 16, __?", "opts": ["20", "24", "25", "30"], "a": 2},
+        {"q": "1, 1, 2, 3, 5, __?", "opts": ["6", "7", "8", "9"], "a": 2},
+        {"q": "10, 20, 30, 40, __?", "opts": ["45", "48", "50", "55"], "a": 2},
+        {"q": "100, 50, 25, __?", "opts": ["10", "12", "12.5", "15"], "a": 2},
+        {"q": "3, 6, 9, 12, __?", "opts": ["14", "15", "16", "18"], "a": 1},
+        {"q": "1, 2, 4, 7, 11, __?", "opts": ["14", "15", "16", "17"], "a": 2},
+        {"q": "5, 10, 20, 40, __?", "opts": ["60", "70", "80", "100"], "a": 2},
+        {"q": "1, 8, 27, 64, __?", "opts": ["100", "125", "128", "256"], "a": 1},
+        {"q": "2, 3, 5, 7, 11, __?", "opts": ["12", "13", "14", "15"], "a": 1},
+        {"q": "0, 1, 3, 6, 10, __?", "opts": ["12", "13", "14", "15"], "a": 3},
+        {"q": "256, 128, 64, 32, __?", "opts": ["8", "12", "16", "24"], "a": 2},
+        {"q": "3, 9, 27, 81, __?", "opts": ["162", "243", "324", "405"], "a": 1},
+    ],
+    "shapes_quiz": [
+        {"q": "Uchburchak nechta tomonli?", "opts": ["2", "3", "4", "5"], "a": 1},
+        {"q": "Kvadratning burchaklari nechta?", "opts": ["2", "3", "4", "6"], "a": 2},
+        {"q": "Doira doimiyligi pi taxminan?", "opts": ["2.71", "3.14", "4.00", "1.73"], "a": 1},
+        {"q": "Kvadratning perimetri = ?", "opts": ["a^2", "4a", "2a", "a+4"], "a": 1},
+        {"q": "To'rtburchakning yuz formulasi?", "opts": ["a+b", "a*b", "2(a+b)", "a^2"], "a": 1},
+        {"q": "Doira yuzining formulasi?", "opts": ["pi*r", "pi*r^2", "2*pi*r", "pi*d"], "a": 1},
+        {"q": "Kubning nechta qirrasi bor?", "opts": ["6", "8", "10", "12"], "a": 3},
+        {"q": "Uchburchakning burchaklari yig'indisi?", "opts": ["90", "180", "270", "360"], "a": 1},
+        {"q": "Pifagor teoremasi: a^2 + b^2 = ?", "opts": ["c", "c^2", "2c", "c+1"], "a": 1},
+        {"q": "To'g'ri burchakli uchburchakdagi eng uzun tomon?", "opts": ["Katetlar", "Gipotenuza", "Median", "Balandlik"], "a": 1},
+    ],
+    "true_false": [
+        {"q": "Yer quyosh atrofida aylanadi", "a": True},
+        {"q": "Suvning formulasi H2O", "a": True},
+        {"q": "Afrikaning poytaxti Qohira", "a": False},
+        {"q": "Uchburchak burchaklari yig'indisi 180 daraja", "a": True},
+        {"q": "Eng katta okean Atlantika", "a": False},
+        {"q": "Pi (π) taxminan 3.14 ga teng", "a": True},
+        {"q": "Yorug'lik tovushdan sekin harakat qiladi", "a": False},
+        {"q": "O'zbekiston 1991-yilda mustaqil bo'ldi", "a": True},
+        {"q": "Inson tanasida 106 ta suyak bor", "a": False},
+        {"q": "Olmos tabiatdagi eng qattiq modda", "a": True},
+        {"q": "Quyosh sistemasida 8 ta sayyora bor", "a": True},
+        {"q": "Mis elektr tokini o'tkazmaydi", "a": False},
+        {"q": "Vodorod eng yengil kimyoviy element", "a": True},
+        {"q": "Braziliyaning poytaxti Rio de Janeyro", "a": False},
+        {"q": "1 kilometr = 1000 metr", "a": True},
+        {"q": "Shaxmat taxtasida 64 ta katak bor", "a": True},
+        {"q": "Quyosh yulduz hisoblanadi", "a": True},
+        {"q": "Oy Yerdan kichik", "a": True},
+        {"q": "Antarktida dunyodagi eng katta cho'l", "a": True},
+        {"q": "Futbol jamoasida 12 ta o'yinchi bo'ladi", "a": False},
+    ],
+    "formula_fill": [
+        {"q": "Doira yuzi: S = π × r × __?", "opts": ["d", "r", "2", "π"], "a": 1, "fill": "r"},
+        {"q": "Uchburchak yuzi: S = (a × h) ÷ __?", "opts": ["3", "2", "4", "π"], "a": 1, "fill": "2"},
+        {"q": "Kvadrat perimetri: P = 4 × __?", "opts": ["r", "d", "a", "h"], "a": 2, "fill": "a"},
+        {"q": "To'g'ri to'rtburchak yuzi: S = a × __?", "opts": ["a", "b", "h", "r"], "a": 1, "fill": "b"},
+        {"q": "Tezlik formulasi: v = s ÷ __?", "opts": ["m", "t", "a", "F"], "a": 1, "fill": "t"},
+        {"q": "Pifagor teoremasi: c² = a² + __?", "opts": ["b", "b²", "2b", "c"], "a": 1, "fill": "b²"},
+        {"q": "Kuch formulasi: F = m × __?", "opts": ["v", "t", "a", "s"], "a": 2, "fill": "a"},
+        {"q": "Tezlanish: a = (v - v₀) ÷ __?", "opts": ["s", "m", "t", "F"], "a": 2, "fill": "t"},
+        {"q": "Elektr quvvati: P = U × __?", "opts": ["R", "I", "t", "Q"], "a": 1, "fill": "I"},
+        {"q": "Ish formulasi: A = F × __?", "opts": ["t", "m", "s", "a"], "a": 2, "fill": "s"},
+    ],
+    "math_sprint": [
+        {"q": "12 + 15 = ?", "opts": ["25", "27", "28", "26"], "a": 1},
+        {"q": "9 × 7 = ?", "opts": ["54", "56", "63", "72"], "a": 2},
+        {"q": "100 - 37 = ?", "opts": ["63", "73", "57", "67"], "a": 0},
+        {"q": "48 ÷ 6 = ?", "opts": ["6", "7", "8", "9"], "a": 2},
+        {"q": "13 × 4 = ?", "opts": ["48", "52", "56", "44"], "a": 1},
+        {"q": "125 + 75 = ?", "opts": ["200", "190", "210", "195"], "a": 0},
+        {"q": "144 ÷ 12 = ?", "opts": ["10", "11", "12", "13"], "a": 2},
+        {"q": "8² = ?", "opts": ["56", "64", "72", "80"], "a": 1},
+        {"q": "√81 = ?", "opts": ["7", "8", "9", "10"], "a": 2},
+        {"q": "15 × 15 = ?", "opts": ["215", "225", "235", "245"], "a": 1},
+        {"q": "1000 - 256 = ?", "opts": ["754", "744", "764", "734"], "a": 1},
+        {"q": "36 ÷ 4 = ?", "opts": ["8", "9", "10", "7"], "a": 1},
+        {"q": "7 × 8 = ?", "opts": ["48", "54", "56", "64"], "a": 2},
+        {"q": "250 + 375 = ?", "opts": ["615", "625", "635", "645"], "a": 1},
+        {"q": "3³ = ?", "opts": ["9", "18", "27", "36"], "a": 2},
+    ],
+    "times_table": [
+        {"q": "3 × 3 = ?", "opts": ["6", "9", "12", "15"], "a": 1},
+        {"q": "4 × 5 = ?", "opts": ["16", "18", "20", "24"], "a": 2},
+        {"q": "6 × 7 = ?", "opts": ["36", "40", "42", "48"], "a": 2},
+        {"q": "8 × 9 = ?", "opts": ["63", "72", "76", "81"], "a": 1},
+        {"q": "7 × 7 = ?", "opts": ["42", "45", "47", "49"], "a": 3},
+        {"q": "9 × 9 = ?", "opts": ["72", "81", "90", "99"], "a": 1},
+        {"q": "6 × 8 = ?", "opts": ["42", "44", "48", "54"], "a": 2},
+        {"q": "5 × 9 = ?", "opts": ["40", "42", "45", "50"], "a": 2},
+        {"q": "4 × 8 = ?", "opts": ["28", "30", "32", "36"], "a": 2},
+        {"q": "7 × 8 = ?", "opts": ["48", "54", "56", "64"], "a": 2},
+        {"q": "3 × 9 = ?", "opts": ["21", "24", "27", "30"], "a": 2},
+        {"q": "6 × 6 = ?", "opts": ["30", "32", "36", "40"], "a": 2},
+        {"q": "5 × 7 = ?", "opts": ["30", "33", "35", "40"], "a": 2},
+        {"q": "8 × 8 = ?", "opts": ["56", "60", "64", "72"], "a": 2},
+        {"q": "9 × 6 = ?", "opts": ["48", "52", "54", "60"], "a": 2},
+    ],
+}
+
+
+_AI_AUTO_GEN_THRESHOLD = 20   # if pool < this, trigger background AI generation
+_QUESTIONS_PER_SESSION = 10   # how many questions to return per game session
+
+
+def _get_questions_for_game(game_slug, center, level=None):
+    """Return shuffled question list for a game. DB first, fallback to defaults."""
+    from core.models import GameQuestion
+    qs = GameQuestion.objects.filter(
+        game_slug=game_slug,
+        is_active=True,
+    ).filter(
+        Q(center=center) | Q(center__isnull=True)
+    )
+    if level:
+        qs = qs.filter(level=level)
+    questions = list(qs.values("id", "level", "question_data", "is_ai_generated"))
+    if not questions:
+        defaults = _DEFAULT_QUESTIONS.get(game_slug, [])
+        questions = [{"id": None, "level": 1, "question_data": q, "is_ai_generated": False} for q in defaults]
+    random.shuffle(questions)
+    return questions
+
+
+def _trigger_ai_question_generation(game_slug, center, user):
+    """Fire-and-forget: generate AI questions for a game if pool is thin."""
+    from core.models import GameQuestion
+    existing = GameQuestion.objects.filter(
+        game_slug=game_slug, center=center, is_active=True
+    ).count()
+    if existing >= _AI_AUTO_GEN_THRESHOLD:
+        return
+    try:
+        import threading
+        def _gen():
+            _auto_generate_questions(game_slug, center, user)
+        t = threading.Thread(target=_gen, daemon=True)
+        t.start()
+    except Exception as e:
+        logger.warning("auto-gen questions failed to start: %s", e)
+
+
+def _auto_generate_questions(game_slug, center, user):
+    """Generate 30 questions via Gemini and save to DB for a game."""
+    from core.models import GameQuestion
+    try:
+        prompt = _build_question_prompt(game_slug, count=30)
+        if not prompt:
+            return
+        from core.services.ai_insights import _prompt_json
+        result = _prompt_json(prompt)
+        if not isinstance(result, list):
+            return
+        objs = []
+        for item in result[:30]:
+            if not isinstance(item, dict):
+                continue
+            objs.append(GameQuestion(
+                center=center,
+                game_slug=game_slug,
+                level=item.get("level", 1),
+                question_data=item,
+                is_ai_generated=True,
+                is_active=True,
+                created_by=user,
+            ))
+        if objs:
+            GameQuestion.objects.bulk_create(objs, ignore_conflicts=True)
+            logger.info("auto-generated %d questions for %s center=%s", len(objs), game_slug, center.pk if center else None)
+    except Exception as e:
+        logger.warning("auto-generate questions error: %s", e)
+
+
+def _build_question_prompt(game_slug, count=30):
+    """Build Gemini prompt for auto-generating questions."""
+    prompts = {
+        "math_sprint": f"""Generate {count} arithmetic questions for Uzbek school students (grades 3-8).
+Return JSON array. Each item: {{"q": "12 × 8 = ?", "opts": ["86","94","96","98"], "a": 2, "level": 1}}
+Levels 1-9 (1=easy, 9=hard). Mix addition, subtraction, multiplication, division.
+Vary difficulty across levels. Return ONLY the JSON array.""",
+
+        "times_table": f"""Generate {count} multiplication table questions (2×-12×) for Uzbek students.
+JSON array. Each: {{"q": "7 × 9 = ?", "opts": ["54","62","63","72"], "a": 2, "level": 1}}
+Levels 1-9. Level 1=easy tables (2,3,4), level 9=hard (11,12). Return ONLY JSON array.""",
+
+        "number_sequence": f"""Generate {count} number sequence completion questions.
+JSON array. Each: {{"q": "2, 4, 8, 16, ?", "opts": ["24","28","32","36"], "a": 2, "level": 1}}
+Include arithmetic, geometric, Fibonacci-like sequences. Levels 1-9. Return ONLY JSON array.""",
+
+        "formula_fill": f"""Generate {count} fill-in-the-blank math/science formula questions for students.
+JSON array. Each: {{"q": "S = v × ___", "opts": ["a","t","m","F"], "a": 1, "level": 1}}
+Mix physics, math, chemistry formulas. Levels 1-9. Return ONLY JSON array.""",
+
+        "geography_quiz": f"""Generate {count} geography questions about world capitals, countries, oceans.
+JSON array. Each: {{"q": "Germaniyaning poytaxti?", "opts": ["Berlin","Parij","Vena","Bryussel"], "a": 0, "level": 1}}
+Questions in Uzbek language. Levels 1-9. Return ONLY JSON array.""",
+
+        "english_words": f"""Generate {count} English vocabulary questions (Uzbek translation).
+JSON array. Each: {{"q": "'Apple' so'zining tarjimasi?", "opts": ["Olma","Nok","Uzum","Shaftoli"], "a": 0, "level": 1}}
+Cover A1-B2 vocabulary. Levels 1-9. Return ONLY JSON array.""",
+
+        "science_quiz": f"""Generate {count} science questions (physics, chemistry, biology) for Uzbek students.
+JSON array. Each: {{"q": "Suvning qaynash harorati necha daraja?", "opts": ["80°C","90°C","100°C","110°C"], "a": 2, "level": 1}}
+Questions in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+
+        "quick_quiz": f"""Generate {count} general knowledge trivia questions for Uzbek school students.
+JSON array. Each: {{"q": "O'zbekistonning poytaxti?", "opts": ["Samarqand","Toshkent","Buxoro","Namangan"], "a": 1, "level": 1}}
+Questions in Uzbek. Mix history, geography, science, culture. Levels 1-9. Return ONLY JSON array.""",
+
+        "word_scramble": f"""Generate {count} word unscramble questions in Uzbek.
+JSON array. Each: {{"q": "AMLOM — bu so'zni to'g'irla", "opts": ["MOLAM","MOLMA","MALMO","MALMO"], "a": 0, "level": 1}}
+Use common Uzbek nouns. Levels 1-9 by word length. Return ONLY JSON array.""",
+
+        "shapes_quiz": f"""Generate {count} geometry/shapes questions for Uzbek students.
+JSON array. Each: {{"q": "To'rtburchakning perimetri qanday hisoblanadi?", "opts": ["2(a+b)","a×b","a²","4a"], "a": 0, "level": 1}}
+Questions in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+
+        "true_false": f"""Generate {count} true/false science/general knowledge statements for Uzbek students.
+JSON array. Each: {{"q": "Yer quyosh atrofida aylanadi", "a": true, "level": 1}}
+Use 'a': true or false. Statements in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+
+        "chess": f"""Generate {count} chess tactics questions (basic rules, piece moves).
+JSON array. Each: {{"q": "Ferz necha yo'nalishda yura oladi?", "opts": ["4","6","8","2"], "a": 2, "level": 1}}
+Questions in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+
+        "checkers": f"""Generate {count} checkers/draughts rule questions.
+JSON array. Each: {{"q": "Shashkada donalar necha dona?", "opts": ["10","12","16","8"], "a": 1, "level": 1}}
+Questions in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+
+        "memory_match": f"""Generate {count} memory/matching pairs for a card flip game.
+JSON array. Each: {{"word": "Apple", "match": "Olma", "level": 1}}
+Use English-Uzbek word pairs. Levels 1-9 by difficulty. Return ONLY JSON array.""",
+
+        "crossword": f"""Generate {count} crossword-style word definition clues for Uzbek students.
+JSON array. Each: {{"q": "Issiqlik o'lchov birligi", "opts": ["Kelvin","Metr","Kilogram","Sekund"], "a": 0, "level": 1}}
+Questions in Uzbek. Levels 1-9. Return ONLY JSON array.""",
+    }
+    return prompts.get(game_slug)
+
+
+@login_required
+@require_GET
+def game_student_questions_api(request, game_slug):
+    """Return randomly shuffled questions for a game session."""
+    center = _sp_center(request)
+    if not center:
+        return JsonResponse({"error": "no center"}, status=400)
+    if game_slug not in _GAME_CONFIGS:
+        return JsonResponse({"error": "unknown game"}, status=404)
+
+    from core.models import StudentGameProgress
+    try:
+        progress = StudentGameProgress.objects.get(center=center, student=request.user, game_slug=game_slug)
+        level = progress.current_level
+    except StudentGameProgress.DoesNotExist:
+        level = 1
+
+    questions = _get_questions_for_game(game_slug, center)
+
+    # Auto-generate if pool is thin (async, non-blocking)
+    if len(questions) < _AI_AUTO_GEN_THRESHOLD:
+        _trigger_ai_question_generation(game_slug, center, request.user)
+
+    # Return random subset for this session
+    session_qs = random.sample(questions, min(_QUESTIONS_PER_SESSION, len(questions)))
+
+    return JsonResponse({"ok": True, "questions": session_qs, "current_level": level})
+
+
+@login_required
+def game_questions_manage_api(request, game_slug):
+    """GET: list questions. POST: add question. DELETE: remove question (director/manager)."""
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+    if game_slug not in _GAME_CONFIGS:
+        return JsonResponse({"error": "unknown game"}, status=404)
+
+    from core.models import GameQuestion
+    center = _sp_center(request)
+
+    if request.method == "GET":
+        db_qs = list(
+            GameQuestion.objects.filter(center=center, game_slug=game_slug, is_active=True)
+            .values("id", "level", "question_data", "is_ai_generated", "created_at")
+        )
+        defaults = _DEFAULT_QUESTIONS.get(game_slug, [])
+        return JsonResponse({
+            "ok": True,
+            "game": _GAME_CONFIGS[game_slug],
+            "db_questions": db_qs,
+            "default_questions": defaults,
+            "db_count": len(db_qs),
+            "default_count": len(defaults),
+        })
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "invalid json"}, status=400)
+        level = int(data.get("level", 1))
+        question_data = data.get("question_data")
+        if not question_data:
+            return JsonResponse({"error": "question_data required"}, status=400)
+        q = GameQuestion.objects.create(
+            center=center,
+            game_slug=game_slug,
+            level=level,
+            question_data=question_data,
+            created_by=u,
+        )
+        return JsonResponse({"ok": True, "id": q.pk})
+
+    if request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "invalid json"}, status=400)
+        pk = data.get("id")
+        GameQuestion.objects.filter(pk=pk, center=center, game_slug=game_slug).update(is_active=False)
+        return JsonResponse({"ok": True})
+
+    return JsonResponse({"error": "method not allowed"}, status=405)
+
+
+@login_required
+@require_POST
+def game_questions_ai_generate(request, game_slug):
+    """AI orqali o'yin savollari generatsiya qilish (director/manager)."""
+    u = request.user
+    if u.role not in ("director", "manager") and not u.is_superuser:
+        return JsonResponse({"error": "forbidden"}, status=403)
+    if game_slug not in _GAME_CONFIGS:
+        return JsonResponse({"error": "unknown game"}, status=404)
+
+    from core.models import GameQuestion
+    from core.services.ai_insights import _prompt_json
+
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    count = min(int(data.get("count", 10)), 30)
+    level = int(data.get("level", 1))
+    center = _sp_center(request)
+    cfg = _GAME_CONFIGS[game_slug]
+    game_name = cfg["name"]
+
+    game_type_hints = {
+        "geography_quiz": 'Har bir savol uchun to\'g\'ri javob va 3 ta noto\'g\'ri javob bering. Mavzu: dunyo geografiyasi, poytaxtlar, daryolar, tog\'lar.',
+        "english_words": "Har bir savol o'zbek so'zi bo'lsin va 4 ta inglizcha variant bering (1 ta to'g'ri).",
+        "science_quiz": "Har bir savol fan va tabiat haqida bo'lsin (fizika, kimyo, biologiya, astronomiya).",
+        "quick_quiz": "Har bir savol umumiy bilimlar haqida bo'lsin (tarix, sport, tabiat, matematika).",
+        "word_scramble": "Har bir savol \"Qaysi so'z to'g'ri yozilgan?\" shaklida bo'lsin, 4 ta inglizcha variant.",
+        "number_sequence": "Har bir savol sonlar ketma-ketligi haqida bo'lsin. 4 ta javob varianti bering.",
+        "shapes_quiz": "Har bir savol geometriya va shakllar haqida bo'lsin. 4 ta javob varianti bering.",
+        "math_sprint": "Har bir savol arifmetik hisob masalasi bo'lsin. 4 ta javob varianti bering.",
+        "times_table": "Har bir savol ko'paytirish jadvaliga doir bo'lsin (2dan 12gacha). 4 ta javob varianti bering.",
+        "true_false": "Har bir savol \"ha\" yoki \"yo'q\" bilan javob beriladigan bo'lsin. Javob true yoki false bo'lsin.",
+        "formula_fill": "Har bir savol formula to'ldirish haqida bo'lsin. 4 ta variant bering.",
+        "memory_match": "Har bir savol yodlash mashqi bo'lsin — emoji juftliklarini tasvirlovchi format.",
+    }
+    hint = game_type_hints.get(game_slug, "Har bir savol 4 ta javob variantiga ega bo'lsin.")
+
+    if game_slug == "true_false":
+        prompt = f"""
+Sen O'zbekistondagi ta'lim markazida o'quvchilar uchun "{game_name}" o'yini savollarini yozayapsan (daraja: {level}).
+{hint}
+{count} ta savol yarat. Natijani FAQAT JSON formatda qaytar:
+{{
+  "questions": [
+    {{"q": "Savol matni?", "a": true}},
+    {{"q": "Savol matni?", "a": false}},
+    ...
+  ]
+}}
+"""
+    else:
+        prompt = f"""
+Sen O'zbekistondagi ta'lim markazida o'quvchilar uchun "{game_name}" o'yini savollarini yozayapsan (daraja: {level}).
+{hint}
+{count} ta savol yarat. Natijani FAQAT JSON formatda qaytar:
+{{
+  "questions": [
+    {{"q": "Savol matni?", "opts": ["A", "B", "C", "D"], "a": 0}},
+    ...
+  ]
+}}
+"a" — to'g'ri javob indeksi (0–3). Barcha savollar o'zbek tilida bo'lsin.
+"""
+
+    try:
+        result = _prompt_json(
+            prompt,
+            default={"questions": []},
+            cache_key=f"game_ai_{game_slug}_l{level}_{count}",
+            ttl=60,
+        )
+        generated = result.get("questions", [])
+        if not generated:
+            return JsonResponse({"error": "AI javob bermadi"}, status=500)
+
+        saved = []
+        for item in generated[:count]:
+            q = GameQuestion.objects.create(
+                center=center,
+                game_slug=game_slug,
+                level=level,
+                question_data=item,
+                is_ai_generated=True,
+                created_by=u,
+            )
+            saved.append({"id": q.pk, "question_data": item})
+
+        return JsonResponse({"ok": True, "count": len(saved), "questions": saved})
+    except Exception as e:
+        logger.exception("game_questions_ai_generate failed")
+        return JsonResponse({"error": str(e)}, status=500)

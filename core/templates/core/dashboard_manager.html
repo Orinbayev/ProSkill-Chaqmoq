@@ -695,6 +695,9 @@
 
 </section>
 
+{% endblock %}
+
+{% block ai_widget %}
 {# AI Widget — PREMIUM tarifda to'liq, boshqalarda demo rejim #}
 {% if feature_ai %}
 {% include "partials/ai_chat_widget.html" with ai_widget_subtitle="Manager yordamchisi" ai_widget_greet="markaz statistikasi, moliya va o'quvchilar haqida" aiw_prompt_1="Bu oy daromad qancha?" aiw_prompt_2="Qancha qarzdor bor?" aiw_prompt_3="O'quvchilar soni qanday o'zgarmoqda?" aiw_prompt_4="Eng faol guruhlar qaysilar?" %}
