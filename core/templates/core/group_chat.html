@@ -1,0 +1,1396 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}tg-page{% endblock %}
+{% block title %}{{ group.nom }} — Chat | ChaqmoqApp{% endblock %}
+
+{% block content %}
+<style>
+/* ══════════════════════════════════════════════════════════════
+   TELEGRAM GROUP CHAT  —  tg- prefix
+══════════════════════════════════════════════════════════════ */
+
+/* ── Root vars (dark mode = Telegram default) ── */
+.tg-wrap {
+  --tg-bg:           #17212b;
+  --tg-header-bg:    #232e3c;
+  --tg-header-bdr:   #0d1117;
+  --tg-msg-area-bg:  #0e1621;
+  --tg-mine-bg:      #2b5278;
+  --tg-mine-txt:     #e8f4fd;
+  --tg-their-bg:     #182533;
+  --tg-their-txt:    #c9d1d9;
+  --tg-their-bdr:    #1c2e3e;
+  --tg-input-bg:     #232e3c;
+  --tg-input-bdr:    #2c3e50;
+  --tg-input-txt:    #e8f4fd;
+  --tg-input-ph:     #6b7d8f;
+  --tg-text:         #e8f4fd;
+  --tg-sub:          #6b7d8f;
+  --tg-link:         #5bb8f5;
+  --tg-online:       #4dca6d;
+  --tg-accent:       #5bb8f5;
+  --tg-send:         #5bb8f5;
+  --tg-send-icon:    #17212b;
+  --tg-reply-bg:     #1c2d3d;
+  --tg-reply-border: #5bb8f5;
+  --tg-date-bg:      rgba(23,33,43,.85);
+  --tg-date-txt:     #8a9db5;
+  --tg-att-bg:       rgba(255,255,255,.06);
+  --tg-att-hover:    rgba(255,255,255,.10);
+  --tg-border:       rgba(255,255,255,.06);
+  --tg-tick-unread:  #8a9db5;
+  --tg-tick-read:    #5bb8f5;
+  --tg-highlight:    rgba(91,184,245,.22);
+  --tg-tool-hover:   rgba(91,184,245,.12);
+  --tg-shadow:       0 1px 2px rgba(0,0,0,.5);
+  --tg-shadow-lg:    0 8px 32px rgba(0,0,0,.6);
+  --tg-modal-bg:     #232e3c;
+}
+
+/* ── Light mode overrides ── */
+html[data-role-theme="light"] .tg-wrap {
+  --tg-bg:           #dae2f0;
+  --tg-header-bg:    #527da3;
+  --tg-header-bdr:   #4a7196;
+  --tg-msg-area-bg:  #dae2f0;
+  --tg-mine-bg:      #effdde;
+  --tg-mine-txt:     #1a1a1a;
+  --tg-their-bg:     #ffffff;
+  --tg-their-txt:    #1a1a1a;
+  --tg-their-bdr:    #e5e5e5;
+  --tg-input-bg:     #ffffff;
+  --tg-input-bdr:    #c8d4df;
+  --tg-input-txt:    #1a1a1a;
+  --tg-input-ph:     #a0adb8;
+  --tg-text:         #ffffff;
+  --tg-sub:          #c9daea;
+  --tg-link:         #168acd;
+  --tg-online:       #4dca6d;
+  --tg-accent:       #168acd;
+  --tg-send:         #527da3;
+  --tg-send-icon:    #ffffff;
+  --tg-reply-bg:     #e8f3fb;
+  --tg-reply-border: #168acd;
+  --tg-date-bg:      rgba(110,139,167,.75);
+  --tg-date-txt:     #ffffff;
+  --tg-att-bg:       rgba(0,0,0,.04);
+  --tg-att-hover:    rgba(0,0,0,.08);
+  --tg-border:       rgba(0,0,0,.08);
+  --tg-tick-unread:  #939da8;
+  --tg-tick-read:    #4fa3e3;
+  --tg-highlight:    rgba(22,138,205,.18);
+  --tg-tool-hover:   rgba(22,138,205,.12);
+  --tg-shadow:       0 1px 2px rgba(0,0,0,.12);
+  --tg-shadow-lg:    0 8px 32px rgba(0,0,0,.18);
+  --tg-modal-bg:     #ffffff;
+}
+
+/* ── Telegram avatar palette (8 colors) ── */
+.tg-av[data-color="0"] { background: #e17076; }
+.tg-av[data-color="1"] { background: #faa774; }
+.tg-av[data-color="2"] { background: #a695e7; }
+.tg-av[data-color="3"] { background: #7bc862; }
+.tg-av[data-color="4"] { background: #6ec9cb; }
+.tg-av[data-color="5"] { background: #65aadd; }
+.tg-av[data-color="6"] { background: #ee7aae; }
+.tg-av[data-color="7"] { background: #f0c050; }
+
+/* ── Layout ── */
+.tg-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 64px);
+  max-width: 860px;
+  margin: 0 auto;
+  background: var(--tg-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.tg-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--tg-header-bg);
+  border-bottom: 1px solid var(--tg-header-bdr);
+  flex-shrink: 0;
+  z-index: 20;
+  box-shadow: var(--tg-shadow);
+}
+.tg-back {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--tg-text); font-size: .95rem;
+  text-decoration: none;
+  transition: background .15s;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.tg-back:hover { background: rgba(255,255,255,.12); }
+html[data-role-theme="light"] .tg-back:hover { background: rgba(0,0,0,.1); }
+.tg-h-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5bb8f5, #3a8fc9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .95rem; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.tg-h-info { flex: 1; min-width: 0; }
+.tg-h-name {
+  font-size: .97rem; font-weight: 600;
+  color: var(--tg-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.tg-h-sub {
+  font-size: .73rem;
+  color: var(--tg-sub);
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+.tg-h-online-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--tg-online);
+  box-shadow: 0 0 0 2px rgba(77,202,109,.3);
+  flex-shrink: 0;
+  animation: tgPulse 2s ease-in-out infinite;
+}
+@keyframes tgPulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(77,202,109,.3); }
+  50%      { box-shadow: 0 0 0 5px rgba(77,202,109,.12); }
+}
+
+/* ── Message area (wallpaper-like bg) ── */
+.tg-msgs {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  background: var(--tg-msg-area-bg);
+  scroll-behavior: smooth;
+}
+.tg-msgs::-webkit-scrollbar { width: 5px; }
+.tg-msgs::-webkit-scrollbar-track { background: transparent; }
+.tg-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+html[data-role-theme="light"] .tg-msgs::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); }
+
+/* ── Date chip (sticky-ish) ── */
+.tg-date-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 6px;
+  position: sticky;
+  top: 6px;
+  z-index: 5;
+}
+.tg-date-chip span {
+  background: var(--tg-date-bg);
+  color: var(--tg-date-txt);
+  font-size: .72rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Message group/row ── */
+.tg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 1px 0;
+  position: relative;
+}
+.tg-row.mine   { flex-direction: row-reverse; }
+.tg-row.theirs { flex-direction: row; }
+
+/* Group-tail spacing: last in group gets margin-bottom */
+.tg-row.group-last { margin-bottom: 6px; }
+/* First in group gets a slight extra margin-top */
+.tg-row.group-first { margin-top: 4px; }
+
+/* ── Avatar ── */
+.tg-av {
+  width: 33px; height: 33px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .74rem; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+  align-self: flex-end;
+  user-select: none;
+}
+.tg-av-placeholder {
+  width: 33px; height: 33px;
+  flex-shrink: 0;
+}
+
+/* ── Bubble wrapper ── */
+.tg-bwrap {
+  position: relative;
+  max-width: min(70%, 480px);
+  display: flex;
+  flex-direction: column;
+}
+.tg-row.mine  .tg-bwrap { align-items: flex-end; }
+.tg-row.theirs .tg-bwrap { align-items: flex-start; }
+
+/* ── Bubble ── */
+.tg-bubble {
+  padding: 7px 11px 4px;
+  border-radius: 12px;
+  position: relative;
+  word-break: break-word;
+  box-shadow: var(--tg-shadow);
+  animation: tgMsgIn .18s cubic-bezier(.4,0,.2,1);
+  cursor: default;
+}
+@keyframes tgMsgIn {
+  from { opacity: 0; transform: scale(.96) translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Mine (outgoing) */
+.tg-row.mine .tg-bubble {
+  background: var(--tg-mine-bg);
+  color: var(--tg-mine-txt);
+  border-radius: 12px 12px 3px 12px;
+}
+/* Theirs (incoming) */
+.tg-row.theirs .tg-bubble {
+  background: var(--tg-their-bg);
+  color: var(--tg-their-txt);
+  border-radius: 3px 12px 12px 12px;
+  border: 1px solid var(--tg-their-bdr);
+}
+
+/* Within group: intermediate bubbles lose the tail-radius */
+.tg-row.mine.group-mid .tg-bubble,
+.tg-row.mine.group-first .tg-bubble { border-radius: 12px 12px 12px 12px; }
+.tg-row.mine.group-last .tg-bubble { border-radius: 12px 12px 3px 12px; }
+
+.tg-row.theirs.group-mid .tg-bubble,
+.tg-row.theirs.group-last .tg-bubble { border-radius: 12px 12px 12px 3px; }
+.tg-row.theirs.group-first .tg-bubble { border-radius: 3px 12px 12px 12px; }
+
+/* Highlight flash for scroll-to-reply */
+.tg-bubble.highlight-flash {
+  animation: tgFlash .7s ease;
+}
+@keyframes tgFlash {
+  0%,100% { background: inherit; }
+  30%,70% { background: var(--tg-highlight); }
+}
+
+/* ── Sender name (theirs only, group-first only) ── */
+.tg-sender {
+  font-size: .74rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+/* Sender name color = avatar color */
+.tg-sender[data-color="0"] { color: #e17076; }
+.tg-sender[data-color="1"] { color: #faa774; }
+.tg-sender[data-color="2"] { color: #a695e7; }
+.tg-sender[data-color="3"] { color: #7bc862; }
+.tg-sender[data-color="4"] { color: #6ec9cb; }
+.tg-sender[data-color="5"] { color: #65aadd; }
+.tg-sender[data-color="6"] { color: #ee7aae; }
+.tg-sender[data-color="7"] { color: #f0c050; }
+html[data-role-theme="light"] .tg-sender[data-color="0"] { color: #c94040; }
+html[data-role-theme="light"] .tg-sender[data-color="1"] { color: #c97a30; }
+html[data-role-theme="light"] .tg-sender[data-color="2"] { color: #6e5dc6; }
+html[data-role-theme="light"] .tg-sender[data-color="3"] { color: #3c9a30; }
+html[data-role-theme="light"] .tg-sender[data-color="4"] { color: #2e9494; }
+html[data-role-theme="light"] .tg-sender[data-color="5"] { color: #2970b8; }
+html[data-role-theme="light"] .tg-sender[data-color="6"] { color: #b84080; }
+html[data-role-theme="light"] .tg-sender[data-color="7"] { color: #9a7a10; }
+
+/* ── Reply quote inside bubble ── */
+.tg-rq {
+  border-left: 3px solid var(--tg-reply-border);
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  border-radius: 0 6px 6px 0;
+  background: rgba(91,184,245,.1);
+  cursor: pointer;
+  transition: background .15s;
+  overflow: hidden;
+}
+html[data-role-theme="light"] .tg-rq { background: rgba(22,138,205,.07); }
+.tg-rq:hover { background: rgba(91,184,245,.18); }
+html[data-role-theme="light"] .tg-rq:hover { background: rgba(22,138,205,.13); }
+.tg-rq-name {
+  font-size: .7rem; font-weight: 700;
+  color: var(--tg-reply-border);
+  margin-bottom: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tg-rq-body {
+  font-size: .77rem;
+  opacity: .75;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+/* ── Body text ── */
+.tg-body {
+  font-size: .875rem;
+  line-height: 1.52;
+}
+.tg-body a { color: var(--tg-link); text-decoration: none; }
+.tg-body a:hover { text-decoration: underline; }
+
+/* ── Meta row (time + ticks) ── */
+.tg-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  margin-top: 2px;
+  float: right;
+  margin-left: 8px;
+  margin-bottom: -2px;
+  clear: right;
+}
+.tg-time {
+  font-size: .68rem;
+  opacity: .65;
+  white-space: nowrap;
+}
+/* Double-check ticks */
+.tg-ticks {
+  display: inline-flex;
+  align-items: center;
+  font-size: .72rem;
+  gap: 1px;
+}
+.tg-ticks.unread { color: var(--tg-tick-unread); }
+.tg-ticks.read   { color: var(--tg-tick-read); }
+/* Read count badge */
+.tg-read-count {
+  font-size: .62rem;
+  color: var(--tg-tick-read);
+  margin-left: 2px;
+  opacity: .9;
+}
+
+/* ── Attachments ── */
+.tg-att-img {
+  max-width: 280px;
+  max-height: 360px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: block;
+  margin-bottom: 4px;
+  transition: opacity .15s;
+  object-fit: cover;
+}
+.tg-att-img:hover { opacity: .9; }
+
+.tg-att-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--tg-att-bg);
+  text-decoration: none;
+  margin-bottom: 4px;
+  transition: background .15s;
+  border: 1px solid rgba(255,255,255,.05);
+}
+.tg-att-card:hover { background: var(--tg-att-hover); }
+html[data-role-theme="light"] .tg-att-card { border-color: rgba(0,0,0,.06); }
+.tg-att-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; flex-shrink: 0;
+}
+.tg-att-card.pdf  .tg-att-icon { background: rgba(239,68,68,.2);  color: #f87171; }
+.tg-att-card.file .tg-att-icon { background: rgba(99,102,241,.2); color: #a5b4fc; }
+html[data-role-theme="light"] .tg-att-card.pdf  .tg-att-icon { background: rgba(220,50,50,.12); }
+html[data-role-theme="light"] .tg-att-card.file .tg-att-icon { background: rgba(80,80,200,.12); }
+.tg-att-info { flex: 1; min-width: 0; }
+.tg-att-name {
+  font-size: .81rem; font-weight: 600;
+  color: var(--tg-their-txt);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tg-row.mine .tg-att-name { color: var(--tg-mine-txt); }
+.tg-att-size { font-size: .7rem; color: var(--tg-sub); margin-top: 1px; }
+.tg-att-dl { font-size: .75rem; color: var(--tg-sub); flex-shrink: 0; }
+
+.tg-att-link {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(91,184,245,.08);
+  border: 1px solid rgba(91,184,245,.2);
+  text-decoration: none;
+  color: var(--tg-link);
+  font-size: .8rem;
+  word-break: break-all;
+  margin-bottom: 4px;
+  transition: background .15s;
+}
+.tg-att-link:hover { background: rgba(91,184,245,.15); }
+html[data-role-theme="light"] .tg-att-link { background: rgba(22,138,205,.06); border-color: rgba(22,138,205,.2); }
+
+/* ── Hover actions (reply button) ── */
+.tg-bwrap .tg-action-tray {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 2px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s;
+  z-index: 10;
+}
+.tg-row.mine  .tg-bwrap .tg-action-tray { right: calc(100% + 6px); }
+.tg-row.theirs .tg-bwrap .tg-action-tray { left: calc(100% + 6px); }
+.tg-bwrap:hover .tg-action-tray { opacity: 1; pointer-events: all; }
+.tg-action-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--tg-header-bg);
+  border: 1px solid var(--tg-border);
+  color: var(--tg-sub);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .8rem;
+  transition: color .12s, background .12s;
+  box-shadow: var(--tg-shadow);
+}
+.tg-action-btn:hover { color: var(--tg-accent); background: var(--tg-tool-hover); }
+
+/* ── Reply bar (above input) ── */
+.tg-reply-bar {
+  background: var(--tg-input-bg);
+  border-top: 1px solid var(--tg-input-bdr);
+  padding: 7px 14px 7px 12px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  animation: tgSlideUp .14s ease;
+}
+.tg-reply-bar.visible { display: flex; }
+@keyframes tgSlideUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.tg-rb-stripe {
+  width: 3px; height: 36px; border-radius: 3px;
+  background: var(--tg-accent); flex-shrink: 0;
+}
+.tg-rb-inner { flex: 1; min-width: 0; }
+.tg-rb-name {
+  font-size: .71rem; font-weight: 700;
+  color: var(--tg-accent);
+  margin-bottom: 1px;
+}
+.tg-rb-text {
+  font-size: .78rem; color: var(--tg-sub);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tg-rb-cancel {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: none; border: none;
+  color: var(--tg-sub);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .75rem; flex-shrink: 0;
+  transition: color .12s;
+}
+.tg-rb-cancel:hover { color: #f87171; }
+
+/* ── File bar ── */
+.tg-file-bar {
+  background: var(--tg-input-bg);
+  border-top: 1px solid var(--tg-input-bdr);
+  padding: 7px 14px 7px 12px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.tg-file-bar.visible { display: flex; }
+.tg-fb-icon { color: var(--tg-accent); font-size: .85rem; flex-shrink: 0; }
+.tg-fb-name { flex: 1; font-size: .81rem; color: var(--tg-input-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-fb-size { font-size: .7rem; color: var(--tg-sub); flex-shrink: 0; }
+.tg-fb-cancel {
+  width: 26px; height: 26px;
+  border-radius: 50%; background: none; border: none;
+  color: var(--tg-sub); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; font-size: .75rem;
+  transition: color .12s;
+}
+.tg-fb-cancel:hover { color: #f87171; }
+
+/* ── Input area ── */
+.tg-input-wrap {
+  background: var(--tg-input-bg);
+  border-top: 1px solid var(--tg-input-bdr);
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tg-tool {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: none; border: none;
+  color: var(--tg-sub);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .95rem; flex-shrink: 0;
+  transition: color .12s, background .12s;
+}
+.tg-tool:hover { color: var(--tg-accent); background: var(--tg-tool-hover); }
+.tg-textarea {
+  flex: 1;
+  background: var(--tg-att-bg);
+  border: 1px solid var(--tg-input-bdr);
+  border-radius: 22px;
+  padding: 9px 15px;
+  color: var(--tg-input-txt);
+  font-size: .9rem;
+  resize: none;
+  outline: none;
+  max-height: 160px;
+  line-height: 1.5;
+  transition: border-color .15s;
+  font-family: inherit;
+}
+.tg-textarea:focus { border-color: var(--tg-accent); }
+.tg-textarea::placeholder { color: var(--tg-input-ph); }
+.tg-send {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--tg-send); border: none;
+  color: var(--tg-send-icon);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem; flex-shrink: 0;
+  transition: background .15s, transform .1s, opacity .15s;
+  box-shadow: 0 2px 8px rgba(91,184,245,.35);
+}
+.tg-send:hover   { opacity: .88; transform: scale(1.06); }
+.tg-send:active  { transform: scale(.94); }
+.tg-send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ── Lightbox ── */
+.tg-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.92);
+  display: none; align-items: center; justify-content: center;
+  cursor: zoom-out;
+  animation: tgFadeIn .18s ease;
+}
+.tg-lightbox.open { display: flex; }
+@keyframes tgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.tg-lightbox img {
+  max-width: 92vw; max-height: 88vh;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.85);
+  user-select: none;
+}
+.tg-lb-close {
+  position: fixed; top: 16px; right: 16px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.1); border: none;
+  color: #fff; font-size: .95rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .12s;
+}
+.tg-lb-close:hover { background: rgba(239,68,68,.4); }
+
+/* ── Modal (link) ── */
+.tg-modal-overlay {
+  position: fixed; inset: 0; z-index: 8888;
+  background: rgba(0,0,0,.65);
+  display: none; align-items: center; justify-content: center;
+}
+.tg-modal-overlay.open { display: flex; }
+.tg-modal {
+  background: var(--tg-modal-bg);
+  border-radius: 16px; padding: 22px;
+  width: min(94vw, 400px);
+  box-shadow: var(--tg-shadow-lg);
+  animation: tgSlideUp .15s ease;
+}
+.tg-modal h3 {
+  font-size: .97rem; font-weight: 700;
+  color: var(--tg-input-txt); margin: 0 0 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.tg-modal input {
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  background: var(--tg-att-bg);
+  border: 1px solid var(--tg-input-bdr);
+  color: var(--tg-input-txt); font-size: .9rem;
+  outline: none; box-sizing: border-box;
+  transition: border-color .15s;
+}
+.tg-modal input:focus { border-color: var(--tg-accent); }
+.tg-modal input::placeholder { color: var(--tg-input-ph); }
+.tg-modal-btns { display: flex; gap: 10px; margin-top: 14px; }
+.tg-modal-btns button {
+  flex: 1; padding: 10px; border-radius: 10px;
+  font-size: .9rem; font-weight: 600; cursor: pointer;
+  border: none; transition: opacity .12s;
+}
+.tg-modal-btns button:first-child {
+  background: var(--tg-att-bg); color: var(--tg-sub);
+}
+.tg-modal-btns button:last-child {
+  background: var(--tg-accent); color: #fff;
+}
+.tg-modal-btns button:hover { opacity: .88; }
+
+/* ── Spinner ── */
+.tg-spinner {
+  text-align: center; padding: 28px;
+  color: var(--tg-sub); font-size: .84rem;
+}
+.tg-spinner i { animation: tgSpin 1s linear infinite; }
+@keyframes tgSpin { to { transform: rotate(360deg); } }
+
+/* ── Scroll-to-bottom pill ── */
+.tg-scroll-pill {
+  position: absolute;
+  bottom: 12px; right: 16px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--tg-header-bg);
+  border: 1px solid var(--tg-border);
+  box-shadow: var(--tg-shadow-lg);
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--tg-sub); font-size: .85rem;
+  transition: color .12s, background .12s;
+  z-index: 10;
+}
+.tg-scroll-pill.visible { display: flex; }
+.tg-scroll-pill:hover { color: var(--tg-accent); background: var(--tg-tool-hover); }
+
+/* ── Unread badge on scroll pill ── */
+.tg-scroll-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  background: var(--tg-accent);
+  color: var(--tg-send-icon);
+  font-size: .6rem; font-weight: 700;
+  padding: 1px 5px; border-radius: 8px;
+  line-height: 1.4;
+  display: none;
+}
+.tg-scroll-pill.has-new .tg-scroll-badge { display: block; }
+
+/* ── Typing indicator ── */
+.tg-typing-bar {
+  background: var(--tg-input-bg);
+  border-top: 1px solid var(--tg-input-bdr);
+  padding: 4px 16px 4px 16px;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 26px;
+}
+.tg-typing-bar.visible { display: flex; }
+.tg-typing-name {
+  font-size: .77rem;
+  color: var(--tg-accent);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.tg-typing-label {
+  font-size: .75rem;
+  color: var(--tg-sub);
+}
+.tg-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 1px;
+}
+.tg-typing-dots span {
+  display: inline-block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--tg-sub);
+  animation: tgDot 1.4s infinite ease-in-out;
+}
+.tg-typing-dots span:nth-child(2) { animation-delay: .2s; }
+.tg-typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes tgDot {
+  0%, 80%, 100% { transform: scale(0); opacity: .4; }
+  40%            { transform: scale(1); opacity: 1; }
+}
+</style>
+
+{% csrf_token %}
+<div class="tg-wrap" id="tgWrap">
+
+  <!-- ── Header ── -->
+  <div class="tg-header">
+    <a href="{% url 'core:chat_list' %}" class="tg-back" title="Orqaga">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div class="tg-h-avatar">{{ group.nom|first|upper }}</div>
+    <div class="tg-h-info">
+      <div class="tg-h-name">{{ group.nom }}</div>
+      <div class="tg-h-sub" id="tgHeaderSub">
+        <span class="tg-h-online-dot"></span>
+        <span id="tgMemberCount">{{ member_count }} a'zo</span>
+        <span id="tgOnlineSep" style="display:none">&nbsp;·&nbsp;</span>
+        <span id="tgOnlineCount" style="display:none"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Messages ── -->
+  <div class="tg-msgs" id="tgMsgs">
+    <div class="tg-spinner" id="tgSpinner">
+      <i class="fa-solid fa-circle-notch"></i> Yuklanmoqda...
+    </div>
+  </div>
+
+  <!-- Scroll-to-bottom pill -->
+  <div class="tg-scroll-pill" id="tgScrollPill" onclick="tgScrollBottom(true)">
+    <i class="fa-solid fa-chevron-down"></i>
+    <span class="tg-scroll-badge" id="tgScrollBadge">0</span>
+  </div>
+
+  <!-- ── Reply bar ── -->
+  <div class="tg-reply-bar" id="tgReplyBar">
+    <div class="tg-rb-stripe"></div>
+    <div class="tg-rb-inner">
+      <div class="tg-rb-name" id="tgRbName"></div>
+      <div class="tg-rb-text" id="tgRbText"></div>
+    </div>
+    <button class="tg-rb-cancel" onclick="tgCancelReply()" title="Bekor">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- ── File bar ── -->
+  <div class="tg-file-bar" id="tgFileBar">
+    <i class="fa-solid fa-paperclip tg-fb-icon"></i>
+    <div class="tg-fb-name" id="tgFbName">—</div>
+    <div class="tg-fb-size" id="tgFbSize"></div>
+    <button class="tg-fb-cancel" onclick="tgCancelFile()" title="Olib tashlash">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- ── Typing indicator ── -->
+  <div class="tg-typing-bar" id="tgTypingBar">
+    <span class="tg-typing-name" id="tgTypingName"></span>
+    <span class="tg-typing-label" id="tgTypingLabel">yozmoqda</span>
+    <span class="tg-typing-dots"><span></span><span></span><span></span></span>
+  </div>
+
+  <!-- ── Input area ── -->
+  <div class="tg-input-wrap">
+    <label class="tg-tool" for="tgFileInput" title="Fayl yuborish">
+      <i class="fa-solid fa-paperclip"></i>
+      <input type="file" id="tgFileInput" style="display:none"
+             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+             onchange="tgOnFileSelect(this)">
+    </label>
+    <button class="tg-tool" onclick="tgOpenLinkModal()" title="Havola yuborish">
+      <i class="fa-solid fa-link"></i>
+    </button>
+    <textarea class="tg-textarea" id="tgInput"
+              placeholder="Xabar yozing..."
+              rows="1"
+              oninput="tgAutoResize(this); tgTypingHint();"
+              onkeydown="tgOnKey(event)"></textarea>
+    <button class="tg-send" id="tgSendBtn" onclick="tgSend()" title="Yuborish">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
+
+<!-- ── Lightbox ── -->
+<div class="tg-lightbox" id="tgLightbox" onclick="tgCloseLightbox()">
+  <button class="tg-lb-close" onclick="tgCloseLightbox()">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+  <img src="" id="tgLbImg" alt="" onclick="event.stopPropagation()">
+</div>
+
+<!-- ── Link modal ── -->
+<div class="tg-modal-overlay" id="tgLinkModal" onclick="if(event.target===this)tgCloseLinkModal()">
+  <div class="tg-modal">
+    <h3>
+      <i class="fa-solid fa-link" style="color:var(--tg-accent)"></i>
+      Havola yuborish
+    </h3>
+    <input id="tgLinkInput" type="url" placeholder="https://..."
+           onkeydown="if(event.key==='Enter')tgConfirmLink()">
+    <div class="tg-modal-btns">
+      <button onclick="tgCloseLinkModal()">Bekor</button>
+      <button onclick="tgConfirmLink()">Yuborish</button>
+    </div>
+  </div>
+</div>
+
+<!-- Initial messages JSON (json_script handles safe escaping) -->
+{{ initial_msgs_json|json_script:"__tg_init__" }}
+
+<script>
+/* ══════════════════════════════════════════
+   TELEGRAM GROUP CHAT — JS
+══════════════════════════════════════════ */
+
+/* ── Config ── */
+const TG_GROUP_ID   = {{ group.id }};
+const TG_ME_ID      = {{ me_id }};
+const TG_ME_NAME    = "{{ me_name|escapejs }}";
+const TG_ME_ROLE    = "{{ me_role }}";
+const TG_CSRF       = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+const TG_MSGS_URL   = "{% url 'core:chat_messages_api' group.id %}";
+const TG_SEND_URL   = "{% url 'core:chat_send_api' group.id %}";
+const TG_TYPING_URL = "{% url 'core:chat_typing_api' group.id %}";
+const TG_IS_STAFF   = {{ is_teacher|yesno:"true,false" }};
+const TG_MEMBER_CNT  = {{ member_count }};
+const TG_INIT_ONLINE = {{ online_count }};
+
+/* ── State ── */
+let tgLastId        = {{ last_id }};
+let tgPollTimer     = null;
+let tgReplyId       = null;
+let tgReplyName     = '';
+let tgReplyText     = '';
+let tgPendLink      = '';
+let tgRendered      = new Set();
+let tgAtBottom      = true;
+let tgUnseenNew     = 0;
+let tgMyReads       = {};  /* msgId -> readCount */
+let tgTypingTimer   = null;
+let tgLastTypingSent = 0;
+
+/* ── Telegram avatar colors (8 palette) ── */
+function tgAvatarColor(senderId) { return senderId % 8; }
+
+/* ── Helpers ── */
+function tgEsc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function tgFmtSize(b) {
+  if (!b) return '';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function tgDateLabel(ds) {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const yDate = new Date(Date.now() - 86400000);
+  const yest  = yDate.toISOString().split('T')[0];
+  if (ds === today) return 'Bugun';
+  if (ds === yest)  return 'Kecha';
+  /* Format as DD.MM.YYYY */
+  const p = ds.split('-');
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+function tgLinkify(s) {
+  if (!s) return '';
+  return tgEsc(s).replace(/(https?:\/\/[^\s<>"&]+)/g,
+    '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+/* ── Initials from name ── */
+function tgInitials(name) {
+  const parts = String(name || '?').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0][0] || '?').toUpperCase();
+}
+
+/* ── Render single attachment ── */
+function tgRenderAtt(a, isMine) {
+  if (a.type === 'image' && a.url) {
+    return `<img src="${tgEsc(a.url)}" class="tg-att-img"
+      onclick="tgOpenLightbox('${tgEsc(a.url)}')"
+      alt="${tgEsc(a.name)}" loading="lazy">`;
+  }
+  if (a.type === 'pdf') {
+    return `<a href="${tgEsc(a.url)}" class="tg-att-card pdf" target="_blank" rel="noopener">
+      <div class="tg-att-icon"><i class="fa-solid fa-file-pdf"></i></div>
+      <div class="tg-att-info">
+        <div class="tg-att-name">${tgEsc(a.name)}</div>
+        <div class="tg-att-size">${tgFmtSize(a.size)} · PDF</div>
+      </div>
+      <i class="fa-solid fa-download tg-att-dl"></i>
+    </a>`;
+  }
+  if (a.type === 'file') {
+    return `<a href="${tgEsc(a.url)}" class="tg-att-card file" target="_blank" rel="noopener">
+      <div class="tg-att-icon"><i class="fa-solid fa-file"></i></div>
+      <div class="tg-att-info">
+        <div class="tg-att-name">${tgEsc(a.name)}</div>
+        <div class="tg-att-size">${tgFmtSize(a.size)}</div>
+      </div>
+      <i class="fa-solid fa-download tg-att-dl"></i>
+    </a>`;
+  }
+  if (a.type === 'link') {
+    const url = a.link || a.name;
+    return `<a href="${tgEsc(url)}" class="tg-att-link" target="_blank" rel="noopener">
+      <i class="fa-solid fa-link"></i>${tgEsc(url)}
+    </a>`;
+  }
+  return '';
+}
+
+/* ── Build read-receipt HTML ── */
+function tgTicksHtml(m) {
+  if (!m.is_mine) return '';
+  const cnt = tgMyReads[m.id] !== undefined ? tgMyReads[m.id] : (m.read_count || 0);
+  const cls = cnt > 0 ? 'read' : 'unread';
+  let cntHtml = cnt > 0 ? `<span class="tg-read-count">${cnt}</span>` : '';
+  return `<span class="tg-ticks ${cls}" id="tg-ticks-${m.id}">
+    <i class="fa-solid fa-check-double"></i>${cntHtml}
+  </span>`;
+}
+
+/* ── Render one message row ── */
+function tgRenderMsg(m, groupClass) {
+  if (tgRendered.has(m.id)) return null;
+  tgRendered.add(m.id);
+
+  const isMine   = m.is_mine;
+  const isStaff  = !isMine && (m.sender_role === 'teacher' || m.sender_role === 'manager' || m.sender_role === 'director');
+  const rowCls   = (isMine ? 'mine' : 'theirs') + ' ' + (groupClass || 'solo');
+  const color    = tgAvatarColor(m.sender_id);
+  const initials = tgInitials(m.sender_name);
+  const msgDomId = `tg-msg-${m.id}`;
+
+  /* Reply quote */
+  let rqHtml = '';
+  if (m.reply) {
+    rqHtml = `<div class="tg-rq" onclick="tgScrollToMsg(${m.reply.id})">
+      <div class="tg-rq-name">${tgEsc(m.reply.sender)}</div>
+      <div class="tg-rq-body">${m.reply.has_att ? '📎 ' : ''}${tgEsc(m.reply.body) || '(fayl)'}</div>
+    </div>`;
+  }
+
+  /* Sender name (theirs, group-first or solo) */
+  let senderHtml = '';
+  const showSender = !isMine && (groupClass === 'group-first' || groupClass === 'solo');
+  if (showSender) {
+    const badge = isStaff ? `<span style="font-size:.62rem;padding:1px 6px;border-radius:8px;background:rgba(91,184,245,.18);color:var(--tg-accent);margin-left:5px;">O'qituvchi</span>` : '';
+    senderHtml = `<div class="tg-sender" data-color="${color}">${tgEsc(m.sender_name)}${badge}</div>`;
+  }
+
+  /* Attachments */
+  const attsHtml = (m.attachments || []).map(a => tgRenderAtt(a, isMine)).join('');
+
+  /* Body */
+  let bodyHtml = '';
+  if (m.body) bodyHtml = `<div class="tg-body">${tgLinkify(m.body)}</div>`;
+
+  /* Meta (time + ticks) */
+  const ticksHtml = tgTicksHtml(m);
+  const metaHtml = `<div class="tg-meta">${ticksHtml}<span class="tg-time">${tgEsc(m.created_at)}</span></div>`;
+
+  /* Avatar / placeholder */
+  const showAv = !isMine && (groupClass === 'group-last' || groupClass === 'solo');
+  const avHtml = isMine
+    ? `<div class="tg-av-placeholder"></div>`
+    : (showAv
+        ? `<div class="tg-av" data-color="${color}" title="${tgEsc(m.sender_name)}">${initials}</div>`
+        : `<div class="tg-av-placeholder"></div>`);
+
+  return `
+<div class="tg-row ${rowCls}" id="${msgDomId}" data-id="${m.id}" data-date="${tgEsc(m.created_date)}" data-sender="${m.sender_id}">
+  ${avHtml}
+  <div class="tg-bwrap">
+    <div class="tg-action-tray">
+      <button class="tg-action-btn"
+        onclick="tgStartReply(${m.id},${JSON.stringify(m.sender_name)},${JSON.stringify(m.body||'(fayl)')})"
+        title="Javob berish">
+        <i class="fa-solid fa-reply"></i>
+      </button>
+    </div>
+    <div class="tg-bubble" id="tg-bubble-${m.id}">
+      ${senderHtml}
+      ${rqHtml}
+      ${attsHtml}
+      ${bodyHtml}
+      ${metaHtml}
+    </div>
+  </div>
+</div>`;
+}
+
+/* ── Determine group classes for a list of messages ── */
+function tgGroupMessages(msgs) {
+  /* Returns array of {msg, groupClass} */
+  const GROUP_GAP_MS = 5 * 60 * 1000; /* 5 minutes */
+  const result = [];
+  for (let i = 0; i < msgs.length; i++) {
+    const m = msgs[i];
+    const prev = i > 0 ? msgs[i-1] : null;
+    const next = i < msgs.length - 1 ? msgs[i+1] : null;
+
+    const sameAsPrev = prev && prev.sender_id === m.sender_id &&
+      Math.abs(new Date(m.created_iso||'').getTime() - new Date(prev.created_iso||'').getTime()) < GROUP_GAP_MS;
+    const sameAsNext = next && next.sender_id === m.sender_id &&
+      Math.abs(new Date(next.created_iso||'').getTime() - new Date(m.created_iso||'').getTime()) < GROUP_GAP_MS;
+
+    let gc;
+    if (!sameAsPrev && !sameAsNext) gc = 'solo';
+    else if (!sameAsPrev && sameAsNext)  gc = 'group-first';
+    else if (sameAsPrev && sameAsNext)   gc = 'group-mid';
+    else                                  gc = 'group-last';
+
+    result.push({msg: m, groupClass: gc});
+  }
+  return result;
+}
+
+/* ── Render a batch of messages (appended to bottom) ── */
+function tgRenderBatch(msgs, isNew) {
+  const container = document.getElementById('tgMsgs');
+  let lastDate = container.dataset.lastDate || null;
+  let html = '';
+  const grouped = tgGroupMessages(msgs);
+
+  for (const {msg, groupClass} of grouped) {
+    if (tgRendered.has(msg.id)) continue;
+    if (lastDate !== msg.created_date) {
+      html += `<div class="tg-date-chip"><span>${tgDateLabel(msg.created_date)}</span></div>`;
+      lastDate = msg.created_date;
+    }
+    const mHtml = tgRenderMsg(msg, groupClass);
+    if (mHtml) html += mHtml;
+  }
+
+  if (html) {
+    container.dataset.lastDate = lastDate;
+    container.insertAdjacentHTML('beforeend', html);
+  }
+
+  /* Track unread new msgs when user not at bottom */
+  if (isNew && !tgAtBottom) {
+    const myNew = msgs.filter(m => !m.is_mine && !tgRendered.has(m.id - 1)); /* approximate */
+    tgUnseenNew += msgs.filter(m => !tgRendered.has(m.id - 999999)).length;
+    tgUpdateScrollPill();
+  }
+}
+
+/* ── Scroll ── */
+const tgMsgsEl = document.getElementById('tgMsgs');
+tgMsgsEl.addEventListener('scroll', () => {
+  const distFromBottom = tgMsgsEl.scrollHeight - tgMsgsEl.scrollTop - tgMsgsEl.clientHeight;
+  tgAtBottom = distFromBottom < 80;
+  if (tgAtBottom) {
+    tgUnseenNew = 0;
+    tgUpdateScrollPill();
+  }
+});
+
+function tgScrollBottom(force) {
+  if (force || tgAtBottom) {
+    tgMsgsEl.scrollTop = tgMsgsEl.scrollHeight;
+  }
+}
+function tgScrollToMsg(id) {
+  const el = document.getElementById(`tg-msg-${id}`);
+  if (!el) return;
+  el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  const bub = document.getElementById(`tg-bubble-${id}`);
+  if (bub) {
+    bub.classList.remove('highlight-flash');
+    void bub.offsetWidth; /* reflow */
+    bub.classList.add('highlight-flash');
+    setTimeout(() => bub.classList.remove('highlight-flash'), 750);
+  }
+}
+
+function tgUpdateScrollPill() {
+  const pill = document.getElementById('tgScrollPill');
+  if (!tgAtBottom) {
+    pill.classList.add('visible');
+    if (tgUnseenNew > 0) {
+      pill.classList.add('has-new');
+      document.getElementById('tgScrollBadge').textContent = tgUnseenNew;
+    } else {
+      pill.classList.remove('has-new');
+    }
+  } else {
+    pill.classList.remove('visible');
+  }
+}
+
+/* ── Update read receipt displays ── */
+function tgUpdateMyReads(myReadsMap) {
+  if (!myReadsMap) return;
+  for (const [idStr, cnt] of Object.entries(myReadsMap)) {
+    const id = parseInt(idStr);
+    tgMyReads[id] = cnt;
+    const tickEl = document.getElementById(`tg-ticks-${id}`);
+    if (tickEl) {
+      if (cnt > 0) {
+        tickEl.className = 'tg-ticks read';
+        tickEl.innerHTML = `<i class="fa-solid fa-check-double"></i><span class="tg-read-count">${cnt}</span>`;
+      } else {
+        tickEl.className = 'tg-ticks unread';
+        tickEl.innerHTML = `<i class="fa-solid fa-check-double"></i>`;
+      }
+    }
+  }
+}
+
+/* ── Update online count in header ── */
+function tgUpdateOnline(cnt) {
+  const sep = document.getElementById('tgOnlineSep');
+  const onlineEl = document.getElementById('tgOnlineCount');
+  if (cnt && cnt > 0) {
+    sep.style.display = '';
+    onlineEl.style.display = '';
+    onlineEl.textContent = cnt + ' online';
+  } else {
+    sep.style.display = 'none';
+    onlineEl.style.display = 'none';
+  }
+}
+
+/* ── Typing indicator ── */
+function tgUpdateTyping(typingUsers) {
+  const bar = document.getElementById('tgTypingBar');
+  if (!typingUsers || typingUsers.length === 0) {
+    bar.classList.remove('visible');
+    return;
+  }
+  bar.classList.add('visible');
+  let nameText, labelText;
+  if (typingUsers.length === 1) {
+    nameText = typingUsers[0].name;
+    labelText = 'yozmoqda';
+  } else {
+    nameText = typingUsers.length + ' kishi';
+    labelText = 'yozmoqda';
+  }
+  document.getElementById('tgTypingName').textContent = nameText;
+  document.getElementById('tgTypingLabel').textContent = labelText;
+}
+
+/* Typing heartbeat — called on every keystroke, throttled to 2s */
+async function tgTypingHint() {
+  const now = Date.now();
+  if (now - tgLastTypingSent < 2000) return;
+  tgLastTypingSent = now;
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', TG_CSRF);
+  try {
+    await fetch(TG_TYPING_URL, {method: 'POST', body: fd, credentials: 'same-origin'});
+  } catch (e) { /* silent */ }
+}
+
+/* ── Init ── */
+function tgInit() {
+  document.getElementById('tgSpinner').style.display = 'none';
+  let initMsgs = [];
+  try {
+    initMsgs = JSON.parse(document.getElementById('__tg_init__').textContent || '[]');
+  } catch (e) { initMsgs = []; }
+  if (initMsgs.length) {
+    for (const m of initMsgs) {
+      if (m.is_mine) tgMyReads[m.id] = m.read_count || 0;
+    }
+    tgRenderBatch(initMsgs, false);
+    tgLastId = initMsgs[initMsgs.length - 1].id;
+    tgScrollBottom(true);
+  }
+  tgUpdateOnline(TG_INIT_ONLINE);
+  tgStartPolling();
+}
+
+/* ── Polling (3s) ── */
+function tgStartPolling() {
+  clearInterval(tgPollTimer);
+  tgPollTimer = setInterval(tgPoll, 3000);
+}
+
+async function tgPoll() {
+  try {
+    const r = await fetch(`${TG_MSGS_URL}?after=${tgLastId}`, {credentials: 'same-origin'});
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok) return;
+
+    tgUpdateOnline(d.online_count);
+    tgUpdateMyReads(d.my_reads);
+    tgUpdateTyping(d.typing_users || []);
+
+    if (d.messages && d.messages.length) {
+      for (const m of d.messages) {
+        if (m.is_mine) tgMyReads[m.id] = m.read_count || 0;
+      }
+      tgRenderBatch(d.messages, true);
+      tgLastId = d.messages[d.messages.length - 1].id;
+      tgScrollBottom(false);
+    }
+  } catch (e) {
+    /* silent */
+  }
+}
+
+/* ── Send ── */
+async function tgSend() {
+  const input    = document.getElementById('tgInput');
+  const body     = input.value.trim();
+  const fileEl   = document.getElementById('tgFileInput');
+  const file     = fileEl.files[0] || null;
+
+  if (!body && !file && !tgPendLink) return;
+
+  const btn = document.getElementById('tgSendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-circle-notch" style="animation:tgSpin 1s linear infinite"></i>';
+
+  const fd = new FormData();
+  if (body)        fd.append('body', body);
+  if (tgReplyId)   fd.append('reply_to', tgReplyId);
+  if (file)        fd.append('file', file);
+  if (tgPendLink)  fd.append('link_url', tgPendLink);
+  fd.append('csrfmiddlewaretoken', TG_CSRF);
+
+  try {
+    const r = await fetch(TG_SEND_URL, {method: 'POST', body: fd, credentials: 'same-origin'});
+    const d = await r.json();
+    if (d.ok) {
+      input.value = '';
+      input.style.height = '';
+      fileEl.value = '';
+      tgPendLink = '';
+      tgCancelReply();
+      tgCancelFile();
+
+      /* Add to myReads */
+      tgMyReads[d.message.id] = 0;
+
+      tgRenderBatch([d.message], false);
+      tgLastId = d.message.id;
+      tgScrollBottom(true);
+      tgUpdateOnline(d.online_count);
+    } else {
+      alert(d.error || 'Xabar yuborishda xato');
+    }
+  } catch (e) {
+    alert('Tarmoq xatosi. Qayta urinib ko\'ring.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+  }
+}
+
+/* ── Reply ── */
+function tgStartReply(id, name, text) {
+  tgReplyId   = id;
+  tgReplyName = name;
+  tgReplyText = text;
+  const bar = document.getElementById('tgReplyBar');
+  bar.classList.add('visible');
+  document.getElementById('tgRbName').textContent = name;
+  document.getElementById('tgRbText').textContent = text;
+  document.getElementById('tgInput').focus();
+}
+function tgCancelReply() {
+  tgReplyId = null; tgReplyName = ''; tgReplyText = '';
+  document.getElementById('tgReplyBar').classList.remove('visible');
+}
+
+/* ── File ── */
+function tgOnFileSelect(input) {
+  const f = input.files[0];
+  if (!f) return tgCancelFile();
+  const bar = document.getElementById('tgFileBar');
+  bar.classList.add('visible');
+  document.getElementById('tgFbName').textContent = f.name;
+  document.getElementById('tgFbSize').textContent = tgFmtSize(f.size);
+}
+function tgCancelFile() {
+  document.getElementById('tgFileInput').value = '';
+  document.getElementById('tgFileBar').classList.remove('visible');
+}
+
+/* ── Link modal ── */
+function tgOpenLinkModal() {
+  const m = document.getElementById('tgLinkModal');
+  m.classList.add('open');
+  document.getElementById('tgLinkInput').value = '';
+  setTimeout(() => document.getElementById('tgLinkInput').focus(), 80);
+}
+function tgCloseLinkModal() {
+  document.getElementById('tgLinkModal').classList.remove('open');
+}
+function tgConfirmLink() {
+  const url = document.getElementById('tgLinkInput').value.trim();
+  if (!url) return;
+  tgPendLink = url;
+  tgCloseLinkModal();
+  tgSend();
+}
+
+/* ── Lightbox ── */
+function tgOpenLightbox(src) {
+  document.getElementById('tgLbImg').src = src;
+  document.getElementById('tgLightbox').classList.add('open');
+}
+function tgCloseLightbox() {
+  document.getElementById('tgLightbox').classList.remove('open');
+  document.getElementById('tgLbImg').src = '';
+}
+
+/* ── Keyboard ── */
+function tgOnKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    tgSend();
+  }
+  if (e.key === 'Escape') {
+    tgCancelReply();
+    tgCancelFile();
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    tgCloseLightbox();
+    tgCloseLinkModal();
+  }
+});
+
+/* ── Textarea auto-resize ── */
+function tgAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+/* ── Boot ── */
+document.addEventListener('DOMContentLoaded', tgInit);
+</script>
+{% endblock %}

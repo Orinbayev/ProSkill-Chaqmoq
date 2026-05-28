@@ -150,6 +150,28 @@
       html[data-role-theme="light"] .sidebar-rating-btn { background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(251,191,36,.06)) !important; }
       html[data-role-theme="light"] .sidebar-rating-btn .si-ico  { color: #d97706 !important; }
       html[data-role-theme="light"] .sidebar-rating-btn .si-text { color: #92400e !important; }
+
+      /* ── Guruh Chat sidebar button ── */
+      .sidebar-chat-btn {
+        background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(6,182,212,.08)) !important;
+        border: 1px solid rgba(16,185,129,.22) !important;
+        border-radius: 12px !important;
+        margin: 2px 0 !important;
+      }
+      .sidebar-chat-btn:hover {
+        background: linear-gradient(135deg, rgba(16,185,129,.28), rgba(6,182,212,.16)) !important;
+        border-color: rgba(16,185,129,.45) !important;
+      }
+      .sidebar-chat-btn .si-ico { color: #34d399 !important; }
+      .sidebar-chat-btn .si-text { color: #6ee7b7 !important; font-weight: 700 !important; }
+      .sidebar-chat-btn.active {
+        background: linear-gradient(135deg, rgba(16,185,129,.35), rgba(6,182,212,.22)) !important;
+        border-color: rgba(16,185,129,.6) !important;
+      }
+      body.sidebar-collapsed .sidebar-chat-btn .si-text { display: none; }
+      html[data-role-theme="light"] .sidebar-chat-btn { background: linear-gradient(135deg, rgba(16,185,129,.1), rgba(6,182,212,.06)) !important; }
+      html[data-role-theme="light"] .sidebar-chat-btn .si-ico  { color: #059669 !important; }
+      html[data-role-theme="light"] .sidebar-chat-btn .si-text { color: #065f46 !important; }
     </style>
 
     <!-- ================================
@@ -315,6 +337,13 @@
       <span class="si-text">Boshqaruv</span>
     </a>
 
+    <a href="{% url 'core:chat_list' %}"
+      class="sidebar-item sidebar-chat-btn {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
+      data-title="Chat">
+      <span class="si-ico"><i class="fa-solid fa-comments"></i></span>
+      <span class="si-text">Guruh Chat 💬</span>
+    </a>
+
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
       data-title="Do'kon">
@@ -383,6 +412,12 @@
       <span class="si-text">O'yinlar 🎮</span>
     </a>
 
+    <a href="{% url 'core:chat_list' %}"
+      class="sidebar-item sidebar-chat-btn {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
+      data-title="Chat">
+      <span class="si-ico"><i class="fa-solid fa-comments"></i></span>
+      <span class="si-text">Guruh Chat 💬</span>
+    </a>
 
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"

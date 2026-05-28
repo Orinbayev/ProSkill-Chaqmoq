@@ -2127,3 +2127,257 @@ Sen O'zbekistondagi ta'lim markazida o'quvchilar uchun "{game_name}" o'yini savo
     except Exception as e:
         logger.exception("game_questions_ai_generate failed")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────
+#  GURUH CHAT API
+# ─────────────────────────────────────────────
+
+def _check_chat_access(u, group, center):
+    if u.role in ('director', 'manager'):
+        return True
+    if u.role == 'teacher':
+        return group.oqituvchi_id == u.id or group.support_teacher_id == u.id
+    if u.role == 'student':
+        from education.models import Enrollment
+        return Enrollment.objects.filter(group=group, student=u, is_deleted=False).exists()
+    return False
+
+
+def _msg_to_dict(m, me_id):
+    from core.models import ChatMessageRead
+    atts = [
+        {
+            'type': a.att_type,
+            'name': a.original_name,
+            'url': a.file.url if a.file else '',
+            'link': a.link_url,
+            'size': a.file_size,
+        }
+        for a in m.attachments.all()
+    ]
+    reply = None
+    if m.reply_to and not m.reply_to.is_deleted:
+        reply = {
+            'id': m.reply_to.id,
+            'sender': m.reply_to.sender.get_full_name() or m.reply_to.sender.email,
+            'sender_id': m.reply_to.sender_id,
+            'body': m.reply_to.body[:80],
+            'has_att': m.reply_to.attachments.exists(),
+        }
+    read_count = m.reads.exclude(user_id=me_id).count() if m.sender_id == me_id else 0
+    return {
+        'id': m.id,
+        'sender_id': m.sender_id,
+        'sender_name': m.sender.get_full_name() or m.sender.email,
+        'sender_role': m.sender.role,
+        'body': m.body,
+        'reply': reply,
+        'attachments': atts,
+        'created_at': m.created_at.strftime('%H:%M'),
+        'created_date': m.created_at.strftime('%Y-%m-%d'),
+        'created_iso': m.created_at.isoformat(),
+        'is_mine': m.sender_id == me_id,
+        'read_count': read_count,
+    }
+
+
+def _update_presence(chat, user):
+    from core.models import ChatPresence
+    ChatPresence.objects.update_or_create(chat=chat, user=user, defaults={})
+
+
+def _get_online_count(chat):
+    from core.models import ChatPresence
+    from django.utils import timezone
+    cutoff = timezone.now() - timezone.timedelta(minutes=3)
+    return ChatPresence.objects.filter(chat=chat, last_seen__gte=cutoff).count()
+
+
+def _mark_messages_read(messages, user):
+    from core.models import ChatMessageRead
+    existing = set(
+        ChatMessageRead.objects.filter(message__in=messages, user=user)
+        .values_list('message_id', flat=True)
+    )
+    new_reads = [
+        ChatMessageRead(message=m, user=user)
+        for m in messages
+        if m.sender_id != user.id and m.id not in existing
+    ]
+    if new_reads:
+        ChatMessageRead.objects.bulk_create(new_reads, ignore_conflicts=True)
+
+
+@login_required
+def chat_messages_api(request, group_id):
+    from education.models import Group
+    from core.models import GroupChat, ChatMessage
+    from django.shortcuts import get_object_or_404
+
+    u = request.user
+    center = getattr(u, 'center', None)
+    if not center:
+        return JsonResponse({'ok': False}, status=403)
+
+    group = get_object_or_404(Group, id=group_id, center=center)
+    if not _check_chat_access(u, group, center):
+        return JsonResponse({'ok': False}, status=403)
+
+    chat = get_object_or_404(GroupChat, group=group, center=center)
+
+    # Update presence
+    _update_presence(chat, u)
+
+    after_id = request.GET.get('after')
+    if after_id:
+        try:
+            qs = list(
+                ChatMessage.objects.filter(chat=chat, is_deleted=False, id__gt=int(after_id))
+                .select_related('sender', 'reply_to', 'reply_to__sender')
+                .prefetch_related('attachments', 'reads')
+                .order_by('created_at')
+            )
+        except (ValueError, TypeError):
+            return JsonResponse({'ok': False, 'error': 'invalid after'}, status=400)
+    else:
+        qs = list(reversed(list(
+            ChatMessage.objects.filter(chat=chat, is_deleted=False)
+            .select_related('sender', 'reply_to', 'reply_to__sender')
+            .prefetch_related('attachments', 'reads')
+            .order_by('-created_at')[:60]
+        )))
+
+    # Mark incoming messages as read
+    _mark_messages_read(qs, u)
+
+    # Updated read counts for my recent messages
+    from core.models import ChatMessageRead
+    my_recent = list(
+        ChatMessage.objects.filter(chat=chat, sender=u, is_deleted=False)
+        .order_by('-created_at')[:30]
+        .prefetch_related('reads')
+    )
+    my_reads = {
+        m.id: m.reads.exclude(user=u).count()
+        for m in my_recent
+    }
+
+    # Typing users (excluding current user)
+    now = timezone.now()
+    from core.models import ChatPresence as CP
+    typing_qs = CP.objects.filter(
+        chat=chat, typing_until__gt=now
+    ).exclude(user=u).select_related('user')
+    typing_users = [
+        {
+            'name': p.user.get_full_name() or p.user.email,
+            'role': getattr(p.user, 'role', ''),
+        }
+        for p in typing_qs
+    ]
+
+    return JsonResponse({
+        'ok': True,
+        'messages': [_msg_to_dict(m, u.id) for m in qs],
+        'online_count': _get_online_count(chat),
+        'my_reads': my_reads,
+        'typing_users': typing_users,
+    })
+
+
+@login_required
+@require_POST
+def chat_typing_api(request, group_id):
+    """Foydalanuvchi yozayotganini qayd etadi (4 soniya muddatli)."""
+    from education.models import Group
+    from core.models import GroupChat, ChatPresence
+    from django.shortcuts import get_object_or_404
+
+    u = request.user
+    center = getattr(u, 'center', None)
+    if not center:
+        return JsonResponse({'ok': False}, status=403)
+
+    group = get_object_or_404(Group, id=group_id, center=center)
+    if not _check_chat_access(u, group, center):
+        return JsonResponse({'ok': False}, status=403)
+
+    chat = get_object_or_404(GroupChat, group=group, center=center)
+    typing_until = timezone.now() + timezone.timedelta(seconds=4)
+    ChatPresence.objects.update_or_create(
+        chat=chat, user=u,
+        defaults={'typing_until': typing_until},
+    )
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def chat_send_api(request, group_id):
+    from education.models import Group
+    from core.models import GroupChat, ChatMessage, ChatAttachment
+    from django.shortcuts import get_object_or_404
+
+    u = request.user
+    center = getattr(u, 'center', None)
+    if not center:
+        return JsonResponse({'ok': False, 'error': "Ruxsat yo'q"}, status=403)
+
+    group = get_object_or_404(Group, id=group_id, center=center)
+    if not _check_chat_access(u, group, center):
+        return JsonResponse({'ok': False, 'error': "Ruxsat yo'q"}, status=403)
+
+    chat, _ = GroupChat.objects.get_or_create(center=center, group=group)
+    _update_presence(chat, u)
+
+    body = request.POST.get('body', '').strip()
+    reply_to_id = request.POST.get('reply_to', '').strip()
+    link_url = request.POST.get('link_url', '').strip()
+    uploaded_file = request.FILES.get('file')
+
+    if not body and not uploaded_file and not link_url:
+        return JsonResponse({'ok': False, 'error': "Xabar bo'sh bo'lishi mumkin emas"}, status=400)
+
+    reply_to = None
+    if reply_to_id:
+        try:
+            reply_to = ChatMessage.objects.get(id=int(reply_to_id), chat=chat, is_deleted=False)
+        except (ChatMessage.DoesNotExist, ValueError):
+            pass
+
+    msg = ChatMessage.objects.create(chat=chat, sender=u, center=center, body=body, reply_to=reply_to)
+
+    att = None
+    if uploaded_file:
+        MAX_SIZE = 20 * 1024 * 1024
+        if uploaded_file.size > MAX_SIZE:
+            msg.delete()
+            return JsonResponse({'ok': False, 'error': 'Fayl hajmi 20MB dan oshmasligi kerak'}, status=400)
+        ext = uploaded_file.name.rsplit('.', 1)[-1].lower() if '.' in uploaded_file.name else ''
+        if ext in {'jpg', 'jpeg', 'png', 'gif', 'webp'}:
+            att_type = ChatAttachment.ATT_IMAGE
+        elif ext == 'pdf':
+            att_type = ChatAttachment.ATT_PDF
+        else:
+            att_type = ChatAttachment.ATT_FILE
+        att = ChatAttachment.objects.create(
+            message=msg, file=uploaded_file, att_type=att_type,
+            original_name=uploaded_file.name, file_size=uploaded_file.size,
+        )
+    elif link_url:
+        att = ChatAttachment.objects.create(
+            message=msg, link_url=link_url, att_type=ChatAttachment.ATT_LINK,
+            original_name=link_url[:255],
+        )
+
+    msg_data = _msg_to_dict(
+        ChatMessage.objects.select_related('sender', 'reply_to', 'reply_to__sender')
+        .prefetch_related('attachments', 'reads').get(pk=msg.pk),
+        u.id,
+    )
+    return JsonResponse({
+        'ok': True,
+        'message': msg_data,
+        'online_count': _get_online_count(chat),
+    })

@@ -562,3 +562,104 @@ class GameBallsConversionLog(models.Model):
 
     def __str__(self):
         return f"{self.student_id}: {self.balls_spent} ball → {self.chaqmoq_earned} ⚡"
+
+
+# ─────────────────────────────────────────────
+#  GURUH CHAT
+# ─────────────────────────────────────────────
+
+class GroupChat(models.Model):
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name="group_chats")
+    group = models.OneToOneField(
+        'education.Group', on_delete=models.CASCADE, related_name="chat"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Guruh Chat"
+        verbose_name_plural = "Guruh Chatlar"
+
+    def __str__(self):
+        return f"Chat: {self.group}"
+
+
+class ChatMessage(models.Model):
+    chat = models.ForeignKey(GroupChat, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_messages_sent"
+    )
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name="chat_messages")
+    body = models.TextField(blank=True)
+    reply_to = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL, related_name="replies"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [models.Index(fields=['chat', 'created_at'])]
+        verbose_name = "Chat Xabar"
+        verbose_name_plural = "Chat Xabarlar"
+
+    def __str__(self):
+        return f"[{self.chat_id}] {self.sender_id}: {self.body[:40]}"
+
+
+class ChatAttachment(models.Model):
+    ATT_IMAGE = 'image'
+    ATT_PDF = 'pdf'
+    ATT_FILE = 'file'
+    ATT_LINK = 'link'
+    ATT_TYPES = [
+        (ATT_IMAGE, 'Rasm'),
+        (ATT_PDF, 'PDF'),
+        (ATT_FILE, 'Fayl'),
+        (ATT_LINK, 'Havola'),
+    ]
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to='chat/%Y/%m/', blank=True, null=True)
+    link_url = models.URLField(blank=True)
+    att_type = models.CharField(max_length=10, choices=ATT_TYPES, default=ATT_FILE)
+    original_name = models.CharField(max_length=255, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Chat Fayl"
+        verbose_name_plural = "Chat Fayllar"
+
+    def __str__(self):
+        return f"{self.att_type}: {self.original_name or self.link_url}"
+
+
+class ChatPresence(models.Model):
+    """Foydalanuvchi chat sahifasida online ekanligini kuzatish."""
+    chat = models.ForeignKey(GroupChat, on_delete=models.CASCADE, related_name='presences')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_presences')
+    last_seen = models.DateTimeField(auto_now=True)
+    typing_until = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [['chat', 'user']]
+        indexes = [models.Index(fields=['chat', 'last_seen'])]
+        verbose_name = "Chat Faollik"
+        verbose_name_plural = "Chat Faolliklar"
+
+    def __str__(self):
+        return f"{self.user} @ {self.chat}"
+
+
+class ChatMessageRead(models.Model):
+    """Xabar kim tomonidan o'qilganini kuzatish."""
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name='reads')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='message_reads')
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['message', 'user']]
+        indexes = [models.Index(fields=['message', 'user'])]
+        verbose_name = "Xabar O'qilishi"
+        verbose_name_plural = "Xabar O'qilishlari"
+
+    def __str__(self):
+        return f"{self.user} read {self.message_id}"

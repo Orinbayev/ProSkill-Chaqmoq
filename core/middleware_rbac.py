@@ -55,6 +55,12 @@ class RoleBasedAccessMiddleware:
                 'core:game_hub',
                 'core:game_play',
                 'core:game_rating',
+                # Guruh Chat
+                'core:chat_list',
+                'core:group_chat',
+                'core:chat_messages_api',
+                'core:chat_send_api',
+                'core:chat_typing_api',
                 'logout',
             },
         },
@@ -87,6 +93,12 @@ class RoleBasedAccessMiddleware:
                 'core:notifications_mark_read',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
+                # Guruh Chat
+                'core:chat_list',
+                'core:group_chat',
+                'core:chat_messages_api',
+                'core:chat_send_api',
+                'core:chat_typing_api',
                 # Profil sahifasi (ism, familya, parol, avatar)
                 'accounts:profile',
                 'accounts:user_edit',

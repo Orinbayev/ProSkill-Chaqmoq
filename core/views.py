@@ -3247,3 +3247,168 @@ def game_rating_view(request):
         'total_players':      total_players,
         'total_coins_global': total_coins_global,
     })
+
+
+# ─────────────────────────────────────────────
+#  GURUH CHAT VIEWS
+# ─────────────────────────────────────────────
+
+@login_required
+def chat_list_view(request):
+    """Foydalanuvchining barcha guruh chatlari ro'yxati."""
+    from education.models import Group, Enrollment
+    from core.models import GroupChat, ChatMessage
+
+    u = request.user
+    center = getattr(u, 'center', None)
+    if not center:
+        return redirect('core:home')
+
+    if u.role in ('director', 'manager'):
+        groups = Group.objects.filter(center=center, is_archived=False).select_related('oqituvchi').order_by('nom')
+    elif u.role == 'teacher':
+        groups = Group.objects.filter(
+            center=center, is_archived=False
+        ).filter(
+            Q(oqituvchi=u) | Q(support_teacher=u)
+        ).select_related('oqituvchi').order_by('nom')
+    elif u.role == 'student':
+        enrolled_ids = Enrollment.objects.filter(
+            student=u, is_deleted=False
+        ).values_list('group_id', flat=True)
+        groups = Group.objects.filter(
+            center=center, id__in=enrolled_ids, is_archived=False
+        ).select_related('oqituvchi').order_by('nom')
+    else:
+        groups = Group.objects.none()
+
+    group_list = list(groups)
+    chat_map = {
+        gc.group_id: gc
+        for gc in GroupChat.objects.filter(center=center, group__in=group_list)
+    }
+
+    groups_data = []
+    for g in group_list:
+        gc = chat_map.get(g.id)
+        last_msg = None
+        if gc:
+            last_msg = (
+                ChatMessage.objects.filter(chat=gc, is_deleted=False)
+                .select_related('sender')
+                .order_by('-created_at')
+                .first()
+            )
+        groups_data.append({'group': g, 'last_msg': last_msg})
+
+    return render(request, 'core/chat_list.html', {'groups_data': groups_data})
+
+
+@login_required
+def group_chat_view(request, group_id):
+    """Guruh chat sahifasi."""
+    from education.models import Group, Enrollment
+    from core.models import GroupChat, ChatMessage
+
+    u = request.user
+    center = getattr(u, 'center', None)
+    if not center:
+        raise PermissionDenied
+
+    group = get_object_or_404(Group, id=group_id, center=center, is_archived=False)
+
+    if u.role in ('director', 'manager'):
+        pass
+    elif u.role == 'teacher':
+        if group.oqituvchi_id != u.id and group.support_teacher_id != u.id:
+            raise PermissionDenied
+    elif u.role == 'student':
+        if not Enrollment.objects.filter(group=group, student=u, is_deleted=False).exists():
+            raise PermissionDenied
+    else:
+        raise PermissionDenied
+
+    chat, _ = GroupChat.objects.get_or_create(center=center, group=group)
+
+    from core.models import ChatPresence, ChatMessageRead
+
+    # Update presence
+    ChatPresence.objects.update_or_create(chat=chat, user=u, defaults={})
+
+    # Online count
+    cutoff = timezone.now() - timezone.timedelta(minutes=3)
+    online_count = ChatPresence.objects.filter(chat=chat, last_seen__gte=cutoff).count()
+
+    msgs_qs = list(reversed(list(
+        ChatMessage.objects.filter(chat=chat, is_deleted=False)
+        .select_related('sender', 'reply_to', 'reply_to__sender')
+        .prefetch_related('attachments', 'reads')
+        .order_by('-created_at')[:60]
+    )))
+
+    # Mark initial messages as read
+    existing_reads = set(
+        ChatMessageRead.objects.filter(message__in=msgs_qs, user=u)
+        .values_list('message_id', flat=True)
+    )
+    new_reads = [
+        ChatMessageRead(message=m, user=u)
+        for m in msgs_qs
+        if m.sender_id != u.id and m.id not in existing_reads
+    ]
+    if new_reads:
+        ChatMessageRead.objects.bulk_create(new_reads, ignore_conflicts=True)
+
+    def _msg_dict(m):
+        atts = [
+            {
+                'type': a.att_type,
+                'name': a.original_name,
+                'url': a.file.url if a.file else '',
+                'link': a.link_url,
+                'size': a.file_size,
+            }
+            for a in m.attachments.all()
+        ]
+        reply = None
+        if m.reply_to and not m.reply_to.is_deleted:
+            reply = {
+                'id': m.reply_to.id,
+                'sender': m.reply_to.sender.get_full_name() or m.reply_to.sender.email,
+                'sender_id': m.reply_to.sender_id,
+                'body': m.reply_to.body[:80],
+                'has_att': m.reply_to.attachments.exists(),
+            }
+        read_count = m.reads.exclude(user_id=u.id).count() if m.sender_id == u.id else 0
+        return {
+            'id': m.id,
+            'sender_id': m.sender_id,
+            'sender_name': m.sender.get_full_name() or m.sender.email,
+            'sender_role': m.sender.role,
+            'body': m.body,
+            'reply': reply,
+            'attachments': atts,
+            'created_at': m.created_at.strftime('%H:%M'),
+            'created_date': m.created_at.strftime('%Y-%m-%d'),
+            'created_iso': m.created_at.isoformat(),
+            'is_mine': m.sender_id == u.id,
+            'read_count': read_count,
+        }
+
+    initial_msgs = [_msg_dict(m) for m in msgs_qs]
+    last_id = msgs_qs[-1].id if msgs_qs else 0
+
+    member_count = Enrollment.objects.filter(group=group, is_deleted=False).count()
+
+    return render(request, 'core/group_chat.html', {
+        'group': group,
+        'chat': chat,
+        'initial_msgs_json': initial_msgs,
+        'last_id': last_id,
+        'member_count': member_count,
+        'online_count': online_count,
+        'is_teacher': u.role in ('teacher', 'manager', 'director'),
+        'me_id': u.id,
+        'me_name': u.get_full_name() or u.email,
+        'me_role': u.role,
+    })

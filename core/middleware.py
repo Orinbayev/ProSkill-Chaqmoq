@@ -206,12 +206,14 @@ EXCLUDED_PREFIXES = {
     'admin', 'platform', 'hisob', 'static', 'media', 'api',
     'health', 'logout', 'c', 'emergency-enter-now', 'favicon.ico',
     '__debug__', 'chaqmoq', 'talim', 'billing', 'store', 'click',
+    'chat', 'games', 'notifications', 'permissions',
 }
 
 NO_REDIRECT_PREFIXES = (
     '/admin/', '/platform/', '/static/', '/media/',
     '/health/', '/logout/', '/emergency-enter-now/',
     '/hisob/', '/c/', '/api/', '/click',
+    '/chat/', '/games/', '/notifications/', '/permissions/',
 )
 
 _SLUG_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})/')

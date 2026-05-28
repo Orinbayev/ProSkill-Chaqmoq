@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}chat-list-page{% endblock %}
+{% block title %}Guruh Chatlar | ChaqmoqApp{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Chat List Page ── */
+  .cl-page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 0 40px;
+  }
+
+  /* Header */
+  .cl-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 20px 18px;
+  }
+  .cl-header-icon {
+    width: 46px; height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(16,185,129,.35);
+  }
+  .cl-header-title { font-size: 1.25rem; font-weight: 800; color: var(--text,#f1f5f9); }
+  .cl-header-sub   { font-size: .82rem; color: var(--sub,#64748b); margin-top: 1px; }
+
+  /* List */
+  .cl-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+  }
+  .cl-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--surf, #111827);
+    border: 1px solid var(--border, rgba(255,255,255,.06));
+    text-decoration: none;
+    transition: background .18s, border-color .18s, transform .12s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cl-item:hover {
+    background: var(--surf2, #1e2535);
+    border-color: rgba(16,185,129,.28);
+    transform: translateX(3px);
+  }
+  .cl-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(#10b981, #06b6d4);
+    border-radius: 0 3px 3px 0;
+    opacity: 0;
+    transition: opacity .18s;
+  }
+  .cl-item:hover::before { opacity: 1; }
+
+  .cl-avatar {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .cl-info { flex: 1; min-width: 0; }
+  .cl-name {
+    font-size: .95rem; font-weight: 700;
+    color: var(--text, #f1f5f9);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cl-teacher {
+    font-size: .78rem; color: var(--sub, #64748b); margin: 1px 0 3px;
+  }
+  .cl-last {
+    font-size: .82rem; color: var(--sub, #94a3b8);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cl-last em { font-style: italic; opacity: .7; }
+
+  .cl-meta { text-align: right; flex-shrink: 0; }
+  .cl-time { font-size: .75rem; color: var(--sub, #64748b); }
+  .cl-arrow {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(16,185,129,.12);
+    display: flex; align-items: center; justify-content: center;
+    color: #34d399; font-size: .75rem;
+    margin-top: 6px;
+    transition: background .15s;
+  }
+  .cl-item:hover .cl-arrow { background: rgba(16,185,129,.25); }
+
+  /* Avatar colors by index */
+  .cl-av-0 { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+  .cl-av-1 { background: linear-gradient(135deg, #10b981, #06b6d4); }
+  .cl-av-2 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+  .cl-av-3 { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+  .cl-av-4 { background: linear-gradient(135deg, #06b6d4, #10b981); }
+  .cl-av-5 { background: linear-gradient(135deg, #f97316, #f59e0b); }
+
+  /* Empty state */
+  .cl-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--sub, #64748b);
+  }
+  .cl-empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: .5; }
+  .cl-empty h3  { font-size: 1rem; font-weight: 700; color: var(--text, #f1f5f9); margin-bottom: 6px; }
+  .cl-empty p   { font-size: .85rem; }
+
+  /* Light mode */
+  html[data-role-theme="light"] .cl-item {
+    background: #fff;
+    border-color: rgba(0,0,0,.07);
+  }
+  html[data-role-theme="light"] .cl-item:hover {
+    background: #f0fdf9;
+    border-color: rgba(16,185,129,.3);
+  }
+  html[data-role-theme="light"] .cl-name  { color: #0f172a; }
+  html[data-role-theme="light"] .cl-teacher,
+  html[data-role-theme="light"] .cl-last  { color: #64748b; }
+  html[data-role-theme="light"] .cl-time  { color: #94a3b8; }
+</style>
+
+<div class="cl-page">
+  <div class="cl-header">
+    <div class="cl-header-icon"><i class="fa-solid fa-comments"></i></div>
+    <div>
+      <div class="cl-header-title">Guruh Chatlar</div>
+      <div class="cl-header-sub">{{ groups_data|length }} ta guruh mavjud</div>
+    </div>
+  </div>
+
+  {% if groups_data %}
+  <div class="cl-list">
+    {% for item in groups_data %}
+    <a href="{% url 'core:group_chat' item.group.id %}" class="cl-item">
+      <div class="cl-avatar cl-av-{% cycle '0' '1' '2' '3' '4' '5' %}">
+        {{ item.group.nom|first|upper }}
+      </div>
+      <div class="cl-info">
+        <div class="cl-name">{{ item.group.nom }}</div>
+        {% if item.group.oqituvchi %}
+        <div class="cl-teacher">
+          <i class="fa-solid fa-chalkboard-user" style="font-size:.7rem;"></i>
+          {{ item.group.oqituvchi.get_full_name|default:item.group.oqituvchi.email }}
+        </div>
+        {% endif %}
+        <div class="cl-last">
+          {% if item.last_msg %}
+            <strong>{{ item.last_msg.sender.get_full_name|default:item.last_msg.sender.email|truncatechars:16 }}:</strong>
+            {% if item.last_msg.body %}{{ item.last_msg.body|truncatechars:45 }}{% else %}<em>📎 Fayl</em>{% endif %}
+          {% else %}
+            <em>Hali xabar yo'q — birinchi yozing!</em>
+          {% endif %}
+        </div>
+      </div>
+      <div class="cl-meta">
+        {% if item.last_msg %}
+        <div class="cl-time">{{ item.last_msg.created_at|date:"H:i" }}</div>
+        {% endif %}
+        <div class="cl-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cl-empty">
+    <div class="cl-empty-icon"><i class="fa-solid fa-comments"></i></div>
+    <h3>Guruhlar topilmadi</h3>
+    <p>Siz hech qanday guruhga tegishli emassiz yoki guruhlar mavjud emas.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

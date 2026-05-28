@@ -145,4 +145,11 @@ urlpatterns = [
     path('permissions/teacher-add-student/', views.toggle_teacher_can_add_student, name='toggle_teacher_can_add_student'),
     path('permissions/teacher-remove-student/', views.toggle_teacher_can_remove_student, name='toggle_teacher_can_remove_student'),
     path('permissions/', views.group_permissions_settings, name='group_permissions_settings'),
+
+    # ── Guruh Chat ──
+    path('chat/', views.chat_list_view, name='chat_list'),
+    path('chat/<int:group_id>/', views.group_chat_view, name='group_chat'),
+    path('api/chat/<int:group_id>/messages/', api_views.chat_messages_api, name='chat_messages_api'),
+    path('api/chat/<int:group_id>/send/', api_views.chat_send_api, name='chat_send_api'),
+    path('api/chat/<int:group_id>/typing/', api_views.chat_typing_api, name='chat_typing_api'),
 ]
