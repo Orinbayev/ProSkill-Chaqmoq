@@ -457,12 +457,14 @@ html[data-role-theme="light"] .tg-att-link { background: rgba(22,138,205,.06); b
   top: 50%; transform: translateY(-50%);
   display: flex; align-items: center; gap: 2px;
   opacity: 0; pointer-events: none;
-  transition: opacity .12s;
+  transition: opacity .15s;
   z-index: 10;
 }
-.tg-row.mine  .tg-bwrap .tg-action-tray { right: calc(100% + 6px); }
-.tg-row.theirs .tg-bwrap .tg-action-tray { left: calc(100% + 6px); }
-.tg-bwrap:hover .tg-action-tray { opacity: 1; pointer-events: all; }
+/* Position outside the bubble — gap-free so hover stays active */
+.tg-row.mine   .tg-bwrap .tg-action-tray { right: calc(100% + 4px); }
+.tg-row.theirs .tg-bwrap .tg-action-tray { left:  calc(100% + 4px); }
+/* Trigger on the full ROW so the 4px gap is still inside the hover zone */
+.tg-row:hover .tg-action-tray { opacity: 1; pointer-events: all; }
 .tg-action-btn {
   width: 30px; height: 30px;
   border-radius: 50%;
@@ -1028,8 +1030,10 @@ function tgRenderMsg(m, groupClass) {
   ${avHtml}
   <div class="tg-bwrap">
     <div class="tg-action-tray">
-      <button class="tg-action-btn"
-        onclick="tgStartReply(${m.id},${JSON.stringify(m.sender_name)},${JSON.stringify(m.body||'(fayl)')})"
+      <button class="tg-action-btn tg-do-reply"
+        data-mid="${m.id}"
+        data-mname="${tgEsc(m.sender_name)}"
+        data-mbody="${tgEsc(m.body || '(fayl)')}"
         title="Javob berish">
         <i class="fa-solid fa-reply"></i>
       </button>
@@ -1110,6 +1114,13 @@ tgMsgsEl.addEventListener('scroll', () => {
     tgUnseenNew = 0;
     tgUpdateScrollPill();
   }
+});
+
+/* Reply button: event delegation (avoids onclick attribute quoting issues) */
+tgMsgsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.tg-do-reply');
+  if (!btn) return;
+  tgStartReply(parseInt(btn.dataset.mid), btn.dataset.mname, btn.dataset.mbody);
 });
 
 function tgScrollBottom(force) {

@@ -6,10 +6,11 @@ from aiogram.fsm.context import FSMContext
 from keyboards.student_menu import get_store_products_keyboard, get_student_settings_keyboard
 from services.api_client import (
     create_purchase_request_api,
+    family_issue_credentials_api,
     get_bot_dashboard_api,
     update_notification_settings_api,
 )
-from services.profile_context import ensure_active_profile
+from services.profile_context import ensure_active_profile, get_active_profile, sync_profile_state
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -325,3 +326,54 @@ async def student_toggle_notifications(callback: types.CallbackQuery, state: FSM
     except Exception:
         logger.exception("student_toggle_notifications failed")
         await callback.answer("❌ Sozlama saqlanmadi.", show_alert=True)
+
+
+@router.message(F.text == "🔑 Saytga login")
+async def student_site_login(message: types.Message, state: FSMContext):
+    """O'quvchiga yangi parol berib saytga kirish ma'lumotlarini yuboradi."""
+    try:
+        profile = await ensure_active_profile(message, state, allowed_roles=("student",))
+        if not profile:
+            return
+
+        user_id = profile.get("user_id")
+        if not user_id:
+            # Main bot flow: current_user_id saqlanmagan — qayta olamiz
+            refreshed = await sync_profile_state(state, str(message.from_user.id), profile["email"])
+            user_id = (refreshed or {}).get("id")
+
+        if not user_id:
+            await message.answer("❌ Foydalanuvchi ma'lumotlari topilmadi. /start")
+            return
+
+        status_code, response = await family_issue_credentials_api(
+            user_id=int(user_id),
+            role="student",
+            telegram_id=str(message.from_user.id),
+        )
+        if status_code != 200 or not response.get("ok"):
+            err = (response or {}).get("error") or "Login berib bo'lmadi."
+            await message.answer(f"❌ {err}")
+            return
+
+        creds = response.get("credentials") or {}
+        user = response.get("user") or {}
+        login_url = response.get("login_url") or ""
+        lines = [
+            "🔑 <b>Saytga kirish uchun yangi ma'lumotlar</b>",
+            "",
+            f"👤 <b>{user.get('full_name', '—')}</b>",
+        ]
+        if login_url:
+            lines.append(f"🌐 Sayt: <code>{login_url}</code>")
+        lines += [
+            "",
+            f"📧 <b>Login:</b> <code>{creds.get('email', '—')}</code>",
+            f"🔑 <b>Parol:</b> <code>{creds.get('password', '—')}</code>",
+            "",
+            "⚠️ <i>Eski parol bekor qilindi. Ushbu parolni xavfsiz saqlang.</i>",
+        ]
+        await message.answer("\n".join(lines), parse_mode="HTML")
+    except Exception:
+        logger.exception("student_site_login failed")
+        await message.answer("❌ Saytga kirish ma'lumotlarini berib bo'lmadi.")

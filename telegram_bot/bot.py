@@ -52,7 +52,7 @@ dp.include_router(broadcast.router)
 dp.include_router(admins.router)
 dp.include_router(parents.router)
 dp.include_router(settings.router)
-# parent.router va student.router olib tashlandi — endi yangi Family botda
+dp.include_router(student.router)
 dp.include_router(teacher.router)
 dp.include_router(manager.router)
 dp.include_router(branch_approval.router)
