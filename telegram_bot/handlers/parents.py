@@ -1,4 +1,4 @@
-from aiogram import Router, F, types, html
+from aiogram import Bot, Router, F, types, html
 from services.api_client import get_admin_dashboard_api, get_parent_reports_api
 from keyboards.admin_menu import get_admin_main_kb
 
@@ -7,7 +7,9 @@ router = Router()
 @router.message(F.text == "👨👩👧 Ota-onalar paneli")
 async def parent_panel(message: types.Message):
     status, data = await get_admin_dashboard_api(str(message.from_user.id))
-    if status != 200 or not data.get("is_admin"): return
+    if status != 200 or not data.get("is_admin"):
+        await message.answer("❌ Bu bo'lim faqat adminlar uchun.")
+        return
 
     text = (
         "👨👩👧 <b>Ota-onalar paneli</b>\n\n"
@@ -24,10 +26,12 @@ async def parent_panel(message: types.Message):
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @router.callback_query(F.data == "send_reports_now")
-async def send_reports_now(callback: types.CallbackQuery, bot):
+async def send_reports_now(callback: types.CallbackQuery, bot: Bot):
     # Check admin
     status, data = await get_admin_dashboard_api(str(callback.from_user.id))
-    if status != 200 or not data.get("is_admin"): return
+    if status != 200 or not data.get("is_admin"):
+        await callback.answer("❌ Ruxsat yo'q.", show_alert=True)
+        return
 
     await callback.message.edit_text("🔄 Hisobotlar tayyorlanmoqda...")
     
@@ -75,6 +79,7 @@ async def send_reports_now(callback: types.CallbackQuery, bot):
             pass
         
     await callback.message.answer(f"✅ {sent} ta ota-onaga hisobot yuborildi.")
+    await callback.answer()
 
 def timezone_now_str():
     from datetime import datetime

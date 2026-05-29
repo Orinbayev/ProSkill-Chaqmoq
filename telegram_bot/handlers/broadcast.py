@@ -20,7 +20,9 @@ ROLE_MAP = {
 @router.message(F.text == "📢 Reklama yuborish")
 async def broadcast_init(message: types.Message, state: FSMContext):
     status, data = await get_admin_dashboard_api(str(message.from_user.id))
-    if status != 200 or not data.get("is_admin"): return
+    if status != 200 or not data.get("is_admin"):
+        await message.answer("❌ Bu buyruq faqat adminlar uchun.")
+        return
 
     await state.set_state(BroadcastState.waiting_for_message)
     await message.answer("📝 Iltimos, reklama xabarini yuboring (Matn, rasm yoki hujjat):", 

@@ -103,14 +103,7 @@ async def setup_scheduler(bot):
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
     async def configured_parent_reports_job():
-        uz_tz = pytz.timezone('Asia/Tashkent')
-        now = datetime.now(uz_tz).strftime("%H:%M")
-        
-        # Legacy daily points report saqlanadi.
-        target_time = "20:00" 
-        
-        if now == target_time:
-            await send_daily_reports(bot)
+        await send_daily_reports(bot)
 
     async def payment_reminders_job():
         await _dispatch_scheduler_payload(bot, "payment_reminders", get_scheduler_payment_reminders_api)

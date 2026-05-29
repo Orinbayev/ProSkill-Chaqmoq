@@ -5,10 +5,6 @@ from app_config import BACKEND_URL, API_SECRET
 logger = logging.getLogger(__name__)
 
 async def link_account_api(phone: str, code: str, telegram_id: str, telegram_username: str = None):
-    url = f"{BACKEND_URL}/hisob/login/bot-link-telegram/" # Changed to match typical URL pattern if needed, but let's check auth_urls.py
-    # Re-checking auth_urls: path('bot-link-telegram/', api_auth.link_telegram_api, name='bot_link_telegram'), 
-    # Wait, I saw link-telegram/ earlier. Let me check auth_urls.py again.
-    
     url = f"{BACKEND_URL}/api/v1/auth/link-telegram/"
     data = {
         "phone": phone,
