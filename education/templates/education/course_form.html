@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}course-form-page{% endblock %}
+
+{% block content %}
+<style>
+:root{--accent:#f59e0b;--bg-card:rgba(17,24,39,.7);--bg-input:rgba(7,11,22,.45);--border:rgba(255,255,255,.08);--border-focus:rgba(245,158,11,.4);--text:#f3f4f6;--text-muted:#94a3b8}
+.cf-wrap{max-width:560px;margin:0 auto;padding:24px 16px}
+.cf-crumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text-muted);margin-bottom:20px}
+.cf-crumb a{color:var(--text-muted);text-decoration:none}.cf-crumb a:hover{color:var(--accent)}
+.cf-crumb i{font-size:.7rem}
+.cf-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px}
+.cf-title{font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:24px}
+.cf-title i{color:var(--accent);margin-right:8px}
+.cf-group{margin-bottom:18px}
+.cf-label{display:block;font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.cf-input,.cf-select{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:.95rem;outline:none;box-sizing:border-box}
+.cf-input:focus,.cf-select:focus{border-color:var(--border-focus);background:rgba(7,11,22,.65)}
+.cf-select option{background:#0f1628;color:var(--text)}
+.cf-hint{font-size:.78rem;color:var(--text-muted);margin-top:4px}
+.cf-check{display:flex;align-items:center;gap:10px;cursor:pointer}
+.cf-check input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+.cf-check span{font-size:.9rem;color:var(--text)}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cf-actions{display:flex;gap:12px;margin-top:28px}
+.btn-save{flex:1;padding:12px;border-radius:10px;background:var(--accent);color:#000;font-weight:700;font-size:.95rem;border:none;cursor:pointer}
+.btn-save:hover{opacity:.88}
+.btn-cancel{flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,.06);color:var(--text-muted);font-weight:600;font-size:.95rem;border:1px solid var(--border);text-decoration:none;text-align:center}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+.msgs{margin-bottom:16px}
+.msg{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:.9rem}
+.msg-error{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+</style>
+
+<div class="cf-wrap">
+  <nav class="cf-crumb">
+    <a href="{% url 'core:director_boshqaruv' %}"><i class="fa-solid fa-house"></i> Boshqaruv</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <a href="{% url 'education:course_list' %}">Kurslar</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <span>{{ action }}</span>
+  </nav>
+
+  {% if messages %}
+  <div class="msgs">
+    {% for m in messages %}
+    <div class="msg msg-error">{{ m }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="cf-card">
+    <h1 class="cf-title"><i class="fa-solid fa-book-open"></i>{{ action }}</h1>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="cf-group">
+        <label class="cf-label">Kurs nomi</label>
+        <input class="cf-input" type="text" name="name" value="{{ course.name|default:'' }}"
+               placeholder="Masalan: IELTS Preparation, General English..." required>
+      </div>
+
+      <div class="cf-group">
+        <label class="cf-label">Bo'lim (fan) — ixtiyoriy</label>
+        <select class="cf-select" name="category_obj">
+          <option value="">— Tanlang —</option>
+          {% for cat in categories %}
+          <option value="{{ cat.pk }}" {% if course.category_obj_id == cat.pk %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="cf-group">
+        <label class="cf-label">Oylik narx (so'm)</label>
+        <input class="cf-input" type="number" name="price" value="{{ course.price|default:'' }}"
+               placeholder="500000" min="1000" required>
+        <div class="cf-hint">Guruhga biriktirilganda bu narx avtomatik to'ldiriladi.</div>
+      </div>
+
+      <div class="cf-row">
+        <div class="cf-group">
+          <label class="cf-label">O'qituvchi foizi (%)</label>
+          <input class="cf-input" type="number" name="teacher_percent"
+                 value="{{ course.teacher_percent|default:40 }}" min="0" max="100">
+        </div>
+        <div class="cf-group">
+          <label class="cf-label">Oylik darslar soni</label>
+          <input class="cf-input" type="number" name="lessons_per_month"
+                 value="{{ course.lessons_per_month|default:12 }}" min="1" max="31">
+        </div>
+      </div>
+
+      <div class="cf-group">
+        <label class="cf-check">
+          <input type="checkbox" name="is_active" {% if course.is_active|default:True %}checked{% endif %}>
+          <span>Aktiv (guruh yaratishda tanlanadi)</span>
+        </label>
+      </div>
+
+      <div class="cf-actions">
+        <a href="{% url 'education:course_list' %}" class="btn-cancel">Bekor qilish</a>
+        <button type="submit" class="btn-save"><i class="fa-solid fa-check"></i> Saqlash</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

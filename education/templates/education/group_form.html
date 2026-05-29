@@ -119,6 +119,29 @@
             {% for e in form.oqituvchi.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
 
+          <!-- Kurs shabloni -->
+          <div class="ngf-field">
+            <label class="ngf-label">
+              <i class="fa-solid fa-book-open ngf-label__ico"></i>Kurs shabloni (ixtiyoriy)
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-layer-group"></i></span>
+              <select id="id_course_template" name="course_template" class="ngf-input" style="padding-left:36px">
+                <option value="">— Kurs tanlamang (narxni qo'lda kiriting) —</option>
+                {% for ct in course_templates %}
+                <option value="{{ ct.pk }}"
+                  data-price="{{ ct.price }}"
+                  data-percent="{{ ct.teacher_percent }}"
+                  data-lessons="{{ ct.lessons_per_month }}"
+                  {% if form.instance.course_template_id == ct.pk %}selected{% endif %}>
+                  {{ ct.name }} — {{ ct.price|floatformat:0 }} so'm
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Kurs tanlasangiz narx, foiz va darslar soni avtomatik to'ldiriladi</div>
+          </div>
+
           <!-- Kurs narxi -->
           <div class="ngf-field">
             <label class="ngf-label" for="{{ form.kurs_narxi.id_for_label }}">
@@ -1084,6 +1107,24 @@ html[data-role-theme="light"] .ngf-errors {
 
   syncEndDate();
   syncAvailableTeachers();
+
+  // Kurs shabloni tanlanganida narx, foiz, darslar soni avtomatik to'ldiriladi
+  const courseSelect = document.getElementById('id_course_template');
+  if (courseSelect) {
+    courseSelect.addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      const price = opt.dataset.price;
+      const percent = opt.dataset.percent;
+      const lessons = opt.dataset.lessons;
+      const priceField = document.getElementById('{{ form.kurs_narxi.id_for_label }}');
+      const percentField = document.getElementById('{{ form.oqituvchi_foiz.id_for_label }}');
+      const lessonsField = document.getElementById('{{ form.oy_dars_soni.id_for_label }}');
+      if (priceField && price) priceField.value = price;
+      if (percentField && percent) percentField.value = percent;
+      if (lessonsField && lessons) lessonsField.value = lessons;
+    });
+  }
 })();
 </script>
 {% endblock %}

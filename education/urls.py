@@ -183,4 +183,10 @@ urlpatterns += [
     path("api/student/<int:student_id>/month-delete/", views.delete_student_month, name="delete_student_month"),
     # TASK 5: Oylik breakdown AJAX
     path("api/student/<int:student_id>/monthly-breakdown/", views.student_monthly_breakdown, name="student_monthly_breakdown"),
+    # Kurs shablonlari
+    path("kurslar/", views.course_list, name="course_list"),
+    path("kurslar/yangi/", views.course_create, name="course_create"),
+    path("kurslar/<int:pk>/tahrirlash/", views.course_edit, name="course_edit"),
+    path("kurslar/<int:pk>/ochirish/", views.course_delete, name="course_delete"),
+    path("api/kurs/<int:pk>/narx/", views.course_price_api, name="course_price_api"),
 ]

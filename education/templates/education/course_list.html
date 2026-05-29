@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body_class %}course-list-page{% endblock %}
+
+{% block content %}
+<style>
+:root{--accent:#f59e0b;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--text:#f3f4f6;--text-muted:#94a3b8}
+.cl-wrap{max-width:900px;margin:0 auto;padding:24px 16px}
+.cl-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.cl-title{font-size:1.4rem;font-weight:700;color:var(--text)}
+.cl-title i{color:var(--accent);margin-right:8px}
+.btn-add{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:.9rem}
+.btn-add:hover{opacity:.88}
+.course-table{width:100%;border-collapse:collapse}
+.course-table th{padding:10px 14px;text-align:left;color:var(--text-muted);font-size:.8rem;font-weight:600;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.course-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);font-size:.9rem;vertical-align:middle}
+.course-table tr:hover td{background:rgba(255,255,255,.03)}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.badge-on{background:rgba(34,197,94,.15);color:#4ade80}
+.badge-off{background:rgba(239,68,68,.15);color:#f87171}
+.act-btns{display:flex;gap:8px}
+.btn-edit,.btn-del{padding:6px 12px;border-radius:7px;font-size:.82rem;font-weight:600;text-decoration:none;border:none;cursor:pointer}
+.btn-edit{background:rgba(99,102,241,.15);color:#818cf8}
+.btn-edit:hover{background:rgba(99,102,241,.3)}
+.btn-del{background:rgba(239,68,68,.12);color:#f87171}
+.btn-del:hover{background:rgba(239,68,68,.25)}
+.empty{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty i{font-size:2.5rem;display:block;margin-bottom:12px;opacity:.4}
+.card-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.msgs{margin-bottom:16px}
+.msg{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:.9rem}
+.msg-success{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.msg-error{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+</style>
+
+<div class="cl-wrap">
+  <div class="cl-header">
+    <h1 class="cl-title"><i class="fa-solid fa-book-open"></i>Kurslar</h1>
+    <a href="{% url 'education:course_create' %}" class="btn-add">
+      <i class="fa-solid fa-plus"></i> Yangi kurs
+    </a>
+  </div>
+
+  {% if messages %}
+  <div class="msgs">
+    {% for m in messages %}
+    <div class="msg msg-{% if m.tags == 'error' %}error{% else %}success{% endif %}">{{ m }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card-wrap">
+    {% if courses %}
+    <table class="course-table">
+      <thead>
+        <tr>
+          <th>Kurs nomi</th>
+          <th>Bo'lim</th>
+          <th>Narx (so'm)</th>
+          <th>O'q. foizi</th>
+          <th>Darslar/oy</th>
+          <th>Holat</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in courses %}
+        <tr>
+          <td><strong>{{ c.name }}</strong></td>
+          <td>{{ c.category_obj.name|default:"—" }}</td>
+          <td>{{ c.price|floatformat:0 }} so'm</td>
+          <td>{{ c.teacher_percent }}%</td>
+          <td>{{ c.lessons_per_month }} ta</td>
+          <td>
+            {% if c.is_active %}
+            <span class="badge badge-on">Aktiv</span>
+            {% else %}
+            <span class="badge badge-off">Noaktiv</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="act-btns">
+              <a href="{% url 'education:course_edit' c.pk %}" class="btn-edit"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+              <form method="post" action="{% url 'education:course_delete' c.pk %}" onsubmit="return confirm('{{ c.name }} kursini o\'chirasizmi?')">
+                {% csrf_token %}
+                <button type="submit" class="btn-del"><i class="fa-solid fa-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+      <i class="fa-solid fa-book-open"></i>
+      <p>Hali hech qanday kurs qo'shilmagan.</p>
+      <a href="{% url 'education:course_create' %}" class="btn-add" style="margin-top:16px">
+        <i class="fa-solid fa-plus"></i> Birinchi kursni qo'shing
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

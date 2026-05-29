@@ -91,6 +91,7 @@ from .forms import CenterExpenseForm, GroupForm, ITGroupForm, LangGroupForm, Stu
 from .models import (
     Attendance,
     Category,
+    CourseTemplate,
     CenterExpense,
     DailyLightningRecord,
     Dars,
@@ -4629,7 +4630,12 @@ def create_group_for_category(request, category_id):
     else:
         form = GroupForm()
 
-    return render(request, "education/group_form.html", {"form": form, "category": category})
+    from core.tenant import get_request_center as _grc
+    _center = _grc(request)
+    _cts = CourseTemplate.objects.filter(center=_center, is_active=True).order_by("name") if _center else []
+    return render(request, "education/group_form.html", {
+        "form": form, "category": category, "course_templates": _cts,
+    })
 
 # @login_required
 # def group_create_lang(request):
@@ -6653,9 +6659,11 @@ def group_create_by_category(request, category_id):
     else:
         form = GroupForm(center=center)
 
+    course_templates = CourseTemplate.objects.filter(center=center, is_active=True).order_by("name") if center else []
     return render(request, "education/group_form.html", {
         "form": form,
-        "category": category
+        "category": category,
+        "course_templates": course_templates,
     })
 
 
@@ -8449,7 +8457,10 @@ def group_create(request, category=None):
     elif request.method == "POST":
         print("❌ Forma xato:", form.errors)
 
-    return render(request, "education/group_form.html", {"form": form, "title": title})
+    course_templates = CourseTemplate.objects.filter(center=center, is_active=True).order_by("name") if center else []
+    return render(request, "education/group_form.html", {
+        "form": form, "title": title, "course_templates": course_templates,
+    })
 
 
 @login_required
@@ -11228,3 +11239,158 @@ def student_monthly_breakdown(request, student_id):
     })
     response["Cache-Control"] = "no-store, no-cache, must-revalidate"
     return response
+
+
+# ─── CourseTemplate CRUD ──────────────────────────────────────────────────────
+
+@login_required
+def course_list(request):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not center:
+        return redirect("core:director_boshqaruv")
+    if not _can_manage(request.user):
+        raise PermissionDenied
+
+    courses = (
+        CourseTemplate.objects
+        .filter(center=center)
+        .select_related("category_obj")
+        .order_by("name")
+    )
+    return render(request, "education/course_list.html", {"courses": courses})
+
+
+@login_required
+def course_create(request):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not center:
+        return redirect("core:director_boshqaruv")
+    if not _can_manage(request.user):
+        raise PermissionDenied
+
+    categories = Category.objects.filter(center=center)
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        price = request.POST.get("price", "0").replace(" ", "").replace(",", "")
+        teacher_percent = request.POST.get("teacher_percent", "40")
+        lessons_per_month = request.POST.get("lessons_per_month", "12")
+        category_id = request.POST.get("category_obj") or None
+        is_active = request.POST.get("is_active") == "on"
+
+        errors = []
+        if not name:
+            errors.append("Kurs nomi kiritilishi shart.")
+        try:
+            price = int(price)
+            if price <= 0:
+                errors.append("Narx musbat son bo'lishi kerak.")
+        except (ValueError, TypeError):
+            errors.append("Narx noto'g'ri formatda.")
+
+        if not errors:
+            cat = None
+            if category_id:
+                cat = Category.objects.filter(id=category_id, center=center).first()
+            CourseTemplate.objects.create(
+                center=center,
+                name=name,
+                price=price,
+                teacher_percent=int(teacher_percent or 40),
+                lessons_per_month=int(lessons_per_month or 12),
+                category_obj=cat,
+                is_active=is_active,
+            )
+            messages.success(request, f"✅ '{name}' kursi qo'shildi.")
+            return redirect("education:course_list")
+
+        for e in errors:
+            messages.error(request, e)
+
+    return render(request, "education/course_form.html", {
+        "categories": categories,
+        "action": "Yangi kurs",
+    })
+
+
+@login_required
+def course_edit(request, pk):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not _can_manage(request.user):
+        raise PermissionDenied
+    course = get_object_or_404(CourseTemplate, pk=pk, center=center)
+    categories = Category.objects.filter(center=center)
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        price = request.POST.get("price", "0").replace(" ", "").replace(",", "")
+        teacher_percent = request.POST.get("teacher_percent", "40")
+        lessons_per_month = request.POST.get("lessons_per_month", "12")
+        category_id = request.POST.get("category_obj") or None
+        is_active = request.POST.get("is_active") == "on"
+
+        errors = []
+        if not name:
+            errors.append("Kurs nomi kiritilishi shart.")
+        try:
+            price = int(price)
+            if price <= 0:
+                errors.append("Narx musbat son bo'lishi kerak.")
+        except (ValueError, TypeError):
+            errors.append("Narx noto'g'ri formatda.")
+
+        if not errors:
+            cat = None
+            if category_id:
+                cat = Category.objects.filter(id=category_id, center=center).first()
+            course.name = name
+            course.price = price
+            course.teacher_percent = int(teacher_percent or 40)
+            course.lessons_per_month = int(lessons_per_month or 12)
+            course.category_obj = cat
+            course.is_active = is_active
+            course.save()
+            messages.success(request, f"✅ '{name}' kursi yangilandi.")
+            return redirect("education:course_list")
+
+        for e in errors:
+            messages.error(request, e)
+
+    return render(request, "education/course_form.html", {
+        "course": course,
+        "categories": categories,
+        "action": "Kursni tahrirlash",
+    })
+
+
+@login_required
+def course_delete(request, pk):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not _can_manage(request.user):
+        raise PermissionDenied
+    course = get_object_or_404(CourseTemplate, pk=pk, center=center)
+    if request.method == "POST":
+        name = course.name
+        course.delete()
+        messages.success(request, f"'{name}' kursi o'chirildi.")
+    return redirect("education:course_list")
+
+
+def course_price_api(request, pk):
+    """AJAX: kurs narxi va parametrlarini qaytaradi — guruh formida narxni avtomatik to'ldirish uchun."""
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    course = CourseTemplate.objects.filter(pk=pk, center=center, is_active=True).first()
+    if not course:
+        return JsonResponse({"ok": False}, status=404)
+    return JsonResponse({
+        "ok": True,
+        "price": course.price,
+        "teacher_percent": course.teacher_percent,
+        "lessons_per_month": course.lessons_per_month,
+        "name": course.name,
+    })

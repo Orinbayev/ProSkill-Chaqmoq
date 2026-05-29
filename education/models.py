@@ -79,8 +79,15 @@ class Group(SoftDeleteMixin, models.Model):
 
     tuzilgan = models.DateTimeField(auto_now_add=True)
 
-    kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
-    oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
+    course_template = models.ForeignKey(
+        "education.CourseTemplate",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="groups",
+        verbose_name="Kurs shabloni",
+    )
+    kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to’lov (so’mda)")
+    oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O’qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
     max_students = models.PositiveSmallIntegerField(default=15, verbose_name="Maksimal o'quvchi soni")
 
@@ -805,6 +812,37 @@ class Category(SoftDeleteMixin, models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.center.name if self.center else 'Global'})"
+
+
+class CourseTemplate(models.Model):
+    """Kurs shabloni — narx va parametrlar oldindan belgilanadi, guruhga biriktiriladi."""
+    center = models.ForeignKey(
+        "accounts.Center", on_delete=models.CASCADE,
+        related_name="course_templates", verbose_name="Markaz"
+    )
+    category_obj = models.ForeignKey(
+        "education.Category", on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="course_templates", verbose_name="Bo'lim (fan)"
+    )
+    name = models.CharField(max_length=150, verbose_name="Kurs nomi")
+    price = models.PositiveIntegerField(verbose_name="Oylik narx (so'm)")
+    teacher_percent = models.PositiveSmallIntegerField(
+        default=40, verbose_name="O'qituvchi foizi (%)"
+    )
+    lessons_per_month = models.PositiveSmallIntegerField(
+        default=12, verbose_name="Oylik darslar soni"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Aktiv")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Kurs shabloni"
+        verbose_name_plural = "Kurs shablonlari"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} — {self.price:,} so'm"
 
 
 class StaffProfile(models.Model):
