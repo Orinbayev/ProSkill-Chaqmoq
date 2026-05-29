@@ -5,188 +5,447 @@
 
 {% block content %}
 <style>
-  /* ── Chat List Page ── */
-  .cl-page {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 0 0 40px;
-  }
+/* ───────────────────────────────────────────
+   GURUH CHATLAR — full-width inbox style
+─────────────────────────────────────────── */
 
-  /* Header */
-  .cl-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 22px 20px 18px;
-  }
-  .cl-header-icon {
-    width: 46px; height: 46px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #10b981, #06b6d4);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(16,185,129,.35);
-  }
-  .cl-header-title { font-size: 1.25rem; font-weight: 800; color: var(--text,#f1f5f9); }
-  .cl-header-sub   { font-size: .82rem; color: var(--sub,#64748b); margin-top: 1px; }
+/* Header */
+.gcl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 22px 28px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(16,185,129,.12) 0%, rgba(6,182,212,.08) 100%);
+  border: 1px solid rgba(16,185,129,.2);
+  position: relative;
+  overflow: hidden;
+}
+.gcl-header::before {
+  content: '';
+  position: absolute;
+  right: -40px; top: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16,185,129,.18), transparent 70%);
+  pointer-events: none;
+}
+html[data-role-theme="light"] .gcl-header {
+  background: linear-gradient(135deg, rgba(16,185,129,.08) 0%, rgba(6,182,212,.05) 100%);
+  border-color: rgba(16,185,129,.25);
+}
 
-  /* List */
-  .cl-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0 12px;
-  }
-  .cl-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: var(--surf, #111827);
-    border: 1px solid var(--border, rgba(255,255,255,.06));
-    text-decoration: none;
-    transition: background .18s, border-color .18s, transform .12s;
-    position: relative;
-    overflow: hidden;
-  }
-  .cl-item:hover {
-    background: var(--surf2, #1e2535);
-    border-color: rgba(16,185,129,.28);
-    transform: translateX(3px);
-  }
-  .cl-item::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: linear-gradient(#10b981, #06b6d4);
-    border-radius: 0 3px 3px 0;
-    opacity: 0;
-    transition: opacity .18s;
-  }
-  .cl-item:hover::before { opacity: 1; }
+.gcl-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gcl-icon {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #fff;
+  box-shadow: 0 8px 20px rgba(16,185,129,.35);
+  flex-shrink: 0;
+}
+.gcl-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #f1f5f9;
+  letter-spacing: -.6px;
+  line-height: 1.1;
+}
+html[data-role-theme="light"] .gcl-title { color: #0f172a; }
+.gcl-subtitle {
+  font-size: .82rem;
+  color: rgba(255,255,255,.45);
+  margin-top: 3px;
+}
+html[data-role-theme="light"] .gcl-subtitle { color: #64748b; }
 
-  .cl-avatar {
-    width: 50px; height: 50px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem; font-weight: 800;
-    color: #fff;
-    flex-shrink: 0;
-    text-transform: uppercase;
-  }
+/* Search */
+.gcl-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  min-width: 220px;
+}
+.gcl-search-wrap i {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,.3);
+  font-size: .85rem;
+  pointer-events: none;
+}
+html[data-role-theme="light"] .gcl-search-wrap i { color: #94a3b8; }
+.gcl-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px 12px 40px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  color: #f1f5f9;
+  font-size: .9rem;
+  outline: none;
+  transition: border-color .2s, background .2s;
+}
+html[data-role-theme="light"] .gcl-search {
+  background: rgba(255,255,255,.9);
+  border-color: rgba(0,0,0,.1);
+  color: #0f172a;
+}
+.gcl-search::placeholder { color: rgba(255,255,255,.3); }
+html[data-role-theme="light"] .gcl-search::placeholder { color: #94a3b8; }
+.gcl-search:focus {
+  border-color: #10b981;
+  background: rgba(255,255,255,.13);
+}
+html[data-role-theme="light"] .gcl-search:focus {
+  border-color: #10b981;
+  background: #fff;
+}
 
-  .cl-info { flex: 1; min-width: 0; }
-  .cl-name {
-    font-size: .95rem; font-weight: 700;
-    color: var(--text, #f1f5f9);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .cl-teacher {
-    font-size: .78rem; color: var(--sub, #64748b); margin: 1px 0 3px;
-  }
-  .cl-last {
-    font-size: .82rem; color: var(--sub, #94a3b8);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .cl-last em { font-style: italic; opacity: .7; }
+/* ── Chat list ── */
+.gcl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-  .cl-meta { text-align: right; flex-shrink: 0; }
-  .cl-time { font-size: .75rem; color: var(--sub, #64748b); }
-  .cl-arrow {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: rgba(16,185,129,.12);
-    display: flex; align-items: center; justify-content: center;
-    color: #34d399; font-size: .75rem;
-    margin-top: 6px;
-    transition: background .15s;
-  }
-  .cl-item:hover .cl-arrow { background: rgba(16,185,129,.25); }
+/* ── Each chat row ── */
+.gcl-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 22px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, .65);
+  border: 1px solid rgba(255,255,255,.06);
+  text-decoration: none;
+  transition: background .18s, border-color .2s, transform .15s, box-shadow .18s;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+html[data-role-theme="light"] .gcl-row {
+  background: #fff;
+  border-color: rgba(0,0,0,.07);
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.gcl-row::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 0;
+  background: linear-gradient(to bottom, #10b981, #06b6d4);
+  border-radius: 0 4px 4px 0;
+  transition: width .2s ease;
+}
+.gcl-row:hover {
+  background: rgba(30, 41, 59, .9);
+  border-color: rgba(16,185,129,.3);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+html[data-role-theme="light"] .gcl-row:hover {
+  background: #f0fdf9;
+  border-color: rgba(16,185,129,.35);
+  box-shadow: 0 6px 20px rgba(0,0,0,.09);
+}
+.gcl-row:hover::after { width: 4px; }
 
-  /* Avatar colors by index */
-  .cl-av-0 { background: linear-gradient(135deg, #3b82f6, #6366f1); }
-  .cl-av-1 { background: linear-gradient(135deg, #10b981, #06b6d4); }
-  .cl-av-2 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
-  .cl-av-3 { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
-  .cl-av-4 { background: linear-gradient(135deg, #06b6d4, #10b981); }
-  .cl-av-5 { background: linear-gradient(135deg, #f97316, #f59e0b); }
+/* Avatar */
+.gcl-av {
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.35rem; font-weight: 900; color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  user-select: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  transition: transform .15s;
+}
+.gcl-row:hover .gcl-av { transform: scale(1.06); }
 
-  /* Empty state */
-  .cl-empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--sub, #64748b);
-  }
-  .cl-empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: .5; }
-  .cl-empty h3  { font-size: 1rem; font-weight: 700; color: var(--text, #f1f5f9); margin-bottom: 6px; }
-  .cl-empty p   { font-size: .85rem; }
+.gcl-av-0 { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+.gcl-av-1 { background: linear-gradient(135deg, #10b981, #06b6d4); }
+.gcl-av-2 { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.gcl-av-3 { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+.gcl-av-4 { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+.gcl-av-5 { background: linear-gradient(135deg, #f97316, #ef4444); }
+.gcl-av-6 { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+.gcl-av-7 { background: linear-gradient(135deg, #22c55e, #0891b2); }
 
-  /* Light mode */
-  html[data-role-theme="light"] .cl-item {
-    background: #fff;
-    border-color: rgba(0,0,0,.07);
-  }
-  html[data-role-theme="light"] .cl-item:hover {
-    background: #f0fdf9;
-    border-color: rgba(16,185,129,.3);
-  }
-  html[data-role-theme="light"] .cl-name  { color: #0f172a; }
-  html[data-role-theme="light"] .cl-teacher,
-  html[data-role-theme="light"] .cl-last  { color: #64748b; }
-  html[data-role-theme="light"] .cl-time  { color: #94a3b8; }
+/* Info column */
+.gcl-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  row-gap: 4px;
+  align-items: center;
+}
+
+.gcl-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1;
+  grid-row: 1;
+}
+html[data-role-theme="light"] .gcl-name { color: #0f172a; }
+
+.gcl-time {
+  font-size: .75rem;
+  color: rgba(255,255,255,.35);
+  white-space: nowrap;
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+html[data-role-theme="light"] .gcl-time { color: #94a3b8; }
+
+.gcl-meta {
+  font-size: .82rem;
+  color: rgba(255,255,255,.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html[data-role-theme="light"] .gcl-meta { color: #64748b; }
+
+.gcl-teacher-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .73rem;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(16,185,129,.1);
+  border-radius: 99px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+html[data-role-theme="light"] .gcl-teacher-tag {
+  color: #059669;
+  background: rgba(16,185,129,.12);
+}
+.gcl-teacher-tag i { font-size: .62rem; }
+
+.gcl-preview {
+  font-size: .82rem;
+  color: rgba(255,255,255,.38);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  line-height: 1;
+}
+html[data-role-theme="light"] .gcl-preview { color: #94a3b8; }
+.gcl-preview b { color: rgba(255,255,255,.65); font-weight: 600; }
+html[data-role-theme="light"] .gcl-preview b { color: #475569; }
+.gcl-preview em { opacity: .7; font-style: italic; }
+
+/* Right arrow */
+.gcl-chevron {
+  color: rgba(255,255,255,.2);
+  font-size: .85rem;
+  flex-shrink: 0;
+  transition: color .15s, transform .15s;
+}
+html[data-role-theme="light"] .gcl-chevron { color: #cbd5e1; }
+.gcl-row:hover .gcl-chevron {
+  color: #10b981;
+  transform: translateX(3px);
+}
+
+/* ── No results ── */
+.gcl-no-results {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+  color: rgba(255,255,255,.35);
+  text-align: center;
+}
+html[data-role-theme="light"] .gcl-no-results { color: #94a3b8; }
+.gcl-no-results i { font-size: 2.5rem; opacity: .3; }
+.gcl-no-results span { font-size: .9rem; }
+
+/* ── Empty state (no groups at all) ── */
+.gcl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 16px;
+  text-align: center;
+}
+.gcl-empty-icon {
+  width: 88px; height: 88px;
+  border-radius: 28px;
+  background: rgba(16,185,129,.1);
+  border: 1px solid rgba(16,185,129,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; color: #10b981;
+}
+.gcl-empty h3 {
+  font-size: 1.05rem; font-weight: 800;
+  color: #f1f5f9; margin: 0;
+}
+html[data-role-theme="light"] .gcl-empty h3 { color: #0f172a; }
+.gcl-empty p {
+  font-size: .85rem; color: rgba(255,255,255,.4);
+  margin: 0; max-width: 300px; line-height: 1.6;
+}
+html[data-role-theme="light"] .gcl-empty p { color: #64748b; }
+
+/* ── Hidden item ── */
+.gcl-row.gcl-hidden { display: none !important; }
 </style>
 
-<div class="cl-page">
-  <div class="cl-header">
-    <div class="cl-header-icon"><i class="fa-solid fa-comments"></i></div>
+<!-- Header -->
+<div class="gcl-header">
+  <div class="gcl-header-left">
+    <div class="gcl-icon"><i class="fa-solid fa-comments"></i></div>
     <div>
-      <div class="cl-header-title">Guruh Chatlar</div>
-      <div class="cl-header-sub">{{ groups_data|length }} ta guruh mavjud</div>
+      <div class="gcl-title">Guruh Chatlar</div>
+      <div class="gcl-subtitle">
+        {% if groups_data %}
+          {{ groups_data|length }} ta guruh mavjud
+        {% else %}
+          Hech qanday guruh topilmadi
+        {% endif %}
+      </div>
     </div>
   </div>
 
   {% if groups_data %}
-  <div class="cl-list">
-    {% for item in groups_data %}
-    <a href="{% url 'core:group_chat' item.group.id %}" class="cl-item">
-      <div class="cl-avatar cl-av-{% cycle '0' '1' '2' '3' '4' '5' %}">
-        {{ item.group.nom|first|upper }}
-      </div>
-      <div class="cl-info">
-        <div class="cl-name">{{ item.group.nom }}</div>
-        {% if item.group.oqituvchi %}
-        <div class="cl-teacher">
-          <i class="fa-solid fa-chalkboard-user" style="font-size:.7rem;"></i>
-          {{ item.group.oqituvchi.get_full_name|default:item.group.oqituvchi.email }}
-        </div>
-        {% endif %}
-        <div class="cl-last">
-          {% if item.last_msg %}
-            <strong>{{ item.last_msg.sender.get_full_name|default:item.last_msg.sender.email|truncatechars:16 }}:</strong>
-            {% if item.last_msg.body %}{{ item.last_msg.body|truncatechars:45 }}{% else %}<em>📎 Fayl</em>{% endif %}
-          {% else %}
-            <em>Hali xabar yo'q — birinchi yozing!</em>
-          {% endif %}
-        </div>
-      </div>
-      <div class="cl-meta">
-        {% if item.last_msg %}
-        <div class="cl-time">{{ item.last_msg.created_at|date:"H:i" }}</div>
-        {% endif %}
-        <div class="cl-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="cl-empty">
-    <div class="cl-empty-icon"><i class="fa-solid fa-comments"></i></div>
-    <h3>Guruhlar topilmadi</h3>
-    <p>Siz hech qanday guruhga tegishli emassiz yoki guruhlar mavjud emas.</p>
+  <div class="gcl-search-wrap">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input
+      id="gclSearch"
+      type="text"
+      class="gcl-search"
+      placeholder="Guruh yoki o'qituvchi nomi..."
+      autocomplete="off"
+    >
   </div>
   {% endif %}
 </div>
+
+{% if groups_data %}
+
+<!-- Chat list -->
+<div class="gcl-list" id="gclList">
+  {% for item in groups_data %}
+  <a
+    href="{% url 'core:group_chat' item.group.id %}"
+    class="gcl-row"
+    data-name="{{ item.group.nom|lower }}"
+    data-teacher="{% if item.group.oqituvchi %}{{ item.group.oqituvchi.get_full_name|lower }}{% endif %}"
+  >
+    <div class="gcl-av gcl-av-{% cycle '0' '1' '2' '3' '4' '5' '6' '7' %}">
+      {{ item.group.nom|first|upper }}
+    </div>
+
+    <div class="gcl-info">
+      <div class="gcl-name">{{ item.group.nom }}</div>
+
+      {% if item.last_msg %}
+        <div class="gcl-time">{{ item.last_msg.created_at|date:"H:i" }}</div>
+      {% endif %}
+
+      <div class="gcl-meta">
+        {% if item.group.oqituvchi %}
+          <span class="gcl-teacher-tag">
+            <i class="fa-solid fa-chalkboard-user"></i>
+            {{ item.group.oqituvchi.get_full_name|default:item.group.oqituvchi.email|truncatechars:22 }}
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="gcl-preview">
+        {% if item.last_msg %}
+          <b>{{ item.last_msg.sender.get_full_name|default:item.last_msg.sender.email|truncatechars:16 }}:</b>
+          {% if item.last_msg.body %}
+            {{ item.last_msg.body|truncatechars:80 }}
+          {% else %}
+            <em>📎 Fayl yuborildi</em>
+          {% endif %}
+        {% else %}
+          <em>Hali xabar yo'q — birinchi yozing!</em>
+        {% endif %}
+      </div>
+    </div>
+
+    <i class="fa-solid fa-chevron-right gcl-chevron"></i>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="gcl-no-results" id="gclNoResults">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <span>Guruh topilmadi</span>
+</div>
+
+<script>
+(function () {
+  const input  = document.getElementById('gclSearch');
+  const list   = document.getElementById('gclList');
+  const noRes  = document.getElementById('gclNoResults');
+
+  input.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    let found = 0;
+
+    list.querySelectorAll('.gcl-row').forEach(function (row) {
+      const name    = row.dataset.name    || '';
+      const teacher = row.dataset.teacher || '';
+      const match   = !q || name.includes(q) || teacher.includes(q);
+      row.classList.toggle('gcl-hidden', !match);
+      if (match) found++;
+    });
+
+    noRes.style.display = (q && found === 0) ? 'flex' : 'none';
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { this.value = ''; this.dispatchEvent(new Event('input')); }
+  });
+})();
+</script>
+
+{% else %}
+
+<div class="gcl-empty">
+  <div class="gcl-empty-icon"><i class="fa-solid fa-comments"></i></div>
+  <h3>Guruhlar topilmadi</h3>
+  <p>Siz hech qanday guruhga tegishli emassiz yoki markaz guruhsiz.</p>
+</div>
+
+{% endif %}
+
 {% endblock %}

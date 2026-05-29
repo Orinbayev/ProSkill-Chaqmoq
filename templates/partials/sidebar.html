@@ -381,11 +381,23 @@
       <span class="si-text">Boshqaruv</span>
     </a>
 
+    <a href="{% url 'education:teacher_income_dashboard' %}"
+      class="sidebar-item {% if vn == 'education:teacher_income_dashboard' %}active{% endif %}" data-title="Daromadim">
+      <span class="si-ico"><i class="fa-solid fa-wallet"></i></span>
+      <span class="si-text">Daromadim</span>
+    </a>
+
     <a href="{% url 'core:chat_list' %}"
       class="sidebar-item {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
       data-title="Chat">
       <span class="si-ico"><i class="fa-solid fa-comments"></i></span>
       <span class="si-text">Guruh Chat 💬</span>
+    </a>
+
+    <a href="{% url 'education:attendance_groups' %}"
+      class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}" data-title="Mening guruhlarim">
+      <span class="si-ico"><i class="fa-solid fa-users-viewfinder"></i></span>
+      <span class="si-text">Mening guruhlarim</span>
     </a>
 
     <a href="{% url 'store:products' %}"
@@ -399,18 +411,6 @@
       data-title="Reyting">
       <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
       <span class="si-text">Reyting</span>
-    </a>
-
-    <a href="{% url 'education:teacher_income_dashboard' %}"
-      class="sidebar-item {% if vn == 'education:teacher_income_dashboard' %}active{% endif %}" data-title="Daromadim">
-      <span class="si-ico"><i class="fa-solid fa-wallet"></i></span>
-      <span class="si-text">Daromadim</span>
-    </a>
-
-    <a href="{% url 'education:attendance_groups' %}"
-      class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}" data-title="Mening guruhlarim">
-      <span class="si-ico"><i class="fa-solid fa-users-viewfinder"></i></span>
-      <span class="si-text">Mening guruhlarim</span>
     </a>
 
     {% if feature_weekly_schedule_ui %}
