@@ -67,6 +67,8 @@
                 <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
                 {% if user_kind == 'parents' %}
                 <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+                {% elif user_kind == 'students' %}
+                <button onclick="openStudentEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
                 {% else %}
                 <a href="{% url 'core:user_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
                 {% endif %}

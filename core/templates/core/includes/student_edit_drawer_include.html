@@ -1,0 +1,864 @@
+{% load static %}
+<!-- {# ═══════════════════════════════════════════════════════════════════════════
+   STUDENT EDIT DRAWER — shared include (used in stats_users.html & user_view.html)
+   Requires: {% url 'accounts:student_edit_ajax' 9999999 %}, {{ csrf_token }}
+═══════════════════════════════════════════════════════════════════════════ #} -->
+
+<style>
+.seu-overlay {
+  position: fixed; inset: 0;
+  background: rgba(2, 6, 23, .6);
+  backdrop-filter: blur(5px);
+  z-index: 9100;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s ease;
+}
+.seu-overlay.seu-open { opacity: 1; pointer-events: all; }
+
+.seu-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(460px, 100vw);
+  z-index: 9101;
+  display: flex; flex-direction: column;
+  background: #0f172a;
+  border-left: 1px solid rgba(255,255,255,.08);
+  box-shadow: -12px 0 50px rgba(0,0,0,.5);
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+}
+.seu-panel.seu-open { transform: translateX(0); }
+
+.seu-head {
+  flex-shrink: 0;
+  padding: 18px 22px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(16,185,129,.05));
+}
+.seu-head-title { font-size: .93rem; font-weight: 900; color: #f1f5f9; letter-spacing: -.3px; }
+.seu-head-title i { color: #6366f1; margin-right: 8px; }
+.seu-close-btn {
+  width: 34px; height: 34px;
+  border-radius: 9px; border: 1px solid rgba(255,255,255,.1);
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: .82rem;
+  transition: background .15s, color .15s;
+}
+.seu-close-btn:hover { background: rgba(255,255,255,.08); color: #f1f5f9; }
+
+.seu-avatar-bar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.seu-avatar-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
+.seu-avatar {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(99,102,241,.35);
+  background: linear-gradient(135deg, #6366f1, #10b981);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; font-weight: 900; color: #fff;
+  user-select: none; overflow: hidden;
+}
+.seu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.seu-av-cam {
+  position: absolute; bottom: 0; right: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #6366f1; border: 2px solid #0f172a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .5rem; color: #fff;
+}
+.seu-av-info { flex: 1; min-width: 0; }
+.seu-av-name  { font-size: 1rem; font-weight: 900; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seu-av-email { font-size: .78rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seu-av-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 5px; padding: 2px 9px;
+  border-radius: 99px; font-size: .7rem; font-weight: 700;
+  background: rgba(16,185,129,.12); color: #34d399;
+}
+
+.seu-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.seu-body::-webkit-scrollbar { width: 3px; }
+.seu-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+
+.seu-sec-label {
+  font-size: .68rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: #475569; margin-bottom: 10px;
+}
+.seu-sec-box {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px; padding: 14px;
+  display: flex; flex-direction: column; gap: 11px;
+}
+.seu-row { display: flex; flex-direction: column; gap: 4px; }
+.seu-label { font-size: .73rem; font-weight: 700; color: #475569; }
+.seu-input {
+  padding: 9px 13px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  font-size: .88rem; color: #f1f5f9;
+  outline: none; width: 100%; box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.seu-input::placeholder { color: #334155; }
+.seu-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+.seu-input[readonly] { background: rgba(255,255,255,.02); color: #475569; cursor: default; border-color: rgba(255,255,255,.05); }
+.seu-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.seu-email-blk {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 13px;
+  border-radius: 9px; background: rgba(255,255,255,.02);
+  border: 1.5px solid rgba(255,255,255,.05);
+}
+.seu-email-blk i   { color: #334155; font-size: .82rem; }
+.seu-email-blk span { font-size: .88rem; color: #475569; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seu-note { font-size: .7rem; color: #334155; margin-top: 4px; }
+
+.seu-btn {
+  width: 100%; padding: 10px;
+  border-radius: 10px; border: none; cursor: pointer;
+  font-size: .86rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: opacity .2s, transform .15s, box-shadow .2s;
+}
+.seu-btn:active { transform: scale(.98); }
+.seu-btn:disabled { opacity: .5; cursor: not-allowed; }
+.seu-btn--indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; box-shadow: 0 4px 14px rgba(99,102,241,.3); }
+.seu-btn--indigo:hover { box-shadow: 0 6px 20px rgba(99,102,241,.45); }
+.seu-btn--purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; box-shadow: 0 4px 14px rgba(139,92,246,.3); }
+.seu-btn--purple:hover { box-shadow: 0 6px 20px rgba(139,92,246,.45); }
+
+.seu-pass-err { font-size: .75rem; color: #f87171; display: none; padding: 2px 0; }
+
+.seu-toast {
+  position: fixed; bottom: 28px; right: 28px;
+  padding: 11px 18px; border-radius: 13px;
+  font-size: .86rem; font-weight: 700; color: #fff;
+  z-index: 9999; display: flex; align-items: center; gap: 8px;
+  transform: translateY(10px); opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 310px;
+}
+.seu-toast.seu-show { opacity: 1; transform: translateY(0); }
+.seu-toast--ok  { background: linear-gradient(135deg, #10b981, #0891b2); }
+.seu-toast--err { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+.seu-tabs {
+  flex-shrink: 0;
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.15);
+}
+.seu-tab {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; padding: 11px 8px;
+  font-size: .7rem; font-weight: 700; color: #475569;
+  cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent;
+  transition: color .18s, border-color .18s, background .18s;
+}
+.seu-tab i { font-size: 1rem; }
+.seu-tab:hover { color: #94a3b8; background: rgba(255,255,255,.03); }
+.seu-tab.seu-tab--active { color: #6366f1; border-bottom-color: #6366f1; background: rgba(99,102,241,.06); }
+.seu-tab--groups.seu-tab--active { color: #10b981; border-bottom-color: #10b981; background: rgba(16,185,129,.06); }
+.seu-tab--pass.seu-tab--active   { color: #8b5cf6; border-bottom-color: #8b5cf6; background: rgba(139,92,246,.06); }
+
+.seu-pane { display: none; }
+.seu-pane.seu-pane--active { display: flex; flex-direction: column; gap: 14px; }
+
+.seu-select {
+  padding: 9px 13px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  font-size: .88rem; color: #f1f5f9;
+  outline: none; width: 100%; box-sizing: border-box;
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%2364748b'%3E%3Cpath d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.seu-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+.seu-select option { background: #1e293b; color: #f1f5f9; }
+
+.seu-enr-list { display: flex; flex-direction: column; gap: 8px; }
+.seu-enr-empty { text-align: center; padding: 24px 0; color: #334155; font-size: .83rem; }
+.seu-enr-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
+  overflow: hidden;
+}
+.seu-enr-top { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+.seu-enr-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(16,185,129,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; color: #34d399;
+}
+.seu-enr-main { flex: 1; min-width: 0; }
+.seu-enr-name  { font-size: .88rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seu-enr-price { font-size: .78rem; color: #34d399; font-weight: 700; }
+.seu-enr-meta  { font-size: .72rem; color: #475569; margin-top: 2px; }
+.seu-enr-actions { display: flex; gap: 6px; }
+.seu-enr-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; color: #64748b;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.seu-enr-btn--edit:hover { background: rgba(99,102,241,.15); color: #818cf8; border-color: rgba(99,102,241,.25); }
+.seu-enr-btn--del:hover  { background: rgba(239,68,68,.12);  color: #f87171;  border-color: rgba(239,68,68,.2); }
+
+.seu-enr-edit {
+  display: none;
+  padding: 0 14px 12px;
+  flex-direction: column; gap: 8px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.seu-enr-edit.seu-open { display: flex; }
+.seu-enr-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seu-enr-edit-actions { display: flex; gap: 8px; margin-top: 2px; }
+.seu-enr-save-btn {
+  flex: 1; padding: 8px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: .8rem; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  transition: opacity .2s;
+}
+.seu-enr-save-btn:disabled { opacity: .5; }
+.seu-enr-cancel-btn {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
+  background: none; cursor: pointer; font-size: .8rem; color: #64748b;
+  transition: background .15s;
+}
+.seu-enr-cancel-btn:hover { background: rgba(255,255,255,.06); color: #94a3b8; }
+
+.seu-add-group {
+  border-radius: 12px;
+  border: 1px dashed rgba(16,185,129,.3);
+  background: rgba(16,185,129,.04);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.seu-add-group-title { font-size: .75rem; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 6px; }
+.seu-group-search-wrap { position: relative; }
+.seu-group-search { width: 100%; box-sizing: border-box; padding: 9px 13px 9px 34px; border-radius: 9px; border: 1.5px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04); font-size: .88rem; color: #f1f5f9; outline: none; transition: border-color .2s; }
+.seu-group-search::placeholder { color: #334155; }
+.seu-group-search:focus { border-color: #10b981; }
+.seu-group-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #334155; font-size: .8rem; pointer-events: none; }
+.seu-group-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px; z-index: 9200;
+  max-height: 180px; overflow-y: auto;
+  display: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.seu-group-dropdown.seu-open { display: block; }
+.seu-group-option {
+  padding: 9px 13px; cursor: pointer;
+  font-size: .83rem; color: #e2e8f0; font-weight: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background .13s;
+}
+.seu-group-option:hover { background: rgba(255,255,255,.06); }
+.seu-group-option span { color: #34d399; font-size: .75rem; }
+.seu-group-none { padding: 12px 13px; font-size: .82rem; color: #475569; text-align: center; }
+.seu-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seu-add-btn {
+  width: 100%; padding: 9px; border-radius: 9px; border: none; cursor: pointer;
+  font-size: .85rem; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #10b981, #0891b2);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 4px 14px rgba(16,185,129,.25);
+  transition: box-shadow .2s, opacity .2s;
+}
+.seu-add-btn:hover { box-shadow: 0 6px 20px rgba(16,185,129,.4); }
+.seu-add-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Light mode ── */
+html[data-role-theme="light"] .seu-overlay { background: rgba(15,23,42,.35); }
+html[data-role-theme="light"] .seu-panel { background: #fff; border-left-color: rgba(148,163,184,.2); box-shadow: -8px 0 40px rgba(15,23,42,.12); }
+html[data-role-theme="light"] .seu-head { background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(16,185,129,.04)); border-bottom-color: rgba(148,163,184,.18); }
+html[data-role-theme="light"] .seu-head-title { color: #0f172a; }
+html[data-role-theme="light"] .seu-close-btn { border-color: rgba(148,163,184,.3); color: #64748b; }
+html[data-role-theme="light"] .seu-close-btn:hover { background: #f1f5f9; color: #0f172a; }
+html[data-role-theme="light"] .seu-avatar-bar { border-bottom-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .seu-avatar { border-color: rgba(99,102,241,.25); }
+html[data-role-theme="light"] .seu-av-cam { border-color: #fff; }
+html[data-role-theme="light"] .seu-av-name { color: #0f172a; }
+html[data-role-theme="light"] .seu-av-email { color: #64748b; }
+html[data-role-theme="light"] .seu-av-badge { background: rgba(16,185,129,.1); color: #059669; }
+html[data-role-theme="light"] .seu-tabs { background: rgba(0,0,0,.03); border-bottom-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .seu-tab { color: #94a3b8; }
+html[data-role-theme="light"] .seu-tab:hover { color: #64748b; background: rgba(0,0,0,.03); }
+html[data-role-theme="light"] .seu-tab.seu-tab--active { color: #6366f1; }
+html[data-role-theme="light"] .seu-tab--groups.seu-tab--active { color: #059669; }
+html[data-role-theme="light"] .seu-tab--pass.seu-tab--active { color: #7c3aed; }
+html[data-role-theme="light"] .seu-sec-label { color: #94a3b8; }
+html[data-role-theme="light"] .seu-sec-box { background: #f8fafc; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .seu-label { color: #475569; }
+html[data-role-theme="light"] .seu-input { background: #fff; border-color: rgba(148,163,184,.35); color: #0f172a; }
+html[data-role-theme="light"] .seu-input::placeholder { color: #cbd5e1; }
+html[data-role-theme="light"] .seu-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+html[data-role-theme="light"] .seu-input[readonly] { background: #f1f5f9; color: #94a3b8; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .seu-select { background-color: #fff; border-color: rgba(148,163,184,.35); color: #0f172a; }
+html[data-role-theme="light"] .seu-select option { background: #fff; color: #0f172a; }
+html[data-role-theme="light"] .seu-email-blk { background: #f1f5f9; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .seu-email-blk i { color: #94a3b8; }
+html[data-role-theme="light"] .seu-email-blk span { color: #64748b; }
+html[data-role-theme="light"] .seu-note { color: #94a3b8; }
+html[data-role-theme="light"] .seu-pass-err { color: #dc2626; }
+html[data-role-theme="light"] .seu-enr-card { background: #f8fafc; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .seu-enr-name { color: #0f172a; }
+html[data-role-theme="light"] .seu-enr-meta { color: #94a3b8; }
+html[data-role-theme="light"] .seu-enr-btn { background: #fff; border-color: rgba(148,163,184,.25); color: #94a3b8; }
+html[data-role-theme="light"] .seu-enr-edit { border-top-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .seu-enr-cancel-btn { border-color: rgba(148,163,184,.3); color: #64748b; }
+html[data-role-theme="light"] .seu-enr-cancel-btn:hover { background: #f1f5f9; }
+html[data-role-theme="light"] .seu-add-group { background: rgba(16,185,129,.04); border-color: rgba(16,185,129,.25); }
+html[data-role-theme="light"] .seu-group-search { background: #fff; border-color: rgba(148,163,184,.35); color: #0f172a; }
+html[data-role-theme="light"] .seu-group-search::placeholder { color: #cbd5e1; }
+html[data-role-theme="light"] .seu-group-search-icon { color: #94a3b8; }
+html[data-role-theme="light"] .seu-group-dropdown { background: #fff; border-color: rgba(148,163,184,.2); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+html[data-role-theme="light"] .seu-group-option { color: #0f172a; }
+html[data-role-theme="light"] .seu-group-option:hover { background: #f1f5f9; }
+html[data-role-theme="light"] .seu-group-none { color: #94a3b8; }
+html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
+</style>
+
+<!-- Overlay + Panel -->
+<div class="seu-overlay" id="seuOverlay" onclick="closeStudentEditDrawer()"></div>
+<div class="seu-panel" id="seuPanel">
+
+  <div class="seu-head">
+    <div class="seu-head-title"><i class="fa-solid fa-user-pen"></i>O'quvchini tahrirlash</div>
+    <button class="seu-close-btn" onclick="closeStudentEditDrawer()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="seu-avatar-bar">
+    <div class="seu-avatar-wrap" onclick="document.getElementById('seuAvatarFile').click()" title="Rasm o'zgartirish">
+      <div class="seu-avatar" id="seuAvatar"><span id="seuInitial">—</span></div>
+      <div class="seu-av-cam"><i class="fa-solid fa-camera"></i></div>
+    </div>
+    <div class="seu-av-info">
+      <div class="seu-av-name"  id="seuFullName">—</div>
+      <div class="seu-av-email" id="seuEmailTop">—</div>
+      <div class="seu-av-badge"><i class="fa-solid fa-graduation-cap" style="font-size:.6rem"></i> O'quvchi</div>
+    </div>
+  </div>
+  <input type="file" id="seuAvatarFile" accept="image/*" style="display:none">
+
+  <div class="seu-tabs">
+    <button class="seu-tab seu-tab--active" id="seuTabProfile" onclick="seuSwitchTab('profile')">
+      <i class="fa-solid fa-user"></i> Profil
+    </button>
+    <button class="seu-tab seu-tab--groups" id="seuTabGroups" onclick="seuSwitchTab('groups')">
+      <i class="fa-solid fa-users-between-lines"></i> Guruhlar
+    </button>
+    <button class="seu-tab seu-tab--pass" id="seuTabPass" onclick="seuSwitchTab('pass')">
+      <i class="fa-solid fa-key"></i> Parol
+    </button>
+  </div>
+
+  <div class="seu-body">
+
+    <!-- TAB: PROFILE -->
+    <div class="seu-pane seu-pane--active" id="seuPaneProfile">
+      <div class="seu-sec-label"><i class="fa-solid fa-address-card me-1"></i>Shaxsiy ma'lumotlar</div>
+      <div class="seu-sec-box">
+        <div class="seu-grid2">
+          <div class="seu-row"><label class="seu-label">Ism</label><input class="seu-input" id="seuIsm" type="text" placeholder="Ism..."></div>
+          <div class="seu-row"><label class="seu-label">Familya</label><input class="seu-input" id="seuFamilya" type="text" placeholder="Familya..."></div>
+        </div>
+        <div class="seu-row"><label class="seu-label">Otasining ismi</label><input class="seu-input" id="seuOtchestvo" type="text" placeholder="Otasining ismi..."></div>
+        <div class="seu-grid2">
+          <div class="seu-row"><label class="seu-label">Tug'ilgan sana</label><input class="seu-input" id="seuBirth" type="date"></div>
+          <div class="seu-row">
+            <label class="seu-label">Jinsi</label>
+            <select class="seu-select" id="seuGender">
+              <option value="">— Tanlang —</option>
+              <option value="male">Erkak</option>
+              <option value="female">Ayol</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="seu-sec-label"><i class="fa-solid fa-phone me-1"></i>Aloqa</div>
+      <div class="seu-sec-box">
+        <div class="seu-grid2">
+          <div class="seu-row"><label class="seu-label">Telefon 1</label><input class="seu-input" id="seuTel1" type="tel" placeholder="+998..."></div>
+          <div class="seu-row"><label class="seu-label">Telefon 2</label><input class="seu-input" id="seuTel2" type="tel" placeholder="+998..."></div>
+        </div>
+        <div class="seu-grid2">
+          <div class="seu-row"><label class="seu-label"><i class="fa-brands fa-telegram" style="color:#2aabee"></i> Telegram</label><input class="seu-input" id="seuTelegram" type="text" placeholder="@username"></div>
+          <div class="seu-row"><label class="seu-label"><i class="fa-brands fa-instagram" style="color:#e1306c"></i> Instagram</label><input class="seu-input" id="seuInsta" type="text" placeholder="@username"></div>
+        </div>
+        <div class="seu-row"><label class="seu-label">Manzil</label><textarea class="seu-input" id="seuAddress" rows="2" placeholder="Yashash manzili..." style="resize:vertical"></textarea></div>
+      </div>
+
+      <div class="seu-sec-label"><i class="fa-solid fa-id-card me-1"></i>Hujjat</div>
+      <div class="seu-sec-box">
+        <div class="seu-grid2">
+          <div class="seu-row"><label class="seu-label">Pasport seriya/raqam</label><input class="seu-input" id="seuPassport" type="text" placeholder="AA 1234567"></div>
+          <div class="seu-row"><label class="seu-label">JSHR / PINFL</label><input class="seu-input" id="seuJshr" type="text" placeholder="12345678901234" maxlength="14"></div>
+        </div>
+      </div>
+
+      <div class="seu-sec-label"><i class="fa-solid fa-envelope me-1"></i>Login (Email)</div>
+      <div class="seu-sec-box">
+        <div class="seu-email-blk">
+          <i class="fa-solid fa-lock" style="color:#475569"></i>
+          <span id="seuEmailRO">—</span>
+        </div>
+        <div class="seu-note"><i class="fa-solid fa-circle-info me-1"></i>Email login sifatida ishlatiladi va o'zgartirilmaydi.</div>
+      </div>
+
+      <button class="seu-btn seu-btn--indigo" id="seuSaveProfile" onclick="seuSaveProfile()">
+        <i class="fa-solid fa-floppy-disk"></i> Profilni saqlash
+      </button>
+    </div>
+
+    <!-- TAB: GROUPS -->
+    <div class="seu-pane" id="seuPaneGroups">
+      <div class="seu-sec-label"><i class="fa-solid fa-users me-1"></i>Hozirgi guruhlar</div>
+      <div class="seu-enr-list" id="seuEnrList">
+        <div class="seu-enr-empty"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="seu-sec-label" style="margin-top:4px"><i class="fa-solid fa-plus me-1"></i>Guruhga qo'shish</div>
+      <div class="seu-add-group">
+        <div class="seu-add-group-title"><i class="fa-solid fa-magnifying-glass"></i> Guruhni qidiring</div>
+        <div class="seu-group-search-wrap">
+          <i class="fa-solid fa-magnifying-glass seu-group-search-icon"></i>
+          <input class="seu-group-search" id="seuGroupSearch" type="text" placeholder="Guruh nomi bo'yicha..." autocomplete="off">
+          <div class="seu-group-dropdown" id="seuGroupDropdown"></div>
+        </div>
+        <input type="hidden" id="seuSelectedGroupId">
+        <input type="hidden" id="seuSelectedGroupPrice">
+        <div class="seu-add-grid">
+          <div class="seu-row"><label class="seu-label">Narxi (so'm)</label><input class="seu-input" id="seuAddPrice" type="number" min="0" placeholder="500000"></div>
+          <div class="seu-row"><label class="seu-label">Boshlanish sanasi</label><input class="seu-input" id="seuAddDate" type="date"></div>
+        </div>
+        <button class="seu-add-btn" id="seuAddBtn" onclick="seuAddToGroup()" disabled>
+          <i class="fa-solid fa-user-plus"></i> Guruhga qo'shish
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB: PASSWORD -->
+    <div class="seu-pane" id="seuPanePass">
+      <div class="seu-sec-label"><i class="fa-solid fa-shield-halved me-1"></i>Parol xavfsizligi</div>
+      <div class="seu-sec-box">
+        <div class="seu-row"><label class="seu-label">Yangi parol</label><input class="seu-input" id="seuNewPass" type="password" placeholder="Kamida 8 ta belgi..." autocomplete="new-password"></div>
+        <div class="seu-row"><label class="seu-label">Yangi parol (takror)</label><input class="seu-input" id="seuConfPass" type="password" placeholder="Takrorlang..." autocomplete="new-password"></div>
+        <div class="seu-pass-err" id="seuPassErr"></div>
+        <button class="seu-btn seu-btn--purple" id="seuSavePassBtn" onclick="seuSavePass()">
+          <i class="fa-solid fa-key"></i> Parolni yangilash
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /seu-body -->
+</div><!-- /seu-panel -->
+<div class="seu-toast" id="seuToast"></div>
+
+<script>
+(function () {
+  const _TPL = "{% url 'accounts:student_edit_ajax' 9999999 %}";
+  const url  = id => _TPL.replace("9999999", id);
+  const CSRF = "{{ csrf_token }}";
+  let _sid = null;
+  let _searchTimer = null;
+
+  const $ = id => document.getElementById(id);
+  const PATTERN_LABELS = { group: "Avtomatik", even: "Juft kunlar", odd: "Toq kunlar", daily: "Har kuni" };
+
+  function fmtPrice(n) {
+    return Number(n).toLocaleString("uz-UZ") + " so'm";
+  }
+
+  window.seuSwitchTab = function (tab) {
+    ["profile","groups","pass"].forEach(t => {
+      const capT = t.charAt(0).toUpperCase() + t.slice(1);
+      $("seuPane" + capT)?.classList.remove("seu-pane--active");
+      $("seuTab"  + capT)?.classList.remove("seu-tab--active");
+    });
+    const capTab = tab.charAt(0).toUpperCase() + tab.slice(1);
+    $("seuPane" + capTab)?.classList.add("seu-pane--active");
+    $("seuTab"  + capTab)?.classList.add("seu-tab--active");
+  };
+
+  window.openStudentEditDrawer = function (studentId) {
+    _sid = studentId;
+    $("seuOverlay").classList.add("seu-open");
+    $("seuPanel").classList.add("seu-open");
+    document.body.style.overflow = "hidden";
+    $("seuFullName").textContent = "Yuklanmoqda...";
+    $("seuEmailTop").textContent = "";
+    seuSwitchTab("profile");
+
+    fetch(url(studentId), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => r.json())
+      .then(res => {
+        if (!res.ok) { seuToast(res.error || "Xatolik", "err"); closeStudentEditDrawer(); return; }
+        seuPopulate(res.data);
+        seuRenderEnrollments(res.data.enrollments || []);
+      })
+      .catch(() => { seuToast("Ma'lumot yuklanmadi", "err"); closeStudentEditDrawer(); });
+  };
+
+  window.closeStudentEditDrawer = function () {
+    $("seuOverlay").classList.remove("seu-open");
+    $("seuPanel").classList.remove("seu-open");
+    document.body.style.overflow = "";
+    _sid = null;
+    $("seuNewPass").value  = "";
+    $("seuConfPass").value = "";
+    $("seuPassErr").style.display = "none";
+    $("seuAvatarFile").value = "";
+    $("seuGroupSearch").value = "";
+    $("seuGroupDropdown").classList.remove("seu-open");
+    $("seuSelectedGroupId").value = "";
+    $("seuAddBtn").disabled = true;
+  };
+
+  function seuPopulate(d) {
+    $("seuIsm").value       = d.ism                  || "";
+    $("seuFamilya").value   = d.familya              || "";
+    $("seuOtchestvo").value = d.otchestvo            || "";
+    $("seuTel1").value      = d.telefon1             || "";
+    $("seuTel2").value      = d.telefon2             || "";
+    $("seuBirth").value     = d.birth_date           || "";
+    $("seuGender").value    = d.gender               || "";
+    $("seuPassport").value  = d.passport_id          || "";
+    $("seuJshr").value      = d.jshr                 || "";
+    $("seuAddress").value   = d.address              || "";
+    $("seuTelegram").value  = d.telegram_username    || "";
+    $("seuInsta").value     = d.instagram_username   || "";
+    $("seuEmailRO").textContent  = d.email    || "—";
+    $("seuEmailTop").textContent = d.email    || "—";
+    $("seuFullName").textContent = d.full_name|| "—";
+
+    const av  = $("seuAvatar");
+    const ini = $("seuInitial");
+    const oldImg = av.querySelector("img");
+    if (oldImg) oldImg.remove();
+    if (d.avatar_url) {
+      ini.style.display = "none";
+      const img = document.createElement("img"); img.src = d.avatar_url; av.appendChild(img);
+    } else {
+      ini.style.display = "";
+      ini.textContent = (d.ism || "?")[0].toUpperCase();
+    }
+  }
+
+  function seuRenderEnrollments(list) {
+    const el = $("seuEnrList");
+    if (!list.length) {
+      el.innerHTML = '<div class="seu-enr-empty"><i class="fa-solid fa-circle-info me-1"></i>Hech qanday guruhga biriktirilmagan</div>';
+      return;
+    }
+    el.innerHTML = list.map(enr => `
+      <div class="seu-enr-card" id="seuEnr-${enr.id}">
+        <div class="seu-enr-top">
+          <div class="seu-enr-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="seu-enr-main">
+            <div class="seu-enr-name">${enr.group_name}</div>
+            <div class="seu-enr-price">${fmtPrice(enr.kurs_narhi)}</div>
+            <div class="seu-enr-meta">📅 ${enr.joined_at || "—"} &nbsp;·&nbsp; ${PATTERN_LABELS[enr.lesson_pattern] || enr.lesson_pattern}</div>
+          </div>
+          <div class="seu-enr-actions">
+            <button class="seu-enr-btn seu-enr-btn--edit" onclick="seuToggleEnrEdit(${enr.id})" title="Tahrirlash"><i class="fa-solid fa-pen"></i></button>
+            <button class="seu-enr-btn seu-enr-btn--del"  onclick="seuRemoveEnr(${enr.id}, '${enr.group_name.replace(/'/g,"\\'")}');" title="Chiqarish"><i class="fa-solid fa-user-minus"></i></button>
+          </div>
+        </div>
+        <div class="seu-enr-edit" id="seuEnrEdit-${enr.id}">
+          <div class="seu-enr-edit-grid">
+            <div class="seu-row"><label class="seu-label">Narxi (so'm)</label><input class="seu-input" id="seuEnrPrice-${enr.id}" type="number" min="0" value="${enr.kurs_narhi}"></div>
+            <div class="seu-row"><label class="seu-label">Boshlanish</label><input class="seu-input" id="seuEnrDate-${enr.id}" type="date" value="${enr.joined_at}"></div>
+          </div>
+          <div class="seu-row">
+            <label class="seu-label">Dars tartibi</label>
+            <select class="seu-select" id="seuEnrPat-${enr.id}">
+              <option value="group" ${enr.lesson_pattern==="group"?"selected":""}>Avtomatik (guruh jadvali)</option>
+              <option value="even"  ${enr.lesson_pattern==="even" ?"selected":""}>Juft kunlari (2,4,6)</option>
+              <option value="odd"   ${enr.lesson_pattern==="odd"  ?"selected":""}>Toq kunlari (1,3,5)</option>
+              <option value="daily" ${enr.lesson_pattern==="daily"?"selected":""}>Har kuni</option>
+            </select>
+          </div>
+          <div class="seu-enr-edit-actions">
+            <button class="seu-enr-save-btn" id="seuEnrSave-${enr.id}" onclick="seuSaveEnr(${enr.id})">
+              <i class="fa-solid fa-floppy-disk"></i> Saqlash
+            </button>
+            <button class="seu-enr-cancel-btn" onclick="seuToggleEnrEdit(${enr.id})">Bekor</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.seuToggleEnrEdit = function (enrId) {
+    const el = $("seuEnrEdit-" + enrId);
+    if (el) el.classList.toggle("seu-open");
+  };
+
+  window.seuSaveEnr = function (enrId) {
+    if (!_sid) return;
+    const btn = $("seuEnrSave-" + enrId);
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    const fd = new FormData();
+    fd.append("action",          "enrollment_update");
+    fd.append("enrollment_id",   enrId);
+    fd.append("kurs_narhi",      $("seuEnrPrice-" + enrId).value);
+    fd.append("joined_at",       $("seuEnrDate-"  + enrId).value);
+    fd.append("lesson_pattern",  $("seuEnrPat-"   + enrId).value);
+    fetch(url(_sid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          const enr = res.enrollment;
+          const card = $("seuEnr-" + enrId);
+          if (card) {
+            card.querySelector(".seu-enr-price").textContent = fmtPrice(enr.kurs_narhi);
+            card.querySelector(".seu-enr-meta").innerHTML = `📅 ${enr.joined_at || "—"} &nbsp;·&nbsp; ${PATTERN_LABELS[enr.lesson_pattern] || enr.lesson_pattern}`;
+          }
+          $("seuEnrEdit-" + enrId)?.classList.remove("seu-open");
+          seuToast(res.message, "ok");
+        } else { seuToast(res.error || "Xatolik", "err"); }
+      })
+      .catch(() => seuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Saqlash'; });
+  };
+
+  window.seuRemoveEnr = function (enrId, groupName) {
+    if (!_sid) return;
+    if (!confirm(`"${groupName}" guruhidan chiqarilsinmi?`)) return;
+    const fd = new FormData();
+    fd.append("action",        "enrollment_remove");
+    fd.append("enrollment_id", enrId);
+    fetch(url(_sid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          $("seuEnr-" + enrId)?.remove();
+          const list = $("seuEnrList");
+          if (!list.querySelector(".seu-enr-card")) {
+            list.innerHTML = '<div class="seu-enr-empty"><i class="fa-solid fa-circle-info me-1"></i>Hech qanday guruhga biriktirilmagan</div>';
+          }
+          seuToast(res.message, "ok");
+        } else { seuToast(res.error || "Xatolik", "err"); }
+      })
+      .catch(() => seuToast("Tarmoq xatoligi", "err"));
+  };
+
+  $("seuGroupSearch").addEventListener("input", function () {
+    clearTimeout(_searchTimer);
+    const q = this.value.trim();
+    if (!q) { $("seuGroupDropdown").classList.remove("seu-open"); return; }
+    _searchTimer = setTimeout(() => {
+      const searchUrl = url(_sid) + "?action=search_groups&q=" + encodeURIComponent(q);
+      fetch(searchUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(r => r.json())
+        .then(res => {
+          const dd = $("seuGroupDropdown");
+          if (!res.ok || !res.results.length) {
+            dd.innerHTML = '<div class="seu-group-none">Guruh topilmadi</div>';
+          } else {
+            dd.innerHTML = res.results.map(g =>
+              `<div class="seu-group-option" onclick="seuSelectGroup(${g.id}, '${g.nom.replace(/'/g,"\\'")}', ${g.kurs_narxi})">
+                <span>${g.nom}</span><span>${fmtPrice(g.kurs_narxi)}</span>
+              </div>`
+            ).join("");
+          }
+          dd.classList.add("seu-open");
+        });
+    }, 280);
+  });
+
+  $("seuGroupSearch").addEventListener("blur", () => {
+    setTimeout(() => $("seuGroupDropdown").classList.remove("seu-open"), 200);
+  });
+
+  window.seuSelectGroup = function (id, nom, price) {
+    $("seuSelectedGroupId").value    = id;
+    $("seuSelectedGroupPrice").value = price;
+    $("seuGroupSearch").value        = nom;
+    $("seuAddPrice").value           = price;
+    $("seuGroupDropdown").classList.remove("seu-open");
+    $("seuAddBtn").disabled = false;
+  };
+
+  window.seuAddToGroup = function () {
+    if (!_sid) return;
+    const groupId = $("seuSelectedGroupId").value;
+    if (!groupId) { seuToast("Avval guruh tanlang", "err"); return; }
+    const btn = $("seuAddBtn");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Qo\'shilmoqda...';
+    const fd = new FormData();
+    fd.append("action",     "enrollment_add");
+    fd.append("group_id",   groupId);
+    fd.append("kurs_narhi", $("seuAddPrice").value || $("seuSelectedGroupPrice").value || "0");
+    fd.append("joined_at",  $("seuAddDate").value  || "");
+    fetch(url(_sid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          const enr  = res.enrollment;
+          const list = $("seuEnrList");
+          const empty = list.querySelector(".seu-enr-empty");
+          if (empty) empty.remove();
+          const card = document.createElement("div");
+          card.className = "seu-enr-card"; card.id = "seuEnr-" + enr.id;
+          card.innerHTML = `
+            <div class="seu-enr-top">
+              <div class="seu-enr-icon"><i class="fa-solid fa-users"></i></div>
+              <div class="seu-enr-main">
+                <div class="seu-enr-name">${enr.group_name}</div>
+                <div class="seu-enr-price">${fmtPrice(enr.kurs_narhi)}</div>
+                <div class="seu-enr-meta">📅 ${enr.joined_at || "—"} &nbsp;·&nbsp; ${PATTERN_LABELS[enr.lesson_pattern] || enr.lesson_pattern}</div>
+              </div>
+              <div class="seu-enr-actions">
+                <button class="seu-enr-btn seu-enr-btn--edit" onclick="seuToggleEnrEdit(${enr.id})" title="Tahrirlash"><i class="fa-solid fa-pen"></i></button>
+                <button class="seu-enr-btn seu-enr-btn--del"  onclick="seuRemoveEnr(${enr.id}, '${enr.group_name.replace(/'/g,"\\'")}');" title="Chiqarish"><i class="fa-solid fa-user-minus"></i></button>
+              </div>
+            </div>
+            <div class="seu-enr-edit" id="seuEnrEdit-${enr.id}">
+              <div class="seu-enr-edit-grid">
+                <div class="seu-row"><label class="seu-label">Narxi (so'm)</label><input class="seu-input" id="seuEnrPrice-${enr.id}" type="number" min="0" value="${enr.kurs_narhi}"></div>
+                <div class="seu-row"><label class="seu-label">Boshlanish</label><input class="seu-input" id="seuEnrDate-${enr.id}" type="date" value="${enr.joined_at}"></div>
+              </div>
+              <div class="seu-row"><label class="seu-label">Dars tartibi</label>
+                <select class="seu-select" id="seuEnrPat-${enr.id}">
+                  <option value="group" selected>Avtomatik</option>
+                  <option value="even">Juft kunlar</option>
+                  <option value="odd">Toq kunlar</option>
+                  <option value="daily">Har kuni</option>
+                </select>
+              </div>
+              <div class="seu-enr-edit-actions">
+                <button class="seu-enr-save-btn" id="seuEnrSave-${enr.id}" onclick="seuSaveEnr(${enr.id})"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
+                <button class="seu-enr-cancel-btn" onclick="seuToggleEnrEdit(${enr.id})">Bekor</button>
+              </div>
+            </div>`;
+          list.appendChild(card);
+          $("seuGroupSearch").value = ""; $("seuAddPrice").value = ""; $("seuAddDate").value = ""; $("seuSelectedGroupId").value = "";
+          btn.disabled = true;
+          seuToast(res.message, "ok");
+        } else { seuToast(res.error || "Xatolik", "err"); }
+      })
+      .catch(() => seuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = !$("seuSelectedGroupId").value; btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Guruhga qo\'shish'; });
+  };
+
+  $("seuAvatarFile").addEventListener("change", function () {
+    const file = this.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const av = $("seuAvatar"); const ini = $("seuInitial");
+      let img = av.querySelector("img");
+      if (!img) { img = document.createElement("img"); av.appendChild(img); }
+      img.src = e.target.result; ini.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  window.seuSaveProfile = function () {
+    if (!_sid) return;
+    const btn = $("seuSaveProfile");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';
+    const fd = new FormData();
+    fd.append("action",             "update_profile");
+    fd.append("ism",                $("seuIsm").value.trim());
+    fd.append("familya",            $("seuFamilya").value.trim());
+    fd.append("otchestvo",          $("seuOtchestvo").value.trim());
+    fd.append("telefon1",           $("seuTel1").value.trim());
+    fd.append("telefon2",           $("seuTel2").value.trim());
+    fd.append("birth_date",         $("seuBirth").value);
+    fd.append("gender",             $("seuGender").value);
+    fd.append("passport_id",        $("seuPassport").value.trim());
+    fd.append("jshr",               $("seuJshr").value.trim());
+    fd.append("address",            $("seuAddress").value.trim());
+    fd.append("telegram_username",  $("seuTelegram").value.trim());
+    fd.append("instagram_username", $("seuInsta").value.trim());
+    const f = $("seuAvatarFile").files[0];
+    if (f) fd.append("avatar", f);
+    fetch(url(_sid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          $("seuFullName").textContent = res.full_name || "—";
+          if (res.avatar_url) {
+            const av = $("seuAvatar"); const ini = $("seuInitial");
+            let img = av.querySelector("img");
+            if (!img) { img = document.createElement("img"); av.appendChild(img); }
+            img.src = res.avatar_url; ini.style.display = "none";
+          }
+          seuToast(res.message || "Saqlandi ✅", "ok");
+        } else { seuToast(res.error || "Xatolik", "err"); }
+      })
+      .catch(() => seuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Profilni saqlash'; });
+  };
+
+  window.seuSavePass = function () {
+    if (!_sid) return;
+    const np = $("seuNewPass").value;
+    const cp = $("seuConfPass").value;
+    const errEl = $("seuPassErr");
+    errEl.style.display = "none";
+    if (np.length < 8) { errEl.textContent = "Kamida 8 ta belgi bo'lishi kerak."; errEl.style.display = "block"; return; }
+    if (np !== cp)     { errEl.textContent = "Parollar mos kelmadi.";              errEl.style.display = "block"; return; }
+    const btn = $("seuSavePassBtn");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yangilanmoqda...';
+    const fd = new FormData();
+    fd.append("action",           "update_password");
+    fd.append("new_password",     np);
+    fd.append("confirm_password", cp);
+    fetch(url(_sid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          $("seuNewPass").value = ""; $("seuConfPass").value = "";
+          seuToast(res.message || "Parol yangilandi 🔒", "ok");
+        } else {
+          const msg = res.errors ? Object.values(res.errors).flat().join(" ") : (res.error || "Xatolik");
+          errEl.textContent = msg; errEl.style.display = "block";
+          seuToast("Parol yangilanmadi", "err");
+        }
+      })
+      .catch(() => seuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-key"></i> Parolni yangilash'; });
+  };
+
+  let _tt = null;
+  function seuToast(msg, type) {
+    const el = $("seuToast");
+    el.className = "seu-toast seu-toast--" + (type === "ok" ? "ok" : "err");
+    el.innerHTML = '<i class="fa-solid ' + (type === "ok" ? "fa-circle-check" : "fa-circle-exclamation") + '"></i> ' + msg;
+    el.classList.add("seu-show");
+    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove("seu-show"), 3400);
+  }
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && _sid) closeStudentEditDrawer(); });
+})();
+</script>

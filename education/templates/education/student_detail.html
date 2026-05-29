@@ -792,10 +792,11 @@
           </button>
         </div>
         {% endif %}
-        <a href="{% url 'accounts:user_edit' student.id %}"
+        <button
+          onclick="openStudentDrawer({{ student.id }})"
           class="flex-1 md:flex-none h-10 px-5 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-sm font-bold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5">
           <i class="fa fa-pen"></i> Tahrirlash
-        </a>
+        </button>
       </div>
     </div>
 
@@ -1525,5 +1526,537 @@
       bar.style.width = width + '%';
     }
   });
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     O'QUVCHINI TAHRIRLASH — Right-Side Drawer
+═══════════════════════════════════════════════════════════ -->
+<style>
+/* Overlay */
+.sd-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, .45);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.sd-overlay.sd-open { opacity: 1; pointer-events: all; }
+
+/* Drawer panel */
+.sd-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(460px, 100vw);
+  z-index: 9001;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  box-shadow: -8px 0 40px rgba(15, 23, 42, .18);
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.4, 0, .2, 1);
+  overflow: hidden;
+}
+.sd-panel.sd-open { transform: translateX(0); }
+
+/* ── Header bar ── */
+.sd-head {
+  flex-shrink: 0;
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 163, 184, .18);
+  background: linear-gradient(135deg, rgba(0, 149, 255, .06), rgba(16, 185, 129, .04));
+}
+.sd-head-title {
+  font-size: .95rem; font-weight: 900;
+  color: #0f172a; letter-spacing: -.3px;
+}
+.sd-close-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, .3);
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: .85rem;
+  transition: background .15s, color .15s;
+}
+.sd-close-btn:hover { background: #f1f5f9; color: #0f172a; }
+
+/* ── Avatar section ── */
+.sd-avatar-section {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, .12);
+}
+.sd-avatar-wrap {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sd-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(0, 149, 255, .25);
+  background: linear-gradient(135deg, #0095ff, #10b981);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 900; color: #fff;
+  user-select: none; overflow: hidden;
+}
+.sd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sd-avatar-edit-hint {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #0095ff;
+  border: 2px solid #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .55rem; color: #fff;
+}
+.sd-avatar-info { flex: 1; min-width: 0; }
+.sd-avatar-name {
+  font-size: 1.05rem; font-weight: 900;
+  color: #0f172a; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.sd-avatar-email {
+  font-size: .8rem; color: #64748b;
+  margin-top: 2px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.sd-avatar-role {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px; padding: 3px 10px;
+  border-radius: 99px; font-size: .73rem; font-weight: 700;
+  background: rgba(16, 185, 129, .1); color: #059669;
+}
+
+/* ── Scrollable body ── */
+.sd-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.sd-body::-webkit-scrollbar { width: 4px; }
+.sd-body::-webkit-scrollbar-track { background: transparent; }
+.sd-body::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, .3); border-radius: 4px; }
+
+/* ── Section ── */
+.sd-section-label {
+  font-size: .7rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: #94a3b8; margin-bottom: 10px;
+}
+.sd-section-box {
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── Input row ── */
+.sd-row { display: flex; flex-direction: column; gap: 5px; }
+.sd-label {
+  font-size: .75rem; font-weight: 700; color: #475569;
+}
+.sd-input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(148, 163, 184, .35);
+  background: #fff;
+  font-size: .9rem; color: #0f172a;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  width: 100%; box-sizing: border-box;
+}
+.sd-input:focus {
+  border-color: #0095ff;
+  box-shadow: 0 0 0 3px rgba(0, 149, 255, .12);
+}
+.sd-input[readonly] {
+  background: #f1f5f9;
+  color: #94a3b8; cursor: default;
+  border-color: rgba(148, 163, 184, .2);
+}
+.sd-input-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Email readonly block ── */
+.sd-email-block {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: 1.5px solid rgba(148, 163, 184, .2);
+}
+.sd-email-block i { color: #94a3b8; font-size: .85rem; }
+.sd-email-block span { font-size: .9rem; color: #64748b; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sd-email-readonly-note {
+  font-size: .72rem; color: #94a3b8; margin-top: 6px;
+}
+
+/* ── Save button ── */
+.sd-save-btn {
+  width: 100%; padding: 11px;
+  border-radius: 12px;
+  border: none; cursor: pointer;
+  font-size: .88rem; font-weight: 800;
+  transition: transform .15s, box-shadow .15s, opacity .2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.sd-save-btn:active { transform: scale(.98); }
+.sd-save-btn--blue {
+  background: linear-gradient(135deg, #0095ff, #0077e6);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 149, 255, .3);
+}
+.sd-save-btn--blue:hover { box-shadow: 0 6px 20px rgba(0, 149, 255, .4); }
+.sd-save-btn--purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, .3);
+}
+.sd-save-btn--purple:hover { box-shadow: 0 6px 20px rgba(139, 92, 246, .4); }
+.sd-save-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ── Toast ── */
+.sd-toast {
+  position: fixed;
+  bottom: 32px; right: 32px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  font-size: .88rem; font-weight: 700;
+  color: #fff; z-index: 9999;
+  transform: translateY(12px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  display: flex; align-items: center; gap: 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  max-width: 320px;
+}
+.sd-toast.sd-toast-show { opacity: 1; transform: translateY(0); pointer-events: all; }
+.sd-toast--success { background: linear-gradient(135deg, #10b981, #0891b2); }
+.sd-toast--error   { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+/* ── Loading skeleton ── */
+.sd-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: sd-shimmer 1.4s infinite;
+}
+@keyframes sd-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+</style>
+
+<!-- Overlay -->
+<div class="sd-overlay" id="sdOverlay" onclick="closeStudentDrawer()"></div>
+
+<!-- Drawer panel -->
+<div class="sd-panel" id="sdPanel">
+
+  <!-- Head -->
+  <div class="sd-head">
+    <div class="sd-head-title"><i class="fa fa-pen me-2" style="color:#0095ff"></i>O'quvchini tahrirlash</div>
+    <button class="sd-close-btn" onclick="closeStudentDrawer()"><i class="fa fa-xmark"></i></button>
+  </div>
+
+  <!-- Avatar + name area -->
+  <div class="sd-avatar-section" id="sdAvatarSection">
+    <div class="sd-avatar-wrap" onclick="document.getElementById('sdAvatarInput').click()">
+      <div class="sd-avatar" id="sdAvatar">
+        <span id="sdAvatarInitial">—</span>
+      </div>
+      <div class="sd-avatar-edit-hint"><i class="fa fa-camera"></i></div>
+    </div>
+    <div class="sd-avatar-info">
+      <div class="sd-avatar-name" id="sdFullName">—</div>
+      <div class="sd-avatar-email" id="sdEmailDisplay">—</div>
+      <div class="sd-avatar-role"><i class="fa fa-graduation-cap" style="font-size:.65rem"></i> O'quvchi</div>
+    </div>
+  </div>
+  <input type="file" id="sdAvatarInput" accept="image/*" style="display:none">
+
+  <!-- Scrollable body -->
+  <div class="sd-body">
+
+    <!-- Section 1: Profile -->
+    <div>
+      <div class="sd-section-label"><i class="fa fa-user me-1"></i> Asosiy ma'lumotlar</div>
+      <div class="sd-section-box">
+        <div class="sd-input-row-2">
+          <div class="sd-row">
+            <label class="sd-label">Ism</label>
+            <input class="sd-input" id="sdIsm" type="text" placeholder="Ism...">
+          </div>
+          <div class="sd-row">
+            <label class="sd-label">Familya</label>
+            <input class="sd-input" id="sdFamilya" type="text" placeholder="Familya...">
+          </div>
+        </div>
+        <div class="sd-row">
+          <label class="sd-label">Telefon 1</label>
+          <input class="sd-input" id="sdTelefon1" type="tel" placeholder="+998901234567">
+        </div>
+        <div class="sd-row">
+          <label class="sd-label">Telefon 2 (ixtiyoriy)</label>
+          <input class="sd-input" id="sdTelefon2" type="tel" placeholder="+998901234567">
+        </div>
+        <button class="sd-save-btn sd-save-btn--blue" id="sdSaveProfile" onclick="sdSubmitProfile()">
+          <i class="fa fa-floppy-disk"></i> Saqlash
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 2: Email (readonly) -->
+    <div>
+      <div class="sd-section-label"><i class="fa fa-at me-1"></i> Login (Email)</div>
+      <div class="sd-section-box">
+        <div class="sd-email-block">
+          <i class="fa fa-envelope"></i>
+          <span id="sdEmailReadonly">—</span>
+        </div>
+        <div class="sd-email-readonly-note">
+          <i class="fa fa-circle-info me-1"></i>
+          Email login sifatida ishlatiladi va o'zgartirilmaydi.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Password -->
+    <div>
+      <div class="sd-section-label"><i class="fa fa-lock me-1"></i> Parol o'zgartirish</div>
+      <div class="sd-section-box">
+        <div class="sd-row">
+          <label class="sd-label">Yangi parol</label>
+          <input class="sd-input" id="sdNewPass" type="password" placeholder="Kamida 8 ta belgi..." autocomplete="new-password">
+        </div>
+        <div class="sd-row">
+          <label class="sd-label">Yangi parol (takror)</label>
+          <input class="sd-input" id="sdConfirmPass" type="password" placeholder="Parolni takrorlang..." autocomplete="new-password">
+        </div>
+        <div id="sdPassError" style="font-size:.78rem;color:#ef4444;display:none;padding:2px 0;"></div>
+        <button class="sd-save-btn sd-save-btn--purple" id="sdSavePass" onclick="sdSubmitPassword()">
+          <i class="fa fa-key"></i> Parolni yangilash
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /sd-body -->
+</div><!-- /sd-panel -->
+
+<!-- Toast -->
+<div class="sd-toast" id="sdToast"></div>
+
+<script>
+(function () {
+  const _AJAX_TPL = "{% url 'accounts:student_edit_ajax' 9999999 %}";
+  const ajaxUrl  = id => _AJAX_TPL.replace("9999999", id);
+  const CSRF = "{{ csrf_token }}";
+  let currentStudentId = null;
+
+  window.openStudentDrawer = function (studentId) {
+    currentStudentId = studentId;
+    _setLoading(true);
+    document.getElementById("sdOverlay").classList.add("sd-open");
+    document.getElementById("sdPanel").classList.add("sd-open");
+    document.body.style.overflow = "hidden";
+
+    fetch(ajaxUrl(studentId), {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (!res.ok) { showSdToast(res.error || "Xatolik", "error"); closeStudentDrawer(); return; }
+        _populate(res.data);
+        _setLoading(false);
+      })
+      .catch(() => { showSdToast("Ma'lumot yuklanmadi", "error"); closeStudentDrawer(); });
+  };
+
+  window.closeStudentDrawer = function () {
+    document.getElementById("sdOverlay").classList.remove("sd-open");
+    document.getElementById("sdPanel").classList.remove("sd-open");
+    document.body.style.overflow = "";
+    currentStudentId = null;
+    // Reset password fields
+    document.getElementById("sdNewPass").value = "";
+    document.getElementById("sdConfirmPass").value = "";
+    document.getElementById("sdPassError").style.display = "none";
+    document.getElementById("sdAvatarInput").value = "";
+  };
+
+  function _populate(d) {
+    document.getElementById("sdIsm").value      = d.ism || "";
+    document.getElementById("sdFamilya").value  = d.familya || "";
+    document.getElementById("sdTelefon1").value = d.telefon1 || "";
+    document.getElementById("sdTelefon2").value = d.telefon2 || "";
+    document.getElementById("sdEmailDisplay").textContent  = d.email || "—";
+    document.getElementById("sdEmailReadonly").textContent = d.email || "—";
+    document.getElementById("sdFullName").textContent      = d.full_name || "—";
+
+    const initial  = document.getElementById("sdAvatarInitial");
+    const avatar   = document.getElementById("sdAvatar");
+    // Remove old img if any
+    const oldImg = avatar.querySelector("img");
+    if (oldImg) oldImg.remove();
+
+    if (d.avatar_url) {
+      initial.style.display = "none";
+      const img = document.createElement("img");
+      img.src = d.avatar_url;
+      img.alt = d.full_name;
+      avatar.appendChild(img);
+    } else {
+      initial.style.display = "";
+      initial.textContent = (d.ism || "?")[0].toUpperCase();
+    }
+  }
+
+  function _setLoading(on) {
+    const fields = ["sdIsm", "sdFamilya", "sdTelefon1", "sdTelefon2"];
+    fields.forEach(id => { document.getElementById(id).disabled = on; });
+  }
+
+  // Avatar preview on file select
+  document.getElementById("sdAvatarInput").addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const avatar  = document.getElementById("sdAvatar");
+      const initial = document.getElementById("sdAvatarInitial");
+      let img = avatar.querySelector("img");
+      if (!img) {
+        img = document.createElement("img");
+        avatar.appendChild(img);
+      }
+      img.src = e.target.result;
+      initial.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  window.sdSubmitProfile = function () {
+    if (!currentStudentId) return;
+    const btn = document.getElementById("sdSaveProfile");
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saqlanmoqda...';
+
+    const fd = new FormData();
+    fd.append("action",    "update_profile");
+    fd.append("ism",       document.getElementById("sdIsm").value.trim());
+    fd.append("familya",   document.getElementById("sdFamilya").value.trim());
+    fd.append("telefon1",  document.getElementById("sdTelefon1").value.trim());
+    fd.append("telefon2",  document.getElementById("sdTelefon2").value.trim());
+    const avatarFile = document.getElementById("sdAvatarInput").files[0];
+    if (avatarFile) fd.append("avatar", avatarFile);
+
+    fetch(ajaxUrl(currentStudentId), {
+      method: "POST",
+      headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" },
+      body: fd,
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          document.getElementById("sdFullName").textContent = res.full_name || "—";
+          if (res.avatar_url) {
+            const avatar  = document.getElementById("sdAvatar");
+            const initial = document.getElementById("sdAvatarInitial");
+            let img = avatar.querySelector("img");
+            if (!img) { img = document.createElement("img"); avatar.appendChild(img); }
+            img.src = res.avatar_url;
+            initial.style.display = "none";
+          }
+          showSdToast(res.message || "Saqlandi ✅", "success");
+        } else {
+          showSdToast(res.error || "Xatolik yuz berdi", "error");
+        }
+      })
+      .catch(() => showSdToast("Tarmoq xatoligi", "error"))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-floppy-disk"></i> Saqlash';
+      });
+  };
+
+  window.sdSubmitPassword = function () {
+    if (!currentStudentId) return;
+    const np = document.getElementById("sdNewPass").value;
+    const cp = document.getElementById("sdConfirmPass").value;
+    const errEl = document.getElementById("sdPassError");
+    errEl.style.display = "none";
+
+    if (np.length < 8) {
+      errEl.textContent = "Parol kamida 8 ta belgidan iborat bo'lishi kerak.";
+      errEl.style.display = "block"; return;
+    }
+    if (np !== cp) {
+      errEl.textContent = "Parollar bir-biriga mos kelmadi.";
+      errEl.style.display = "block"; return;
+    }
+
+    const btn = document.getElementById("sdSavePass");
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Yangilanmoqda...';
+
+    const fd = new FormData();
+    fd.append("action",           "update_password");
+    fd.append("new_password",     np);
+    fd.append("confirm_password", cp);
+
+    fetch(ajaxUrl(currentStudentId), {
+      method: "POST",
+      headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" },
+      body: fd,
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          document.getElementById("sdNewPass").value = "";
+          document.getElementById("sdConfirmPass").value = "";
+          showSdToast(res.message || "Parol yangilandi 🔒", "success");
+        } else {
+          const msgs = res.errors
+            ? Object.values(res.errors).flat().join(" ")
+            : (res.error || "Xatolik yuz berdi");
+          errEl.textContent = msgs; errEl.style.display = "block";
+          showSdToast("Parol yangilanmadi", "error");
+        }
+      })
+      .catch(() => showSdToast("Tarmoq xatoligi", "error"))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-key"></i> Parolni yangilash';
+      });
+  };
+
+  let _sdToastTimer = null;
+  window.showSdToast = function (msg, type) {
+    const el = document.getElementById("sdToast");
+    el.className = "sd-toast sd-toast--" + (type === "success" ? "success" : "error");
+    el.innerHTML = '<i class="fa ' + (type === "success" ? "fa-circle-check" : "fa-circle-exclamation") + '"></i> ' + msg;
+    el.classList.add("sd-toast-show");
+    clearTimeout(_sdToastTimer);
+    _sdToastTimer = setTimeout(() => el.classList.remove("sd-toast-show"), 3200);
+  };
+
+  // Close on Escape
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && currentStudentId) closeStudentDrawer();
+  });
+})();
 </script>
 {% endblock %}

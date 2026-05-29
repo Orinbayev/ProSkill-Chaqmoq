@@ -999,6 +999,180 @@ def user_edit(request, pk=None):
     })
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def student_edit_ajax(request, pk):
+    from django.utils.dateparse import parse_date as _parse_date
+    from core.tenant import get_request_center
+
+    if not _is_staff_like(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    student = get_object_or_404(User, pk=pk)
+
+    # ── Group search (autocomplete for "add to group") ──
+    if request.method == "GET" and request.GET.get("action") == "search_groups":
+        from education.models import Group as EduGroup
+        q = request.GET.get("q", "").strip()
+        center = get_request_center(request)
+        qs = EduGroup.objects.filter(center=center) if center else EduGroup.objects.none()
+        if q:
+            qs = qs.filter(nom__icontains=q)
+        results = [{"id": g.pk, "nom": g.nom, "kurs_narxi": g.kurs_narxi} for g in qs.order_by("nom")[:15]]
+        return JsonResponse({"ok": True, "results": results})
+
+    # ── Full student data GET ──
+    if request.method == "GET":
+        from education.models import Enrollment
+        enrollments = (
+            Enrollment.objects.filter(student=student, is_active=True)
+            .select_related("group")
+            .order_by("group__nom")
+        )
+        enr_data = [
+            {
+                "id": enr.pk,
+                "group_id": enr.group_id,
+                "group_name": enr.group.nom,
+                "kurs_narhi": enr.kurs_narhi,
+                "joined_at": enr.joined_at.strftime("%Y-%m-%d") if enr.joined_at else "",
+                "lesson_pattern": enr.lesson_pattern or "group",
+            }
+            for enr in enrollments
+        ]
+        return JsonResponse({
+            "ok": True,
+            "data": {
+                "id": student.pk,
+                "ism": student.ism,
+                "familya": student.familya,
+                "otchestvo": student.otchestvo or "",
+                "email": student.email,
+                "telefon1": student.telefon1,
+                "telefon2": student.telefon2,
+                "birth_date": student.birth_date.strftime("%Y-%m-%d") if student.birth_date else "",
+                "gender": student.gender or "",
+                "passport_id": student.passport_id or "",
+                "jshr": student.jshr or "",
+                "address": student.address or "",
+                "telegram_username": student.telegram_username or "",
+                "instagram_username": student.instagram_username or "",
+                "avatar_url": student.avatar.url if student.avatar else None,
+                "full_name": student.get_full_name(),
+                "enrollments": enr_data,
+            }
+        })
+
+    action = request.POST.get("action")
+
+    # ── Profile update ──
+    if action == "update_profile":
+        student.ism     = (request.POST.get("ism")     or "").strip() or student.ism
+        student.familya = (request.POST.get("familya") or "").strip() or student.familya
+        student.otchestvo        = (request.POST.get("otchestvo")        or "").strip()
+        student.telefon1         = (request.POST.get("telefon1")         or "").strip()
+        student.telefon2         = (request.POST.get("telefon2")         or "").strip()
+        student.passport_id      = (request.POST.get("passport_id")      or "").strip()
+        student.jshr             = (request.POST.get("jshr")             or "").strip()
+        student.address          = (request.POST.get("address")          or "").strip()
+        student.telegram_username  = (request.POST.get("telegram_username")  or "").strip()
+        student.instagram_username = (request.POST.get("instagram_username") or "").strip()
+        gender = (request.POST.get("gender") or "").strip()
+        student.gender = gender or None
+        birth_raw = (request.POST.get("birth_date") or "").strip()
+        if birth_raw:
+            student.birth_date = _parse_date(birth_raw)
+        if "avatar" in request.FILES:
+            student.avatar = request.FILES["avatar"]
+        student.save()
+        return JsonResponse({
+            "ok": True,
+            "message": "Profil yangilandi ✅",
+            "full_name": student.get_full_name(),
+            "avatar_url": student.avatar.url if student.avatar else None,
+        })
+
+    # ── Password change ──
+    if action == "update_password":
+        form = PasswordUpdateForm(request.POST)
+        if form.is_valid():
+            student.set_password(form.cleaned_data["new_password"])
+            student.save()
+            return JsonResponse({"ok": True, "message": "Parol yangilandi 🔒"})
+        return JsonResponse({"ok": False, "errors": form.errors}, status=400)
+
+    # ── Enrollment: remove from group ──
+    if action == "enrollment_remove":
+        from education.models import Enrollment
+        from education.services.enrollment_service import EnrollmentService
+        enr = get_object_or_404(Enrollment, pk=request.POST.get("enrollment_id"), student=student)
+        group_name = enr.group.nom
+        EnrollmentService.remove_student(student, enr.group)
+        return JsonResponse({"ok": True, "message": f"'{group_name}' guruhidan chiqarildi ✅"})
+
+    # ── Enrollment: update price / date / pattern ──
+    if action == "enrollment_update":
+        from education.models import Enrollment
+        enr = get_object_or_404(Enrollment, pk=request.POST.get("enrollment_id"), student=student)
+        raw_price = (request.POST.get("kurs_narhi") or "").strip()
+        if raw_price.isdigit():
+            enr.kurs_narhi = int(raw_price)
+        joined_raw = (request.POST.get("joined_at") or "").strip()
+        if joined_raw:
+            enr.joined_at = _parse_date(joined_raw)
+        pattern = (request.POST.get("lesson_pattern") or "").strip()
+        if pattern:
+            enr.lesson_pattern = pattern
+        enr.save(update_fields=["kurs_narhi", "joined_at", "lesson_pattern"])
+        return JsonResponse({
+            "ok": True,
+            "message": "Guruh ma'lumotlari yangilandi ✅",
+            "enrollment": {
+                "id": enr.pk,
+                "kurs_narhi": enr.kurs_narhi,
+                "joined_at": enr.joined_at.strftime("%Y-%m-%d") if enr.joined_at else "",
+                "lesson_pattern": enr.lesson_pattern or "group",
+            },
+        })
+
+    # ── Enrollment: add to group ──
+    if action == "enrollment_add":
+        from education.models import Group as EduGroup, Enrollment
+        from education.services.enrollment_service import EnrollmentService
+        center = get_request_center(request)
+        group_id = (request.POST.get("group_id") or "").strip()
+        if not group_id:
+            return JsonResponse({"ok": False, "error": "Guruh tanlanmagan."}, status=400)
+        group = get_object_or_404(EduGroup, pk=group_id, center=center)
+        raw_price = (request.POST.get("kurs_narhi") or "").strip()
+        kurs_narxi = int(raw_price) if raw_price.isdigit() else group.kurs_narxi
+        joined_raw = (request.POST.get("joined_at") or "").strip()
+        start_date = _parse_date(joined_raw) if joined_raw else None
+        if Enrollment.objects.filter(group=group, student=student, is_active=True).exists():
+            return JsonResponse({"ok": False, "error": f"O'quvchi allaqachon '{group.nom}' guruhida bor."})
+        enr = EnrollmentService.enroll_student(
+            student=student,
+            group=group,
+            kurs_narxi=kurs_narxi,
+            oqituvchi_foiz=group.oqituvchi_foiz or 40,
+            start_date=start_date,
+        )
+        return JsonResponse({
+            "ok": True,
+            "message": f"'{group.nom}' guruhiga qo'shildi ✅",
+            "enrollment": {
+                "id": enr.pk,
+                "group_id": group.pk,
+                "group_name": group.nom,
+                "kurs_narhi": enr.kurs_narhi,
+                "joined_at": enr.joined_at.strftime("%Y-%m-%d") if enr.joined_at else "",
+                "lesson_pattern": enr.lesson_pattern or "group",
+            },
+        })
+
+    return JsonResponse({"ok": False, "error": "Noto'g'ri so'rov."}, status=400)
+
+
+@login_required
 def delete_user(request, pk):
     if not _can_add(request.user):
          return HttpResponseForbidden()

@@ -1,1191 +1,1289 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}
-O'quvchi profili -
-{{ u.get_full_name }}
-{% endblock %}
-{% block content %}
-<div class="container-fluid py-4 animate__animated animate__fadeIn"> <!-- HEADER / HERO -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div
-                class="profile-hero-card glass p-3 p-md-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-                <div class="d-flex align-items-center gap-4">
-                    <div class="profile-avatar-wrapper position-relative">
-                        {% if u.avatar %}
-                        <img src="
-{{ u.avatar.url }}
-" alt="
-{{ u.get_full_name }}
-" class="profile-avatar-img">
-                        {% else %}
-                        <div class="avatar-placeholder-large shadow-lg">
-                            {{ u.ism|first }}
-                            {{ u.familya|first }}
-                        </div>
-                        {% endif %}
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <div>
-                        <h1 class="fs-2 fw-bold text-white mb-2">
-                            {{ u.get_full_name }}
-                        </h1>
-                        <div class="d-flex flex-wrap gap-2 align-items-center text-white-50"> <span
-                                class="badge border border-light-subtle px-3 py-2 rounded-pill">O'quvchi</span>
-                            {% if u.center %}
-                            <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i>
-                                {{ u.center.name }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-actions-stack d-flex flex-column flex-md-row align-items-stretch gap-3">
-                    {% if can_manage_parent_link %}
-                    <div class="parent-link-panel glass-light rounded-4 p-3">
-                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                            <div>
-                                <div class="text-white-50 small text-uppercase ls-1 mb-1">Ota-ona boti</div>
-                                <span id="parentLinkStatusBadge"
-                                      class="parent-link-status {% if parent_link_status.is_linked %}is-linked{% else %}is-unlinked{% endif %}">
-                                    {% if parent_link_status.is_linked %}🟢 Ulangan{% else %}🔴 Ulanmagan{% endif %}
-                                </span>
-                            </div>
-                            <i class="fa-brands fa-telegram parent-link-icon"></i>
-                        </div>
-                        <button type="button"
-                                id="openParentLinkBtn"
-                                class="btn btn-warning w-100 rounded-pill fw-bold shadow-warning"
-                                data-create-url="{% url 'core:student_parent_link_create' u.id %}"
-                                data-status-url="{% url 'core:student_parent_link_status' u.id %}"
-                                data-reminder-url="{% url 'core:student_parent_link_reminder' u.id %}"
-                                data-csrf="{{ csrf_token }}">
-                            📲 Ota-onani ulash
-                        </button>
-                    </div>
-                    {% endif %}
-                    <div class="balance-display text-center p-3 glass-light rounded-4">
-                        <div class="text-white-50 small text-uppercase ls-1 mb-1">Umumiy Chaqmoqlar</div>
-                        <div class="d-flex align-items-center justify-content-center gap-3"> <i
-                                class="fa-solid fa-bolt text-warning fs-1"></i> <span
-                                class="fs-1 fw-black text-warning counter">
-                                {{ balance }}
-                            </span> </div>
-                        <div class="mt-2 pt-2 border-top border-white-10 text-white-50 small">
-                            Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o'rin
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> <!-- STATS CARDS -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-                <div class="ico-box bg-success-subtle text-success fs-3 rounded-4 p-3 anim-pulse"> <i
-                        class="fa-solid fa-calendar-check"></i> </div>
-                <div class="flex-grow-1" style="cursor: pointer;" data-bs-toggle="modal"
-                    data-bs-target="#attendanceDetailModal" title="Batafsil ko'rish uchun bosing">
-                    <div class="text-white-50 small mb-1">Davomat Ko'rsatkichi</div>
-                    <div class="d-flex align-items-baseline gap-2">
-                        <div class="fw-bold fs-4 text-white mb-2">
-                            {{ attendance_rate }}
-                            %</div>
-                        <div class="text-white-50 fs-mini">
-                            {{ present_days }}
-                            /
-                            {{ total_lessons }}
-                            dars</div>
-                    </div>
-                    <div class="progress bg-white-10" style="height: 6px;">
-                        <div class="progress-bar bg-success shadow-sm" style="--p: 
-{{ attendance_rate }}
-%; width: var(--p);"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-                <div class="ico-box bg-primary-subtle text-primary fs-3 rounded-4 p-3"> <i
-                        class="fa-solid fa-graduation-cap"></i> </div>
-                <div>
-                    <div class="text-white-50 small mb-1">Jami Kurslar</div>
-                    <div class="fw-bold fs-4 text-white">
-                        {{ enrollments.count }}
-                        ta</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-                <div class="ico-box bg-purple-subtle text-purple fs-3 rounded-4 p-3"> <i
-                        class="fa-solid fa-bolt-lightning"></i> </div>
-                <div>
-                    <div class="text-white-50 small mb-1">Oxirgi Harakatlar</div>
-                    <div class="fw-bold fs-4 text-white">
-                        {{ actions.paginator.count }}
-                        ta</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row g-4"> <!-- LEFT COLUMN: INFO & COURSES -->
-        <div class="col-lg-5">
-            <div class="glass p-3 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="m-0 fw-bold text-white"><i class="fa-solid fa-user-gear me-2 text-warning"></i> Shaxsiy
-                        ma'lumotlar</h5>
-                    {% if request.user.role != 'parent' %}
-                    <div class="dropdown"> <button class="btn btn-sm btn-glass dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown"> Amallar </button>
-                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end animation-fade-in p-1">
-                            {% if u.role != 'manager' %}
-                            <li>
-                                <a class="dropdown-item py-2 px-3 small rounded-3"
-                                    href="{% if u.role == 'parent' %}{% url 'core:parent_edit' u.id %}{% else %}{% url 'core:user_edit' u.id %}{% endif %}">
-                                    <i class="fa-solid fa-pen me-2 fs-mini"></i> Tahrirlash
-                                </a>
-                            </li>
-                            {% endif %}
-                            <li>
-                                <hr class="dropdown-divider my-1 opacity-10">
-                            </li>
-                            <li><a class="dropdown-item text-warning py-2 px-3 small rounded-3" href="#"
-                                    data-bs-toggle="modal" data-bs-target="#passwordResetModal"><i
-                                        class="fa-solid fa-key me-2 fs-mini"></i> Parolni o'zgartirish</a></li>
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="info-list-v2">
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Login (Email)</span> <span class="text-white fw-bold">
-                            {{ u.email }}
-                        </span> </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Asosiy Telefon</span> <span class="text-white fw-medium">
-                            {{ u.telefon1|default:"Kiritilmagan" }}
-                        </span> </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Qo'shimcha Tel</span> <span class="text-white-50">
-                            {{ u.telefon2|default:"—" }}
-                        </span> </div>
-                    {% if u.role == 'student' %}
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Farzand bog'lash kodi</span> <span class="text-white fw-bold">
-                            {{ u.child_code|default:"Hali yaratilmagan" }}
-                        </span> </div>
-                    {% if can_manage_parent_link %}
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Parent bot holati</span> <span id="parentLinkInfoState" class="fw-bold {% if parent_link_status.is_linked %}text-success{% else %}text-danger{% endif %}">
-                            {% if parent_link_status.is_linked %}Ha{% else %}Yo'q{% endif %}
-                        </span> </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Parent Telegram</span> <span id="parentLinkInfoUsername" class="text-white fw-medium">
-                            {% if parent_link_status.telegram_username %}@{{ parent_link_status.telegram_username }}{% elif parent_link_status.telegram_id %}{{ parent_link_status.telegram_id }}{% else %}—{% endif %}
-                        </span> </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Ulangan sana</span> <span id="parentLinkInfoDate" class="text-white-50">
-                            {{ parent_link_status.linked_at_display|default:"—" }}
-                        </span> </div>
-                    {% endif %}
-                    {% endif %}
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Ro'yxatdan o'tgan</span> <span class="text-white-50">
-                            {{ u.date_joined|date:"d.m.Y" }}
-                        </span> </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
-                            class="text-white-50">Oxirgi kirish</span> <span class="text-white-50">
-                            {{ u.last_login|date:"d.m.Y, H:i"|default:"Hali kirmagan" }}
-                        </span> </div>
+{% block title %}{{ u.get_full_name }} | O'quvchi profili{% endblock %}
 
-                    <!-- ✅ Expansion -->
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
-                        <span class="text-white-50">Tug'ilgan sana</span>
-                        <span class="text-white fw-medium">{{ u.birth_date|date:"d.m.Y"|default:"Kiritilmagan" }}</span>
-                    </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
-                        <span class="text-white-50">Jinsi</span>
-                        <span class="text-white fw-medium">{{ u.get_gender_display|default:"Kiritilmagan" }}</span>
-                    </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
-                        <span class="text-white-50">Passport ID</span>
-                        <span class="text-white fw-medium">{{ u.passport_id|default:"---" }}</span>
-                    </div>
-                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
-                        <span class="text-white-50">JSHR (PINFL)</span>
-                        <span class="text-white fw-medium">{{ u.jshr|default:"---" }}</span>
-                    </div>
-                    <div class="info-item-row flex-column py-3">
-                        <span class="text-white-50 mb-2">Manzil</span>
-                        <span class="text-white fw-medium small">{{ u.address|default:"Kiritilmagan" }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="glass p-3">
-                <h5 class="mb-4 fw-bold text-white"><i class="fa-solid fa-layer-group me-2 text-warning"></i> Kurslar (<span style="color:red; font-size:12px">arxividagilar bilan</span>)</h5>
-                <div class="groups-v2-list d-flex flex-column gap-3">
-                    {% for enr in enrollments %}
-                    <div class="group-v2-card p-3 rounded-4 border border-white-5 {% if not enr.is_active %}bg-danger-subtle opacity-75{% else %}bg-white-3{% endif %}">
-                        <div class="d-flex justify-content-between align-items-start mb-2"> 
-                            <span class="small {% if not enr.is_active %}text-danger{% else %}text-warning{% endif %} fw-bold">
-                                {{ enr.group.category_obj.icon|default:"📚" }}
-                                {{ enr.group.category_obj.name }}
-                            </span> 
-                            <span class="badge 
-                                {% if enr.is_active %}
-                                bg-success-subtle text-success
-                                {% else %}
-                                bg-danger-subtle text-danger
-                                {% endif %}
-                                rounded-pill small">
-                                {% if enr.is_active %}
-                                O'qimoqda
-                                {% else %}
-                                Guruhdan chetlashtirilgan
-                                {% endif %}
-                            </span> 
-                        </div>
-                        <div class="fs-5 fw-bold {% if not enr.is_active %}text-danger{% else %}text-white{% endif %} mb-2">
-                            {{ enr.group.nom }}
-                        </div>
-                        <div class="d-flex gap-3 small text-white-50"> 
-                            <span><i class="fa-solid fa-user-tie me-1"></i>
-                                {{ enr.group.oqituvchi.get_full_name }}
-                            </span> 
-                            <span><i class="fa-solid fa-clock me-1"></i>
-                                {{ enr.created_at|date:"M Y" }}
-                            </span> 
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center py-5 opacity-25"> 
-                        <i class="fa-solid fa-inbox fs-1 mb-2"></i>
-                        <p>Kurslar topilmadi</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div> <!-- RIGHT COLUMN: TIMELINE (PAGINATED) -->
-        <div class="col-lg-7">
-            <div class="glass p-3 position-relative">
-                <h5 class="mb-4 fw-bold text-white d-flex align-items-center gap-2"> <i
-                        class="fa-solid fa-timeline text-warning"></i> Chaqmoqlar tarixi <span
-                        class="badge bg-white-10 text-white-50 fs-mini ms-auto">
-                        {{ actions.paginator.count }}
-                        jami</span> </h5>
-                <div class="timeline-v2 px-2 pb-3">
-                    {% for action in actions %}
-                    <div class="timeline-v2-item position-relative ps-4 pb-3 border-start border-white-10">
-                        <div class="timeline-v2-marker 
-{% if action.ball > 0 %}
-plus
-{% else %}
-minus
-{% endif %}
- shadow"><i class="fa-solid 
-{% if action.ball > 0 %}
-fa-plus
-{% else %}
-fa-minus
-{% endif %}
-"></i></div>
-                        <div class="timeline-v2-content p-2 glass-light rounded-4 border border-white-5">
-                            <div class="d-flex justify-content-between align-items-center mb-1"> <span
-                                    class="fw-bold text-white small">
-                                    {{ action.rule_nom|default:"Ball belgilandi" }}
-                                </span> <span class="fw-black 
-{% if action.ball > 0 %}
-text-success
-{% else %}
-text-danger
-{% endif %}
- small">
-                                    {% if action.ball > 0 %}
-                                    +
-                                    {% endif %}
-                                    {{ action.ball }}
-                                </span> </div>
-                            <div class="d-flex flex-wrap gap-2 text-white-50" style="font-size: 0.75rem;"> <span><i
-                                        class="fa-solid fa-user-pen me-1"></i>
-                                    {{ action.beruvchi.get_full_name|default:"Tizim" }}
-                                </span> <span><i class="fa-solid fa-calendar me-1"></i>
-                                    {{ action.sana|date:"d.m.Y, H:i" }}
-                                </span>
-                                {% if action.group %}
-                                <span><i class="fa-solid fa-users me-1 text-warning"></i>
-                                    {{ action.group.nom }}
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-bolt-slash fs-1 mb-2"></i>
-                        <p>Harakatlar mavjud emas</p>
-                    </div>
-                    {% endfor %}
-                </div> <!-- PAGINATION CONTROLS -->
-                {% if actions.has_other_pages %}
-                <div
-                    class="pagination-footer pt-2 mt-2 border-top border-white-5 d-flex justify-content-center animate__animated animate__fadeInUp">
-                    <nav aria-label="Timeline pagination">
-                        <ul class="pagination pagination-sm m-0 gap-1">
-                            {% if actions.has_previous %}
-                            <li class="page-item"> <a class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2"
-                                    href="?page=
-{{ actions.previous_page_number }}
-" title="Oldingi"> <i class="fa-solid fa-chevron-left"></i> </a> </li>
-                            {% endif %}
-                            {% for num in actions.paginator.page_range %}
-                            {% if actions.number == num %}
-                            <li class="page-item active"> <span
-                                    class="page-link bg-warning text-dark border-0 fw-black rounded-3 px-3 py-2 shadow-warning">
-                                    {{ num }}
-                                </span> </li>
-                            {% elif num > actions.number|add:'-3' and num < actions.number|add:'3' %} <li
-                                class="page-item"> <a class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2"
-                                    href="?page={{ num }}">
-                                    {{ num }}
-                                </a> </li>
-                                {% endif %}
-                                {% endfor %}
-                                {% if actions.has_next %}
-                                <li class="page-item"> <a
-                                        class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2" href="?page=
-{{ actions.next_page_number }}
-" title="Keyingi"> <i class="fa-solid fa-chevron-right"></i> </a> </li>
-                                {% endif %}
-                        </ul>
-                    </nav>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-</div>
-{% endblock %}
-{% block modals %}
-{% if can_manage_parent_link %}
-<div class="modal fade" id="parentLinkModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
-            <div class="modal-header border-0 pb-0">
-                <div>
-                    <h5 class="modal-title fw-bold text-warning">Ota-onani botga ulash</h5>
-                    <div id="parentLinkModalStatus" class="small text-white-50 mt-1">
-                        {% if parent_link_status.is_linked %}Parent allaqachon ulangan.{% else %}Link 24 soat amal qiladi.{% endif %}
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div id="parentLinkConnectedNotice" class="parent-link-notice success mb-3" {% if not parent_link_status.is_linked %}hidden{% endif %}>
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Ota-ona botga ulangan.</span>
-                </div>
-                <div id="parentLinkGeneratorBlock" {% if parent_link_status.is_linked %}hidden{% endif %}>
-                    <label for="parentTelegramLink" class="form-label small text-warning fw-bold">Telegram link</label>
-                    <div class="input-group input-group-premium mb-3">
-                        <span class="input-group-text bg-glass-input border-glass"><i class="fa-brands fa-telegram text-info"></i></span>
-                        <input type="text" id="parentTelegramLink" class="form-control bg-glass-input border-glass text-white" readonly placeholder="Link yaratilmoqda...">
-                        <button type="button" id="copyParentTelegramLink" class="btn btn-glass-action border-glass">Copy</button>
-                    </div>
-                    <div class="d-flex flex-column flex-sm-row gap-2">
-                        <a id="sendParentTelegramLink" class="btn btn-info fw-bold rounded-pill flex-fill disabled" href="#" target="_blank" rel="noopener">
-                            <i class="fa-brands fa-telegram me-1"></i> Telegramga yuborish
-                        </a>
-                        <button type="button" id="sendParentReminder" class="btn btn-glass rounded-pill flex-fill">
-                            <i class="fa-solid fa-bell me-1"></i> Reminder yuborish
-                        </button>
-                    </div>
-                    <div class="small text-white-50 mt-3">
-                        Expire: <span id="parentTelegramLinkExpire">—</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0 justify-content-center">
-                <button type="button" class="btn btn-glass px-4 rounded-pill fs-mini" data-bs-dismiss="modal">Yopish</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-<!-- PASSWORD RESET MODAL -->
-<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-warning">Parolni o'zgartirish</h5> <button type="button"
-                    class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="modal-body p-4">
-                    <p class="small text-white-50 mb-4 text-center">O'quvchi uchun yangi parolni kiriting. Bu amal uning
-                        eski parolini bekor qiladi.</p>
-                    <div class="mb-3"> <label class="form-label small text-warning fw-bold">Yangi Parol</label>
-                        <div class="input-group input-group-premium"> <span
-                                class="input-group-text bg-glass-input border-glass"><i
-                                    class="fa-solid fa-lock text-warning"></i></span> <input type="password"
-                                name="new_password" id="id_new_password"
-                                class="form-control bg-glass-input border-glass text-white"
-                                placeholder="Kamida 6 ta belgi..." required minlength="6" autocomplete="new-password">
-                            <button class="btn btn-glass-action border-glass" type="button"
-                                onclick="togglePass('id_new_password')"><i
-                                    class="fa-solid fa-eye text-white-50"></i></button>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center gap-2"> <button type="button"
-                        class="btn btn-link text-white-50 text-decoration-none small" data-bs-dismiss="modal">Bekor
-                        qilish</button> <button type="submit"
-                        class="btn btn-warning px-5 rounded-pill fw-bold shadow-warning">Parolni Yangilash</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div> <!-- ATTENDANCE DETAIL MODAL -->
-<div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-success"><i class="fa-solid fa-calendar-check me-2"></i> Batafsil
-                    Davomat</h5> <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 pt-2"> <!-- Month/Year Filter Form (Restored Size) -->
-                <form method="GET" class="mb-4 p-2 glass-light rounded-pill border border-white-5 shadow-sm">
-                    <div class="d-flex align-items-center gap-2 px-1">
-
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fs-mini text-white-50 text-nowrap">Oy:</span>
-
-                                <select name="month"
-                                    class="form-select form-select-sm bg-dark text-white border-white-10 rounded-pill px-2 py-0 fs-mini"
-                                    style="height: 32px;">
-                                    {% for month in available_months %}
-                                    <option value="{{ month.0 }}" {% if selected_month == month.0 %} selected{% endif %}>
-                                        {{ month.1 }}</option>
-                                    {% empty %}
-                                    <option value="">Oylar yo'q</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fs-mini text-white-50 text-nowrap">Yil:</span>
-
-                                <select name="year"
-                                    class="form-select form-select-sm bg-dark text-white border-white-10 rounded-pill px-2 py-0 fs-mini"
-                                    style="height: 32px;">
-                                    {% for y in available_years %}
-                                    <option value="{{ y }}" {% if selected_year == y %} selected{% endif %}>{{ y }}
-                                    </option>
-                                    {% empty %}
-                                    <option value="">Yillar yo'q</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-sm btn-success rounded-pill fw-bold fs-mini px-3 py-0"
-                            style="height: 30px;">OK</button>
-
-                    </div>
-                </form>
-
-                {% for enr in enrollments %}
-                <div class="mb-5 last-child-mb-0">
-                    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
-                        <div>
-                            <h6 class="m-0 fw-bold text-white">
-                                {{ enr.group.nom }}
-                            </h6>
-                            <div class="text-white-50 fs-mini mt-1">
-                                {{ enr.current_month_name }}
-                            </div>
-                        </div> <span
-                            class="badge bg-success-subtle text-success rounded-pill fs-mini px-3 py-2 border border-success-subtle">
-                            {{ enr.rate }}
-                            % Davomat</span>
-                    </div>
-                    <div class="calendar-grid-container p-3 rounded-4 border border-white-5 bg-white-3">
-                        <!-- Weekday Headers -->
-                        <div class="calendar-header d-grid mb-3 text-center text-white-50 fw-bold fs-mini"
-                            style="grid-template-columns: repeat(7, 1fr);">
-                            <div>D</div>
-                            <div>S</div>
-                            <div>Ch</div>
-                            <div>P</div>
-                            <div>Ju</div>
-                            <div>Sh</div>
-                            <div>Y</div>
-                        </div> <!-- Month Grid -->
-                        <div class="calendar-body d-grid gap-2" style="grid-template-columns: repeat(7, 1fr);">
-                            {% for week in enr.calendar_grid %}
-                            {% for day_obj in week %}
-                            <div class="d-flex justify-content-center align-items-center">
-                                {% if day_obj.day %}
-                                <div class="calendar-day-circle 
-{{ day_obj.status }}
-{% if day_obj.is_today %}
-today
-{% endif %}
-" title="
-{{ day_obj.day }}
-.
-{{ month }}
-.
-{{ year }}
-: 
-{% if day_obj.status == 'present' %}
-Bor
-{% elif day_obj.status == 'absent' %}
-Yo'q
-{% else %}
-Dars yo'q
-{% endif %}
-">
-                                    {{ day_obj.day }}
-                                </div>
-                                {% else %}
-                                <div class="calendar-day-circle empty"></div>
-                                {% endif %}
-                            </div>
-                            {% endfor %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between text-white-50 fs-mini px-2 mt-2">
-                        <div class="d-flex gap-3"> <span>Kelgan: <b class="text-success">
-                                    {{ enr.month_present }}
-                                </b></span> <span>Kelmagan: <b class="text-danger">
-                                    {{ enr.month_absent }}
-                                </b></span> </div> <span>Jami darslar: <b>
-                                {{ enr.total }}
-                            </b></span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-calendar-xmark fs-1 mb-2"></i>
-                    <p>Davomat ma'lumotlari mavjud emas</p>
-                </div>
-                {% endfor %}
-                <div class="mt-4 p-3 glass-light rounded-4 border border-white-5">
-                    <div class="d-flex flex-wrap gap-4 justify-content-center fs-mini text-white-50">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="calendar-day-circle present small-circle"></div> <span>Darsda Bor</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="calendar-day-circle absent small-circle"></div> <span>Darsda Yo'q</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="calendar-day-circle none small-circle"></div> <span>Dars Bo'lmagan</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0 justify-content-center"> <button type="button"
-                    class="btn btn-glass px-4 rounded-pill fs-mini" data-bs-dismiss="modal">Yopish</button> </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 {% block extra_css %}
 <style>
-    :root {
-        --text-warning: #facc15;
-        --purple-subtle: rgba(168, 85, 247, 0.1);
-        --purple: #c084fc;
-        --white-5: rgba(255, 255, 255, 0.05);
-        --white-10: rgba(255, 255, 255, 0.1);
-        --white-3: rgba(255, 255, 255, 0.03);
-    }
-
-    .glass {
-        background: rgba(15, 23, 42, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 24px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .glass-light {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(10px);
-    }
-
-    .glass-dark {
-        background: rgba(15, 23, 42, 0.98);
-        backdrop-filter: blur(25px);
-    }
-
-    .dropdown-menu-dark {
-        background: #1e293b !important;
-        border: 1px solid rgba(250, 204, 21, 0.3) !important;
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8) !important;
-        z-index: 1000 !important;
-        padding: 8px 0;
-    }
-
-    .dropdown-item {
-        padding: 12px 24px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.95) !important;
-        transition: all 0.2s;
-        border-radius: 8px;
-        margin: 0 8px;
-    }
-
-    .dropdown-item:hover {
-        background: rgba(250, 204, 21, 0.15) !important;
-        color: #facc15 !important;
-        transform: translateX(4px);
-    }
-
-    /* HERO ANIMATION */
-    .profile-hero-card {
-        background: linear-gradient(-45deg, rgba(250, 204, 21, 0.15), rgba(15, 23, 42, 0.95), rgba(250, 204, 21, 0.08), rgba(15, 23, 42, 0.95));
-        background-size: 400% 400%;
-        animation: gradientBG 10s ease infinite;
-        border: 1px solid rgba(250, 204, 21, 0.2);
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    }
-
-    @keyframes gradientBG {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-
-    .profile-hero-card::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle at center, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
-        animation: rotateGlow 15s linear infinite;
-        pointer-events: none;
-    }
-
-    @keyframes rotateGlow {
-        from {
-            transform: rotate(0deg);
-        }
-
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .balance-display {
-        border: 1px solid rgba(250, 204, 21, 0.2);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s;
-        min-width: 240px;
-    }
-
-    .balance-display:hover {
-        transform: scale(1.02);
-    }
-
-    .profile-actions-stack {
-        position: relative;
-        z-index: 2;
-    }
-
-    .parent-link-panel {
-        min-width: 260px;
-        border: 1px solid rgba(56, 189, 248, 0.22);
-    }
-
-    .parent-link-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 800;
-        line-height: 1;
-        white-space: nowrap;
-    }
-
-    .parent-link-status.is-linked {
-        background: rgba(34, 197, 94, 0.16);
-        color: #86efac;
-        border: 1px solid rgba(34, 197, 94, 0.28);
-    }
-
-    .parent-link-status.is-unlinked {
-        background: rgba(239, 68, 68, 0.16);
-        color: #fca5a5;
-        border: 1px solid rgba(239, 68, 68, 0.28);
-    }
-
-    .parent-link-icon {
-        color: #38bdf8;
-        font-size: 28px;
-    }
-
-    .parent-link-notice {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        font-weight: 700;
-    }
-
-    .parent-link-notice.success {
-        background: rgba(34, 197, 94, 0.14);
-        border: 1px solid rgba(34, 197, 94, 0.28);
-        color: #bbf7d0;
-    }
-
-    .profile-avatar-img {
-        width: 100px;
-        height: 100px;
-        border-radius: 28px;
-        border: 4px solid var(--text-warning);
-        object-fit: cover;
-    }
-
-    .avatar-placeholder-large {
-        width: 100px;
-        height: 100px;
-        border-radius: 28px;
-        background: var(--text-warning);
-        color: #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32px;
-        font-weight: 900;
-    }
-
-    .status-indicator.online {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #22c55e;
-        border: 4px solid #1e293b;
-    }
-
-    .ico-box {
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn-glass {
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        padding: 6px 15px;
-    }
-
-    .btn-glass:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #facc15;
-    }
-
-    .fw-black {
-        font-weight: 900;
-    }
-
-    .fs-mini {
-        font-size: 11px;
-    }
-
-    /* TIMELINE */
-    .timeline-v2-marker {
-        position: absolute;
-        left: -16px;
-        top: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2;
-        font-size: 12px;
-    }
-
-    .timeline-v2-marker.plus {
-        background: #22c55e;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-    }
-
-    .timeline-v2-marker.minus {
-        background: #ef4444;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-
-    .timeline-v2-content:hover {
-        transform: translateX(5px);
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    .timeline-v2-item:last-child {
-        border-left: none !important;
-    }
-
-    .glass-link {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .glass-link:hover {
-        background: rgba(255, 255, 255, 0.15);
-        color: #fff;
-    }
-
-    .anim-pulse {
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.05);
-        }
-
-        100% {
-            transform: scale(1);
-        }
-    }
-
-    .shadow-3d {
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    }
-
-    .animation-fade-in {
-        animation: fadeIn 0.2s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .col-lg-5 {
-        position: relative;
-        z-index: 100;
-    }
-
-    .col-lg-7 {
-        position: relative;
-        z-index: 10;
-    }
-
-    .dropdown-menu {
-        z-index: 1000 !important;
-    }
-
-    /* Modal Input Fixes */
-    .bg-glass-input {
-        background: rgba(0, 0, 0, 0.2) !important;
-        backdrop-filter: blur(5px);
-    }
-
-    .border-glass {
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-
-    .modal-content .form-control {
-        color: #fff !important;
-        padding: 12px 16px;
-    }
-
-    .modal-content .form-control:focus {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border-color: var(--text-warning) !important;
-        box-shadow: 0 0 20px rgba(250, 204, 21, 0.15) !important;
-    }
-
-    .btn-glass-action {
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-    }
-
-    .btn-glass-action:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--text-warning);
-    }
-
-    .shadow-warning {
-        box-shadow: 0 10px 25px rgba(250, 204, 21, 0.3);
-    }
-
-    .input-group-premium {
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    /* Autofill Fixes */
-    /* Attendance Modal Styles */
-    /* Calendar Attendance Styles */
-    .calendar-day-circle {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.6);
-        transition: all 0.2s;
-    }
-
-    .calendar-day-circle.present {
-        background: #22c55e;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
-    }
-
-    .calendar-day-circle.absent {
-        background: #ef4444;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-    }
-
-    .calendar-day-circle.none {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.3);
-    }
-
-    .calendar-day-circle.today {
-        border: 2px solid var(--text-warning);
-    }
-
-    .calendar-day-circle.empty {
-        background: transparent;
-        visibility: hidden;
-    }
-
-    .small-circle {
-        width: 14px;
-        height: 14px;
-        font-size: 0;
-    }
-
-    .last-child-mb-0:last-child {
-        margin-bottom: 0 !important;
-    }
-
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus {
-        -webkit-text-fill-color: #fff !important;
-        -webkit-box-shadow: 0 0 0px 1000px rgba(15, 23, 42, 1) inset !important;
-        transition: background-color 5000s ease-in-out 0s;
-    }
+/* ═══════════════════════════════ CSS VARIABLES ═══════════════════════════════ */
+:root {
+  --uv-bg:      #080f1e;
+  --uv-bg1:     #0f172a;
+  --uv-card:    rgba(15,23,42,.7);
+  --uv-card2:   rgba(255,255,255,.03);
+  --uv-border:  rgba(255,255,255,.08);
+  --uv-border2: rgba(255,255,255,.05);
+  --uv-text:    #f1f5f9;
+  --uv-muted:   rgba(255,255,255,.4);
+  --uv-muted2:  rgba(255,255,255,.22);
+  --uv-accent:  #f59e0b;
+  --uv-acc2:    rgba(245,158,11,.15);
+  --uv-green:   #10b981;
+  --uv-red:     #ef4444;
+  --uv-blue:    #3b82f6;
+  --uv-r:       20px;
+  --uv-shadow:  0 16px 48px rgba(0,0,0,.45);
+}
+html[data-role-theme="light"] {
+  --uv-bg:      #f0f4ff;
+  --uv-bg1:     #e8eef8;
+  --uv-card:    #ffffff;
+  --uv-card2:   #f8fafc;
+  --uv-border:  rgba(148,163,184,.25);
+  --uv-border2: rgba(148,163,184,.15);
+  --uv-text:    #0f172a;
+  --uv-muted:   #64748b;
+  --uv-muted2:  #94a3b8;
+  --uv-acc2:    rgba(245,158,11,.1);
+  --uv-shadow:  0 4px 20px rgba(15,23,42,.08), 0 1px 4px rgba(15,23,42,.04);
+}
+
+/* ═══════════════════════════════ BASE ═══════════════════════════════ */
+.uv-page {
+  min-height: 100vh;
+  color: var(--uv-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding-bottom: 60px;
+}
+
+.uv-card {
+  background: var(--uv-card);
+  border: 1px solid var(--uv-border);
+  border-radius: var(--uv-r);
+  box-shadow: var(--uv-shadow);
+  backdrop-filter: blur(16px);
+}
+html[data-role-theme="light"] .uv-card {
+  backdrop-filter: none;
+  border-color: rgba(148,163,184,.2);
+}
+
+.uv-label {
+  font-size: .68rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--uv-muted);
+  margin-bottom: 10px;
+}
+
+/* ═══════════════════════════════ HERO ═══════════════════════════════ */
+.uv-hero {
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(245,158,11,.2);
+  background:
+    linear-gradient(135deg, rgba(245,158,11,.12) 0%, rgba(15,23,42,.95) 60%),
+    radial-gradient(700px circle at 90% 50%, rgba(245,158,11,.08), transparent);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  position: relative; overflow: hidden;
+}
+html[data-role-theme="light"] .uv-hero {
+  background: linear-gradient(135deg, rgba(245,158,11,.07) 0%, #f0f6ff 60%, #e8f0fe 100%);
+  box-shadow: 0 8px 32px rgba(15,23,42,.08);
+  border-color: rgba(245,158,11,.2);
+}
+.uv-hero::before {
+  content: '';
+  position: absolute; right: -60px; top: -60px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,158,11,.14), transparent 70%);
+  pointer-events: none;
+}
+
+/* Avatar */
+.uv-av-wrap { position: relative; flex-shrink: 0; }
+.uv-av {
+  width: 96px; height: 96px;
+  border-radius: 28px;
+  border: 3px solid rgba(245,158,11,.5);
+  object-fit: cover;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; font-weight: 900; color: #000;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(245,158,11,.3);
+}
+.uv-av img { width: 100%; height: 100%; object-fit: cover; }
+.uv-av-online {
+  position: absolute; bottom: 6px; right: 6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #22c55e; border: 3px solid var(--uv-bg1);
+}
+
+/* Hero info */
+.uv-hero-info { flex: 1; min-width: 0; }
+.uv-hero-name {
+  font-size: 1.6rem; font-weight: 900;
+  color: var(--uv-text); letter-spacing: -.5px;
+  line-height: 1.1;
+}
+.uv-hero-badges {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+.uv-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 99px;
+  font-size: .73rem; font-weight: 700;
+}
+.uv-badge--student { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.25); }
+html[data-role-theme="light"] .uv-badge--student { background: rgba(245,158,11,.1); color: #d97706; }
+.uv-badge--center  { background: rgba(99,102,241,.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,.2); }
+html[data-role-theme="light"] .uv-badge--center { background: rgba(99,102,241,.08); color: #6366f1; }
+
+/* Hero right: balance + parent */
+.uv-hero-right {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch;
+}
+
+.uv-balance-card {
+  min-width: 200px; padding: 18px 22px;
+  border-radius: 18px; text-align: center;
+  border: 1px solid rgba(245,158,11,.25);
+  background: rgba(245,158,11,.07);
+  backdrop-filter: blur(8px);
+}
+html[data-role-theme="light"] .uv-balance-card {
+  background: #fff;
+  border: 1.5px solid rgba(245,158,11,.35);
+  box-shadow: 0 4px 20px rgba(245,158,11,.12);
+}
+.uv-balance-icon { font-size: 2rem; color: var(--uv-accent); }
+.uv-balance-val  { font-size: 2rem; font-weight: 900; color: var(--uv-accent); line-height: 1; }
+.uv-balance-sub  { font-size: .72rem; color: var(--uv-muted); margin-top: 6px; }
+.uv-balance-rank { font-size: .8rem; font-weight: 800; color: var(--uv-text); }
+html[data-role-theme="light"] .uv-balance-rank { color: #92400e; }
+
+.uv-parent-card {
+  min-width: 240px; padding: 16px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(56,189,248,.22);
+  background: rgba(56,189,248,.06);
+  display: flex; flex-direction: column; gap: 12px;
+}
+html[data-role-theme="light"] .uv-parent-card {
+  background: #fff;
+  border: 1.5px solid rgba(14,165,233,.3);
+  box-shadow: 0 4px 20px rgba(14,165,233,.1);
+}
+.uv-parent-top { display: flex; align-items: center; justify-content: space-between; }
+.uv-parent-label { font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; color: var(--uv-muted); }
+html[data-role-theme="light"] .uv-parent-label { color: #64748b; }
+.uv-parent-tg-icon { color: #38bdf8; font-size: 1.6rem; }
+html[data-role-theme="light"] .uv-parent-tg-icon { color: #0ea5e9; }
+.uv-parent-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: .72rem; font-weight: 800;
+}
+.uv-parent-status--linked   { background: rgba(34,197,94,.14); color: #86efac; border: 1px solid rgba(34,197,94,.25); }
+.uv-parent-status--unlinked { background: rgba(239,68,68,.14);  color: #fca5a5; border: 1px solid rgba(239,68,68,.25); }
+html[data-role-theme="light"] .uv-parent-status--linked   { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.3); }
+html[data-role-theme="light"] .uv-parent-status--unlinked { background: rgba(239,68,68,.08); color: #dc2626; border-color: rgba(239,68,68,.25); }
+.uv-parent-btn {
+  padding: 9px 14px; border-radius: 12px; border: none; cursor: pointer;
+  font-size: .82rem; font-weight: 800; color: #000;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  box-shadow: 0 4px 14px rgba(245,158,11,.3);
+  transition: box-shadow .2s, transform .15s;
+  width: 100%;
+}
+.uv-parent-btn:hover { box-shadow: 0 6px 20px rgba(245,158,11,.45); transform: translateY(-1px); }
+
+/* ═══════════════════════════════ KPI STRIP ═══════════════════════════════ */
+.uv-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media(max-width:640px) { .uv-kpi-strip { grid-template-columns: 1fr; } }
+
+.uv-kpi {
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 16px;
+}
+.uv-kpi-ico {
+  width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.uv-kpi-ico--green  { background: rgba(16,185,129,.12); color: #34d399; }
+.uv-kpi-ico--blue   { background: rgba(59,130,246,.12);  color: #60a5fa; }
+.uv-kpi-ico--amber  { background: rgba(245,158,11,.12);  color: #fbbf24; }
+.uv-kpi-lbl  { font-size: .73rem; color: var(--uv-muted); margin-bottom: 4px; }
+.uv-kpi-val  { font-size: 1.5rem; font-weight: 900; color: var(--uv-text); line-height: 1; }
+.uv-kpi-sub  { font-size: .72rem; color: var(--uv-muted); margin-top: 3px; }
+.uv-prog-track {
+  height: 5px; border-radius: 99px;
+  background: var(--uv-border); margin-top: 6px; overflow: hidden;
+}
+.uv-prog-bar  { height: 100%; border-radius: 99px; background: #10b981; }
+
+/* ═══════════════════════════════ GRID LAYOUT ═══════════════════════════════ */
+.uv-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+}
+@media(max-width:900px){ .uv-grid { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════ INFO CARD ═══════════════════════════════ */
+.uv-info-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--uv-border2);
+}
+.uv-info-head-title {
+  font-size: .9rem; font-weight: 900; color: var(--uv-text);
+  display: flex; align-items: center; gap: 8px;
+}
+.uv-info-head-title i { color: var(--uv-accent); }
+
+/* Amallar dropdown */
+.uv-actions-btn {
+  padding: 6px 14px; border-radius: 10px;
+  border: 1px solid var(--uv-border); background: var(--uv-card2);
+  font-size: .78rem; font-weight: 700; color: var(--uv-text);
+  cursor: pointer; transition: background .15s;
+  position: relative;
+}
+.uv-actions-btn:hover { background: rgba(255,255,255,.08); }
+html[data-role-theme="light"] .uv-actions-btn:hover { background: rgba(0,0,0,.05); }
+.uv-drop {
+  position: absolute; right: 0; top: calc(100% + 6px);
+  min-width: 180px; border-radius: 14px; padding: 6px;
+  background: var(--uv-bg1); border: 1px solid var(--uv-border);
+  box-shadow: 0 12px 32px rgba(0,0,0,.4);
+  z-index: 500; display: none;
+}
+html[data-role-theme="light"] .uv-drop { background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.uv-drop.open { display: block; }
+.uv-drop-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-radius: 9px;
+  font-size: .8rem; font-weight: 600; color: var(--uv-text);
+  text-decoration: none; cursor: pointer;
+  transition: background .13s;
+}
+.uv-drop-item:hover { background: rgba(245,158,11,.1); color: var(--uv-accent); }
+html[data-role-theme="light"] .uv-drop-item:hover { background: rgba(245,158,11,.08); }
+.uv-drop-item i { color: var(--uv-muted); width: 16px; text-align: center; }
+.uv-drop-item:hover i { color: var(--uv-accent); }
+.uv-drop-hr { height: 1px; background: var(--uv-border2); margin: 4px 0; }
+
+/* Info rows */
+.uv-info-body { padding: 6px 0; }
+.uv-info-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 11px 22px;
+  border-bottom: 1px solid var(--uv-border2);
+}
+.uv-info-row:last-child { border-bottom: none; }
+.uv-info-key { font-size: .78rem; color: var(--uv-muted); flex-shrink: 0; min-width: 120px; padding-top: 1px; }
+.uv-info-val { font-size: .85rem; font-weight: 700; color: var(--uv-text); text-align: right; }
+.uv-info-val--muted { color: var(--uv-muted); font-weight: 500; }
+
+/* ═══════════════════════════════ ENROLLMENTS ═══════════════════════════════ */
+.uv-enr-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.uv-enr-item {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--uv-border2);
+  background: var(--uv-card2);
+  transition: border-color .2s;
+}
+.uv-enr-item:hover { border-color: rgba(245,158,11,.25); }
+.uv-enr-item--inactive { opacity: .55; border-color: rgba(239,68,68,.2); }
+.uv-enr-top { display: flex; align-items: center; gap: 12px; }
+.uv-enr-icon {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: rgba(245,158,11,.12); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; color: #fbbf24;
+}
+.uv-enr-icon--inactive { background: rgba(239,68,68,.1); color: #f87171; }
+.uv-enr-name { font-size: .88rem; font-weight: 800; color: var(--uv-text); }
+.uv-enr-cat  { font-size: .72rem; color: var(--uv-muted); margin-top: 2px; }
+.uv-enr-badge {
+  margin-left: auto; flex-shrink: 0;
+  padding: 3px 9px; border-radius: 99px;
+  font-size: .68rem; font-weight: 800;
+}
+.uv-enr-badge--ok  { background: rgba(16,185,129,.12); color: #34d399; }
+.uv-enr-badge--out { background: rgba(239,68,68,.12);  color: #f87171; }
+.uv-enr-meta {
+  display: flex; gap: 14px; margin-top: 8px;
+  font-size: .72rem; color: var(--uv-muted); flex-wrap: wrap;
+}
+.uv-enr-att {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; gap: 10px;
+}
+.uv-enr-prog { flex: 1; height: 4px; border-radius: 4px; background: var(--uv-border); overflow: hidden; }
+.uv-enr-prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #10b981, #0891b2); }
+.uv-enr-rate { font-size: .72rem; font-weight: 800; color: #34d399; }
+
+/* ═══════════════════════════════ RIGHT COLUMN ═══════════════════════════════ */
+.uv-right { display: flex; flex-direction: column; gap: 20px; }
+
+/* ─── Chaqmoq history ─── */
+.uv-hist-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--uv-border2);
+}
+.uv-hist-title { font-size: .9rem; font-weight: 900; color: var(--uv-text); display: flex; align-items: center; gap: 8px; flex: 1; }
+.uv-hist-title i { color: var(--uv-accent); }
+.uv-hist-count {
+  padding: 3px 10px; border-radius: 99px;
+  font-size: .72rem; font-weight: 700;
+  background: var(--uv-card2); color: var(--uv-muted);
+  border: 1px solid var(--uv-border);
+}
+
+.uv-timeline { padding: 10px 22px; display: flex; flex-direction: column; gap: 0; }
+.uv-tl-item {
+  display: flex; gap: 14px; padding: 11px 0;
+  border-bottom: 1px solid var(--uv-border2);
+}
+.uv-tl-item:last-child { border-bottom: none; }
+.uv-tl-dot {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; margin-top: 2px;
+}
+.uv-tl-dot--plus  { background: rgba(16,185,129,.15); color: #34d399; }
+.uv-tl-dot--minus { background: rgba(239,68,68,.12);  color: #f87171; }
+.uv-tl-body { flex: 1; min-width: 0; }
+.uv-tl-rule { font-size: .85rem; font-weight: 700; color: var(--uv-text); }
+.uv-tl-meta { font-size: .72rem; color: var(--uv-muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; }
+.uv-tl-ball {
+  font-size: .9rem; font-weight: 900; flex-shrink: 0; margin-top: 2px;
+}
+.uv-tl-ball--plus  { color: #34d399; }
+.uv-tl-ball--minus { color: #f87171; }
+
+/* Pagination */
+.uv-pager {
+  padding: 12px 22px;
+  border-top: 1px solid var(--uv-border2);
+  display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+}
+.uv-page-link {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700; color: var(--uv-muted);
+  text-decoration: none; border: 1px solid var(--uv-border);
+  background: var(--uv-card2);
+  transition: background .15s, color .15s;
+}
+.uv-page-link:hover { background: rgba(245,158,11,.1); color: var(--uv-accent); border-color: rgba(245,158,11,.25); }
+.uv-page-link--active { background: rgba(245,158,11,.18); color: var(--uv-accent); border-color: rgba(245,158,11,.35); }
+
+/* ─── Attendance calendar ─── */
+.uv-cal-head {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--uv-border2);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.uv-cal-title { font-size: .9rem; font-weight: 900; color: var(--uv-text); display: flex; align-items: center; gap: 8px; flex: 1; }
+.uv-cal-title i { color: #10b981; }
+.uv-cal-filter {
+  display: flex; align-items: center; gap: 6px;
+}
+.uv-cal-select {
+  padding: 5px 10px; border-radius: 9px;
+  border: 1px solid var(--uv-border);
+  background: var(--uv-card2); color: var(--uv-text);
+  font-size: .78rem; font-weight: 700; outline: none;
+  cursor: pointer; transition: border-color .2s;
+}
+html[data-role-theme="light"] .uv-cal-select {
+  background: #f1f5f9;
+  border-color: rgba(148,163,184,.3);
+}
+.uv-cal-select:focus { border-color: var(--uv-accent); }
+.uv-cal-submit {
+  padding: 5px 12px; border-radius: 9px;
+  background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3);
+  color: var(--uv-accent); font-size: .78rem; font-weight: 800;
+  cursor: pointer; transition: background .15s;
+}
+.uv-cal-submit:hover { background: rgba(245,158,11,.25); }
+
+.uv-cal-body { padding: 14px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.uv-cal-group-name {
+  font-size: .82rem; font-weight: 800; color: var(--uv-text); margin-bottom: 4px;
+}
+.uv-cal-stats {
+  display: flex; gap: 14px; font-size: .72rem; color: var(--uv-muted); margin-bottom: 10px; flex-wrap: wrap;
+}
+.uv-cal-stats b { font-weight: 800; }
+.uv-cal-stats .ok  { color: #34d399; }
+.uv-cal-stats .bad { color: #f87171; }
+.uv-cal-stats .rate-badge {
+  margin-left: auto;
+  padding: 2px 9px; border-radius: 99px;
+  font-weight: 800; font-size: .7rem;
+  background: rgba(16,185,129,.12); color: #34d399;
+}
+
+.uv-cal-grid {
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--uv-border);
+  background: var(--uv-card2);
+}
+.uv-cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid var(--uv-border2);
+}
+html[data-role-theme="light"] .uv-cal-weekdays { background: rgba(0,0,0,.03); }
+.uv-cal-wd {
+  text-align: center; padding: 7px 0;
+  font-size: .68rem; font-weight: 900; color: var(--uv-muted);
+  text-transform: uppercase;
+}
+.uv-cal-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+.uv-cal-cell { display: flex; align-items: center; justify-content: center; padding: 5px 0; }
+.uv-cal-day {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; font-weight: 700; color: var(--uv-muted);
+}
+.uv-cal-day.present { background: rgba(16,185,129,.2); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+.uv-cal-day.absent  { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+.uv-cal-day.today   { border: 2px solid var(--uv-accent) !important; }
+.uv-cal-day.empty   { opacity: 0; }
+
+.uv-cal-legend {
+  display: flex; gap: 16px; padding: 10px 20px;
+  border-top: 1px solid var(--uv-border2);
+  flex-wrap: wrap;
+}
+.uv-cal-leg-item { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--uv-muted); }
+.uv-cal-leg-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.uv-cal-leg-dot--present { background: rgba(16,185,129,.4); }
+.uv-cal-leg-dot--absent  { background: rgba(239,68,68,.4); }
+.uv-cal-leg-dot--none    { background: var(--uv-border); }
+
+/* ─── Child code badge ─── */
+.uv-child-code {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 9px;
+  font-size: .78rem; font-weight: 800;
+  background: rgba(99,102,241,.12); color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,.2);
+  font-family: monospace; letter-spacing: .05em;
+}
+html[data-role-theme="light"] .uv-child-code { background: rgba(99,102,241,.08); color: #6366f1; }
+
+/* ─── Hero quick stats ─── */
+.uv-hero-quick {
+  display: flex; flex-wrap: wrap; gap: 10px 20px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--uv-border2);
+}
+.uv-hero-stat {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .78rem; color: var(--uv-muted);
+}
+.uv-hero-stat i { font-size: .72rem; opacity: .7; }
+.uv-hero-stat strong { color: var(--uv-text); font-weight: 700; }
+html[data-role-theme="light"] .uv-hero-stat strong { color: #1e293b; }
+
+/* ─── KPI clickable ─── */
+.uv-kpi--link {
+  cursor: pointer; text-decoration: none;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+  user-select: none;
+}
+.uv-kpi--link:hover { transform: translateY(-3px); }
+.uv-kpi--link.kpi-green:hover { border-color: rgba(16,185,129,.35); box-shadow: 0 12px 32px rgba(16,185,129,.12); }
+.uv-kpi--link.kpi-blue:hover  { border-color: rgba(59,130,246,.35);  box-shadow: 0 12px 32px rgba(59,130,246,.12); }
+.uv-kpi--link.kpi-amber:hover { border-color: rgba(245,158,11,.35);  box-shadow: 0 12px 32px rgba(245,158,11,.12); }
+.uv-kpi--link:active { transform: translateY(-1px); }
+
+/* ─── Section flash highlight ─── */
+@keyframes uv-sec-flash {
+  0%   { box-shadow: var(--uv-shadow), 0 0 0 0 rgba(245,158,11,0); }
+  25%  { box-shadow: var(--uv-shadow), 0 0 0 5px rgba(245,158,11,.35); }
+  100% { box-shadow: var(--uv-shadow), 0 0 0 0 rgba(245,158,11,0); }
+}
+.uv-sec-flash { animation: uv-sec-flash .9s ease-out; }
+
+/* ─── Empty state ─── */
+.uv-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; gap: 10px;
+  color: var(--uv-muted); text-align: center;
+}
+.uv-empty i { font-size: 2rem; opacity: .3; }
+.uv-empty p { font-size: .82rem; margin: 0; }
 </style>
 {% endblock %}
-{% block extra_js %}
+
+{% block content %}
+<div class="uv-page">
+
+  <!-- ════════════════ HERO ════════════════ -->
+  <div class="uv-hero">
+    <div class="uv-av-wrap">
+      <div class="uv-av">
+        {% if u.avatar %}<img src="{{ u.avatar.url }}" alt="{{ u.get_full_name }}">
+        {% else %}{{ u.ism|first }}{{ u.familya|first }}{% endif %}
+      </div>
+      <div class="uv-av-online"></div>
+    </div>
+
+    <div class="uv-hero-info">
+      <div class="uv-hero-name">{{ u.get_full_name }}</div>
+      <div class="uv-hero-badges">
+        <span class="uv-badge uv-badge--student"><i class="fa-solid fa-graduation-cap"></i> O'quvchi</span>
+        {% if u.center %}<span class="uv-badge uv-badge--center"><i class="fa-solid fa-building-columns"></i> {{ u.center.name }}</span>{% endif %}
+        {% if u.gender %}<span class="uv-badge" style="background:rgba(255,255,255,.05);color:var(--uv-muted);border:1px solid var(--uv-border)">
+          {% if u.gender == 'male' %}👦{% else %}👧{% endif %} {{ u.get_gender_display }}
+        </span>{% endif %}
+      </div>
+      <div class="uv-hero-quick">
+        {% if u.telefon1 %}<span class="uv-hero-stat"><i class="fa-solid fa-phone" style="color:#34d399"></i> <strong>{{ u.telefon1 }}</strong></span>{% endif %}
+        {% if u.birth_date %}<span class="uv-hero-stat"><i class="fa-solid fa-cake-candles" style="color:#f472b6"></i> <strong>{{ u.birth_date|date:"d.m.Y" }}</strong></span>{% endif %}
+        <span class="uv-hero-stat"><i class="fa-solid fa-layer-group" style="color:#60a5fa"></i> <strong>{{ enrollments|length }} kurs</strong></span>
+        <span class="uv-hero-stat"><i class="fa-solid fa-calendar-days" style="color:var(--uv-muted2)"></i> Qo'shilgan: <strong>{{ u.date_joined|date:"d.m.Y" }}</strong></span>
+        {% if u.address %}<span class="uv-hero-stat"><i class="fa-solid fa-location-dot" style="color:#fb923c"></i> <strong>{{ u.address|truncatechars:30 }}</strong></span>{% endif %}
+      </div>
+    </div>
+
+    <div class="uv-hero-right">
+      <!-- Balance -->
+      <div class="uv-balance-card">
+        <div class="uv-balance-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div class="uv-balance-val">{{ balance }}</div>
+        <div class="uv-balance-sub">Chaqmoqlar</div>
+        <div class="uv-balance-rank" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(245,158,11,.15)">
+          <i class="fa-solid fa-trophy" style="color:var(--uv-accent)"></i> #{{ rank }}-o'rin
+        </div>
+      </div>
+
+      <!-- Parent link -->
+      {% if can_manage_parent_link %}
+      <div class="uv-parent-card">
+        <div class="uv-parent-top">
+          <div>
+            <div class="uv-parent-label">Ota-ona boti</div>
+            <span id="heroParentBadge" class="uv-parent-status {% if parent_link_status.is_linked %}uv-parent-status--linked{% else %}uv-parent-status--unlinked{% endif %}">
+              {% if parent_link_status.is_linked %}🟢 Ulangan{% else %}🔴 Ulanmagan{% endif %}
+            </span>
+          </div>
+          <i class="fa-brands fa-telegram uv-parent-tg-icon"></i>
+        </div>
+        <button type="button" class="uv-parent-btn"
+          id="openParentLinkBtn"
+          data-create-url="{% url 'core:student_parent_link_create' u.id %}"
+          data-status-url="{% url 'core:student_parent_link_status' u.id %}"
+          data-reminder-url="{% url 'core:student_parent_link_reminder' u.id %}"
+          data-csrf="{{ csrf_token }}">
+          📲 Ota-onani ulash
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ════════════════ KPI STRIP ════════════════ -->
+  <div class="uv-kpi-strip">
+    <div class="uv-card uv-kpi uv-kpi--link kpi-green" onclick="uvScrollTo('sec-davomat')" title="Davomat taqvimiga o'tish">
+      <div class="uv-kpi-ico uv-kpi-ico--green"><i class="fa-solid fa-calendar-check"></i></div>
+      <div style="flex:1">
+        <div class="uv-kpi-lbl">Davomat <i class="fa-solid fa-arrow-down" style="font-size:.6rem;opacity:.5;margin-left:4px"></i></div>
+        <div class="uv-kpi-val">{{ attendance_rate }}<span style="font-size:.9rem;font-weight:600">%</span></div>
+        <div class="uv-kpi-sub">{{ present_days }} / {{ total_lessons }} dars</div>
+        <div class="uv-prog-track"><div class="uv-prog-bar" style="width:{{ attendance_rate }}%"></div></div>
+      </div>
+    </div>
+    <div class="uv-card uv-kpi uv-kpi--link kpi-blue" onclick="uvScrollTo('sec-kurslar')" title="Kurslar ro'yxatiga o'tish">
+      <div class="uv-kpi-ico uv-kpi-ico--blue"><i class="fa-solid fa-users-between-lines"></i></div>
+      <div style="flex:1">
+        <div class="uv-kpi-lbl">Kurslar <i class="fa-solid fa-arrow-down" style="font-size:.6rem;opacity:.5;margin-left:4px"></i></div>
+        <div class="uv-kpi-val">{{ enrollments|length }}<span style="font-size:.9rem;font-weight:600"> ta</span></div>
+        <div class="uv-kpi-sub">Aktiv + tarixiy</div>
+      </div>
+    </div>
+    <div class="uv-card uv-kpi uv-kpi--link kpi-amber" onclick="uvScrollTo('sec-chaqmoq')" title="Chaqmoq tarixiga o'tish">
+      <div class="uv-kpi-ico uv-kpi-ico--amber"><i class="fa-solid fa-bolt-lightning"></i></div>
+      <div style="flex:1">
+        <div class="uv-kpi-lbl">Chaqmoq harakatlari <i class="fa-solid fa-arrow-down" style="font-size:.6rem;opacity:.5;margin-left:4px"></i></div>
+        <div class="uv-kpi-val">{{ actions.paginator.count }}<span style="font-size:.9rem;font-weight:600"> ta</span></div>
+        <div class="uv-kpi-sub">Jami yozuvlar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ MAIN GRID ════════════════ -->
+  <div class="uv-grid">
+
+    <!-- ── LEFT ── -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Shaxsiy ma'lumotlar -->
+      <div class="uv-card">
+        <div class="uv-info-head">
+          <div class="uv-info-head-title"><i class="fa-solid fa-id-card-clip"></i> Shaxsiy ma'lumotlar</div>
+          {% if request.user.role != 'parent' %}
+          <div style="position:relative">
+            <button class="uv-actions-btn" onclick="toggleUvDrop(this)">
+              Amallar <i class="fa-solid fa-chevron-down" style="font-size:.65rem;margin-left:4px"></i>
+            </button>
+            <div class="uv-drop">
+              {% if u.role == 'student' %}
+              <button class="uv-drop-item" onclick="closeAllDrops(); openStudentEditDrawer({{ u.id }})">
+                <i class="fa-solid fa-pen"></i> Tahrirlash
+              </button>
+              {% elif u.role == 'parent' %}
+              <a class="uv-drop-item" href="{% url 'core:parent_edit' u.id %}">
+                <i class="fa-solid fa-pen"></i> Tahrirlash
+              </a>
+              {% elif u.role != 'manager' %}
+              <a class="uv-drop-item" href="{% url 'core:user_edit' u.id %}">
+                <i class="fa-solid fa-pen"></i> Tahrirlash
+              </a>
+              {% endif %}
+              <div class="uv-drop-hr"></div>
+              <button class="uv-drop-item" onclick="document.getElementById('uvPassModal').classList.add('uv-modal-open')">
+                <i class="fa-solid fa-key"></i> Parolni o'zgartirish
+              </button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="uv-info-body">
+          <div class="uv-info-row">
+            <div class="uv-info-key">Login (Email)</div>
+            <div class="uv-info-val">{{ u.email }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Telefon 1</div>
+            <div class="uv-info-val {% if not u.telefon1 %}uv-info-val--muted{% endif %}">{{ u.telefon1|default:"Kiritilmagan" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Telefon 2</div>
+            <div class="uv-info-val uv-info-val--muted">{{ u.telefon2|default:"—" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Tug'ilgan sana</div>
+            <div class="uv-info-val {% if not u.birth_date %}uv-info-val--muted{% endif %}">{{ u.birth_date|date:"d.m.Y"|default:"Kiritilmagan" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Jinsi</div>
+            <div class="uv-info-val {% if not u.gender %}uv-info-val--muted{% endif %}">{{ u.get_gender_display|default:"Kiritilmagan" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Pasport ID</div>
+            <div class="uv-info-val {% if not u.passport_id %}uv-info-val--muted{% endif %}">{{ u.passport_id|default:"—" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">JSHR / PINFL</div>
+            <div class="uv-info-val {% if not u.jshr %}uv-info-val--muted{% endif %}">{{ u.jshr|default:"—" }}</div>
+          </div>
+          {% if u.address %}
+          <div class="uv-info-row" style="align-items:flex-start">
+            <div class="uv-info-key">Manzil</div>
+            <div class="uv-info-val" style="text-align:right;font-size:.8rem">{{ u.address }}</div>
+          </div>
+          {% endif %}
+          {% if u.telegram_username %}
+          <div class="uv-info-row">
+            <div class="uv-info-key"><i class="fa-brands fa-telegram" style="color:#38bdf8"></i> Telegram</div>
+            <div class="uv-info-val">@{{ u.telegram_username }}</div>
+          </div>
+          {% endif %}
+          {% if u.instagram_username %}
+          <div class="uv-info-row">
+            <div class="uv-info-key"><i class="fa-brands fa-instagram" style="color:#e1306c"></i> Instagram</div>
+            <div class="uv-info-val">@{{ u.instagram_username }}</div>
+          </div>
+          {% endif %}
+          {% if u.child_code %}
+          <div class="uv-info-row">
+            <div class="uv-info-key">Bog'lanish kodi</div>
+            <div class="uv-info-val"><span class="uv-child-code"><i class="fa-solid fa-link"></i> {{ u.child_code }}</span></div>
+          </div>
+          {% endif %}
+          {% if can_manage_parent_link %}
+          <div class="uv-info-row">
+            <div class="uv-info-key">Parent bot</div>
+            <div class="uv-info-val">
+              <span id="parentLinkInfoState" class="uv-badge {% if parent_link_status.is_linked %}uv-enr-badge--ok{% else %}uv-enr-badge--out{% endif %}">
+                {% if parent_link_status.is_linked %}Ha{% else %}Yo'q{% endif %}
+              </span>
+            </div>
+          </div>
+          {% if parent_link_status.telegram_username or parent_link_status.telegram_id %}
+          <div class="uv-info-row">
+            <div class="uv-info-key">Parent Telegram</div>
+            <div class="uv-info-val" id="parentLinkInfoUsername">
+              {% if parent_link_status.telegram_username %}@{{ parent_link_status.telegram_username }}
+              {% elif parent_link_status.telegram_id %}{{ parent_link_status.telegram_id }}{% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% endif %}
+          <div class="uv-info-row">
+            <div class="uv-info-key">Ro'yxat sanasi</div>
+            <div class="uv-info-val uv-info-val--muted">{{ u.date_joined|date:"d.m.Y" }}</div>
+          </div>
+          <div class="uv-info-row">
+            <div class="uv-info-key">Oxirgi kirish</div>
+            <div class="uv-info-val uv-info-val--muted">{{ u.last_login|date:"d.m.Y, H:i"|default:"Hali kirmagan" }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kurslar -->
+      <div class="uv-card" id="sec-kurslar">
+        <div class="uv-info-head">
+          <div class="uv-info-head-title"><i class="fa-solid fa-layer-group"></i> Kurslar</div>
+          <span style="font-size:.72rem;color:var(--uv-muted)">Arxiv bilan</span>
+        </div>
+        <div class="uv-enr-list">
+          {% for enr in enrollments %}
+          <div class="uv-enr-item {% if not enr.is_active %}uv-enr-item--inactive{% endif %}">
+            <div class="uv-enr-top">
+              <div class="uv-enr-icon {% if not enr.is_active %}uv-enr-icon--inactive{% endif %}">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div style="flex:1;min-width:0">
+                <div class="uv-enr-name">{{ enr.group.nom }}</div>
+                <div class="uv-enr-cat">{{ enr.group.category_obj.icon|default:"📚" }} {{ enr.group.category_obj.name|default:"Kurs" }}</div>
+              </div>
+              <span class="uv-enr-badge {% if enr.is_active %}uv-enr-badge--ok{% else %}uv-enr-badge--out{% endif %}">
+                {% if enr.is_active %}O'qimoqda{% else %}Tugagan{% endif %}
+              </span>
+            </div>
+            <div class="uv-enr-meta">
+              <span><i class="fa-solid fa-user-tie" style="opacity:.6"></i> {{ enr.group.oqituvchi.get_full_name|default:"—" }}</span>
+              {% if enr.created_at %}<span><i class="fa-solid fa-calendar-plus" style="opacity:.6"></i> {{ enr.created_at|date:"d.m.Y" }}</span>{% endif %}
+              <span><i class="fa-solid fa-book-open" style="opacity:.6"></i> {{ enr.total }} dars</span>
+            </div>
+            {% if enr.total > 0 %}
+            <div class="uv-enr-att">
+              <div class="uv-enr-prog"><div class="uv-enr-prog-fill" style="width:{{ enr.rate }}%"></div></div>
+              <span class="uv-enr-rate">{{ enr.rate }}%</span>
+            </div>
+            {% endif %}
+          </div>
+          {% empty %}
+          <div class="uv-empty"><i class="fa-solid fa-inbox"></i><p>Kurslar topilmadi</p></div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div><!-- /left -->
+
+    <!-- ── RIGHT ── -->
+    <div class="uv-right">
+
+      <!-- Chaqmoq tarixi -->
+      <div class="uv-card" id="sec-chaqmoq">
+        <div class="uv-hist-head">
+          <div class="uv-hist-title"><i class="fa-solid fa-bolt"></i> Chaqmoqlar tarixi</div>
+          <span class="uv-hist-count">{{ actions.paginator.count }} ta</span>
+        </div>
+        <div class="uv-timeline">
+          {% for action in actions %}
+          <div class="uv-tl-item">
+            <div class="uv-tl-dot {% if action.ball > 0 %}uv-tl-dot--plus{% else %}uv-tl-dot--minus{% endif %}">
+              <i class="fa-solid {% if action.ball > 0 %}fa-plus{% else %}fa-minus{% endif %}"></i>
+            </div>
+            <div class="uv-tl-body">
+              <div class="uv-tl-rule">{{ action.rule_nom|default:"Ball belgilandi" }}</div>
+              <div class="uv-tl-meta">
+                <span><i class="fa-solid fa-user-pen" style="opacity:.6"></i> {{ action.beruvchi.get_full_name|default:"Tizim" }}</span>
+                <span><i class="fa-solid fa-calendar" style="opacity:.6"></i> {{ action.sana|date:"d.m.Y, H:i" }}</span>
+                {% if action.group %}<span style="color:var(--uv-accent)"><i class="fa-solid fa-users" style="opacity:.7"></i> {{ action.group.nom }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="uv-tl-ball {% if action.ball > 0 %}uv-tl-ball--plus{% else %}uv-tl-ball--minus{% endif %}">
+              {% if action.ball > 0 %}+{% endif %}{{ action.ball }}
+            </div>
+          </div>
+          {% empty %}
+          <div class="uv-empty"><i class="fa-solid fa-bolt-slash"></i><p>Harakatlar mavjud emas</p></div>
+          {% endfor %}
+        </div>
+        {% if actions.has_other_pages %}
+        <div class="uv-pager">
+          {% if actions.has_previous %}
+          <a class="uv-page-link" href="?page={{ actions.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
+          {% endif %}
+          {% for num in actions.paginator.page_range %}
+            {% if actions.number == num %}
+            <span class="uv-page-link uv-page-link--active">{{ num }}</span>
+            {% elif num > actions.number|add:'-3' and num < actions.number|add:'3' %}
+            <a class="uv-page-link" href="?page={{ num }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if actions.has_next %}
+          <a class="uv-page-link" href="?page={{ actions.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Davomat taqvimi -->
+      <div class="uv-card" id="sec-davomat">
+        <div class="uv-cal-head">
+          <div class="uv-cal-title"><i class="fa-solid fa-calendar-check"></i> Davomat taqvimi</div>
+          <form method="GET" class="uv-cal-filter">
+            <select name="month" class="uv-cal-select">
+              {% for m in available_months %}<option value="{{ m.0 }}" {% if selected_month == m.0 %}selected{% endif %}>{{ m.1 }}</option>{% endfor %}
+            </select>
+            <select name="year" class="uv-cal-select">
+              {% for y in available_years %}<option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="uv-cal-submit">OK</button>
+          </form>
+        </div>
+
+        <div class="uv-cal-body">
+          {% for enr in enrollments %}
+          <div>
+            <div class="uv-cal-group-name">{{ enr.group.nom }}</div>
+            <div class="uv-cal-stats">
+              <span>Kelgan: <b class="ok">{{ enr.month_present }}</b></span>
+              <span>Kelmagan: <b class="bad">{{ enr.month_absent }}</b></span>
+              <span>Jami: <b>{{ enr.total }}</b></span>
+              <span class="rate-badge">{{ enr.rate }}% davomat</span>
+            </div>
+            <div class="uv-cal-grid">
+              <div class="uv-cal-weekdays">
+                {% for d in "DSCPJSY" %}<div class="uv-cal-wd">{{ d }}</div>{% endfor %}
+              </div>
+              <div class="uv-cal-days">
+                {% for week in enr.calendar_grid %}{% for day_obj in week %}
+                <div class="uv-cal-cell">
+                  <div class="uv-cal-day {{ day_obj.status }} {% if day_obj.is_today %}today{% endif %}">
+                    {% if day_obj.day %}{{ day_obj.day }}{% endif %}
+                  </div>
+                </div>
+                {% endfor %}{% endfor %}
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="uv-empty"><i class="fa-solid fa-calendar-xmark"></i><p>Davomat ma'lumotlari mavjud emas</p></div>
+          {% endfor %}
+
+          <div class="uv-cal-legend">
+            <div class="uv-cal-leg-item"><div class="uv-cal-leg-dot uv-cal-leg-dot--present"></div> Bor</div>
+            <div class="uv-cal-leg-item"><div class="uv-cal-leg-dot uv-cal-leg-dot--absent"></div>  Yo'q</div>
+            <div class="uv-cal-leg-item"><div class="uv-cal-leg-dot uv-cal-leg-dot--none"></div>    Dars yo'q</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+  </div><!-- /grid -->
+</div><!-- /uv-page -->
+
+<!-- ════════════════ PASSWORD MODAL ════════════════ -->
+<style>
+.uv-modal-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.uv-modal-overlay.uv-modal-open { opacity: 1; pointer-events: all; }
+.uv-modal-box {
+  width: min(420px, 94vw); padding: 32px;
+  border-radius: 24px;
+  background: var(--uv-bg1);
+  border: 1px solid var(--uv-border);
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  transform: scale(.96); transition: transform .25s;
+}
+.uv-modal-overlay.uv-modal-open .uv-modal-box { transform: scale(1); }
+html[data-role-theme="light"] .uv-modal-box { background: #fff; box-shadow: 0 16px 48px rgba(0,0,0,.12); }
+.uv-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.uv-modal-title { font-size: 1rem; font-weight: 900; color: var(--uv-text); }
+.uv-modal-title i { color: var(--uv-accent); margin-right: 8px; }
+.uv-modal-close {
+  width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--uv-border);
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--uv-muted); font-size: .85rem; transition: background .15s;
+}
+.uv-modal-close:hover { background: rgba(255,255,255,.06); color: var(--uv-text); }
+html[data-role-theme="light"] .uv-modal-close:hover { background: #f1f5f9; }
+.uv-modal-note { font-size: .8rem; color: var(--uv-muted); margin-bottom: 20px; }
+.uv-modal-label { font-size: .73rem; font-weight: 800; color: var(--uv-muted); margin-bottom: 6px; text-transform: uppercase; }
+.uv-modal-input {
+  width: 100%; box-sizing: border-box;
+  padding: 11px 14px; border-radius: 11px;
+  border: 1.5px solid var(--uv-border);
+  background: var(--uv-card2); color: var(--uv-text);
+  font-size: .9rem; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  margin-bottom: 16px;
+}
+.uv-modal-input:focus { border-color: var(--uv-accent); box-shadow: 0 0 0 3px rgba(245,158,11,.15); }
+html[data-role-theme="light"] .uv-modal-input { background: #f8fafc; border-color: rgba(148,163,184,.3); }
+.uv-modal-foot { display: flex; gap: 10px; margin-top: 4px; }
+.uv-modal-cancel {
+  flex: 0; padding: 10px 20px; border-radius: 12px;
+  border: 1px solid var(--uv-border); background: none;
+  font-size: .85rem; color: var(--uv-muted); cursor: pointer; font-weight: 700;
+  transition: background .15s;
+}
+.uv-modal-cancel:hover { background: var(--uv-card2); }
+.uv-modal-submit {
+  flex: 1; padding: 11px; border-radius: 12px; border: none; cursor: pointer;
+  font-size: .88rem; font-weight: 900; color: #000;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  box-shadow: 0 4px 14px rgba(245,158,11,.3);
+  transition: box-shadow .2s;
+}
+.uv-modal-submit:hover { box-shadow: 0 6px 20px rgba(245,158,11,.45); }
+</style>
+
+<div class="uv-modal-overlay" id="uvPassModal" onclick="if(event.target===this)this.classList.remove('uv-modal-open')">
+  <div class="uv-modal-box">
+    <div class="uv-modal-head">
+      <div class="uv-modal-title"><i class="fa-solid fa-key"></i> Parolni o'zgartirish</div>
+      <button class="uv-modal-close" onclick="document.getElementById('uvPassModal').classList.remove('uv-modal-open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="uv-modal-note">{{ u.get_full_name }} uchun yangi parolni kiriting. Bu amal uning eski parolini bekor qiladi.</div>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="uv-modal-label">Yangi parol</div>
+      <input type="password" name="new_password" class="uv-modal-input" placeholder="Kamida 6 ta belgi..." required minlength="6" autocomplete="new-password">
+      <div class="uv-modal-foot">
+        <button type="button" class="uv-modal-cancel" onclick="document.getElementById('uvPassModal').classList.remove('uv-modal-open')">Bekor</button>
+        <button type="submit" class="uv-modal-submit">Parolni yangilash</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Parent link modal — custom, fully theme-aware -->
+{% if can_manage_parent_link %}
+<style>
+.plm-overlay {
+  position: fixed; inset: 0; z-index: 9050;
+  background: rgba(2,6,23,.65); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.plm-overlay.plm-open { opacity: 1; pointer-events: all; }
+.plm-box {
+  width: 100%; max-width: 440px; margin: 16px;
+  background: var(--uv-bg1); border: 1px solid var(--uv-border);
+  border-radius: 24px; box-shadow: 0 24px 64px rgba(0,0,0,.5);
+  overflow: hidden;
+  transform: scale(.96) translateY(8px);
+  transition: transform .25s;
+}
+html[data-role-theme="light"] .plm-box { background: #fff; box-shadow: 0 12px 48px rgba(15,23,42,.15); }
+.plm-overlay.plm-open .plm-box { transform: scale(1) translateY(0); }
+
+.plm-head {
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--uv-border2);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: linear-gradient(135deg, rgba(56,189,248,.06), rgba(99,102,241,.04));
+}
+.plm-head-left { flex: 1; }
+.plm-title {
+  font-size: 1rem; font-weight: 900; color: var(--uv-text);
+  display: flex; align-items: center; gap: 8px;
+}
+.plm-title i { color: #38bdf8; font-size: 1.1rem; }
+.plm-subtitle { font-size: .75rem; color: var(--uv-muted); margin-top: 4px; }
+.plm-close {
+  width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--uv-border);
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--uv-muted); font-size: .82rem; flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.plm-close:hover { background: rgba(239,68,68,.1); color: #f87171; border-color: rgba(239,68,68,.2); }
+
+.plm-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+
+/* State: linked */
+.plm-linked-box {
+  border-radius: 16px; padding: 16px 18px;
+  background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2);
+  display: flex; align-items: center; gap: 14px;
+}
+html[data-role-theme="light"] .plm-linked-box { background: rgba(16,185,129,.06); }
+.plm-linked-icon {
+  width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+  background: rgba(16,185,129,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; color: #34d399;
+}
+.plm-linked-title { font-size: .9rem; font-weight: 800; color: var(--uv-text); }
+.plm-linked-sub   { font-size: .75rem; color: var(--uv-muted); margin-top: 3px; }
+
+/* State: loading */
+.plm-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 24px; color: var(--uv-muted); font-size: .85rem;
+}
+
+/* Link section */
+.plm-link-label {
+  font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--uv-muted); margin-bottom: 6px;
+}
+.plm-link-row {
+  display: flex; gap: 8px; align-items: stretch;
+}
+.plm-link-input {
+  flex: 1; padding: 10px 13px; border-radius: 11px;
+  border: 1.5px solid var(--uv-border);
+  background: var(--uv-card2); color: var(--uv-text);
+  font-size: .82rem; outline: none; font-family: monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html[data-role-theme="light"] .plm-link-input { background: #f8fafc; border-color: rgba(148,163,184,.3); }
+.plm-copy-btn {
+  padding: 10px 14px; border-radius: 11px; border: 1px solid var(--uv-border);
+  background: var(--uv-card2); color: var(--uv-muted);
+  font-size: .8rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
+  transition: background .15s, color .15s, border-color .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.plm-copy-btn:hover { background: rgba(16,185,129,.1); color: #34d399; border-color: rgba(16,185,129,.25); }
+.plm-copy-btn.plm-copied { background: rgba(16,185,129,.12); color: #34d399; border-color: rgba(16,185,129,.3); }
+
+/* Bot info */
+.plm-bot-info {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border-radius: 12px; background: rgba(56,189,248,.06);
+  border: 1px solid rgba(56,189,248,.15);
+  font-size: .8rem; color: var(--uv-muted);
+}
+.plm-bot-info i { color: #38bdf8; font-size: 1.1rem; flex-shrink: 0; }
+.plm-bot-info strong { color: var(--uv-text); }
+
+/* Expire */
+.plm-expire {
+  font-size: .73rem; color: var(--uv-muted); text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.plm-expire i { color: var(--uv-accent); }
+
+/* Buttons row */
+.plm-btn-row { display: flex; gap: 10px; }
+.plm-btn {
+  flex: 1; padding: 11px 14px; border-radius: 12px; border: none; cursor: pointer;
+  font-size: .84rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: box-shadow .2s, opacity .2s, transform .15s;
+}
+.plm-btn:active { transform: scale(.98); }
+.plm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.plm-btn--tg   { background: linear-gradient(135deg, #229ED9, #1a7cb8); color: #fff; box-shadow: 0 4px 14px rgba(34,158,217,.3); }
+.plm-btn--tg:hover { box-shadow: 0 6px 20px rgba(34,158,217,.45); }
+.plm-btn--new  { background: var(--uv-card2); color: var(--uv-muted); border: 1px solid var(--uv-border); flex: 0; padding: 11px 16px; }
+.plm-btn--new:hover { background: rgba(245,158,11,.08); color: var(--uv-accent); border-color: rgba(245,158,11,.25); }
+
+.plm-foot {
+  padding: 14px 22px;
+  border-top: 1px solid var(--uv-border2);
+  display: flex; justify-content: center;
+}
+.plm-close-foot {
+  padding: 9px 28px; border-radius: 12px; border: 1px solid var(--uv-border);
+  background: none; cursor: pointer; font-size: .84rem; font-weight: 700; color: var(--uv-muted);
+  transition: background .15s;
+}
+.plm-close-foot:hover { background: var(--uv-card2); }
+</style>
+
+<div class="plm-overlay" id="plmOverlay" onclick="if(event.target===this)plmClose()">
+  <div class="plm-box">
+    <div class="plm-head">
+      <div class="plm-head-left">
+        <div class="plm-title"><i class="fa-brands fa-telegram"></i> Ota-onani botga ulash</div>
+        <div class="plm-subtitle" id="plmSubtitle">24 soat amal qiladigan link yaratiladi</div>
+      </div>
+      <button class="plm-close" onclick="plmClose()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="plm-body" id="plmBody">
+      <div class="plm-loading" id="plmLoading"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+    </div>
+
+    <div class="plm-foot">
+      <button class="plm-close-foot" onclick="plmClose()">Yopish</button>
+    </div>
+  </div>
+</div>
+
 <script>
-    function togglePass(id) {
-        var x = document.getElementById(id);
-        x.type = x.type === "password" ? "text" : "password";
+(function(){
+  const CREATE_URL  = "{% url 'core:student_parent_link_create' u.id %}";
+  const STATUS_URL  = "{% url 'core:student_parent_link_status' u.id %}";
+  const REMINDER_URL= "{% url 'core:student_parent_link_reminder' u.id %}";
+  const CSRF        = "{{ csrf_token }}";
+  const BOT         = "@ChaqmoqAppBot";
+
+  function plmPost(url) {
+    return fetch(url, { method:"POST", headers:{"X-CSRFToken":CSRF,"X-Requested-With":"XMLHttpRequest"} }).then(r=>r.json());
+  }
+
+  function updateHeroBadge(isLinked, status) {
+    const badge = document.getElementById("heroParentBadge");
+    const infoState = document.getElementById("parentLinkInfoState");
+    const infoUser  = document.getElementById("parentLinkInfoUsername");
+    if (badge) {
+      badge.className = "uv-parent-status " + (isLinked ? "uv-parent-status--linked" : "uv-parent-status--unlinked");
+      badge.textContent = isLinked ? "🟢 Ulangan" : "🔴 Ulanmagan";
     }
+    if (infoState) {
+      infoState.className = "uv-badge " + (isLinked ? "uv-enr-badge--ok" : "uv-enr-badge--out");
+      infoState.textContent = isLinked ? "Ha" : "Yo'q";
+    }
+    if (infoUser && status) {
+      infoUser.textContent = status.telegram_username ? "@"+status.telegram_username : (status.telegram_id || "");
+    }
+  }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has("month") || urlParams.has("year")) {
-            const attModal = new bootstrap.Modal(document.getElementById("attendanceDetailModal"));
-            attModal.show();
-        }
+  function plmRenderLinked(status) {
+    const tgUser = status.telegram_username ? "@"+status.telegram_username : (status.telegram_id ? "ID: "+status.telegram_id : "");
+    document.getElementById("plmSubtitle").textContent = "Ota-ona botga ulangan";
+    document.getElementById("plmBody").innerHTML = `
+      <div class="plm-linked-box">
+        <div class="plm-linked-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+          <div class="plm-linked-title">Muvaffaqiyatli ulangan</div>
+          <div class="plm-linked-sub">${tgUser || "Telegram orqali ulangan"}${status.linked_at_display ? " · " + status.linked_at_display : ""}</div>
+        </div>
+      </div>
+      <div class="plm-bot-info">
+        <i class="fa-brands fa-telegram"></i>
+        <div>Bot: <strong>${BOT}</strong> — ota-ona shu bot orqali ulanadi</div>
+      </div>
+      <button class="plm-btn plm-btn--new" style="width:100%;flex:1" onclick="plmGenerate()">
+        <i class="fa-solid fa-rotate-right"></i> Yangi link yaratish
+      </button>`;
+    updateHeroBadge(true, status);
+  }
 
-        const trigger = document.getElementById("openParentLinkBtn");
-        if (!trigger) return;
+  function plmRenderLink(res) {
+    document.getElementById("plmSubtitle").textContent = "Linkni nusxalang va ota-onaga yuboring";
+    document.getElementById("plmBody").innerHTML = `
+      <div class="plm-bot-info">
+        <i class="fa-brands fa-telegram"></i>
+        <div>Ota-ona <strong>${BOT}</strong> botini ochib shu linkni bosishi kerak</div>
+      </div>
+      <div>
+        <div class="plm-link-label"><i class="fa-solid fa-link" style="margin-right:5px"></i>Telegram havolasi</div>
+        <div class="plm-link-row">
+          <input class="plm-link-input" id="plmLinkInput" value="${res.link}" readonly>
+          <button class="plm-copy-btn" id="plmCopyBtn" onclick="plmCopy()">
+            <i class="fa-solid fa-copy"></i> Nusxa
+          </button>
+        </div>
+      </div>
+      <div class="plm-btn-row">
+        <a class="plm-btn plm-btn--tg" href="${res.telegram_share_url}" target="_blank" rel="noopener">
+          <i class="fa-brands fa-telegram"></i> Telegram orqali yuborish
+        </a>
+        <button class="plm-btn plm-btn--new" id="plmRefreshBtn" onclick="plmGenerate()" title="Yangi link yaratish">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+      <div class="plm-expire">
+        <i class="fa-solid fa-clock"></i> Amal qilish muddati: <strong id="plmExpire">${res.expires_at_display}</strong>
+      </div>`;
+    updateHeroBadge(false, null);
+  }
 
-        const modalEl = document.getElementById("parentLinkModal");
-        const modal = new bootstrap.Modal(modalEl);
-        const statusBadge = document.getElementById("parentLinkStatusBadge");
-        const modalStatus = document.getElementById("parentLinkModalStatus");
-        const connectedNotice = document.getElementById("parentLinkConnectedNotice");
-        const generatorBlock = document.getElementById("parentLinkGeneratorBlock");
-        const linkInput = document.getElementById("parentTelegramLink");
-        const copyBtn = document.getElementById("copyParentTelegramLink");
-        const sendBtn = document.getElementById("sendParentTelegramLink");
-        const reminderBtn = document.getElementById("sendParentReminder");
-        const expireEl = document.getElementById("parentTelegramLinkExpire");
-        const infoState = document.getElementById("parentLinkInfoState");
-        const infoUsername = document.getElementById("parentLinkInfoUsername");
-        const infoDate = document.getElementById("parentLinkInfoDate");
-        let pollTimer = null;
-
-        function stopPolling() {
-            if (pollTimer) {
-                window.clearInterval(pollTimer);
-                pollTimer = null;
-            }
-        }
-
-        function setBusy(isBusy) {
-            trigger.disabled = isBusy;
-            reminderBtn.disabled = isBusy;
-            copyBtn.disabled = isBusy;
-            trigger.dataset.originalText = trigger.dataset.originalText || trigger.innerHTML;
-            if (isBusy) {
-                trigger.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Kutilmoqda...';
-            } else {
-                trigger.innerHTML = trigger.dataset.originalText;
-            }
-        }
-
-        function renderStatus(status) {
-            const linked = Boolean(status && status.is_linked);
-            statusBadge.classList.toggle("is-linked", linked);
-            statusBadge.classList.toggle("is-unlinked", !linked);
-            statusBadge.textContent = linked ? "🟢 Ulangan" : "🔴 Ulanmagan";
-
-            if (infoState) {
-                infoState.textContent = linked ? "Ha" : "Yo'q";
-                infoState.classList.toggle("text-success", linked);
-                infoState.classList.toggle("text-danger", !linked);
-            }
-            if (infoUsername) {
-                const username = status && status.telegram_username ? "@" + status.telegram_username : "";
-                infoUsername.textContent = username || (status && status.telegram_id) || "—";
-            }
-            if (infoDate) {
-                infoDate.textContent = (status && status.linked_at_display) || "—";
-            }
-
-            connectedNotice.hidden = !linked;
-            generatorBlock.hidden = linked;
-            modalStatus.textContent = linked ? "Parent botga muvaffaqiyatli ulangan." : "Link 24 soat amal qiladi.";
-            if (linked) stopPolling();
-        }
-
-        async function requestJson(url, options) {
-            const response = await fetch(url, {
-                credentials: "same-origin",
-                ...options,
-                headers: {
-                    "X-CSRFToken": trigger.dataset.csrf,
-                    ...(options && options.headers ? options.headers : {}),
-                },
-            });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.ok) {
-                throw new Error(data.error || data.message || "So'rov bajarilmadi");
-            }
-            return data;
-        }
-
-        function setInvite(data) {
-            if (data.link) {
-                linkInput.value = data.link;
-                sendBtn.href = data.telegram_share_url || "#";
-                sendBtn.classList.toggle("disabled", !data.telegram_share_url);
-                expireEl.textContent = data.expires_at_display || "24 soat";
-            }
-        }
-
-        async function pollStatus() {
-            try {
-                const data = await requestJson(trigger.dataset.statusUrl, { method: "GET" });
-                renderStatus(data.status);
-            } catch (_err) {
-                stopPolling();
-            }
-        }
-
-        function startPolling() {
-            stopPolling();
-            pollTimer = window.setInterval(pollStatus, 4000);
-        }
-
-        trigger.addEventListener("click", async function () {
-            setBusy(true);
-            modalStatus.textContent = "Link tayyorlanmoqda...";
-            try {
-                const data = await requestJson(trigger.dataset.createUrl, { method: "POST" });
-                renderStatus(data.status);
-                setInvite(data);
-                modal.show();
-                if (!data.already_linked) startPolling();
-            } catch (err) {
-                modalStatus.textContent = err.message;
-                modal.show();
-            } finally {
-                setBusy(false);
-            }
-        });
-
-        copyBtn.addEventListener("click", async function () {
-            if (!linkInput.value) return;
-            try {
-                await navigator.clipboard.writeText(linkInput.value);
-            } catch (_err) {
-                linkInput.select();
-                document.execCommand("copy");
-            }
-            copyBtn.textContent = "Copied";
-            window.setTimeout(() => { copyBtn.textContent = "Copy"; }, 1600);
-        });
-
-        reminderBtn.addEventListener("click", async function () {
-            setBusy(true);
-            try {
-                const data = await requestJson(trigger.dataset.reminderUrl, { method: "POST" });
-                renderStatus(data.status);
-                setInvite(data);
-                if (data.telegram_share_url) {
-                    window.open(data.telegram_share_url, "_blank", "noopener");
-                }
-                if (!data.already_linked) startPolling();
-            } catch (err) {
-                modalStatus.textContent = err.message;
-            } finally {
-                setBusy(false);
-            }
-        });
-
-        modalEl.addEventListener("hidden.bs.modal", stopPolling);
+  window.plmGenerate = function() {
+    document.getElementById("plmBody").innerHTML = '<div class="plm-loading"><i class="fa-solid fa-spinner fa-spin"></i> Link yaratilmoqda...</div>';
+    plmPost(CREATE_URL).then(res => {
+      if (!res.ok) { alert(res.error||"Xatolik yuz berdi"); return; }
+      if (res.already_linked) { plmRenderLinked(res.status); }
+      else { plmRenderLink(res); }
+    }).catch(() => {
+      document.getElementById("plmBody").innerHTML = '<div class="plm-loading" style="color:#f87171"><i class="fa-solid fa-circle-exclamation"></i> Xatolik yuz berdi</div>';
     });
+  };
+
+  window.plmCopy = function() {
+    const input = document.getElementById("plmLinkInput");
+    const btn   = document.getElementById("plmCopyBtn");
+    if (!input || !btn) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Nusxalandi';
+      btn.classList.add("plm-copied");
+      setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Nusxa'; btn.classList.remove("plm-copied"); }, 2200);
+    }).catch(() => {
+      input.select(); document.execCommand("copy");
+    });
+  };
+
+  window.plmOpen = function() {
+    document.getElementById("plmOverlay").classList.add("plm-open");
+    document.body.style.overflow = "hidden";
+    plmGenerate();
+  };
+
+  window.plmClose = function() {
+    document.getElementById("plmOverlay").classList.remove("plm-open");
+    document.body.style.overflow = "";
+  };
+
+  document.addEventListener("keydown", e => { if (e.key==="Escape") plmClose(); });
+
+  const btn = document.getElementById("openParentLinkBtn");
+  if (btn) btn.addEventListener("click", plmOpen);
+})();
 </script>
+{% endif %}
+
+<script>
+function toggleUvDrop(btn) {
+  const drop = btn.nextElementSibling;
+  drop.classList.toggle("open");
+  document.addEventListener("click", function close(e) {
+    if (!btn.contains(e.target) && !drop.contains(e.target)) {
+      drop.classList.remove("open");
+      document.removeEventListener("click", close);
+    }
+  });
+}
+
+function closeAllDrops() {
+  document.querySelectorAll(".uv-drop.open").forEach(d => d.classList.remove("open"));
+}
+
+function uvScrollTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const top = el.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top, behavior: "smooth" });
+  setTimeout(() => {
+    el.classList.remove("uv-sec-flash");
+    void el.offsetWidth;
+    el.classList.add("uv-sec-flash");
+    el.addEventListener("animationend", () => el.classList.remove("uv-sec-flash"), { once: true });
+  }, 400);
+}
+</script>
+
+{% if u.role == 'student' and request.user.role != 'parent' %}
+{% include "core/includes/student_edit_drawer_include.html" %}
+{% endif %}
+
 {% endblock %}
