@@ -172,6 +172,50 @@
       html[data-role-theme="light"] .sidebar-chat-btn { background: linear-gradient(135deg, rgba(16,185,129,.1), rgba(6,182,212,.06)) !important; }
       html[data-role-theme="light"] .sidebar-chat-btn .si-ico  { color: #059669 !important; }
       html[data-role-theme="light"] .sidebar-chat-btn .si-text { color: #065f46 !important; }
+
+      /* ── Asosiy sidebar button ── */
+      .sidebar-asosiy-btn {
+        background: linear-gradient(135deg, rgba(56,189,248,.15), rgba(14,165,233,.08)) !important;
+        border: 1px solid rgba(56,189,248,.22) !important;
+        border-radius: 12px !important;
+        margin: 2px 0 !important;
+      }
+      .sidebar-asosiy-btn:hover {
+        background: linear-gradient(135deg, rgba(56,189,248,.28), rgba(14,165,233,.16)) !important;
+        border-color: rgba(56,189,248,.45) !important;
+      }
+      .sidebar-asosiy-btn .si-ico { color: #38bdf8 !important; }
+      .sidebar-asosiy-btn .si-text { color: #7dd3fc !important; font-weight: 700 !important; }
+      .sidebar-asosiy-btn.active {
+        background: linear-gradient(135deg, rgba(56,189,248,.35), rgba(14,165,233,.22)) !important;
+        border-color: rgba(56,189,248,.6) !important;
+      }
+      body.sidebar-collapsed .sidebar-asosiy-btn .si-text { display: none; }
+      html[data-role-theme="light"] .sidebar-asosiy-btn { background: linear-gradient(135deg, rgba(56,189,248,.1), rgba(14,165,233,.06)) !important; }
+      html[data-role-theme="light"] .sidebar-asosiy-btn .si-ico  { color: #0284c7 !important; }
+      html[data-role-theme="light"] .sidebar-asosiy-btn .si-text { color: #075985 !important; }
+
+      /* ── Do'kon sidebar button ── */
+      .sidebar-dokon-btn {
+        background: linear-gradient(135deg, rgba(249,115,22,.15), rgba(251,146,60,.08)) !important;
+        border: 1px solid rgba(249,115,22,.22) !important;
+        border-radius: 12px !important;
+        margin: 2px 0 !important;
+      }
+      .sidebar-dokon-btn:hover {
+        background: linear-gradient(135deg, rgba(249,115,22,.28), rgba(251,146,60,.16)) !important;
+        border-color: rgba(249,115,22,.45) !important;
+      }
+      .sidebar-dokon-btn .si-ico { color: #fb923c !important; }
+      .sidebar-dokon-btn .si-text { color: #fdba74 !important; font-weight: 700 !important; }
+      .sidebar-dokon-btn.active {
+        background: linear-gradient(135deg, rgba(249,115,22,.35), rgba(251,146,60,.22)) !important;
+        border-color: rgba(249,115,22,.6) !important;
+      }
+      body.sidebar-collapsed .sidebar-dokon-btn .si-text { display: none; }
+      html[data-role-theme="light"] .sidebar-dokon-btn { background: linear-gradient(135deg, rgba(249,115,22,.1), rgba(251,146,60,.06)) !important; }
+      html[data-role-theme="light"] .sidebar-dokon-btn .si-ico  { color: #ea580c !important; }
+      html[data-role-theme="light"] .sidebar-dokon-btn .si-text { color: #7c2d12 !important; }
     </style>
 
     <!-- ================================
@@ -338,7 +382,7 @@
     </a>
 
     <a href="{% url 'core:chat_list' %}"
-      class="sidebar-item sidebar-chat-btn {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
+      class="sidebar-item {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
       data-title="Chat">
       <span class="si-ico"><i class="fa-solid fa-comments"></i></span>
       <span class="si-text">Guruh Chat 💬</span>
@@ -406,14 +450,14 @@
     </a>
 
     <a href="{% url 'core:game_hub' %}"
-      class="sidebar-item sidebar-games-btn {% if vn == 'core:game_hub' or vn == 'core:game_play' %}active{% endif %}"
+      class="sidebar-item {% if vn == 'core:game_hub' or vn == 'core:game_play' %}active{% endif %}"
       data-title="O'yinlar">
       <span class="si-ico"><i class="fa-solid fa-gamepad"></i></span>
       <span class="si-text">O'yinlar 🎮</span>
     </a>
 
     <a href="{% url 'core:chat_list' %}"
-      class="sidebar-item sidebar-chat-btn {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
+      class="sidebar-item {% if vn == 'core:chat_list' or vn == 'core:group_chat' %}active{% endif %}"
       data-title="Chat">
       <span class="si-ico"><i class="fa-solid fa-comments"></i></span>
       <span class="si-text">Guruh Chat 💬</span>

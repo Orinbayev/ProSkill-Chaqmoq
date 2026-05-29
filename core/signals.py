@@ -5,7 +5,7 @@ from chaqmoq.models import Ledger
 from store.models import PurchaseRequest
 from accounts.models import Center
 from accounts.utils_bot import send_telegram_message
-from education.models import Attendance
+from education.models import Attendance, Payment, StudentGroupTransfer
 
 
 def _should_notify(user, notification_type: str) -> bool:
@@ -115,3 +115,136 @@ def notify_purchase_status(sender, instance, created, **kwargs):
                 type="purchase",
                 center=instance.center,
             )
+
+
+# ─── Ota-onalarga avtomatik xabar ─────────────────────────────────────────────
+
+def _get_parent_telegram_ids(student):
+    """O’quvchining Telegram ga ulangan ota-onalarini qaytaradi."""
+    ids = []
+    # 1. student.parent_telegram_id — tezkor to’g’ridan-to’g’ri maydon
+    if getattr(student, "parent_telegram_id", None):
+        ids.append(student.parent_telegram_id)
+    # 2. M2M parents — family bot orqali ulangan ota-onalar
+    try:
+        for parent in student.parents.filter(is_telegram_linked=True, is_active=True):
+            if parent.telegram_id and parent.telegram_id not in ids:
+                ids.append(parent.telegram_id)
+    except Exception:
+        pass
+    return ids
+
+
+@receiver(post_save, sender=Attendance)
+def notify_parent_on_absence(sender, instance, created, **kwargs):
+    """O’quvchi darsga kelmasa yoki kech qolsa ota-onaga xabar."""
+    try:
+        student = instance.student
+        if not student:
+            return
+
+        absent_statuses = ("absent_unexcused", "absent_excused", "late")
+        if instance.status not in absent_statuses:
+            return
+
+        parent_tg_ids = _get_parent_telegram_ids(student)
+        if not parent_tg_ids:
+            return
+
+        group_name = getattr(instance.group, "nom", "Guruh")
+        date_str = instance.date.strftime("%d.%m.%Y") if instance.date else "—"
+        student_name = student.get_full_name()
+
+        if instance.status == "late":
+            text = (
+                f"⏰ <b>Darsga kech qoldi</b>\n\n"
+                f"O’quvchi: <b>{student_name}</b>\n"
+                f"Guruh: <b>{group_name}</b>\n"
+                f"Sana: <b>{date_str}</b>\n\n"
+                f"Farzandingiz darsga kech qoldi."
+            )
+        elif instance.status == "absent_excused":
+            text = (
+                f"🟡 <b>Darsga kelmadi (sababli)</b>\n\n"
+                f"O’quvchi: <b>{student_name}</b>\n"
+                f"Guruh: <b>{group_name}</b>\n"
+                f"Sana: <b>{date_str}</b>"
+            )
+        else:
+            text = (
+                f"🔴 <b>Darsga kelmadi</b>\n\n"
+                f"O’quvchi: <b>{student_name}</b>\n"
+                f"Guruh: <b>{group_name}</b>\n"
+                f"Sana: <b>{date_str}</b>\n\n"
+                f"Farzandingiz bugun darsga kelmadi."
+            )
+
+        for tg_id in parent_tg_ids:
+            send_telegram_message(tg_id, text)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=Payment)
+def notify_parent_on_payment(sender, instance, created, **kwargs):
+    """To’lov qilinganda ota-onaga tasdiqlash xabari."""
+    if not created:
+        return
+    try:
+        student = instance.student
+        if not student:
+            return
+
+        parent_tg_ids = _get_parent_telegram_ids(student)
+        if not parent_tg_ids:
+            return
+
+        group_name = getattr(instance.group, "nom", "Guruh")
+        date_str = instance.paid_date.strftime("%d.%m.%Y") if instance.paid_date else "—"
+        summa = instance.summa or 0
+
+        text = (
+            f"✅ <b>To’lov qabul qilindi</b>\n\n"
+            f"O’quvchi: <b>{student.get_full_name()}</b>\n"
+            f"Guruh: <b>{group_name}</b>\n"
+            f"Summa: <b>{summa:,} so’m</b>\n"
+            f"Sana: <b>{date_str}</b>\n\n"
+            f"To’lovingiz tizimda qayd etildi."
+        )
+
+        for tg_id in parent_tg_ids:
+            send_telegram_message(tg_id, text)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=StudentGroupTransfer)
+def notify_parent_on_group_transfer(sender, instance, created, **kwargs):
+    """O’quvchi guruhdan ko’chirilganda ota-onaga xabar."""
+    if not created:
+        return
+    try:
+        student = instance.student
+        if not student:
+            return
+
+        parent_tg_ids = _get_parent_telegram_ids(student)
+        if not parent_tg_ids:
+            return
+
+        old_group = getattr(instance.old_group, "nom", "—")
+        new_group = getattr(instance.new_group, "nom", "—")
+        date_str = instance.transfer_date.strftime("%d.%m.%Y") if instance.transfer_date else "—"
+
+        text = (
+            f"🔄 <b>Guruh o’zgartirildi</b>\n\n"
+            f"O’quvchi: <b>{student.get_full_name()}</b>\n"
+            f"Oldingi guruh: <b>{old_group}</b>\n"
+            f"Yangi guruh: <b>{new_group}</b>\n"
+            f"Sana: <b>{date_str}</b>"
+        )
+
+        for tg_id in parent_tg_ids:
+            send_telegram_message(tg_id, text)
+    except Exception:
+        pass

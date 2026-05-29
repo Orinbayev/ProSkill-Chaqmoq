@@ -611,10 +611,12 @@
   .att-wrap[data-status="present"]          .btn-keldi   { background: var(--green); color: #fff; }
   .att-wrap[data-status="absent_excused"]   .btn-kelmadi { background: #eab308; color: #0f172a; }
   .att-wrap[data-status="absent_unexcused"] .btn-kelmadi { background: var(--red); color: #fff; }
+  .att-wrap[data-status="late"]             .btn-kech    { background: #f59e0b; color: #0f172a; }
 
   /* Row ranglar */
   .tr-student.row-excused   { background: rgba(234,179,8,0.07); }
   .tr-student.row-unexcused { background: rgba(239,68,68,0.07); }
+  .tr-student.row-late      { background: rgba(245,158,11,0.07); }
 
   /* =========================
      POINTS UI
@@ -908,6 +910,10 @@
 
   html[data-role-theme="light"] .att-wrap[data-status="absent_unexcused"] .btn-kelmadi {
     box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18);
+  }
+
+  html[data-role-theme="light"] .att-wrap[data-status="late"] .btn-kech {
+    box-shadow: 0 8px 18px rgba(245, 158, 11, 0.18);
   }
 
   html[data-role-theme="light"] .point-badge {
@@ -1323,7 +1329,7 @@
         </thead>
         <tbody>
           {% for e in enrollments %}
-          <tr class="tr-student {% if e.student.attendance_status == 'absent_excused' %}row-excused{% elif e.student.attendance_status == 'absent_unexcused' %}row-unexcused{% elif not e.student.present_today %}row-not-present{% endif %}">
+          <tr class="tr-student {% if e.student.attendance_status == 'absent_excused' %}row-excused{% elif e.student.attendance_status == 'absent_unexcused' %}row-unexcused{% elif e.student.attendance_status == 'late' %}row-late row-not-present{% elif not e.student.present_today %}row-not-present{% endif %}">
             <td class="remove-col d-none text-center">
               <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
             </td>
@@ -1345,6 +1351,9 @@
                 <div class="att-layer1">
                   <button type="button" class="att-btn btn-keldi" title="Keldi" aria-label="Keldi">
                     <i class="bi bi-check-lg" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="att-btn btn-kech" title="Kech qoldi" aria-label="Kech qoldi">
+                    <i class="bi bi-clock" aria-hidden="true"></i>
                   </button>
                   <button type="button" class="att-btn btn-kelmadi" title="Kelmadi" aria-label="Kelmadi">
                     <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -1752,7 +1761,7 @@
 
       const row = segEl.closest("tr");
       if (row) {
-        row.classList.remove("forced-row", "row-not-present", "row-excused", "row-unexcused");
+        row.classList.remove("forced-row", "row-not-present", "row-excused", "row-unexcused", "row-late");
         if (status === "present") {
           // yashil - hech qanday class kerak emas
         } else if (status === "absent_excused") {
@@ -1760,6 +1769,9 @@
           row.classList.add("row-not-present");
         } else if (status === "absent_unexcused" || status === "forced") {
           row.classList.add("row-unexcused");
+          row.classList.add("row-not-present");
+        } else if (status === "late") {
+          row.classList.add("row-late");
           row.classList.add("row-not-present");
         } else {
           row.classList.add("row-not-present");
@@ -1930,6 +1942,8 @@
             } else {
               showToast("SABABSIZ kelmadi qayd etildi", "error");
             }
+          } else if (newStatus === "late") {
+            showToast("KECH QOLDI deb belgilandi ⏰", "error");
           } else {
             showToast(removedCount > 0
               ? `Bekor qilindi — ${removedSum} ball qaytarildi`
@@ -1947,6 +1961,12 @@
       seg.querySelector(".btn-keldi")?.addEventListener("click", () => {
         const cur = seg.dataset.status || "none";
         apply(cur === "present" ? "none" : "present");
+      });
+
+      // KECH QOLDI tugmasi
+      seg.querySelector(".btn-kech")?.addEventListener("click", () => {
+        const cur = seg.dataset.status || "none";
+        apply(cur === "late" ? "none" : "late");
       });
 
       // KELMADI tugmasi → markaziy popup

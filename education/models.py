@@ -675,6 +675,7 @@ class Attendance(models.Model):
     # 🔥 YANGI STATUS MAYDONI
     STATUS_CHOICES = (
         ('present', 'Keldi'),
+        ('late', 'Kech qoldi'),
         ('absent_excused', 'Sababli (Kelmadi)'),
         ('absent_unexcused', 'Sababsiz (Kelmadi)'),
     )
@@ -716,6 +717,8 @@ class Attendance(models.Model):
     def __str__(self):
         if self.status == 'present' or self.present:
             belgi = "✅ Kelgan"
+        elif self.status == 'late':
+            belgi = "⏰ Kech qoldi"
         elif self.status == 'absent_excused':
             belgi = "🟡 Sababli Kelmadi"
         elif self.status == 'absent_unexcused':

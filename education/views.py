@@ -6166,7 +6166,7 @@ def attendance_today(request, pk: int):
     # status (yangi: 5 ta holat)
     status = (request.POST.get("status") or "").strip().lower()
 
-    VALID_STATUSES = ("present", "absent_excused", "absent_unexcused", "forced", "none")
+    VALID_STATUSES = ("present", "absent_excused", "absent_unexcused", "forced", "late", "none")
 
     # backward compatibility (eski front bo'lsa)
     if status not in VALID_STATUSES:
