@@ -825,6 +825,102 @@
         opacity: 1;
         transition: max-height 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease;
     }
+
+    /* ═══════════════════════════════════
+       LIGHT MODE OVERRIDES
+       ═══════════════════════════════════ */
+    html[data-role-theme="light"] .prognoz-card {
+        border-color: rgba(168,85,247,0.3) !important;
+        background: #fff;
+    }
+    html[data-role-theme="light"] .prognoz-header {
+        background: rgba(168,85,247,0.05);
+        border-bottom-color: rgba(168,85,247,0.12);
+    }
+    html[data-role-theme="light"] .prognoz-title { color: #1e293b; }
+    html[data-role-theme="light"] .prognoz-subtitle { color: #64748b; }
+    html[data-role-theme="light"] .prognoz-left {
+        background: rgba(168,85,247,0.03);
+        border-right-color: rgba(0,0,0,0.07);
+    }
+    html[data-role-theme="light"] .prognoz-currency { color: #94a3b8; }
+    html[data-role-theme="light"] .prognoz-meta-item { color: #64748b; }
+
+    html[data-role-theme="light"] .formula-trigger {
+        background: rgba(168,85,247,0.07);
+        border-color: rgba(168,85,247,0.25);
+        color: #7c3aed;
+    }
+    html[data-role-theme="light"] .formula-trigger:hover {
+        background: rgba(168,85,247,0.15);
+        color: #6d28d9;
+    }
+    html[data-role-theme="light"] .formula-box {
+        background: #fff;
+        border-color: rgba(168,85,247,0.25);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+    html[data-role-theme="light"] .formula-step { color: #334155; }
+    html[data-role-theme="light"] .formula-result { color: #475569; background: rgba(168,85,247,0.06); }
+
+    html[data-role-theme="light"] .breakdown-group-name { color: #1e293b; }
+    html[data-role-theme="light"] .breakdown-row { border-bottom-color: rgba(0,0,0,0.06); }
+    html[data-role-theme="light"] .breakdown-bar-wrap { background: rgba(0,0,0,0.07); }
+
+    html[data-role-theme="light"] .per-student-pill {
+        background: rgba(0,0,0,0.04);
+        border-color: rgba(0,0,0,0.1);
+    }
+    html[data-role-theme="light"] .ps-count { color: #64748b; }
+    html[data-role-theme="light"] .ps-tooltip {
+        background: #fff;
+        border-color: rgba(0,0,0,0.1);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+    html[data-role-theme="light"] .ps-label { color: #64748b; }
+    html[data-role-theme="light"] .ps-val { color: #1e293b; }
+    html[data-role-theme="light"] .ps-formula-result { border-top-color: rgba(0,0,0,0.07); }
+    html[data-role-theme="light"] .ps-formula-total { background: rgba(168,85,247,0.08); }
+
+    html[data-role-theme="light"] .section-header {
+        background: rgba(14,165,233,0.04);
+        border-bottom-color: rgba(0,0,0,0.07);
+    }
+    html[data-role-theme="light"] .section-title { color: #1e293b; }
+    html[data-role-theme="light"] .section-subtitle { color: #64748b; }
+
+    html[data-role-theme="light"] .income-table thead th {
+        color: #94a3b8;
+        border-bottom-color: rgba(0,0,0,0.08);
+    }
+    html[data-role-theme="light"] .income-row td { border-bottom-color: rgba(0,0,0,0.05); }
+    html[data-role-theme="light"] .income-row:hover td { background: rgba(14,165,233,0.03); }
+    html[data-role-theme="light"] .income-group-name { color: #1e293b; }
+    html[data-role-theme="light"] .att-pill { background: rgba(0,0,0,0.05); color: #64748b; }
+    html[data-role-theme="light"] .pct-pill { background: rgba(34,197,94,0.1); color: #16a34a; }
+    html[data-role-theme="light"] .income-amount { color: #1e293b; }
+    html[data-role-theme="light"] .income-currency { color: #94a3b8; }
+    html[data-role-theme="light"] .income-bar-wrap { background: rgba(0,0,0,0.07); }
+    html[data-role-theme="light"] .income-bar-pct { color: #94a3b8; }
+    html[data-role-theme="light"] .income-total-row td {
+        border-top-color: rgba(0,0,0,0.1);
+        background: rgba(0,0,0,0.02);
+    }
+    html[data-role-theme="light"] .income-total-label { color: #94a3b8; }
+
+    html[data-role-theme="light"] .prognoz-toggle-btn {
+        background: rgba(168,85,247,0.08);
+        border-color: rgba(168,85,247,0.25);
+        color: #7c3aed;
+    }
+    html[data-role-theme="light"] .prognoz-toggle-btn:hover {
+        background: rgba(168,85,247,0.15);
+        color: #6d28d9;
+    }
+
+    html[data-role-theme="light"] .delta-up   { background: rgba(34,197,94,0.1);  border-color: rgba(34,197,94,0.2);  }
+    html[data-role-theme="light"] .delta-down { background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.2);  }
+    html[data-role-theme="light"] .delta-flat { background: rgba(0,0,0,0.05);     border-color: rgba(0,0,0,0.1); color: #64748b; }
 </style>
 {{ daily_labels|json_script:"daily-labels-data" }}
 {{ daily_income|json_script:"daily-income-data" }}
