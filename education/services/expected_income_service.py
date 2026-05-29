@@ -54,29 +54,40 @@ def calculate_expected_income(teacher, year=None, month=None, center=None, cours
         else:
             month_end = date(req_year, req_month + 1, 1)
             
-        active_histories = StudentGroupHistory.objects.filter(
+        active_histories = list(StudentGroupHistory.objects.filter(
             group=group,
             start_date__lt=month_end
         ).filter(
             Q(end_date__isnull=True) | Q(end_date__gte=month_start)
-        )
-        
-        student_count = active_histories.count()
+        ))
+
+        student_count = len(active_histories)
         if student_count == 0:
             continue
-            
+
         group_expected_income = 0
+        sum_narx = 0
+        sum_pct = 0
         for h in active_histories:
             income_per_student = (h.kurs_narxi * h.oqituvchi_foiz) / 100
             group_expected_income += income_per_student
-        
+            sum_narx += h.kurs_narxi
+            sum_pct += h.oqituvchi_foiz
+
         total_expected_income += group_expected_income
         total_active_students += student_count
-        
+
+        avg_narx = round(sum_narx / student_count) if student_count > 0 else 0
+        avg_pct = round(sum_pct / student_count, 1) if student_count > 0 else 0
+        avg_per_student = round(group_expected_income / student_count) if student_count > 0 else 0
+
         breakdown.append({
             "group_name": group.nom,
             "students": student_count,
-            "group_total": group_expected_income
+            "group_total": group_expected_income,
+            "avg_kurs_narxi": avg_narx,
+            "avg_percent": avg_pct,
+            "avg_per_student": avg_per_student,
         })
 
     

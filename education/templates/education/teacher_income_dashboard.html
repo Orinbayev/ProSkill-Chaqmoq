@@ -123,16 +123,23 @@
                         </div>
                     </div>
 
-                    <!-- Kutilayotgan prognoz qismi -->
-                    <!-- <div class="d-none d-sm-block bg-white opacity-25 mx-4" style="width: 2px; height: 60px;"></div>
-
-                    <div id="expectedIncomeContainer" class="text-end mt-3 mt-sm-0 flex-grow-1 flex-sm-grow-0">
-                        <div class="text-warning small mb-1 text-uppercase fw-bold"><i
-                                class="fa-solid fa-hourglass-half"></i> Kutilayotgan prognoz</div>
-                        <h1 class="fw-black text-warning mb-0">
-                            <span class="spinner-border spinner-border-sm" role="status"></span>
-                        </h1>
-                    </div> -->
+                    <!-- Bu oy progress -->
+                    <div class="d-none d-sm-block bg-white opacity-25 mx-4" style="width: 2px; height: 60px;"></div>
+                    <div class="text-end mt-3 mt-sm-0">
+                        <div class="text-warning small mb-1 text-uppercase fw-bold">
+                            <i class="fa-solid fa-chart-pie me-1"></i> Bu oy maksimali
+                        </div>
+                        <div class="fw-black text-warning fs-5 mb-1">
+                            {{ current_expected.expected_income|floatformat:0|default:"0" }}
+                            <small class="fs-6 opacity-60">so'm</small>
+                        </div>
+                        <div class="progress" style="height: 6px; width: 120px; background: rgba(255,255,255,0.1); border-radius: 99px;">
+                            <div class="progress-bar bg-warning" role="progressbar"
+                                 style="width: {{ progress_pct }}%; border-radius: 99px;"
+                                 aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="text-white-50 mt-1" style="font-size: 11px;">{{ progress_pct }}% yig'ildi</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,6 +161,228 @@
             </div>
         </div>
     </div>
+
+    <!-- PROGNOZ TOGGLE BUTTON -->
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-end">
+            <button id="prognoz-toggle-btn" class="prognoz-toggle-btn" type="button" onclick="togglePrognoz()">
+                <i class="fa-solid fa-chart-line me-2"></i>
+                <span id="prognoz-toggle-label">To'liq ko'rish</span>
+                <i id="prognoz-toggle-arrow" class="fa-solid fa-chevron-down ms-2 prognoz-arrow"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PROGNOZ COLLAPSIBLE WRAPPER -->
+    <div id="prognoz-wrapper" class="prognoz-wrapper-collapsed">
+
+    <!-- ═══════════════════════════════════════════
+         KELASI OY PROGNOZI — Professional karta
+         ═══════════════════════════════════════════ -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="prognoz-card glass overflow-hidden">
+
+                <!-- Header -->
+                <div class="prognoz-header px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="prognoz-icon">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <div>
+                            <div class="prognoz-title">Kelasi oy prognozi</div>
+                            <div class="prognoz-subtitle">{{ next_month_name }} {{ next_year }} — barcha aktiv o'quvchilar to'lagan taqdirda</div>
+                        </div>
+                    </div>
+                    {% if delta_pct > 0 %}
+                    <span class="delta-badge delta-up">↑ +{{ delta_pct }}% joriy oyga nisbatan</span>
+                    {% elif delta_pct < 0 %}
+                    <span class="delta-badge delta-down">↓ {{ delta_pct }}% joriy oyga nisbatan</span>
+                    {% else %}
+                    <span class="delta-badge delta-flat">→ O'zgarishsiz</span>
+                    {% endif %}
+                </div>
+
+                <!-- Body -->
+                <div class="row g-0">
+
+                    <!-- LEFT: big amount + formula tooltip -->
+                    <div class="col-lg-3 col-md-4 prognoz-left px-4 py-4 d-flex flex-column justify-content-center">
+                        <div class="prognoz-amount format-money">{{ next_expected.expected_income|floatformat:0|default:"0" }}</div>
+                        <div class="prognoz-currency">so'm</div>
+
+                        <!-- Hover formula tooltip -->
+                        <div class="formula-trigger mt-3">
+                            <i class="fa-solid fa-calculator"></i>
+                            Qanday hisoblanadi?
+                            <div class="formula-box">
+                                <div class="formula-box-title">📐 Hisoblash formulasi</div>
+                                <div class="formula-step">
+                                    <span class="formula-step-num">1</span>
+                                    <span>Har o'quvchi uchun: <b>Kurs narxi × O'qituvchi foizi%</b></span>
+                                </div>
+                                <div class="formula-step">
+                                    <span class="formula-step-num">2</span>
+                                    <span>Guruh jami = barcha o'quvchilar ulushi yig'indisi</span>
+                                </div>
+                                <div class="formula-step">
+                                    <span class="formula-step-num">3</span>
+                                    <span>Prognoz = barcha guruhlar jamisi</span>
+                                </div>
+                                <div class="formula-divider"></div>
+                                <div class="formula-result">
+                                    {{ next_expected.active_students }} o'quvchi
+                                    × o'rtacha <b>{{ next_expected.income_per_student|floatformat:0 }} so'm</b>
+                                    = <b class="text-purple">{{ next_expected.expected_income|floatformat:0 }} so'm</b>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prognoz-meta mt-3">
+                            <div class="prognoz-meta-item">
+                                <i class="fa-solid fa-users"></i>
+                                <span>{{ next_expected.active_students }} aktiv o'quvchi</span>
+                            </div>
+                            <div class="prognoz-meta-item">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <span>{{ next_expected.breakdown|length }} guruh</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: breakdown list -->
+                    <div class="col-lg-9 col-md-8 prognoz-right px-4 py-4">
+                        {% if next_expected.breakdown %}
+                        <div class="breakdown-grid">
+                            {% for g in next_expected.breakdown %}
+                            <div class="breakdown-row">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="breakdown-group-name">{{ g.group_name }}</div>
+                                    <div class="breakdown-amount format-money">{{ g.group_total|floatformat:0 }}</div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <!-- Mini bar -->
+                                    <div class="breakdown-bar-wrap">
+                                        <div class="breakdown-bar-fill" style="width: {% widthratio g.group_total next_max_group 100 %}%"></div>
+                                    </div>
+                                    <!-- Per-student formula pill (hover) -->
+                                    <div class="per-student-pill">
+                                        <span class="ps-count">{{ g.students }} o'q</span>
+                                        <div class="ps-tooltip">
+                                            <div class="ps-tooltip-title">{{ g.group_name }}</div>
+                                            <div class="ps-formula-line">
+                                                <span class="ps-label">Kurs narxi</span>
+                                                <span class="ps-val">{{ g.avg_kurs_narxi|floatformat:0 }} so'm</span>
+                                            </div>
+                                            <div class="ps-formula-line">
+                                                <span class="ps-label">O'qituvchi foizi</span>
+                                                <span class="ps-val">{{ g.avg_percent }}%</span>
+                                            </div>
+                                            <div class="ps-formula-line ps-formula-result">
+                                                <span class="ps-label">1 o'quvchidan</span>
+                                                <span class="ps-val-result">{{ g.avg_per_student|floatformat:0 }} so'm</span>
+                                            </div>
+                                            <div class="ps-formula-line ps-formula-total">
+                                                <span class="ps-label">{{ g.students }} × {{ g.avg_per_student|floatformat:0 }}</span>
+                                                <span class="ps-val-total">≈ {{ g.group_total|floatformat:0 }} so'm</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 gap-2 py-4">
+                            <i class="fa-solid fa-circle-info" style="font-size:28px;color:rgba(255,255,255,0.15);"></i>
+                            <div class="text-white-50" style="font-size:13px;">Aktiv guruhlar topilmadi</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         BU OY — GURUHLAR KESIMI
+         ═══════════════════════════════════════════ -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="glass overflow-hidden">
+
+                <div class="section-header px-4 py-3 d-flex align-items-center gap-3">
+                    <div class="section-icon section-icon-blue">
+                        <i class="fa-solid fa-table-list"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">Bu oy — Guruhlar kesimi</div>
+                        <div class="section-subtitle">{{ selected_month }}-oy, {{ selected_year }} · Hisoblangan daromat guruhlar bo'yicha</div>
+                    </div>
+                </div>
+
+                {% if salary_data.details %}
+                <div class="px-2 pb-3">
+                    <table class="income-table w-100">
+                        <thead>
+                            <tr>
+                                <th style="width:35%">Guruh</th>
+                                <th class="text-center" style="width:12%">Darslar</th>
+                                <th class="text-center" style="width:10%">Foiz</th>
+                                <th class="text-end" style="width:20%">Daromad</th>
+                                <th style="width:23%"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in salary_data.details %}
+                            <tr class="income-row">
+                                <td>
+                                    <div class="income-group-name">{{ d.group_name }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="att-pill">{{ d.attendance }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="pct-pill">{{ d.fi }}%</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="income-amount format-money">{{ d.salary|floatformat:0 }}</div>
+                                    <div class="income-currency">so'm</div>
+                                </td>
+                                <td class="bar-cell ps-3">
+                                    <div class="income-bar-wrap">
+                                        <div class="income-bar-fill" style="width: {% widthratio d.salary current_max_salary 100 %}%"></div>
+                                    </div>
+                                    <div class="income-bar-pct">{% widthratio d.salary salary_data.salary 100 %}%</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="income-total-row">
+                                <td><span class="income-total-label">Jami</span></td>
+                                <td class="text-center text-white-50" style="font-size:12px;">—</td>
+                                <td class="text-center text-white-50" style="font-size:12px;">—</td>
+                                <td class="text-end">
+                                    <div class="income-total-amount format-money">{{ salary_data.salary|floatformat:0 }}</div>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="d-flex flex-column align-items-center justify-content-center py-5 gap-2">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size:32px;color:rgba(255,255,255,0.1);"></i>
+                    <div class="text-white-50" style="font-size:14px;">Bu oy hali davomat qayd etilmagan</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    </div><!-- /prognoz-wrapper -->
 
     <!-- CHARTS SECTION -->
     <div class="row g-4">
@@ -328,24 +557,273 @@
         border: 2px solid #facc15;
         object-fit: cover;
     }
-    .table-dark-glass {
-        color: white;
+    /* ═══════════════════════════════════
+       PROGNOZ CARD
+       ═══════════════════════════════════ */
+    .prognoz-card {
+        border: 1px solid rgba(168, 85, 247, 0.25) !important;
     }
-    .table-dark-glass thead th {
-        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-        text-transform: uppercase;
+    .prognoz-header {
+        background: rgba(168, 85, 247, 0.06);
+        border-bottom: 1px solid rgba(168, 85, 247, 0.12);
+    }
+    .prognoz-icon {
+        width: 44px; height: 44px; border-radius: 14px;
+        background: rgba(168, 85, 247, 0.15);
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        display: flex; align-items: center; justify-content: center;
+        color: #a855f7; font-size: 18px; flex-shrink: 0;
+    }
+    .prognoz-title { font-size: 15px; font-weight: 800; color: #fff; }
+    .prognoz-subtitle { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .prognoz-left {
+        border-right: 1px solid rgba(255,255,255,0.07);
+        background: rgba(168, 85, 247, 0.03);
+    }
+    .prognoz-amount {
+        font-size: clamp(26px, 3.5vw, 38px);
+        font-weight: 900;
+        color: #c084fc;
+        letter-spacing: -1.5px;
+        line-height: 1;
+    }
+    .prognoz-currency { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 4px; font-weight: 600; }
+    .prognoz-meta { display: flex; flex-direction: column; gap: 6px; }
+    .prognoz-meta-item {
+        display: flex; align-items: center; gap: 7px;
+        font-size: 12px; color: rgba(255,255,255,0.45);
+    }
+    .prognoz-meta-item i { color: #a855f7; font-size: 11px; }
+
+    /* Delta badge */
+    .delta-badge {
+        padding: 7px 16px; border-radius: 99px;
+        font-size: 12px; font-weight: 800; white-space: nowrap;
+    }
+    .delta-up   { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+    .delta-down { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .delta-flat { background: rgba(255,255,255,0.06); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+
+    /* ── Formula tooltip ── */
+    .formula-trigger {
+        position: relative;
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: 12px; color: rgba(255,255,255,0.4);
+        background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2);
+        border-radius: 99px; padding: 7px 14px;
+        cursor: help; transition: all 0.2s; user-select: none;
+    }
+    .formula-trigger:hover {
+        background: rgba(168,85,247,0.18); border-color: rgba(168,85,247,0.45);
+        color: #d8b4fe;
+    }
+    .formula-box {
+        position: absolute; bottom: calc(100% + 12px); left: 0;
+        min-width: 300px; max-width: 340px;
+        background: #1a2744; border: 1px solid rgba(168,85,247,0.35);
+        border-radius: 16px; padding: 16px;
+        z-index: 9999; pointer-events: none;
+        opacity: 0; transform: translateY(8px);
+        transition: opacity 0.2s, transform 0.2s;
+        box-shadow: 0 24px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.1);
+    }
+    .formula-trigger:hover .formula-box {
+        opacity: 1; pointer-events: auto; transform: translateY(0);
+    }
+    .formula-box-title {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+        color: #a855f7; font-weight: 800; margin-bottom: 12px;
+    }
+    .formula-step {
+        display: flex; align-items: flex-start; gap: 10px;
+        font-size: 12px; color: rgba(255,255,255,0.75);
+        margin-bottom: 8px; line-height: 1.5;
+    }
+    .formula-step-num {
+        width: 20px; height: 20px; border-radius: 50%;
+        background: rgba(168,85,247,0.2); color: #c084fc;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 800; flex-shrink: 0;
+    }
+    .formula-divider {
+        height: 1px; background: rgba(255,255,255,0.08); margin: 10px 0;
+    }
+    .formula-result {
+        font-size: 12px; color: rgba(255,255,255,0.6);
+        background: rgba(168,85,247,0.08); border-radius: 10px; padding: 8px 10px;
+        line-height: 1.6;
+    }
+    .formula-result .text-purple { color: #c084fc; }
+
+    /* ── Breakdown rows ── */
+    .breakdown-grid { display: flex; flex-direction: column; gap: 0; }
+    .breakdown-row {
+        padding: 11px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-group-name {
+        font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.85);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        max-width: 260px;
+    }
+    .breakdown-amount {
+        font-size: 14px; font-weight: 900; color: #c084fc; white-space: nowrap;
+    }
+    .breakdown-bar-wrap {
+        flex: 1; height: 5px; border-radius: 99px;
+        background: rgba(255,255,255,0.07);
+    }
+    .breakdown-bar-fill {
+        height: 5px; border-radius: 99px; min-width: 3px;
+        background: linear-gradient(90deg, #a855f7, #7c3aed);
+        transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* Per-student pill with tooltip */
+    .per-student-pill {
+        position: relative; cursor: help;
+        display: inline-flex; align-items: center;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 99px; padding: 3px 10px; flex-shrink: 0;
+    }
+    .ps-count { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); }
+    .ps-tooltip {
+        position: absolute; bottom: calc(100% + 10px); right: 0;
+        min-width: 230px; background: #1a2744;
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+        padding: 13px; z-index: 9999;
+        opacity: 0; pointer-events: none;
+        transform: translateY(6px);
+        transition: opacity 0.18s, transform 0.18s;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.55);
+    }
+    .per-student-pill:hover .ps-tooltip {
+        opacity: 1; pointer-events: auto; transform: translateY(0);
+    }
+    .ps-tooltip-title {
+        font-size: 11px; font-weight: 800; color: #c084fc;
+        text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ps-formula-line {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 5px; font-size: 12px;
+    }
+    .ps-label { color: rgba(255,255,255,0.45); }
+    .ps-val { color: rgba(255,255,255,0.8); font-weight: 700; }
+    .ps-formula-result {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding-top: 6px; margin-top: 4px;
+    }
+    .ps-val-result { color: #a855f7; font-weight: 800; }
+    .ps-formula-total {
+        background: rgba(168,85,247,0.1); border-radius: 8px;
+        padding: 4px 6px; margin-top: 3px;
+    }
+    .ps-val-total { color: #c084fc; font-weight: 900; font-size: 13px; }
+
+    /* ═══════════════════════════════════
+       SECTION HEADER (bu oy table)
+       ═══════════════════════════════════ */
+    .section-header {
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        background: rgba(14,165,233,0.05);
+    }
+    .section-icon {
+        width: 40px; height: 40px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+    }
+    .section-icon-blue {
+        background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3); color: #38bdf8;
+    }
+    .section-title { font-size: 14px; font-weight: 800; color: #fff; }
+    .section-subtitle { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    /* ── Income table ── */
+    .income-table { border-collapse: collapse; }
+    .income-table thead th {
+        padding: 10px 16px;
+        font-size: 10px; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 1px; color: rgba(255,255,255,0.35);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .income-row td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .income-row:hover td { background: rgba(255,255,255,0.02); }
+    .income-row:last-child td { border-bottom: none; }
+    .income-group-name {
+        font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.85);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+    .att-pill {
+        display: inline-block; padding: 3px 10px; border-radius: 99px;
+        font-size: 12px; font-weight: 700;
+        background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+    }
+    .pct-pill {
+        display: inline-block; padding: 3px 10px; border-radius: 99px;
+        font-size: 12px; font-weight: 700;
+        background: rgba(34,197,94,0.1); color: #4ade80;
+    }
+    .income-amount { font-size: 14px; font-weight: 900; color: #fff; }
+    .income-currency { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 600; }
+    .income-bar-wrap {
+        height: 6px; border-radius: 99px;
+        background: rgba(255,255,255,0.07);
+    }
+    .income-bar-fill {
+        height: 6px; border-radius: 99px; min-width: 4px;
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+        transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+    .income-bar-pct {
+        font-size: 10px; color: rgba(255,255,255,0.3);
+        margin-top: 3px; text-align: right; font-weight: 700;
+    }
+    .income-total-row td {
+        padding: 12px 16px;
+        border-top: 2px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.02);
+    }
+    .income-total-label { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .income-total-amount { font-size: 18px; font-weight: 900; color: #22c55e; }
+
+    /* ═══════════════════════════════════
+       PROGNOZ TOGGLE
+       ═══════════════════════════════════ */
+    .prognoz-toggle-btn {
+        display: inline-flex; align-items: center;
+        padding: 9px 20px; border-radius: 99px;
+        background: rgba(168,85,247,0.12);
+        border: 1px solid rgba(168,85,247,0.3);
+        color: #c084fc; font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: all 0.2s; gap: 0;
+    }
+    .prognoz-toggle-btn:hover {
+        background: rgba(168,85,247,0.22);
+        border-color: rgba(168,85,247,0.5);
+        color: #e9d5ff;
+        transform: translateY(-1px);
+    }
+    .prognoz-arrow {
+        transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
         font-size: 11px;
-        letter-spacing: 1px;
-        padding: 15px;
-        color: rgba(255, 255, 255, 0.5);
     }
-    .table-dark-glass tbody td {
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        vertical-align: middle;
+    .prognoz-arrow.open { transform: rotate(180deg); }
+
+    /* Collapse animation */
+    .prognoz-wrapper-collapsed {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
     }
-    .table-dark-glass tbody tr:hover {
-        background: rgba(255, 255, 255, 0.03);
+    .prognoz-wrapper-open {
+        overflow: visible;
+        max-height: 4000px;
+        opacity: 1;
+        transition: max-height 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease;
     }
 </style>
 {{ daily_labels|json_script:"daily-labels-data" }}
@@ -537,6 +1015,41 @@
             }
         }
     });
+</script>
+
+<script>
+    const PROGNOZ_KEY = 'prognoz_open_{{ request.user.id }}';
+
+    function togglePrognoz() {
+        const wrapper = document.getElementById('prognoz-wrapper');
+        const label   = document.getElementById('prognoz-toggle-label');
+        const arrow   = document.getElementById('prognoz-toggle-arrow');
+        const isOpen  = wrapper.classList.contains('prognoz-wrapper-open');
+
+        if (isOpen) {
+            wrapper.classList.replace('prognoz-wrapper-open', 'prognoz-wrapper-collapsed');
+            label.textContent = "To'liq ko'rish";
+            arrow.classList.remove('open');
+            localStorage.setItem(PROGNOZ_KEY, '0');
+        } else {
+            wrapper.classList.replace('prognoz-wrapper-collapsed', 'prognoz-wrapper-open');
+            label.textContent = "Yashirish";
+            arrow.classList.add('open');
+            localStorage.setItem(PROGNOZ_KEY, '1');
+        }
+    }
+
+    // Sahifa ochilganda holatni tiklash
+    (function() {
+        if (localStorage.getItem(PROGNOZ_KEY) === '1') {
+            const wrapper = document.getElementById('prognoz-wrapper');
+            const label   = document.getElementById('prognoz-toggle-label');
+            const arrow   = document.getElementById('prognoz-toggle-arrow');
+            wrapper.classList.replace('prognoz-wrapper-collapsed', 'prognoz-wrapper-open');
+            label.textContent = "Yashirish";
+            arrow.classList.add('open');
+        }
+    })();
 </script>
 
 {% endblock %}

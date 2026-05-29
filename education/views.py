@@ -9074,15 +9074,16 @@ def teacher_income_dashboard(request):
     selected_month = _get_int(request.GET, "month", today.month)
     
     from core.tenant import get_request_center
+    from education.services.expected_income_service import calculate_expected_income
     center = get_request_center(request)
 
     # HistoricalFinanceService orqali ma'lumotlarni olish (snapshot yoki dinamik)
     salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, selected_year, selected_month, center)
-    
+
     # Get all 12 months for the yearly chart efficiently
     monthly_income = HistoricalFinanceService.get_yearly_teacher_salary(teacher, selected_year, center)
     total_year_income = sum(monthly_income)
-    
+
     # Get daily breakdown for the selected month (now returned by the service)
     _, num_days = calendar.monthrange(selected_year, selected_month)
     daily_income_long = salary_data.get('daily_breakdown', [0] * 31)
@@ -9099,6 +9100,31 @@ def teacher_income_dashboard(request):
         (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
         (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr")
     ]
+    months_dict = dict(months_list)
+
+    # Prognoz: tanlangan oy uchun maksimal kutilgan va kelasi oy uchun
+    current_expected = calculate_expected_income(teacher, selected_year, selected_month, center)
+    if selected_month == 12:
+        next_year, next_month = selected_year + 1, 1
+    else:
+        next_year, next_month = selected_year, selected_month + 1
+    next_expected = calculate_expected_income(teacher, next_year, next_month, center)
+
+    # Progress foiz: bu oy qanchasi yig'ildi (maksimaldan)
+    current_max = current_expected.get("expected_income", 0)
+    current_salary = salary_data.get("salary", 0)
+    progress_pct = min(100, int(current_salary / current_max * 100)) if current_max > 0 else 0
+
+    # Kelasi oy o'zgarish foizi (joriy oyga nisbatan)
+    next_income = next_expected.get("expected_income", 0)
+    if current_max > 0:
+        delta_pct = round((next_income - current_max) / current_max * 100, 1)
+    else:
+        delta_pct = 0
+
+    # Bar widths uchun max qiymatlar
+    next_max_group = max((g['group_total'] for g in next_expected.get('breakdown', []) if g['group_total']), default=1)
+    current_max_salary = max((d['salary'] for d in salary_data.get('details', []) if d['salary']), default=1)
 
     ctx = {
         'teacher': teacher,
@@ -9112,13 +9138,24 @@ def teacher_income_dashboard(request):
         'monthly_labels': monthly_labels,
         'years': years,
         'months_list': months_list,
+        'months_dict': months_dict,
         'is_locked': salary_data.get('is_locked', False),
         'is_admin': is_admin,
+        # Prognoz
+        'current_expected': current_expected,
+        'next_expected': next_expected,
+        'next_year': next_year,
+        'next_month': next_month,
+        'next_month_name': months_dict.get(next_month, ""),
+        'progress_pct': progress_pct,
+        'delta_pct': delta_pct,
+        'next_max_group': next_max_group,
+        'current_max_salary': current_max_salary,
     }
-    
+
     if is_admin:
         ctx['teachers_list'] = User.objects.filter(role='teacher', is_active=True)
-    
+
     return render(request, "education/teacher_income_dashboard.html", ctx)
 
 
