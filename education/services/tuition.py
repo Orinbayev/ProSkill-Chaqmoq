@@ -825,10 +825,16 @@ def teacher_monthly_financials(
     teacher_percent: Optional[int] = None,
 ) -> dict:
     """
-    O'qituvchi payoutini har doim asl kurs narxidan hisoblaydi va oylik
-    maksimumdan oshirmaydi.
+    O'qituvchi to'lovini standart oylik dars narxidan hisoblaydi.
+
+    Formula:
+      per_lesson = (kurs_narxi × foiz%) / standart_dars_soni
+      teacher_salary = per_lesson × REAL dars soni
+
+    Standart oyda 12 dars bo'lsa ham, 13 yoki 14 dars bo'lganda
+    o'qituvchi har ortiqcha dars uchun qo'shimcha per_lesson oladi.
+    O'quvchi to'lovi (turnover) kurs narxidan oshmaydi.
     """
-    group = getattr(enrollment, "group", None)
     monthly_lessons = _monthly_lessons_count(enrollment)
 
     billable_lessons = max(0, int(billable_lessons or 0))
@@ -847,11 +853,24 @@ def teacher_monthly_financials(
             "turnover_cap": 0,
         }
 
+    # Standart oylik o'qituvchi ulushi (masalan: 250_000 × 50% = 125_000)
     teacher_salary_cap = round_div(full_amount * effective_percent, 100)
     turnover_cap = int(full_amount)
 
-    turnover = min(proportional_amount(full_amount, billable_lessons, monthly_lessons), turnover_cap)
-    teacher_salary = min(round_div(turnover * effective_percent, 100), teacher_salary_cap)
+    # Per-lesson teacher amount, rounded evenly:
+    #   round_div(125_000 × 12, 12) = 125_000  (12 dars)
+    #   round_div(125_000 × 13, 12) = 135_417  (13 dars)
+    #   round_div(125_000 × 14, 12) = 145_834  (14 dars)
+    teacher_salary = (
+        round_div(teacher_salary_cap * billable_lessons, monthly_lessons)
+        if monthly_lessons > 0 else 0
+    )
+
+    # O'quvchi to'lovi kurs narxidan oshmaydi
+    turnover = min(
+        proportional_amount(full_amount, billable_lessons, monthly_lessons),
+        turnover_cap,
+    )
     center_profit = turnover - teacher_salary
 
     return {
