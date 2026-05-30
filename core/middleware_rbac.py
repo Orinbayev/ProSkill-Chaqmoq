@@ -30,6 +30,7 @@ SKIP_PREFIXES = (
     '/static/',
     '/media/',
     '/admin/',
+    '/logout/',
     '/hisob/login/',
     '/hisob/logout/',
     '/hisob/billing/',
