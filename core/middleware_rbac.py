@@ -10,10 +10,20 @@ Bu middleware:
 """
 
 import logging
+import re
 from django.shortcuts import redirect
 from django.urls import resolve, Resolver404
 
 logger = logging.getLogger(__name__)
+
+# Slug sifatida hech qachon qabul qilinmaydigan prefikslar (core.middleware dan mos)
+_SLUG_EXCLUDED = {
+    'admin', 'platform', 'hisob', 'static', 'media', 'api',
+    'health', 'logout', 'c', 'emergency-enter-now', 'favicon.ico',
+    '__debug__', 'chaqmoq', 'talim', 'billing', 'store', 'click',
+    'chat', 'games', 'notifications', 'permissions',
+}
+_SLUG_PATH_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})(/.+)$')
 
 # Barcha rollar uchun ochiq yo'llar (tekshirilmaydi)
 SKIP_PREFIXES = (
@@ -166,6 +176,20 @@ class RoleBasedAccessMiddleware:
 
         namespace = resolved.namespace or ''
         url_name = resolved.url_name or ''
+
+        # Slug-prefix URL lar uchun namespace bo'sh bo'ladi (masalan /<slug>/talim/...)
+        # Slugni olib tashlab, canonical namespace ni topamiz
+        if not namespace:
+            m = _SLUG_PATH_RE.match(path)
+            if m and m.group(1) not in _SLUG_EXCLUDED:
+                try:
+                    canonical = resolve(m.group(2))
+                    if canonical.namespace:
+                        namespace = canonical.namespace
+                        url_name = canonical.url_name or url_name
+                except Resolver404:
+                    pass
+
         full_name = f"{namespace}:{url_name}" if namespace else url_name
 
         # Ruxsat tekshiruvi
