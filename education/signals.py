@@ -17,8 +17,8 @@ def create_teacher_income(sender, instance, created, **kwargs):
         if closed:
             return  # QULFLANGAN OY - tegilmasin!
 
-    # 1. To'lanadigan holatlar: "Keldi" yoki "Sababsiz"
-    is_billable = instance.status == 'present' or instance.status == 'absent_unexcused' or getattr(instance, 'forced', False) or getattr(instance, 'present', False)
+    # 1. To'lanadigan holatlar: "Keldi", "Sababsiz" yoki "Kech qoldi"
+    is_billable = instance.status in ('present', 'absent_unexcused', 'late') or getattr(instance, 'forced', False) or getattr(instance, 'present', False)
 
     if not is_billable:
         # To'lanmaydigan holatda (Sababli) eski yozuvni o'chiradi
