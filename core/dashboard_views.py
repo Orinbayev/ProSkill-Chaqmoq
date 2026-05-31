@@ -2336,44 +2336,50 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         xavfli_students = []
 
-    # ── Qarzdorlar (kumulativ, barcha to'lanmagan oylar) ──────────
+    # ── Qarzdorlar (ko'rsatilgan sanadagi kümülatif qarzlar) ──────────
     total_debt = 0
     total_debtors = 0
     try:
-        from django.db.models import OuterRef, Subquery
-        from django.db.models.functions import Coalesce
-        from education.models import TuitionMonth
-        debt_month = d_to.replace(day=1)
-        fee_field = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
-        fee_sub = (
-            TuitionMonth.objects
-            .filter(enrollment=OuterRef("pk"), month=debt_month, is_deleted=False)
-            .values("enrollment")
-            .annotate(s=Sum(fee_field))
-            .values("s")
+        from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts
+        
+        # 1. Enrollments list (active non-deferred + inactive with potential debt)
+        _active_base = Enrollment.objects.filter(
+            group__center=center,
+            is_active=True,
+            student__is_archived=False,
+            is_deferred=False,
         )
-        paid_sub = (
-            PaymentAllocation.objects
-            .filter(
-                tuition_month__enrollment=OuterRef("pk"),
-                tuition_month__month=debt_month,
-                tuition_month__is_deleted=False,
-                payment__is_deleted=False,
-            )
-            .values("tuition_month__enrollment")
-            .annotate(s=Sum("amount"))
-            .values("s")
+        if branch:
+            _active_base = _active_base.filter(group__branch=branch)
+            
+        _inactive_base = Enrollment.objects.filter(
+            group__center=center,
+            is_active=False,
+            student__is_archived=False,
         )
-        debt_qs = (
-            active_enroll
-            .filter(is_deferred=False)
-            .annotate(_fee=Coalesce(Subquery(fee_sub), 0))
-            .annotate(_paid=Coalesce(Subquery(paid_sub), 0))
-            .annotate(d=F("_fee") - F("_paid"))
-            .filter(d__gt=0)
-        )
-        total_debt = int(debt_qs.aggregate(s=Sum("d"))["s"] or 0)
-        total_debtors = debt_qs.values("student").distinct().count()
+        if branch:
+            _inactive_base = _inactive_base.filter(group__branch=branch)
+
+        _target_enrs = list(_active_base) + list(_inactive_base)
+        
+        if _target_enrs:
+             preload_enrollment_history_starts(_target_enrs)
+             # Bizga target_date (d_to) dagi kümülatif qarz kerak
+             snaps = calculate_enrollment_debt_snapshots(
+                 _target_enrs, 
+                 [month_first_day(d_to)], 
+                 cumulative_up_to=d_to
+             )
+             
+             _enr_to_student = {e.id: e.student_id for e in _target_enrs}
+             debtor_student_ids = set()
+             for enr_id, snap in snaps.items():
+                 d = int(snap.get("net_cumulative_debt", 0) or 0)
+                 if d > 0:
+                     total_debt += d
+                     debtor_student_ids.add(_enr_to_student.get(enr_id))
+             total_debtors = len(debtor_student_ids)
+
     except Exception:
         total_debt = 0
         total_debtors = 0
@@ -2420,39 +2426,37 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     # Qarzdorlar (snapshot) — oldingi davr oxirida
     prev_total_debt = 0
     try:
-        from django.db.models import OuterRef, Subquery
-        from django.db.models.functions import Coalesce
-        from education.models import TuitionMonth
-        prev_debt_month = _pt.replace(day=1)
-        fee_field2 = "fee_amount" if hasattr(TuitionMonth, "fee_amount") else "summa"
-        prev_fee_sub = (
-            TuitionMonth.objects
-            .filter(enrollment=OuterRef("pk"), month=prev_debt_month, is_deleted=False)
-            .values("enrollment")
-            .annotate(s=Sum(fee_field2))
-            .values("s")
+        from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts
+        
+        _prev_active = Enrollment.objects.filter(
+            group__center=center,
+            is_active=True,
+            student__is_archived=False,
+            is_deferred=False,
         )
-        prev_paid_sub = (
-            PaymentAllocation.objects
-            .filter(
-                tuition_month__enrollment=OuterRef("pk"),
-                tuition_month__month=prev_debt_month,
-                tuition_month__is_deleted=False,
-                payment__is_deleted=False,
-            )
-            .values("tuition_month__enrollment")
-            .annotate(s=Sum("amount"))
-            .values("s")
+        if branch:
+            _prev_active = _prev_active.filter(group__branch=branch)
+            
+        _prev_inactive = Enrollment.objects.filter(
+            group__center=center,
+            is_active=False,
+            student__is_archived=False,
         )
-        prev_debt_qs = (
-            active_enroll
-            .filter(is_deferred=False)
-            .annotate(_pfee=Coalesce(Subquery(prev_fee_sub), 0))
-            .annotate(_ppaid=Coalesce(Subquery(prev_paid_sub), 0))
-            .annotate(d=F("_pfee") - F("_ppaid"))
-            .filter(d__gt=0)
-        )
-        prev_total_debt = int(prev_debt_qs.aggregate(s=Sum("d"))["s"] or 0)
+        if branch:
+            _prev_inactive = _prev_inactive.filter(group__branch=branch)
+
+        _prev_enrs = list(_prev_active) + list(_prev_inactive)
+        
+        if _prev_enrs:
+             preload_enrollment_history_starts(_prev_enrs)
+             prev_snaps = calculate_enrollment_debt_snapshots(
+                 _prev_enrs, 
+                 [month_first_day(_pt)], 
+                 cumulative_up_to=_pt
+             )
+             for snap in prev_snaps.values():
+                 prev_total_debt += int(snap.get("net_cumulative_debt", 0) or 0)
+
     except Exception:
         prev_total_debt = 0
 
