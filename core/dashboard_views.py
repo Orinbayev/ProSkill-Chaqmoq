@@ -3190,6 +3190,13 @@ def director_boshqaruv_chat(request):
         today = timezone.localdate()
         d_from = today.replace(day=1)
         stats = _boshqaruv_payload(center, d_from, today)
+        # AI engine davrni bilishi uchun system qismini qo'shamiz
+        stats["system"] = {
+            "start_date": d_from.isoformat(),
+            "end_date": today.isoformat(),
+            "last_updated": timezone.now().isoformat(),
+        }
+
         try:
             from core.services.ai_insights import answer_question_structured_bundle
             answer, source, _ = answer_question_structured_bundle(
@@ -3201,7 +3208,7 @@ def director_boshqaruv_chat(request):
             )
         except Exception as e:
             answer = f"Hozircha AI javob bera olmayapti. Xato: {str(e)[:120]}"
-        source = "error"
+            source = "error"
 
     # 4) AI javobini saqlaymiz (xato bo'lsa ham — tarix uchun)
     DirectorAIChatMessage.objects.create(

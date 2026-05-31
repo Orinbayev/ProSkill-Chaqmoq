@@ -15,6 +15,80 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
+def _normalize_input_stats(stats: dict) -> dict:
+    """
+    Normalizes 'stats' from different sources (e.g. dashboard_views._boshqaruv_payload)
+    to a standard internal schema used by AI insights.
+    """
+    if not stats:
+        return {}
+    
+    # If it's already normalized (standard schema), return as is
+    if "finance" in stats and "students" in stats and "kpis" not in stats:
+        return stats
+        
+    # If it's the dashboard_views schema (with 'kpis')
+    if "kpis" in stats:
+        kpis = stats.get("kpis") or {}
+        changes = kpis.get("changes") or {}
+        charts = stats.get("charts") or {}
+        
+        # Build finance object
+        finance = {
+            "income": kpis.get("revenue"),
+            "income_previous": None,
+            "income_growth": changes.get("revenue"),
+            "profit": kpis.get("net_profit"),
+            "profit_margin": None,
+            "open_debt": kpis.get("total_debt"),
+            "debtors_count": kpis.get("total_debtors"),
+            "expense": kpis.get("expenses"),
+        }
+        
+        # Build students object
+        students = {
+            "active_students": kpis.get("active_students"),
+            "total": kpis.get("total_students"),
+            "new_count": kpis.get("new_this_month"),
+            "growth": changes.get("active_students"),
+        }
+        
+        # Build teachers object
+        teachers = {
+            "total_count": kpis.get("teachers_count"),
+            "growth": changes.get("teachers"),
+        }
+        
+        # Build groups object
+        groups = {
+            "total_count": kpis.get("total_groups"),
+            "active_count": kpis.get("active_groups"),
+        }
+        
+        # Build marketing object
+        marketing = {
+            "total_leads": kpis.get("total_leads"),
+            "conversion_rate": kpis.get("conv_rate"),
+            "growth": changes.get("leads"),
+        }
+        
+        # Build system object
+        system = stats.get("system") or {}
+        
+        return {
+            "finance": finance,
+            "students": students,
+            "teachers": teachers,
+            "groups": groups,
+            "marketing": marketing,
+            "system": system,
+            "dashboard_origin": True,
+            "kpis": kpis, # Keep for safety
+            "charts": charts,
+        }
+        
+    return stats
+
 from accounts.models import Center, User
 from chaqmoq.models import Ledger
 from core.services.center_ai_context import (
@@ -29,7 +103,8 @@ from core.services.center_ai_context import (
     get_teacher_full_info,
 )
 from core.services.center_ai_security import can_view_private_details, guard_cross_center_question, privacy_mode_label
-from education.models import Attendance, Enrollment, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
+from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
+from store.models import Lead
 
 try:
     from google import genai as google_genai
@@ -748,6 +823,36 @@ def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
                 "data": {"type": "month_revenue", "month": f"{year}-{month_num:02d}", **fin["summary"]},
             }
 
+    # ── Jami o'quvchilar soni ───────────────────────────────────────────
+    if _question_has(q, "nechta", "qancha", "soni") and _question_has(q, "o'quvchi", "student"):
+        total = User.objects.filter(center=center, role="student", is_archived=False).count()
+        active = Enrollment.objects.filter(center=center, is_active=True).values("student").distinct().count()
+        answer = f"Hozirda markazda jami {total} ta o'quvchi bor, shundan {active} tasi faol darslarga qatnashyapti."
+        return {
+            "answer": answer,
+            "data": {"type": "student_counts", "total": total, "active": active},
+        }
+
+    # ── Jami qarzdorlik ────────────────────────────────────────────────
+    if _question_has(q, "jami qarz", "umumiy qarz", "qancha qarz bor"):
+        from core.services.center_ai_context import _center_total_debt
+        total_debt = _center_total_debt(center)
+        answer = f"Markazning hozirgi umumiy qarzdorligi {_compact_money(total_debt)} ni tashkil qilmoqda."
+        return {
+            "answer": answer,
+            "data": {"type": "total_debt", "amount": total_debt},
+        }
+
+    # ── Guruhlar soni ──────────────────────────────────────────────────
+    if _question_has(q, "nechta", "qancha") and _question_has(q, "guruh", "group"):
+        total_groups = Group.objects.filter(center=center, is_archived=False).count()
+        active_groups = Group.objects.filter(center=center, is_archived=False, is_closed=False).count()
+        answer = f"Hozirda jami {total_groups} ta guruh bor, shundan {active_groups} tasi faol holatda."
+        return {
+            "answer": answer,
+            "data": {"type": "group_counts", "total": total_groups, "active": active_groups},
+        }
+
     search_requested = bool(search_query) and (
         _question_has(q, "haqida", "telefon", "raqam", "kurs", "holat", "to'lov", "tolov", "qarz", "qarzi", "kim")
         or bool(re.search(r"\d{4,}", search_query))
@@ -931,16 +1036,19 @@ def _top_student_by_activity(roster: list[dict]) -> dict:
 
 
 def _site_context(center: Center, stats: dict) -> dict:
-    system = stats.get("system") or {}
-    filters = (stats.get("filters") or {}).get("applied") or {}
-    finance = stats.get("finance") or {}
-    students = stats.get("students") or {}
-    teachers = stats.get("teachers") or {}
-    groups = stats.get("groups") or {}
-    managers = stats.get("managers") or {}
-    requests = stats.get("requests") or {}
-    marketing = stats.get("marketing") or {}
-    executive = stats.get("executive") or {}
+    # First normalize the stats to ensure standard keys exist
+    normalized = _normalize_input_stats(stats)
+    
+    system = normalized.get("system") or {}
+    filters = (normalized.get("filters") or {}).get("applied") or {}
+    finance = normalized.get("finance") or {}
+    students = normalized.get("students") or {}
+    teachers = normalized.get("teachers") or {}
+    groups = normalized.get("groups") or {}
+    managers = normalized.get("managers") or {}
+    requests = normalized.get("requests") or {}
+    marketing = normalized.get("marketing") or {}
+    executive = normalized.get("executive") or {}
 
     roster = students.get("roster") or []
     top_active_student = _top_student_by_activity(roster)
@@ -1049,13 +1157,16 @@ def _site_context(center: Center, stats: dict) -> dict:
 
 
 def _compact_context(stats: dict) -> dict:
-    finance = stats.get("finance", {})
-    students = stats.get("students", {})
-    teachers = stats.get("teachers", {})
-    groups = stats.get("groups", {})
-    marketing = stats.get("marketing", {})
-    plans = stats.get("plans", {})
-    executive = stats.get("executive", {})
+    # Use normalized stats for summary context
+    normalized = _normalize_input_stats(stats)
+    
+    finance = normalized.get("finance", {})
+    students = normalized.get("students", {})
+    teachers = normalized.get("teachers", {})
+    groups = normalized.get("groups", {})
+    marketing = normalized.get("marketing", {})
+    plans = normalized.get("plans", {})
+    executive = normalized.get("executive", {})
     top_teacher = (teachers.get("ranking") or [{}])[0]
     weak_teacher = sorted(teachers.get("ranking") or [], key=lambda item: item.get("health_score", 0))[:1]
     top_risk = (students.get("risk_students") or [{}])[0]
