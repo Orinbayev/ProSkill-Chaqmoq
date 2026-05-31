@@ -23,6 +23,47 @@
     --radius: 16px;
   }
 
+  /* Light Mode Overrides */
+  html[data-role-theme="light"] {
+    --bg-dark: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-hover: rgba(37, 99, 235, 0.04);
+    --border: rgba(148, 163, 184, 0.22);
+    --border-hover: rgba(37, 99, 235, 0.18);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --glass: rgba(255, 255, 255, 0.8);
+  }
+
+  html[data-role-theme="light"] .edit-card {
+    box-shadow: 0 10px 40px rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .form-input,
+  html[data-role-theme="light"] .form-select,
+  html[data-role-theme="light"] .form-textarea {
+    background: rgba(37, 99, 235, 0.03) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .gender-option label {
+    background: rgba(37, 99, 235, 0.04) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #64748b !important;
+  }
+
+  html[data-role-theme="light"] .btn-secondary {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .btn-secondary:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1d4ed8;
+  }
+
   .edit-scope {
     background: var(--bg-dark);
     min-height: 100vh;
@@ -46,7 +87,7 @@
   .page-title {
     font-size: 24px;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -95,7 +136,7 @@
     border-radius: 10px !important;
     height: 48px;
     padding: 0 16px !important;
-    color: white !important;
+    color: var(--text-main) !important;
     font-size: 14px;
     outline: none;
     width: 100%;
@@ -155,7 +196,7 @@
 
   .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: white;
+    color: var(--text-main);
   }
 
   .full-width {
@@ -186,7 +227,7 @@
   }
 
   .password-toggle:hover {
-    color: white;
+    color: var(--text-main);
   }
 
   /* Remove default Django help texts and error styling quirks if needed */
