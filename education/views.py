@@ -3041,10 +3041,9 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
-    # Chart: dashboard bilan aynan bir xil filtr (is_deferred=False),
-    # virtual fee yo'q — faqat haqiqiy TuitionMonth yozuvlari hisoblanadi.
+    # Chart: Jami qarz bilan bir xil enrollments (_total_debt_enrs) ishlatamiz.
     chart_snapshots = calculate_enrollment_debt_snapshots(
-        active_enrs_qs.filter(is_deferred=False),
+        _total_debt_enrs,
         chart_months,
     )
     graph_map = {chart_month: 0 for chart_month in chart_months}
