@@ -2342,9 +2342,14 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     try:
         from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts
         
+        from education.models import TuitionMonth
+        
         # 1. Enrollments list (active non-deferred + inactive with potential debt)
+        # Dashboard va Qarzdorlar bo'limi 100% mos kelishi uchun filtrlarni bir xil qilamiz.
         _active_base = Enrollment.objects.filter(
             group__center=center,
+            group__is_archived=False,
+            group__is_deleted=False,
             is_active=True,
             student__is_archived=False,
             is_deferred=False,
@@ -2352,13 +2357,23 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         if branch:
             _active_base = _active_base.filter(group__branch=branch)
             
-        _inactive_base = Enrollment.objects.filter(
-            group__center=center,
-            is_active=False,
-            student__is_archived=False,
-        )
+        # Inactive: faqat TuitionMonth yozuvi mavjud bo'lganlarni olamiz (education/views.py dagi kabi)
+        _inactive_tm_filter = {
+            "enrollment__group__center": center,
+            "enrollment__group__is_archived": False,
+            "enrollment__group__is_deleted": False,
+            "enrollment__is_active": False,
+            "is_deleted": False,
+            "enrollment__student__is_archived": False,
+        }
         if branch:
-            _inactive_base = _inactive_base.filter(group__branch=branch)
+            _inactive_tm_filter["enrollment__group__branch"] = branch
+            
+        _inactive_enr_ids = TuitionMonth.objects.filter(
+            **_inactive_tm_filter
+        ).values_list("enrollment_id", flat=True).distinct()
+        
+        _inactive_base = Enrollment.objects.filter(id__in=_inactive_enr_ids)
 
         _target_enrs = list(_active_base) + list(_inactive_base)
         
