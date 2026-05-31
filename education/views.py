@@ -2829,12 +2829,14 @@ def qarzdorlar_home(request):
     # Dashboard bilan AYNAN bir xil filtr: is_deferred=False + aktiv enrollment.
     # Bu kechiktirilgan (deferred) o'quvchilarning to'lanmagan tarixiy
     # TuitionMonth yozuvlarini chiqarib tashlaydi — ular haqiqiy qarz emas.
-    _billing_enrs_qs = active_enrs_qs.filter(is_deferred=False)
+    # Jami qarz: active (non-deferred) + inactive (with debt)
+    _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
     _active_total_snaps = calculate_enrollment_debt_snapshots(
-        _billing_enrs_qs, chart_months, virtual_missing_months=[]
+        _total_debt_enrs, chart_months, 
+        cumulative_up_to=today
     )
     total_center_debt = sum(
-        int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
+        int(snap.get("net_cumulative_debt", 0) or 0) for snap in _active_total_snaps.values()
     )
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
@@ -3042,9 +3044,8 @@ def qarzdorlar_home(request):
     # Chart: dashboard bilan aynan bir xil filtr (is_deferred=False),
     # virtual fee yo'q — faqat haqiqiy TuitionMonth yozuvlari hisoblanadi.
     chart_snapshots = calculate_enrollment_debt_snapshots(
-        _billing_enrs_qs,
+        active_enrs_qs.filter(is_deferred=False),
         chart_months,
-        virtual_missing_months=[],
     )
     graph_map = {chart_month: 0 for chart_month in chart_months}
     for snapshot in chart_snapshots.values():
