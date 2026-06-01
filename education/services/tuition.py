@@ -1113,7 +1113,16 @@ def calculate_enrollment_debt_snapshots(
                     # O'chirilgan TuitionMonth — fee=0, virtual hisoblash yo'q
                     fee = 0
                 elif virtual_month_set is None or month in virtual_month_set:
-                    fee = int(prorated_monthly_fee(enrollment, month) or 0)
+                    if month < today_month_first:
+                        try:
+                            # Auto-lock past virtual month fee by persisting it in DB
+                            tm = ensure_tuition_month(enrollment, month)
+                            fee = int(getattr(tm, fee_field, 0) or 0)
+                            fee_map[key] = fee
+                        except Exception:
+                            fee = int(prorated_monthly_fee(enrollment, month) or 0)
+                    else:
+                        fee = int(prorated_monthly_fee(enrollment, month) or 0)
                 else:
                     fee = 0
             else:
@@ -1827,3 +1836,78 @@ def reallocate_enrollment(enrollment: Enrollment) -> None:
 
         tm = find_earliest_unpaid_month(enrollment, start_month=base)
         _allocate_amount_forward(enrollment=enrollment, payment=p, amount=total, start_month=tm.month)
+
+
+@transaction.atomic
+def auto_net_student_credits(student) -> None:
+    """
+    Automagically net out a student's cross-group credit balances and unpaid debts.
+    If Enrollment A has credit_balance > 0, and Enrollment B has unpaid TuitionMonth records,
+    we transfer the credit to pay off the debt on Enrollment B.
+    """
+    # 1. Fetch active enrollments
+    enrollments = list(
+        Enrollment.objects.filter(
+            student=student,
+            is_active=True,
+            group__is_deleted=False,
+            group__is_archived=False,
+        )
+    )
+    if len(enrollments) < 2:
+        return
+
+    # 2. Identify sources of credit (credit_balance > 0)
+    credit_sources = [e for e in enrollments if (e.credit_balance or 0) > 0]
+    if not credit_sources:
+        return
+
+    fee_field = tuition_month_fee_field()
+    for source in credit_sources:
+        # Get the latest payment for this source enrollment to allocate from
+        latest_payment = Payment.objects.filter(enrollment=source, is_deleted=False).order_by("-id").first()
+        if not latest_payment:
+            continue
+
+        # Get other active enrollments of the same student
+        other_enrollments = [e for e in enrollments if e.id != source.id]
+        for target in other_enrollments:
+            # Find unpaid TuitionMonth records for this target
+            unpaid_tms = TuitionMonth.objects.filter(
+                enrollment=target,
+                is_deleted=False,
+            ).order_by("month")
+
+            for tm in unpaid_tms:
+                # Refresh source credit balance
+                source.refresh_from_db(fields=["credit_balance"])
+                source_credit = int(source.credit_balance or 0)
+                if source_credit <= 0:
+                    break
+
+                # Calculate unpaid amount for this target month
+                tm_fee = int(getattr(tm, fee_field, 0) or 0)
+                if tm_fee <= 0:
+                    continue
+
+                tm_paid = get_month_paid(tm)
+                tm_debt = max(0, tm_fee - tm_paid)
+                if tm_debt <= 0:
+                    continue
+
+                # Transfer amount
+                transfer_amount = min(source_credit, tm_debt)
+                if transfer_amount > 0:
+                    # Create allocation
+                    PaymentAllocation.objects.create(
+                        center=target.center,
+                        payment=latest_payment,
+                        tuition_month=tm,
+                        amount=transfer_amount,
+                    )
+                    # Deduct from source credit_balance
+                    Enrollment.objects.filter(pk=source.pk).update(
+                        credit_balance=F("credit_balance") - transfer_amount
+                    )
+                    source.credit_balance = source_credit - transfer_amount
+

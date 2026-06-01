@@ -237,6 +237,12 @@ class PaymentCarryoverTests(TestCase):
     # ──────────────────────────────────────────────────────────────────────
     def test_single_payment_distributes_across_multiple_enrollments(self):
         from django.urls import reverse
+        self.enrollment.joined_at = self.cur_month
+        self.enrollment.save(update_fields=["joined_at"])
+        StudentGroupHistory.objects.filter(
+            student=self.student,
+            group=self.group,
+        ).update(start_date=self.cur_month)
 
         # 2-yo'nalish: 400k oylik (Programming kabi)
         prog_group = Group.objects.create(
@@ -383,3 +389,66 @@ class PaymentCarryoverTests(TestCase):
         # May hali qarzdor
         self.assertEqual(_allocations_sum(cur_tm), 0)
         self.assertEqual(cur_tm.fee_amount - _allocations_sum(cur_tm), 250_000)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Senariy: Guruhlararo avtomatik to'lov/kredit netting
+    # ──────────────────────────────────────────────────────────────────────
+    def test_automatic_cross_group_credit_netting(self):
+        from education.services.tuition import auto_net_student_credits
+        
+        # Pay off English enrollment fully first to avoid it stealing the credit balance
+        english_payment = create_payment_and_allocate(
+            enrollment=self.enrollment,
+            created_by=self.manager,
+            cash_amount=250_000,
+            card_amount_som=0,
+            start_month=self.cur_month,
+            paid_at=datetime.combine(self.today, datetime.min.time()),
+        )
+
+        # Now set the credit balance explicitly
+        self.enrollment.credit_balance = 100_000
+        self.enrollment.save(update_fields=["credit_balance"])
+
+        # 2. Create another active group (Math) with an unpaid debt
+        math_group = Group.objects.create(
+            center=self.center,
+            nom="Math Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=300_000,
+            oy_dars_soni=12,
+        )
+        math_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=math_group,
+            student=self.student,
+            kurs_narhi=300_000,
+            student_payable_amount=300_000,
+            is_active=True,
+            joined_at=self.cur_month,
+        )
+        StudentGroupHistory.objects.create(
+            student=self.student,
+            group=math_group,
+            center=self.center,
+            start_date=self.cur_month,
+            kurs_narxi=300_000,
+        )
+
+        math_tm = ensure_tuition_month(math_enrollment, self.cur_month)
+        self.assertEqual(math_tm.fee_amount, 300_000)
+
+        # 3. Initially, Math enrollment has 300k debt
+        self.assertEqual(_allocations_sum(math_tm), 0)
+
+        # 4. Trigger auto_net_student_credits
+        auto_net_student_credits(self.student)
+
+        # 5. Verify the credit was transferred!
+        self.enrollment.refresh_from_db()
+        math_tm.refresh_from_db()
+
+        # English credit balance should be decremented to 0
+        self.assertEqual(self.enrollment.credit_balance, 0)
+        # Math group should have 100k allocation from the English payment!
+        self.assertEqual(_allocations_sum(math_tm), 100_000)

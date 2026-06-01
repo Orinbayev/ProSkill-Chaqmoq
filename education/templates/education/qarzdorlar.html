@@ -10,6 +10,100 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
+<style>
+/* Debtors Multi-Group Premium Badge Layout */
+.group-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 450px;
+    padding: 2px 0;
+}
+
+.group-tag-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--m-border, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.group-tag-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--m-border-hover, rgba(255, 255, 255, 0.2));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.group-tag-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.group-tag-name {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--m-text, #ffffff);
+    line-height: 1.25;
+}
+
+.group-tag-meta {
+    font-size: 9.5px;
+    color: var(--m-text-muted, rgba(255, 255, 255, 0.5));
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+.group-tag-status {
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.group-tag-status-badge {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    display: inline-block;
+    line-height: 1;
+}
+
+.group-tag-status-badge--unpaid {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    font-feature-settings: 'tnum';
+}
+
+.group-tag-status-badge--paid {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+}
+</style>
+<script>
+function toggleRemainingGroups(link) {
+    const container = link.closest('.group-tags-container');
+    if (!container) return;
+    const wrapper = container.querySelector('.remaining-groups-wrapper');
+    if (!wrapper) return;
+    const remainingCount = link.getAttribute('data-remaining');
+    
+    if (wrapper.style.display === 'none') {
+        wrapper.style.display = 'flex';
+        link.innerText = 'Yashirish';
+    } else {
+        wrapper.style.display = 'none';
+        link.innerText = remainingCount + ' ta guruh ko\'rish';
+    }
+}
+</script>
 {% endblock %}
 
 {% block content %}
@@ -172,30 +266,58 @@
                             </td>
                             <td>
                                 {% if row.group_cards %}
-                                <div class="group-stack">
-                                    {% with first_card=row.group_cards|first hidden_count=row.group_cards|length|add:"-1" %}
-                                    <div class="group-mini">
-                                        <strong>{{ first_card.group_name }}</strong>
-                                        <span>{{ first_card.lesson_pattern_label }} • {{ first_card.lesson_count }} ta</span>
-                                    </div>
-                                    {% if hidden_count > 0 %}
-                                    <button
-                                        type="button"
-                                        class="group-more-btn"
-                                        data-group-toggle="group-extra-{{ row.student.id }}"
-                                        data-collapsed-label="{{ hidden_count }} ta guruh ko'rish">
-                                        {{ hidden_count }} ta guruh ko'rish
-                                    </button>
-                                    <div id="group-extra-{{ row.student.id }}" class="group-extra" hidden>
-                                        {% for group_card in row.group_cards|slice:"1:" %}
-                                        <div class="group-mini">
-                                            <strong>{{ group_card.group_name }}</strong>
-                                            <span>{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta</span>
+                                <div class="group-tags-container">
+                                    {% for group_card in row.group_cards %}
+                                        {% if forloop.first %}
+                                        <div class="group-tag-card">
+                                            <div class="group-tag-info">
+                                                <span class="group-tag-name">{{ group_card.group_name }}</span>
+                                                <span class="group-tag-meta">{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta dars</span>
+                                            </div>
+                                            <div class="group-tag-status">
+                                                {% if group_card.debt_amount > 0 %}
+                                                <span class="group-tag-status-badge group-tag-status-badge--unpaid">{{ group_card.debt_amount_display }}</span>
+                                                {% else %}
+                                                <span class="group-tag-status-badge group-tag-status-badge--paid">To'langan</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if row.group_cards|length > 1 %}
+                                    <div class="remaining-groups-wrapper" style="display: none; gap: 6px; flex-wrap: wrap;">
+                                        {% for group_card in row.group_cards %}
+                                            {% if not forloop.first %}
+                                            <div class="group-tag-card">
+                                                <div class="group-tag-info">
+                                                    <span class="group-tag-name">{{ group_card.group_name }}</span>
+                                                    <span class="group-tag-meta">{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta dars</span>
+                                                </div>
+                                                <div class="group-tag-status">
+                                                    {% if group_card.debt_amount > 0 %}
+                                                    <span class="group-tag-status-badge group-tag-status-badge--unpaid">{{ group_card.debt_amount_display }}</span>
+                                                    {% else %}
+                                                    <span class="group-tag-status-badge group-tag-status-badge--paid">To'langan</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
                                         {% endfor %}
                                     </div>
-                                    {% endif %}
+
+                                    {% with remaining_count=row.group_cards|length|add:"-1" %}
+                                    <div style="width: 100%; margin-top: 2px;">
+                                        <a href="javascript:void(0);" 
+                                           class="show-more-groups-link" 
+                                           onclick="toggleRemainingGroups(this);" 
+                                           style="font-size: 11px; font-weight: 600; color: #3b82f6; text-decoration: underline; transition: color 0.2s;"
+                                           data-remaining="{{ remaining_count }}">
+                                            {{ remaining_count }} ta guruh ko'rish
+                                        </a>
+                                    </div>
                                     {% endwith %}
+                                    {% endif %}
                                 </div>
                                 {% else %}
                                 <span class="pill-badge pill-badge--ghost">Guruhsiz</span>

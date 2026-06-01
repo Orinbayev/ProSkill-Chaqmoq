@@ -2818,8 +2818,18 @@ def qarzdorlar_home(request):
     # weekday counts. Bu N+1 muammoning ASOSIY manbasi — har enrollment uchun
     # alohida `GroupSchedule.objects.filter(group=...)` chaqiruvi qilinmaydi.
     preload_enrollment_history_starts(enrollment_list)
-    from education.services.tuition import preload_group_schedules
+    from education.services.tuition import preload_group_schedules, auto_net_student_credits
     preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
+
+    # Automagically net out cross-group credits and debts for each unique student in the list
+    seen_students = set()
+    for e in enrollment_list:
+        if e.student_id not in seen_students:
+            seen_students.add(e.student_id)
+            try:
+                auto_net_student_credits(e.student)
+            except Exception:
+                pass
 
     debt_snapshots = calculate_enrollment_debt_snapshots(
         enrollment_list, period_months
