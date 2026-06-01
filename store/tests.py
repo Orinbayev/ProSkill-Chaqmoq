@@ -1688,3 +1688,129 @@ class ProductStorePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Planner")
         self.assertContains(response, "Ko‘rish")
+
+
+class LeadGroupRevertTests(TestCase):
+    def setUp(self):
+        from accounts.models import Center
+        from education.models import Category
+        from store.models import Yonalish
+        
+        self.center = Center.objects.create(
+            name="Revert Center",
+            slug="revert-center",
+            features={"leads": True},
+        )
+        self.manager = User.objects.create_user(
+            email="manager@revert.test",
+            password="Pass12345!",
+            role="manager",
+            center=self.center,
+            ism="Revert",
+            familya="Manager",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher@revert.test",
+            password="Pass12345!",
+            role="teacher",
+            center=self.center,
+            ism="Revert",
+            familya="Teacher",
+        )
+        self.department = Category.objects.create(center=self.center, name="Matematika")
+        self.math_subject = Yonalish.objects.create(center=self.center, nom="Matematika")
+        self.client.force_login(self.manager)
+        
+    def _make_lead(self, **kwargs):
+        from store.models import Lead
+        defaults = {
+            "center": self.center,
+            "created_by": self.manager,
+            "yosh": 15,
+            "assigned_manager": self.manager,
+        }
+        defaults.update(kwargs)
+        return Lead.objects.create(**defaults)
+        
+    def _mark_lead_confirmed(self, lead):
+        from store.lead_services import confirm_lead
+        confirm_lead(lead=lead, actor=self.manager)
+
+    def test_revert_converted_lead_group_archives_real_group_and_restores_leads(self):
+        from store.models import LeadGroup, Lead
+        from education.models import Group, Enrollment, GroupStudent
+        
+        lead_group = LeadGroup.objects.create(
+            center=self.center,
+            name="Math Revert Group",
+            subject=self.math_subject,
+            department=self.department,
+            min_students=1,
+            created_by=self.manager,
+        )
+        confirmed_lead = self._make_lead(
+            ism="Revertable",
+            familya="Lead",
+            telefon1="+998901234567",
+            yonalish=self.math_subject,
+            lead_group=lead_group,
+        )
+        self._mark_lead_confirmed(confirmed_lead)
+        
+        # 1. Convert it
+        convert_url = f"/{self.center.slug}{reverse('store:lead_group_convert_api', args=[lead_group.id])}"
+        response = self.client.post(
+            convert_url,
+            data=json.dumps({
+                "name": "Math-101",
+                "department": self.department.id,
+                "teacher": self.teacher.id,
+                "lesson_time": "14:00",
+                "start_date": timezone.localdate().isoformat(),
+                "price": 600000,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        lead_group.refresh_from_db()
+        confirmed_lead.refresh_from_db()
+        
+        real_group_id = lead_group.converted_group_id
+        self.assertIsNotNone(real_group_id)
+        self.assertEqual(lead_group.status, LeadGroup.Status.CONVERTED)
+        self.assertTrue(confirmed_lead.converted_to_student)
+        self.assertTrue(confirmed_lead.is_archived)
+        
+        # Verify enrollment and group student exist
+        self.assertTrue(Enrollment.objects.filter(student_id=confirmed_lead.converted_user_id, group_id=real_group_id).exists())
+        self.assertTrue(GroupStudent.objects.filter(student_id=confirmed_lead.converted_user_id, group_id=real_group_id).exists())
+        
+        # 2. Revert it
+        revert_url = f"/{self.center.slug}{reverse('store:lead_group_revert_api', args=[lead_group.id])}"
+        revert_response = self.client.post(revert_url, data=json.dumps({}), content_type="application/json")
+        self.assertEqual(revert_response.status_code, 200)
+        
+        # Refresh and assert
+        lead_group.refresh_from_db()
+        confirmed_lead.refresh_from_db()
+        
+        self.assertIsNone(lead_group.converted_group_id)
+        # Reverted back to ready because the active lead is restored
+        self.assertEqual(lead_group.status, LeadGroup.Status.READY)
+        
+        # Lead is active again
+        self.assertFalse(confirmed_lead.converted_to_student)
+        self.assertFalse(confirmed_lead.is_archived)
+        self.assertIsNone(confirmed_lead.converted_user)
+        
+        # Real group is soft-deleted
+        real_group = Group.all_objects.get(id=real_group_id)
+        self.assertTrue(real_group.is_deleted)
+        
+        # Enrollment is soft-deleted
+        self.assertFalse(Enrollment.objects.filter(group_id=real_group_id).exists())
+        self.assertTrue(Enrollment.all_objects.filter(group_id=real_group_id, is_deleted=True).exists())
+        
+        # GroupStudent is hard deleted
+        self.assertFalse(GroupStudent.objects.filter(group_id=real_group_id).exists())

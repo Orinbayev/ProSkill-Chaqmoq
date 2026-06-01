@@ -3,7 +3,7 @@ from pathlib import Path
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .models import CenterExpense, CertificateTemplate, CenterExamSetting, Enrollment, ExamResult, Group
+from .models import Category, CenterExpense, CertificateTemplate, CenterExamSetting, Enrollment, ExamResult, Group
 
 User = get_user_model()
 
@@ -46,6 +46,7 @@ class GroupForm(forms.ModelForm):
         model = Group
         fields = [
             "nom",
+            "category_obj",
             "oqituvchi",
             "kurs_narxi",
             "max_students",
@@ -57,6 +58,7 @@ class GroupForm(forms.ModelForm):
         ]
         labels = {
             "nom": "Guruh nomi",
+            "category_obj": "Bo'lim (Yo'nalish)",
             "oqituvchi": "O‘qituvchi",
             "kurs_narxi": "Kurs narxi (so‘m)",
             "max_students": "Maksimal o'quvchi soni",
@@ -83,6 +85,24 @@ class GroupForm(forms.ModelForm):
         center = kwargs.pop("center", None)
         self.center = center
         super().__init__(*args, **kwargs)
+
+        # Filter categories by center / smart isolation
+        if "category_obj" in self.fields:
+            self.fields["category_obj"].label = "Bo'lim (Yo'nalish)"
+            self.fields["category_obj"].empty_label = "Bo'lim tanlanmagan"
+            
+            categories_qs = Category.objects.all().order_by("name")
+            if center:
+                from accounts.models import Center
+                from django.db.models import Q
+                first_center = Center.objects.order_by("id").first()
+                if first_center and center.id == first_center.id:
+                    categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+                else:
+                    categories_qs = categories_qs.filter(center=center)
+            else:
+                categories_qs = categories_qs.none()
+            self.fields["category_obj"].queryset = categories_qs
 
         # Filter teachers by center
         if "oqituvchi" in self.fields:
@@ -260,6 +280,15 @@ class GroupForm(forms.ModelForm):
         obj.estimated_end_date_manual = False
         obj.kurs_narxi = obj.kurs_narxi or 0
         obj.max_students = obj.max_students or 15
+
+        if obj.category_obj:
+            department_name = (obj.category_obj.name or "").strip().lower()
+            if "it" in department_name or "kompyuter" in department_name or "coding" in department_name:
+                obj.category = "it"
+            else:
+                obj.category = "lang"
+        else:
+            obj.category = "lang"
 
         # Support teacher: feature yoqilgan markazlarda — clean'dan kelgan qiymat
         if getattr(self, "support_enabled_for_center", False):

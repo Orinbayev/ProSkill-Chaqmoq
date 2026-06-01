@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/lead-groups/<int:pk>/archive/', crm_views.lead_group_archive_api, name='lead_group_archive_api'),
     path('api/lead-groups/<int:pk>/restore/', crm_views.lead_group_restore_api, name='lead_group_restore_api'),
     path('api/lead-groups/<int:pk>/convert-to-group/', crm_views.lead_group_convert_api, name='lead_group_convert_api'),
+    path('api/lead-groups/<int:pk>/revert/', crm_views.lead_group_revert_api, name='lead_group_revert_api'),
     path('api/lead-subjects/', crm_views.lead_subjects_api, name='lead_subjects_api'),
     path('api/lead-subjects/<int:pk>/', crm_views.lead_subject_detail_api, name='lead_subject_detail_api'),
     path('api/lead-statuses/', crm_views.lead_statuses_api, name='lead_statuses_api'),

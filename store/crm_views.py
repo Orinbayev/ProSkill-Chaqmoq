@@ -660,6 +660,7 @@ def lead_list(request):
         "api_lead_group_archive_base": _tenant_url(center, reverse("store:lead_group_archive_api", args=[0])),
         "api_lead_group_restore_base": _tenant_url(center, reverse("store:lead_group_restore_api", args=[0])),
         "api_lead_group_convert_base": _tenant_url(center, reverse("store:lead_group_convert_api", args=[0])),
+        "api_lead_group_revert_base": _tenant_url(center, reverse("store:lead_group_revert_api", args=[0])),
         "api_subjects_url": _tenant_url(center, reverse("store:lead_subjects_api")),
         "api_statuses_url": _tenant_url(center, reverse("store:lead_statuses_api")),
         "can_override_teacher_share": _can_override_teacher_share(request.user),
@@ -1136,6 +1137,70 @@ def lead_group_convert_api(request, pk: int):
             "duplicate_group_membership_count": result["duplicate_group_membership_count"],
             "results": [serialize_lead_group(item) for item in _base_lead_groups_qs(center)],
             "options": _lead_group_options(center),
+        }
+    )
+
+
+@login_required
+@require_POST
+def lead_group_revert_api(request, pk: int):
+    center, error = _lead_api_access(request)
+    if error:
+        return error
+
+    lead_group = _base_lead_groups_qs(center).filter(pk=pk).first()
+    if not lead_group:
+        return JsonResponse({"error": "Lead guruhi topilmadi."}, status=404)
+
+    if lead_group.status != LeadGroup.Status.CONVERTED or not lead_group.converted_group_id:
+        return JsonResponse({"error": "Bu lead guruhi real guruhga aylantirilmagan."}, status=400)
+
+    from django.db import transaction
+    from education.models import Group, Enrollment, GroupStudent
+    from store.models import Lead, LeadActivity
+    from store.lead_services import get_or_create_pipeline_status, sync_lead_group_status
+
+    group = Group.all_objects.filter(center=center, pk=lead_group.converted_group_id).first()
+
+    with transaction.atomic():
+        if group:
+            # Soft-delete the related enrollments
+            Enrollment.objects.filter(group=group).delete(deleted_by=request.user)
+            # Delete GroupStudent relationships
+            GroupStudent.objects.filter(group=group).delete()
+            # Soft-delete the group itself
+            group.delete(deleted_by=request.user)
+
+        # Clear group reference
+        lead_group.converted_group = None
+        lead_group.save(update_fields=["converted_group", "updated_at"])
+
+        # Unarchive and restore all lead records that were converted for this group
+        leads = Lead.objects.filter(center=center, lead_group=lead_group)
+        for lead in leads:
+            lead.converted_to_student = False
+            lead.converted_user = None
+            lead.converted_by = None
+            lead.converted_at = None
+            lead.is_archived = False
+            lead.archived_at = None
+            lead.archived_by = None
+            
+            # Revert status to CONFIRMED
+            confirmed_status = get_or_create_pipeline_status(center=center, pipeline_status=Lead.PipelineStatus.CONFIRMED)
+            if confirmed_status:
+                lead.status = confirmed_status
+            lead.save()
+
+        # Update lead group status back to ready/collecting
+        sync_lead_group_status(lead_group)
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "Guruh statusi bekor qilindi. O'quvchilar guruhlanmagan holatga qaytarildi va guruh arxivelandi.",
+            "lead_group": serialize_lead_group(lead_group),
+            "results": [serialize_lead_group(item) for item in _base_lead_groups_qs(center)],
         }
     )
 

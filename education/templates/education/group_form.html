@@ -104,6 +104,18 @@
             {% for e in form.nom.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
 
+          <!-- Bo'lim (Yo'nalish) -->
+          <div class="ngf-field">
+            <label class="ngf-label" for="{{ form.category_obj.id_for_label }}">
+              <i class="fa-solid fa-folder-open ngf-label__ico"></i>Bo'lim (Yo'nalish)
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-tags"></i></span>
+              {{ form.category_obj }}
+            </div>
+            {% for e in form.category_obj.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
+
           <!-- O'qituvchi -->
           <div class="ngf-field">
             <label class="ngf-label" for="{{ form.oqituvchi.id_for_label }}">

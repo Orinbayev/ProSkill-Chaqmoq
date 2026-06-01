@@ -898,6 +898,18 @@
     background: rgba(34, 197, 94, 0.18);
   }
 
+  .lead-icon-btn--warning {
+    border-color: rgba(245, 158, 11, 0.24);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fef3c7;
+  }
+  html[data-role-theme="light"] .lead-icon-btn--warning {
+    color: #b45309;
+  }
+  .lead-icon-btn--warning:hover {
+    background: rgba(245, 158, 11, 0.18);
+  }
+
   .lead-card-list {
     display: none;
     padding: 12px;
@@ -2425,6 +2437,30 @@
   </div>
 </div>
 
+<div id="leadGroupRevertModal" class="lead-modal lead-modal--compact">
+  <div class="lead-modal__card">
+    <div class="lead-modal__head">
+      <div>
+        <h2 id="leadGroupRevertTitle" class="lead-modal__title">Guruh yaratilishini bekor qilish</h2>
+        <p id="leadGroupRevertText" class="lead-modal__sub">Haqiqatan ham ushbu guruh yaratilishini bekor qilmoqchimisiz? Yaratilgan real guruh arxivlanadi (soft-delete) va unga bog‘langan barcha o‘quvchilar guruhlanmagan holatga qaytadi.</p>
+      </div>
+      <button id="closeLeadGroupRevertModal" type="button" class="lead-icon-btn lead-modal__close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="lead-modal__foot">
+      <div id="leadGroupRevertErrors" class="lead-modal__errors"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button id="cancelLeadGroupRevertButton" type="button" class="lead-btn">Bekor qilish</button>
+        <button id="confirmLeadGroupRevertButton" type="button" class="lead-btn lead-icon-btn--warning" style="padding: 0 16px;">
+          <span>Bekor qilishni tasdiqlash</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {{ subject_choices|json_script:"leadSubjectChoices" }}
 {{ status_choices|json_script:"leadStatusChoices" }}
 {{ manager_options|json_script:"leadManagerOptions" }}
@@ -2445,6 +2481,7 @@
   const apiLeadGroupArchiveBase = "{{ api_lead_group_archive_base|escapejs }}";
   const apiLeadGroupRestoreBase = "{{ api_lead_group_restore_base|escapejs }}";
   const apiLeadGroupConvertBase = "{{ api_lead_group_convert_base|escapejs }}";
+  const apiLeadGroupRevertBase = "{{ api_lead_group_revert_base|escapejs }}";
   const apiSubjectsUrl = "{{ api_subjects_url|escapejs }}";
   const apiStatusesUrl = "{{ api_statuses_url|escapejs }}";
   const apiAvailableTeachersUrl = "{% if request.center.slug %}/{{ request.center.slug|escapejs }}/api/hr/teachers/available/{% else %}/api/hr/teachers/available/{% endif %}";
@@ -2529,6 +2566,7 @@
     selectedLeadGroupDetail: null,
     leadGroupConvertId: null,
     leadGroupArchiveId: null,
+    leadGroupRevertId: null,
     catalogDeleteTarget: null,
     archivedLeads: [],
     archivedLeadGroups: [],
@@ -2552,6 +2590,7 @@
       leadGroupDetail: false,
       leadGroupConvert: false,
       leadGroupArchive: false,
+      leadGroupRevert: false,
       catalogDelete: false,
     },
   };
@@ -2703,6 +2742,11 @@
     cancelLeadGroupArchiveButton: document.getElementById('cancelLeadGroupArchiveButton'),
     confirmLeadGroupArchiveButton: document.getElementById('confirmLeadGroupArchiveButton'),
     leadGroupArchiveErrors: document.getElementById('leadGroupArchiveErrors'),
+    leadGroupRevertModal: document.getElementById('leadGroupRevertModal'),
+    closeLeadGroupRevertModal: document.getElementById('closeLeadGroupRevertModal'),
+    cancelLeadGroupRevertButton: document.getElementById('cancelLeadGroupRevertButton'),
+    confirmLeadGroupRevertButton: document.getElementById('confirmLeadGroupRevertButton'),
+    leadGroupRevertErrors: document.getElementById('leadGroupRevertErrors'),
     viewToggles: Array.from(document.querySelectorAll('[data-view-toggle]')),
     multiFilters: Array.from(document.querySelectorAll('[data-multi-filter]')),
   };
@@ -2785,7 +2829,7 @@
 
   function renderLeadGroupActionButtons(leadGroup) {
     const convertButton = leadGroup.status === 'converted'
-      ? ''
+      ? `<button type="button" class="lead-icon-btn lead-icon-btn--warning" data-lead-group-action="revert" data-id="${leadGroup.id}" title="Guruh yaratilishini bekor qilish"><i class="fa-solid fa-rotate-left"></i></button>`
       : `<button type="button" class="lead-icon-btn" data-lead-group-action="convert" data-id="${leadGroup.id}" title="Real guruh yaratish"><i class="fa-solid fa-user-graduate"></i></button>`;
     return `
       <div class="lead-actions">
@@ -3256,6 +3300,14 @@
     dom.cancelLeadGroupArchiveButton.disabled = isBusy;
     dom.confirmLeadGroupArchiveButton.disabled = isBusy || !state.leadGroupArchiveId;
     setButtonText(dom.confirmLeadGroupArchiveButton, isBusy ? 'Arxivlanmoqda...' : 'Arxivlash');
+  }
+
+  function syncLeadGroupRevertState() {
+    const isBusy = state.pending.leadGroupRevert;
+    dom.closeLeadGroupRevertModal.disabled = isBusy;
+    dom.cancelLeadGroupRevertButton.disabled = isBusy;
+    dom.confirmLeadGroupRevertButton.disabled = isBusy || !state.leadGroupRevertId;
+    setButtonText(dom.confirmLeadGroupRevertButton, isBusy ? 'Bekor qilinmoqda...' : 'Bekor qilishni tasdiqlash');
   }
 
   function syncRestoreState() {
@@ -4610,6 +4662,21 @@
     syncLeadGroupArchiveState();
   }
 
+  function openLeadGroupRevertModal(leadGroupId) {
+    state.leadGroupRevertId = Number(leadGroupId) || null;
+    dom.leadGroupRevertErrors.textContent = '';
+    dom.leadGroupRevertModal.classList.add('is-open');
+    syncLeadGroupRevertState();
+  }
+
+  function closeLeadGroupRevertModal(force = false) {
+    if (!force && state.pending.leadGroupRevert) return;
+    state.leadGroupRevertId = null;
+    dom.leadGroupRevertErrors.textContent = '';
+    dom.leadGroupRevertModal.classList.remove('is-open');
+    syncLeadGroupRevertState();
+  }
+
   function applyDepartmentOptions() {
     fillSelect(dom.leadGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: 'Bo‘lim tanlanmagan' });
     fillSelect(dom.convertGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: 'Bo‘lim tanlanmagan' });
@@ -4871,6 +4938,29 @@
     }
   }
 
+  async function revertLeadGroup() {
+    if (!state.leadGroupRevertId) return;
+    try {
+      state.pending.leadGroupRevert = true;
+      syncLeadGroupRevertState();
+      const url = apiLeadGroupRevertBase.replace(/0\/revert\/$/, `${state.leadGroupRevertId}/revert/`);
+      const data = await fetchJson(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+      }, 'Guruh yaratilishini bekor qilishda xatolik yuz berdi');
+      closeLeadGroupRevertModal(true);
+      await refreshAllData();
+      notify(data.message || 'Guruh yaratilishi bekor qilindi', 'success');
+    } catch (error) {
+      dom.leadGroupRevertErrors.textContent = error.message || 'Guruh yaratilishini bekor qilishda xatolik yuz berdi.';
+    } finally {
+      state.pending.leadGroupRevert = false;
+      syncLeadGroupRevertState();
+    }
+  }
+
   function handleArchivedLeadActionClick(event) {
     const button = event.target.closest('[data-archived-lead-action]');
     if (!button) return;
@@ -4898,6 +4988,8 @@
         openLeadGroupModal(leadGroupId);
       } else if (action === 'convert') {
         openLeadGroupConvertModal(leadGroupId);
+      } else if (action === 'revert') {
+        openLeadGroupRevertModal(leadGroupId);
       } else if (action === 'delete') {
         openLeadGroupArchiveModal(leadGroupId);
       }
@@ -5044,6 +5136,12 @@
   dom.confirmLeadGroupArchiveButton.addEventListener('click', archiveLeadGroup);
   dom.leadGroupArchiveModal.addEventListener('click', (event) => {
     if (event.target === dom.leadGroupArchiveModal) closeLeadGroupArchiveModal();
+  });
+  dom.closeLeadGroupRevertModal.addEventListener('click', closeLeadGroupRevertModal);
+  dom.cancelLeadGroupRevertButton.addEventListener('click', closeLeadGroupRevertModal);
+  dom.confirmLeadGroupRevertButton.addEventListener('click', revertLeadGroup);
+  dom.leadGroupRevertModal.addEventListener('click', (event) => {
+    if (event.target === dom.leadGroupRevertModal) closeLeadGroupRevertModal();
   });
   dom.saveLeadButton.addEventListener('click', saveLead);
   dom.leadModalConvertButton.addEventListener('click', () => {
@@ -5250,6 +5348,7 @@
   syncLeadGroupDetailState();
   syncLeadGroupConvertState();
   syncLeadGroupArchiveState();
+  syncLeadGroupRevertState();
   syncFilterInputs();
   renderAllMultiFilters();
   setArchiveView(state.archiveView);
