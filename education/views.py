@@ -4541,7 +4541,18 @@ def edit_category(request, id):
         description = request.POST.get("description")
         image = request.FILES.get("image")
 
-        cat.name = name
+        name_stripped = (name or "").strip()
+        if not name_stripped:
+            messages.error(request, "Bo'lim nomi bo'sh bo'lishi mumkin emas!")
+            return render(request, "education/category_edit.html", {"cat": cat})
+
+        # Check for duplication (case-insensitive, same center, including soft-deleted)
+        qs = Category.all_objects.filter(name__iexact=name_stripped, center=cat.center).exclude(id=cat.id)
+        if qs.exists():
+            messages.error(request, "Ushbu nomdagi bo'lim allaqachon mavjud!")
+            return render(request, "education/category_edit.html", {"cat": cat})
+
+        cat.name = name_stripped
         cat.description = description
 
         # 🔹 Agar yangi rasm tanlangan bo'lsa, yangisini saqlaymiz
@@ -6673,6 +6684,10 @@ from django import forms
 from django.contrib import messages
 
 class CategoryForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        super().__init__(*args, **kwargs)
+
     class Meta:
         model = Category
         fields = ["name", "image", "description"]
@@ -6690,6 +6705,20 @@ class CategoryForm(forms.ModelForm):
                 "placeholder": "Bo'lim haqida qisqa izoh"
             }),
         }
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if name:
+            name_stripped = name.strip()
+            # We check Category.all_objects because soft-deleted categories
+            # still trigger unique constraints on the DB level.
+            qs = Category.all_objects.filter(name__iexact=name_stripped, center=self.center)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("Ushbu nomdagi bo'lim allaqachon mavjud!")
+            return name_stripped
+        return name
 
 
 
@@ -7052,7 +7081,7 @@ def add_category(request):
     from core.tenant import get_request_center
     center = get_request_center(request)
     if request.method == "POST":
-        form = CategoryForm(request.POST, request.FILES)
+        form = CategoryForm(request.POST, request.FILES, center=center)
         if form.is_valid():
             cat = form.save(commit=False)
             cat.center = center
@@ -7060,7 +7089,7 @@ def add_category(request):
             messages.success(request, "Bo'lim muvaffaqiyatli qo'shildi ✅")
             return redirect("education:groups_home")
     else:
-        form = CategoryForm()
+        form = CategoryForm(center=center)
     return render(request, "education/category_add.html", {"form": form})
 
 
