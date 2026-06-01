@@ -1242,6 +1242,7 @@ def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = No
         if sid not in users:
             continue
         months_sorted = sorted(student_months[sid].items())
+        student_total = None
         result.append({
             "full_name": _full_name(users[sid]),
             "total_debt": student_total[sid],
