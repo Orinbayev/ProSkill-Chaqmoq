@@ -132,3 +132,55 @@ class CategoryUniquenessTest(TestCase):
         course = CourseTemplate.objects.filter(name="Global English Course").first()
         self.assertIsNotNone(course)
         self.assertEqual(course.category_obj, global_cat)
+
+    def test_lead_group_conversion_preserves_department(self):
+        """Converting a LeadGroup should correctly set the selected Category (department) on the created Group"""
+        # Create a LeadGroup
+        from store.models import LeadGroup, Yonalish
+        from store.crm_views import _convert_lead_group_to_real_group
+
+        subject = Yonalish.objects.create(nom="English", center=self.center)
+        lead_group = LeadGroup.objects.create(
+            center=self.center,
+            name="Test Lead Group",
+            subject=subject,
+            department=self.existing_cat
+        )
+
+        # Create a teacher user
+        teacher_user = User.objects.create_user(
+            email="teacher_test@example.com", password="password", role="teacher", center=self.center
+        )
+
+        # Let's mock the POST payload from the convert modal
+        payload = {
+            "name": "Converted Group",
+            "department": str(self.existing_cat.id),
+            "teacher": str(teacher_user.id),
+            "lesson_days": ["1", "3", "5"],
+            "lesson_time": "09:00",
+            "lesson_end_time": "10:30",
+            "start_date": "2026-06-01",
+            "price": "300000",
+            "teacher_share": "45"
+        }
+
+        # Run the conversion
+        result, errors = _convert_lead_group_to_real_group(
+            lead_group=lead_group,
+            payload=payload,
+            actor=self.user,
+            center=self.center
+        )
+
+        # Verify no validation errors occurred
+        self.assertIsNone(errors)
+        self.assertIsNotNone(result)
+
+        # Check if the Group was created
+        group = result["group"]
+        self.assertIsNotNone(group)
+        self.assertEqual(group.nom, "Converted Group")
+
+        # Verify that category_obj is set to the selected department!
+        self.assertEqual(group.category_obj, self.existing_cat)
