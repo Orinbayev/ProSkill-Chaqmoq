@@ -65,7 +65,7 @@
 
             <div class="dropdown-divider my-2" style="border-color:rgba(255,255,255,0.1);"></div>
 
-            <form method="post" action="{% url 'logout' %}" class="m-0" id="logoutFormPD">
+            <form method="post" action="{% url 'accounts:logout' %}" class="m-0" id="logoutFormPD">
                 {% csrf_token %}
                 <button type="submit" class="dropdown-item logout fw-bold">
                     <i class="bi bi-box-arrow-right me-2"></i> Chiqish

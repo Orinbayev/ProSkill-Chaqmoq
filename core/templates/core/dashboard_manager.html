@@ -580,7 +580,7 @@
 
           <div class="director-profile-divider"></div>
 
-          <form method="post" action="{% url 'logout' %}" class="director-profile-form">
+          <form method="post" action="{% url 'accounts:logout' %}" class="director-profile-form">
             {% csrf_token %}
             <button type="submit" class="director-profile-item director-profile-item--logout" role="menuitem">
               <i class="bi bi-box-arrow-right"></i>

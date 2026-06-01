@@ -241,7 +241,7 @@
       </a>
       {% endif %}
 
-      <form action="{% url 'logout' %}" method="post" style="display:inline;">
+      <form action="{% url 'accounts:logout' %}" method="post" style="display:inline;">
         {% csrf_token %}
         <button type="submit" class="btn-logout">🚪 Chiqish</button>
       </form>

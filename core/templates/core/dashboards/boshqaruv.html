@@ -4401,7 +4401,7 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-pr-row__btn {
                 <i class="fa-solid fa-table-columns"></i> Boshqaruv
               </a>
               <div class="bq-profile__sep"></div>
-              <form method="post" action="{% url 'logout' %}" style="margin:0">
+              <form method="post" action="{% url 'accounts:logout' %}" style="margin:0">
                 {% csrf_token %}
                 <button type="submit" class="bq-profile__item bq-profile__item--logout">
                   <i class="fa-solid fa-arrow-right-from-bracket"></i> Chiqish

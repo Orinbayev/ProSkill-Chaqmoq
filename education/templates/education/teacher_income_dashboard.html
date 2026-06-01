@@ -90,7 +90,7 @@
                                 <hr class="dropdown-divider border-white-10">
                             </li>
                             <li>
-                                <form action="{% url 'logout' %}" method="post" class="m-0">
+                                <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
                                     {% csrf_token %}
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="fa-solid fa-right-from-bracket me-2 opacity-50"></i> Chiqish
