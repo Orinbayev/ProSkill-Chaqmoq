@@ -93,3 +93,42 @@ class CategoryUniquenessTest(TestCase):
         # Verify category name was not changed in DB
         second_cat.refresh_from_db()
         self.assertEqual(second_cat.name, "Marketing")
+
+    def test_legacy_category_in_lead_group_form_and_courses(self):
+        """Primary center should see and allow selecting legacy/global categories (where center is None)"""
+        # Create a global category
+        global_cat = Category.objects.create(name="Global Legacy Cat", center=None)
+
+        # Import LeadGroupForm
+        from store.forms import LeadGroupForm
+        from education.models import CourseTemplate
+
+        # LeadGroupForm initialized with primary center should contain global_cat
+        form = LeadGroupForm(center=self.center)
+        self.assertIn(global_cat, form.fields["department"].queryset)
+
+        # course_create view should display global_cat and allow using it
+        self.client.force_login(self.user)
+        url = reverse("education:course_create")
+        
+        # Verify global category is in context
+        response = self.client.get(url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(global_cat, response.context["categories"])
+
+        # Try creating a course template associated with global_cat
+        post_data = {
+            "name": "Global English Course",
+            "price": "300000",
+            "teacher_percent": "45",
+            "lessons_per_month": "12",
+            "category_obj": str(global_cat.id),
+            "is_active": "on"
+        }
+        post_response = self.client.post(url, post_data, follow=True)
+        self.assertEqual(post_response.status_code, 200)
+
+        # Verify CourseTemplate was created with correct global category
+        course = CourseTemplate.objects.filter(name="Global English Course").first()
+        self.assertIsNotNone(course)
+        self.assertEqual(course.category_obj, global_cat)

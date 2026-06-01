@@ -11336,7 +11336,18 @@ def course_create(request):
     if not _can_manage(request.user):
         raise PermissionDenied
 
-    categories = Category.objects.filter(center=center)
+    from django.db.models import Q
+    categories_qs = Category.objects.all().order_by("name")
+    if center:
+        first_center = Center.objects.order_by("id").first()
+        if first_center and center.id == first_center.id:
+            categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        else:
+            categories_qs = categories_qs.filter(center=center)
+    else:
+        categories_qs = categories_qs.none()
+
+    categories = list(categories_qs)
 
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -11359,7 +11370,7 @@ def course_create(request):
         if not errors:
             cat = None
             if category_id:
-                cat = Category.objects.filter(id=category_id, center=center).first()
+                cat = categories_qs.filter(id=category_id).first()
             CourseTemplate.objects.create(
                 center=center,
                 name=name,
@@ -11388,7 +11399,19 @@ def course_edit(request, pk):
     if not _can_manage(request.user):
         raise PermissionDenied
     course = get_object_or_404(CourseTemplate, pk=pk, center=center)
-    categories = Category.objects.filter(center=center)
+    
+    from django.db.models import Q
+    categories_qs = Category.objects.all().order_by("name")
+    if center:
+        first_center = Center.objects.order_by("id").first()
+        if first_center and center.id == first_center.id:
+            categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        else:
+            categories_qs = categories_qs.filter(center=center)
+    else:
+        categories_qs = categories_qs.none()
+
+    categories = list(categories_qs)
 
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -11411,7 +11434,7 @@ def course_edit(request, pk):
         if not errors:
             cat = None
             if category_id:
-                cat = Category.objects.filter(id=category_id, center=center).first()
+                cat = categories_qs.filter(id=category_id).first()
             course.name = name
             course.price = price
             course.teacher_percent = int(teacher_percent or 40)

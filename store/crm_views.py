@@ -173,10 +173,22 @@ def _teacher_options(center):
 
 def _department_options(center):
     from education.models import Category
+    from django.db.models import Q
+    from accounts.models import Center
+
+    categories_qs = Category.objects.all().order_by("name")
+    if center:
+        first_center = Center.objects.order_by("id").first()
+        if first_center and center.id == first_center.id:
+            categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        else:
+            categories_qs = categories_qs.filter(center=center)
+    else:
+        categories_qs = categories_qs.none()
 
     return [
         serialize_department(category)
-        for category in Category.objects.filter(center=center).order_by("name")
+        for category in categories_qs
     ]
 
 

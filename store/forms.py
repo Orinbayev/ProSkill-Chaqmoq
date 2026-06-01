@@ -491,10 +491,17 @@ class LeadGroupForm(forms.Form):
         self.instance = kwargs.pop("instance", None)
         super().__init__(*args, **kwargs)
         from education.models import Category
+        from accounts.models import Center
 
         if self.center:
             self.fields["subject"].queryset = Yonalish.objects.filter(center=self.center, is_active=True).order_by("nom")
-            self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
+            first_center = Center.objects.order_by("id").first()
+            if first_center and self.center.id == first_center.id:
+                self.fields["department"].queryset = Category.objects.filter(
+                    Q(center=self.center) | Q(center__isnull=True)
+                ).order_by("name")
+            else:
+                self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
         else:
             self.fields["subject"].queryset = Yonalish.objects.none()
             self.fields["department"].queryset = Category.objects.none()
@@ -552,9 +559,16 @@ class LeadGroupConvertForm(forms.Form):
         self.center = kwargs.pop("center", None)
         super().__init__(*args, **kwargs)
         from education.models import Category
+        from accounts.models import Center
 
         if self.center:
-            self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
+            first_center = Center.objects.order_by("id").first()
+            if first_center and self.center.id == first_center.id:
+                self.fields["department"].queryset = Category.objects.filter(
+                    Q(center=self.center) | Q(center__isnull=True)
+                ).order_by("name")
+            else:
+                self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
             self.fields["teacher"].queryset = User.objects.filter(
                 center=self.center,
                 role="teacher",
