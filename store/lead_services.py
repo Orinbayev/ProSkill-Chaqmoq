@@ -581,12 +581,12 @@ def _gen_unique_email_for_student(ism: str, familya: str) -> str:
     base = f"{first_char}.{last_part}" if last_part else first_char
 
     email = f"{base}@gmail.com"
-    if not User.objects.filter(email=email).exists():
+    if not User.all_objects.filter(email=email).exists():
         return email
 
     for i in range(1, 1000):
         candidate = f"{base}{i}@gmail.com"
-        if not User.objects.filter(email=candidate).exists():
+        if not User.all_objects.filter(email=candidate).exists():
             return candidate
 
     return f"{base}{secrets.token_hex(3)}@gmail.com"

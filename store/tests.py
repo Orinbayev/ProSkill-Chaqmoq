@@ -1814,3 +1814,61 @@ class LeadGroupRevertTests(TestCase):
         
         # GroupStudent is hard deleted
         self.assertFalse(GroupStudent.objects.filter(group_id=real_group_id).exists())
+
+    def test_lead_group_convert_with_soft_deleted_user_email_conflict(self):
+        from store.models import LeadGroup
+        
+        # 1. Create a soft-deleted user with the candidate email "r.lead@gmail.com"
+        soft_deleted_user = User.objects.create_user(
+            email="r.lead@gmail.com",
+            password="Pass12345!",
+            role="student",
+            center=self.center,
+            ism="Revertable",
+            familya="Lead",
+        )
+        soft_deleted_user.delete()
+        
+        lead_group = LeadGroup.objects.create(
+            center=self.center,
+            name="Math Conflict Group",
+            subject=self.math_subject,
+            department=self.department,
+            min_students=1,
+            created_by=self.manager,
+        )
+        confirmed_lead = self._make_lead(
+            ism="Revertable",
+            familya="Lead",
+            telefon1="+998901234568",
+            yonalish=self.math_subject,
+            lead_group=lead_group,
+        )
+        self._mark_lead_confirmed(confirmed_lead)
+        
+        # Try to convert it
+        convert_url = f"/{self.center.slug}{reverse('store:lead_group_convert_api', args=[lead_group.id])}"
+        response = self.client.post(
+            convert_url,
+            data=json.dumps({
+                "name": "Math-102",
+                "department": self.department.id,
+                "teacher": self.teacher.id,
+                "lesson_time": "15:00",
+                "start_date": timezone.localdate().isoformat(),
+                "price": 600000,
+            }),
+            content_type="application/json",
+        )
+        # Should succeed with 200 and generate a unique email (e.g. "r.lead1@gmail.com") instead of throwing a UNIQUE IntegrityError!
+        self.assertEqual(response.status_code, 200)
+        
+        lead_group.refresh_from_db()
+        confirmed_lead.refresh_from_db()
+        self.assertIsNotNone(lead_group.converted_group_id)
+        self.assertTrue(confirmed_lead.converted_to_student)
+        
+        # The new user should have a unique email different from the soft-deleted one
+        new_student = User.objects.get(id=confirmed_lead.converted_user_id)
+        self.assertNotEqual(new_student.email, "r.lead@gmail.com")
+        self.assertEqual(new_student.email, "r.lead1@gmail.com")
