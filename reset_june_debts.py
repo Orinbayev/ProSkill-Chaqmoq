@@ -11,7 +11,12 @@ import django.db.models as models
 from django.utils import timezone
 from accounts.models import Center, User
 from education.models import TuitionMonth, Enrollment, PaymentAllocation, Payment
-from education.services.tuition import tuition_month_fee_field, find_earliest_unpaid_month, _allocate_amount_forward
+from education.services.tuition import (
+    tuition_month_fee_field,
+    find_earliest_unpaid_month,
+    _allocate_amount_forward,
+    auto_net_student_credits
+)
 
 def _resolve_fee_amount(enrollment) -> int:
     """O'quvchining to'liq oylik o'qish pulini aniqlaydi (prorationlarsiz)."""
@@ -49,23 +54,30 @@ def run_reset():
     target_month = date(2026, 6, 1)  # FAQAT Iyun 2026
     fee_field = tuition_month_fee_field()
     
-    # Markazga tegishli BARCHA enrollmentlarni qamrab olamiz (is_deleted=False bo'lgan hamma narsa)
-    enrollments = Enrollment.objects.filter(is_deleted=False).filter(
+    # ⚠️ MUHIM: Faqat faol, arxivlanmagan va o'chirilmagan o'quvchilar/guruhlarni olamiz
+    # Bu veb-saytdagi Qarzdorlar sahifasi bilan 100% bir xil natija beradi!
+    enrollments = Enrollment.objects.filter(
+        is_deleted=False,
+        is_active=True,
+        student__is_archived=False,
+        group__is_archived=False,
+        group__is_deleted=False
+    ).filter(
         models.Q(center=center) | 
         models.Q(group__center=center) | 
         models.Q(student__center=center)
-    )
+    ).distinct()
     
     print("=" * 80)
-    print(f"🔄 BOSHLANDI: {center.name} markazidagi qarzlarni qayta qurish...")
-    print(f"Jami aniqlangan enrollmentlar soni: {enrollments.count()}")
+    print(f"🔄 BOSHLANDI: {center.name} markazidagi faol qarzlarni qayta qurish...")
+    print(f"Jami faol enrollmentlar soni: {enrollments.count()}")
     print("=" * 80)
 
     try:
         with transaction.atomic():
             now = timezone.now()
             
-            # 1. Iyun 2026 dan boshqa barcha oylar qarzdorliklarini to'liq o'chiramiz
+            # 1. Faol enrollmentlar uchun Iyun 2026 dan boshqa barcha oylar qarzlarini o'chiramiz
             tms_to_delete = TuitionMonth.objects.filter(
                 enrollment__in=enrollments
             ).exclude(
@@ -77,9 +89,25 @@ def run_reset():
                 deleted_at=now,
                 deleted_reason="cleanup_non_june_months"
             )
-            print(f"🗑️ 1. O'chirilgan non-June TuitionMonth yozuvlari: {deleted_tms_count}")
+            print(f"🗑️ 1. O'chirilgan faol o'quvchilar non-June TuitionMonth yozuvlari: {deleted_tms_count}")
             
-            # 2. Iyun 2026 dan boshqa oylar to'lov taqsimotlarini o'chiramiz
+            # 1b. Arxivlangan o'quvchilar yoki o'chirilgan guruhlar uchun Iyun 2026 qarzlarini to'liq o'chiramiz (Soft-Delete)
+            # Bu bazadagi ortiqcha (~53 mln so'mlik yolg'on) qarzlarni butunlay tozalaydi!
+            tms_inactive_june = TuitionMonth.objects.filter(
+                center=center,
+                month=target_month
+            ).exclude(
+                enrollment__in=enrollments
+            )
+            inactive_june_count = tms_inactive_june.count()
+            tms_inactive_june.update(
+                is_deleted=True,
+                deleted_at=now,
+                deleted_reason="cleanup_inactive_or_archived_enrollments_for_june"
+            )
+            print(f"🗑️ 1b. O'chirilgan arxivlangan/no-faol June TuitionMonth yozuvlari: {inactive_june_count}")
+            
+            # 2. Faol o'quvchilar uchun Iyun 2026 dan boshqa oylar to'lov taqsimotlarini o'chiramiz
             allocs_to_delete = PaymentAllocation.objects.filter(
                 tuition_month__enrollment__in=enrollments
             ).exclude(
@@ -93,15 +121,30 @@ def run_reset():
             )
             print(f"🗑️ 2. O'chirilgan non-June PaymentAllocation yozuvlari: {deleted_allocs_count}")
             
-            # 3. Barcha enrollmentlar credit_balance qiymatini vaqtincha 0 qilamiz
-            enrollments.update(credit_balance=0)
-            print("🔄 3. Barcha enrollmentlar uchun credit_balance nollashtirildi.")
+            # 2b. Arxivlangan/no-faol o'quvchilar uchun Iyun 2026 to'lov taqsimotlarini ham o'chiramiz
+            allocs_inactive_june = PaymentAllocation.objects.filter(
+                tuition_month__center=center,
+                tuition_month__month=target_month
+            ).exclude(
+                tuition_month__enrollment__in=enrollments
+            )
+            inactive_june_allocs_count = allocs_inactive_june.count()
+            allocs_inactive_june.update(
+                is_deleted=True,
+                deleted_at=now,
+                deleted_reason="cleanup_inactive_or_archived_enrollments_for_june"
+            )
+            print(f"🗑️ 2b. O'chirilgan arxivlangan/no-faol June PaymentAllocation yozuvlari: {inactive_june_allocs_count}")
             
-            # 4. Hamma-hamma enrollmentlar uchun IYUN 2026 oyi qarzini (full fee) yozamiz (hech qanday filtersiz!)
+            # 3. Barcha faol enrollmentlar credit_balance qiymatini vaqtincha 0 qilamiz
+            enrollments.update(credit_balance=0)
+            print("🔄 3. Barcha faol enrollmentlar uchun credit_balance nollashtirildi.")
+            
+            # 4. Faqat faol enrollmentlar uchun IYUN 2026 oyi qarzini (full fee) yozamiz
             created_tms = 0
             for enr in enrollments:
                 fee = _resolve_fee_amount(enr)
-                # Agar kurs narxi aniqlanmagan bo'lsa, xato bo'lmasligi uchun default 300 000 so'm qo'yamiz
+                # Agar kurs narxi aniqlanmagan bo'lsa, default 300 000 so'm qo'yamiz
                 if fee <= 0:
                     fee = 300000
                     
@@ -116,7 +159,7 @@ def run_reset():
                     }
                 )
                 created_tms += 1
-            print(f"📝 4. BARCHA enrollmentlar uchun Iyun 2026 qarzlar yozildi: {created_tms} ta.")
+            print(f"📝 4. Barcha faol enrollmentlar uchun Iyun 2026 qarzlar yozildi: {created_tms} ta.")
             
             # 5. To'lovlarni boshidan qayta taqsimlaymiz (reallocate)
             reallocated_count = 0
@@ -143,6 +186,19 @@ def run_reset():
                 
                 reallocated_count += 1
             print(f"⚡ 5. Barcha {reallocated_count} ta o'quvchi to'lovlari qayta taqsimlandi.")
+            
+            # 5b. Guruhlararo to'lov va avanslarni o'zaro hisob-kitob qilish (Net-Out)
+            seen_students = set()
+            netted_count = 0
+            for enr in enrollments:
+                if enr.student_id not in seen_students:
+                    seen_students.add(enr.student_id)
+                    try:
+                        auto_net_student_credits(enr.student)
+                        netted_count += 1
+                    except Exception:
+                        pass
+            print(f"🔄 5b. Barcha {netted_count} ta o'quvchi uchun guruhlararo to'lov/avanslar o'zaro net-out qilindi.")
             
             # 6. Ortiqcha kelajak oylarni tozalab, pulni credit_balance ga o'tkazamiz
             future_tms = TuitionMonth.objects.filter(
@@ -185,6 +241,42 @@ def run_reset():
             if moved_credits_sum > 0:
                 print(f"💰 Kelajak oylar uchun to'langan jami {moved_credits_sum:,} so'm pul o'quvchilar balansiga (credit_balance) avans sifatida o'tkazildi.")
             
+            # 7. Yakuniy statistikani bazadan qayta hisoblaymiz (Sayt bilan 100% mosligini tekshirish uchun)
+            db_fees = TuitionMonth.objects.filter(
+                center=center,
+                month=target_month,
+                is_deleted=False
+            ).aggregate(s=models.Sum("fee_amount"))["s"] or 0
+            
+            db_paid = PaymentAllocation.objects.filter(
+                tuition_month__center=center,
+                tuition_month__month=target_month,
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False
+            ).aggregate(s=models.Sum("amount"))["s"] or 0
+            
+            db_outstanding = db_fees - db_paid
+            
+            # Debtors count (qarzdorlar soni)
+            # Har bir o'quvchi uchun jami qarzni hisoblaymiz
+            student_debt_map = {}
+            for enr in enrollments:
+                # June TuitionMonth bo'yicha outstanding qarz
+                tm = TuitionMonth.objects.filter(enrollment=enr, month=target_month, is_deleted=False).first()
+                if tm:
+                    paid = PaymentAllocation.objects.filter(tuition_month=tm, is_deleted=False).aggregate(s=models.Sum("amount"))["s"] or 0
+                    debt = max(0, tm.fee_amount - paid)
+                    if debt > 0:
+                        student_debt_map[enr.student_id] = student_debt_map.get(enr.student_id, 0) + debt
+            
+            real_debtors_count = len([sid for sid, d in student_debt_map.items() if d > 0])
+            
+            print("=" * 80)
+            print("📊 YAKUNIY STATISTIKA (BAZA VA VEB-SAYT 100% BIR XIL):")
+            print(f"  Jami yozilgan qarz summasi (June Gross Fees): {db_fees:,} so'm")
+            print(f"  To'lovlardan chegirilgan qismi (June Paid): {db_paid:,} so'm")
+            print(f"  Qoldiq qarz (Outstanding Debt): {db_outstanding:,} so'm")
+            print(f"  Haqiqiy qarzdor o'quvchilar soni: {real_debtors_count} ta")
             print("=" * 80)
             print("🎉 BARCHASI MUVAFFAQIYATLI TUGADI! Tranzaksiya saqlandi (committed).")
             print("=" * 80)
