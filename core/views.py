@@ -504,7 +504,23 @@ def teacher_list(request):
     # Sizda teacher->group relation nomi har xil bo'lishi mumkin.
     # Oldingi annotate(Count('group')) noto'g'ri bo'lish ehtimoli katta.
     # Shuning uchun xavfsiz yo'l: groups oqituvchi bo'yicha sanaladi.
-    teachers = qs.annotate(group_count=Count("group", distinct=True)) if _has_field(Group, "oqituvchi") else qs
+    if _has_field(Group, "oqituvchi"):
+        teachers = qs.annotate(
+            group_count=Count("group", filter=Q(group__is_deleted=False, group__is_archived=False), distinct=True),
+            student_count=Count(
+                "group__enrollments__student",
+                filter=Q(
+                    group__enrollments__is_active=True,
+                    group__enrollments__is_deleted=False,
+                    group__enrollments__student__is_archived=False,
+                    group__is_deleted=False,
+                    group__is_archived=False
+                ),
+                distinct=True
+            )
+        )
+    else:
+        teachers = qs
     teachers_count = qs.count()
 
     return render(request, "core/teacher_list.html", {"teachers": teachers, "teachers_count": teachers_count})

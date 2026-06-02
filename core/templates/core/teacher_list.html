@@ -22,6 +22,19 @@
 
     --glass: rgba(15, 23, 42, 0.7);
     --radius: 16px;
+
+    /* Badges in Dark Mode */
+    --percent-bg: rgba(59, 130, 246, 0.15);
+    --percent-border: rgba(59, 130, 246, 0.2);
+    --percent-text: #60a5fa;
+
+    --group-bg: rgba(245, 158, 11, 0.15);
+    --group-border: rgba(245, 158, 11, 0.2);
+    --group-text: var(--primary);
+
+    --student-bg: rgba(34, 197, 94, 0.15);
+    --student-border: rgba(34, 197, 94, 0.2);
+    --student-text: #4ade80;
   }
 
   /* Light Mode Overrides */
@@ -34,6 +47,19 @@
     --text-main: #0f172a;
     --text-muted: #64748b;
     --glass: rgba(255, 255, 255, 0.8);
+
+    /* Badges in Light Mode */
+    --percent-bg: rgba(37, 99, 235, 0.08);
+    --percent-border: rgba(37, 99, 235, 0.15);
+    --percent-text: #1d4ed8;
+
+    --group-bg: rgba(245, 158, 11, 0.1);
+    --group-border: rgba(245, 158, 11, 0.2);
+    --group-text: #d97706;
+
+    --student-bg: rgba(16, 185, 129, 0.08);
+    --student-border: rgba(16, 185, 129, 0.2);
+    --student-text: #059669;
   }
 
   html[data-role-theme="light"] .btn-outline {
@@ -322,19 +348,33 @@
     justify-content: center;
     padding: 4px 10px;
     border-radius: 99px;
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    background: var(--percent-bg);
+    color: var(--percent-text);
     font-weight: 700;
     font-size: 12px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    border: 1px solid var(--percent-border);
   }
 
   .circle-badge {
     width: 30px;
     height: 30px;
-    background: rgba(245, 158, 11, 0.15);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    color: var(--primary);
+    background: var(--group-bg);
+    border: 1px solid var(--group-border);
+    color: var(--group-text);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .student-badge {
+    width: 30px;
+    height: 30px;
+    background: var(--student-bg);
+    border: 1px solid var(--student-border);
+    color: var(--student-text);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -508,6 +548,7 @@
             <th>Tug'ilgan sana</th>
             <th>Ulushi (%)</th>
             <th>Guruh</th>
+            <th>O'quvchi</th>
             <th style="width: 50px;"></th>
           </tr>
         </thead>
@@ -532,6 +573,9 @@
             </td>
             <td>
               <div class="circle-badge">{{ t.group_count|default:0 }}</div>
+            </td>
+            <td>
+              <div class="student-badge">{{ t.student_count|default:0 }}</div>
             </td>
             <td style="text-align: right;">
               <div class="menu-wrapper">
@@ -558,7 +602,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="8" class="empty-state">
               Ma'lumotlar topilmadi
             </td>
           </tr>
