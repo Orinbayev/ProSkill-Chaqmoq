@@ -1,0 +1,267 @@
+<!-- ── TEACHER DELETE VERIFICATION MODAL ── -->
+<style>
+.tdm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(2, 6, 23, .75);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: none;
+  place-items: center;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.tdm-overlay.tdm-open {
+  display: grid;
+  opacity: 1;
+}
+
+.tdm-box {
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 24px;
+  width: 90%;
+  max-width: 460px;
+  padding: 28px;
+  box-shadow: 0 25px 60px rgba(0,0,0,.6);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: tdmZoomIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tdmZoomIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.tdm-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.tdm-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.tdm-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.tdm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tdm-warning-text {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #fca5a5;
+  margin: 0;
+}
+.tdm-info-text {
+  font-size: .82rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.45;
+}
+.tdm-target-name-box {
+  background: rgba(255,255,255,.03);
+  border: 1px dashed rgba(255,255,255,.15);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  font-size: .95rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: .3px;
+  user-select: all;
+}
+.tdm-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  font-size: .9rem;
+  color: #f1f5f9;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+}
+.tdm-input::placeholder { color: #475569; }
+.tdm-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
+.tdm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+.tdm-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .2s;
+}
+.tdm-btn--outline {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.15);
+  color: #94a3b8;
+}
+.tdm-btn--outline:hover {
+  background: rgba(255,255,255,.05);
+  color: #f1f5f9;
+}
+.tdm-btn--danger {
+  background: #ef4444;
+  color: #fff;
+}
+.tdm-btn--danger:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, .4);
+}
+.tdm-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* Light mode overrides */
+html[data-role-theme="light"] .tdm-overlay {
+  background: rgba(15,23,42,.45);
+}
+html[data-role-theme="light"] .tdm-box {
+  background: #fff;
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: 0 20px 50px rgba(15,23,42,0.15);
+}
+html[data-role-theme="light"] .tdm-title {
+  color: #0f172a;
+}
+html[data-role-theme="light"] .tdm-warning-text {
+  color: #dc2626;
+}
+html[data-role-theme="light"] .tdm-info-text {
+  color: #64748b;
+}
+html[data-role-theme="light"] .tdm-target-name-box {
+  background: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #0f172a;
+}
+html[data-role-theme="light"] .tdm-input {
+  background: #fff;
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #0f172a;
+}
+html[data-role-theme="light"] .tdm-input::placeholder { color: #cbd5e1; }
+html[data-role-theme="light"] .tdm-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+html[data-role-theme="light"] .tdm-btn--outline {
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #64748b;
+}
+html[data-role-theme="light"] .tdm-btn--outline:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+</style>
+
+<div id="teacherDeleteModal" class="tdm-overlay">
+  <div class="tdm-box">
+    <div class="tdm-header">
+      <div class="tdm-icon-wrap">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="tdm-title">O'qituvchini o'chirish</h3>
+    </div>
+    
+    <div class="tdm-body">
+      <p class="tdm-warning-text">
+        Diqqat! Ushbu o'qituvchini o'chirish uni tizimdan butunlay olib tashlaydi.
+      </p>
+      <p class="tdm-info-text">
+        O'chirishni tasdiqlash uchun quyidagi maydonga o'qituvchining to'liq ism-familiyasini kiriting:
+      </p>
+      <div class="tdm-target-name-box">
+        <span id="tdmTargetName">—</span>
+      </div>
+      
+      <input type="text" id="tdmInput" class="tdm-input" placeholder="Ism va familiyani kiriting..." autocomplete="off">
+    </div>
+    
+    <div class="tdm-footer">
+      <button type="button" class="tdm-btn tdm-btn--outline" onclick="closeTeacherDeleteModal()">Bekor qilish</button>
+      <form id="tdmForm" method="post" action="" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" id="tdmSubmitBtn" class="tdm-btn tdm-btn--danger" disabled>
+          <i class="fa-solid fa-trash-can"></i> Butunlay o'chirish
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let expectedName = "";
+  const modal = document.getElementById("teacherDeleteModal");
+  const input = document.getElementById("tdmInput");
+  const targetName = document.getElementById("tdmTargetName");
+  const submitBtn = document.getElementById("tdmSubmitBtn");
+  const form = document.getElementById("tdmForm");
+
+  window.openTeacherDeleteModal = function(name, deleteUrl) {
+    expectedName = name.trim();
+    targetName.textContent = expectedName;
+    form.action = deleteUrl;
+    input.value = "";
+    submitBtn.disabled = true;
+    modal.classList.add("tdm-open");
+    setTimeout(() => input.focus(), 150);
+  };
+
+  window.closeTeacherDeleteModal = function() {
+    modal.classList.remove("tdm-open");
+  };
+
+  input.addEventListener("input", function() {
+    const typed = input.value.trim().toLowerCase();
+    submitBtn.disabled = (typed !== expectedName.toLowerCase());
+  });
+
+  // Prevent overlay clicks or esc close
+  modal.addEventListener("click", function(e) {
+    if (e.target === modal) {
+      closeTeacherDeleteModal();
+    }
+  });
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && modal.classList.contains("tdm-open")) {
+      closeTeacherDeleteModal();
+    }
+  });
+})();
+</script>

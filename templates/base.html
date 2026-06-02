@@ -973,6 +973,127 @@
     })();
   </script>
   {% block extra_js %}{% endblock %}
+
+  <!-- ── Global Phone Input Autofill (+998) ── -->
+  <script>
+    (function () {
+      function isPhoneInput(target) {
+        if (!target || target.tagName !== 'INPUT') return false;
+        
+        var name = (target.name || '').toLowerCase();
+        var id = (target.id || '').toLowerCase();
+        var placeholder = (target.placeholder || '').toLowerCase();
+        var className = (target.className || '').toLowerCase();
+        var type = (target.type || '').toLowerCase();
+        
+        if (type === 'search') return false;
+        if (name === 'q' || name === 'query' || name === 'search' || name === 'filter') return false;
+        if (placeholder.includes('qidir') || placeholder.includes('search') || placeholder.includes('ism') || placeholder.includes('familiya')) return false;
+        if (className.includes('search') || className.includes('filter')) return false;
+        if (target.closest('.bq-sdrawer-pro__phone-wrap')) return false;
+        
+        // Exclude Telegram inputs explicitly to avoid treating username field as phone input
+        if (name.includes('telegram') || id.includes('telegram')) return false;
+        
+        return (
+          type === 'tel' ||
+          name.includes('telefon') ||
+          id.includes('telefon') ||
+          name.includes('phone') ||
+          id.includes('phone') ||
+          /^(id_)?tel\d*$/.test(id) ||
+          /^(id_)?tel\d*$/.test(name) ||
+          name === 'tel' ||
+          id === 'tel'
+        );
+      }
+
+      function ensurePrefix(target) {
+        var val = target.value;
+        if (!val) {
+          target.value = '+998';
+          return;
+        }
+        
+        if (!val.startsWith('+998')) {
+          var digits = val.replace(/\D/g, '');
+          if (digits.startsWith('998')) {
+            target.value = '+' + digits;
+          } else {
+            target.value = '+998' + digits;
+          }
+        }
+        
+        if (target.value.length > 13) {
+          target.value = target.value.slice(0, 13);
+        }
+      }
+
+      document.addEventListener('focusin', function (e) {
+        if (isPhoneInput(e.target)) {
+          ensurePrefix(e.target);
+        }
+      });
+
+      document.addEventListener('input', function (e) {
+        if (isPhoneInput(e.target)) {
+          var val = e.target.value;
+          if (val === '' || val === '+' || val === '+9' || val === '+99') {
+            e.target.value = '+998';
+            return;
+          }
+          ensurePrefix(e.target);
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (isPhoneInput(e.target)) {
+          if (e.key === 'Backspace' && e.target.selectionStart <= 4 && e.target.selectionEnd <= 4) {
+            e.preventDefault();
+          }
+        }
+      });
+
+      function initAllEmptyFields() {
+        document.querySelectorAll('input').forEach(function (input) {
+          if (isPhoneInput(input) && !input.value) {
+            input.value = '+998';
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAllEmptyFields);
+      } else {
+        initAllEmptyFields();
+      }
+
+      try {
+        var observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  if (node.tagName === 'INPUT' && isPhoneInput(node) && !node.value) {
+                    node.value = '+998';
+                  } else {
+                    node.querySelectorAll('input').forEach(function (input) {
+                      if (isPhoneInput(input) && !input.value) {
+                        input.value = '+998';
+                      }
+                    });
+                  }
+                }
+              });
+            }
+          });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      } catch (err) {
+        console.error('Phone prefix MutationObserver failed:', err);
+      }
+    })();
+  </script>
 </body>
 
 </html>

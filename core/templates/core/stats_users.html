@@ -569,12 +569,11 @@
         <i class="fa-solid fa-gear"></i> Donat sozlamalari
       </button>
       {% endif %}
-
       <button
         type="button"
         id="open-user-drawer-btn"
         class="btn-action btn-primary"
-        data-drawer-url="{% if user_kind == 'students' %}{% url 'accounts:add_user' %}?drawer=1&role=student&next={{ request.get_full_path|urlencode }}{% else %}{% url 'accounts:add_user' %}?drawer=1&role_switch=1&role={% if user_kind == 'teachers' %}teacher{% elif user_kind == 'managers' %}manager{% elif user_kind == 'parents' %}parent{% else %}student{% endif %}&next={{ request.get_full_path|urlencode }}{% endif %}">
+        data-drawer-url='{% url "accounts:add_user" %}?drawer=1&role={% if user_kind == "teachers" %}teacher{% elif user_kind == "managers" %}manager{% elif user_kind == "parents" %}parent{% else %}student{% endif %}&next={{ request.get_full_path|urlencode }}'>
         <i class="fa-solid fa-plus"></i> Yangi
       </button>
     </div>
@@ -658,7 +657,7 @@
           {% for u in page_obj %}
           <tr>
             <td>
-              <div class="users-user-name" style="font-weight:800; color:white;">{{ u.get_full_name }}</div>
+              <div class="users-user-name" style="font-weight:800; color:var(--text-main);">{{ u.get_full_name }}</div>
               <div class="users-user-meta" style="font-size:12px; color:var(--text-muted); font-weight:500;">{{ u.email|default:u.username }}
               </div>
             </td>
@@ -717,14 +716,10 @@
                   {% elif user_kind != 'managers' %}
                   <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
                   {% endif %}
-                  {% if user_kind == 'parents' %}
-                  <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
-                  {% elif user_kind == 'teachers' %}
-                  <a href="{% url 'core:teacher_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
-                  {% elif user_kind == 'students' %}
-                  <button onclick="openStudentEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
+                  {% if user_kind == 'teachers' %}
+                  <button type="button" onclick="closeAllMenus(); openTeacherEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
                   {% else %}
-                  <a href="{% url 'core:user_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+                  <button type="button" onclick="closeAllMenus(); openStudentEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
                   {% endif %}
                   {% if user_kind == 'students' %}
                   {% if current_status != 'archived' %}
@@ -747,14 +742,11 @@
                     </button>
                   </form>
                   {% elif user_kind == 'teachers' %}
-                  <form method="post" action="{% url 'core:teacher_delete' u.id %}" style="display:inline;"
-                    onsubmit="return showConfirmDelete(this)">
-                    {% csrf_token %}
-                    <button type="submit" class="text-red"
-                      style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
-                      <i class="fa-solid fa-trash"></i> O'chirish
-                    </button>
-                  </form>
+                  <button type="button" class="text-red"
+                    onclick="closeAllMenus(); openTeacherDeleteModal('{{ u.get_full_name|escapejs }}', '{% url 'core:teacher_delete' u.id %}')"
+                    style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                    <i class="fa-solid fa-trash"></i> O'chirish
+                  </button>
                   {% else %}
                   <form method="post" action="{% url 'core:user_delete' u.id %}" style="display:inline;"
                     onsubmit="return showConfirmDelete(this)">
@@ -1619,7 +1611,7 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
 
   <!-- Head -->
   <div class="seu-head">
-    <div class="seu-head-title"><i class="fa-solid fa-user-pen"></i>O'quvchini tahrirlash</div>
+    <div class="seu-head-title" id="seuDrawerTitle"><i class="fa-solid fa-user-pen"></i>O'quvchini tahrirlash</div>
     <button class="seu-close-btn" onclick="closeStudentEditDrawer()"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
@@ -1632,7 +1624,7 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
     <div class="seu-av-info">
       <div class="seu-av-name" id="seuFullName">—</div>
       <div class="seu-av-email" id="seuEmailTop">—</div>
-      <div class="seu-av-badge"><i class="fa-solid fa-graduation-cap" style="font-size:.6rem"></i> O'quvchi</div>
+      <div class="seu-av-badge" id="seuDrawerBadge"><i class="fa-solid fa-graduation-cap" style="font-size:.6rem"></i> O'quvchi</div>
     </div>
   </div>
   <input type="file" id="seuAvatarFile" accept="image/*" style="display:none">
@@ -1679,8 +1671,26 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
       <div class="seu-sec-label"><i class="fa-solid fa-phone me-1"></i>Aloqa</div>
       <div class="seu-sec-box">
         <div class="seu-grid2">
-          <div class="seu-row"><label class="seu-label">Telefon 1</label><input class="seu-input" id="seuTel1" type="tel" placeholder="+998..."></div>
-          <div class="seu-row"><label class="seu-label">Telefon 2</label><input class="seu-input" id="seuTel2" type="tel" placeholder="+998..."></div>
+          <div class="seu-row">
+            <label class="seu-label">Telefon 1</label>
+            <div class="bq-sdrawer-pro__phone-wrap">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              <input class="seu-input" id="seuTel1" type="tel" placeholder="90 123-45-67" style="border: 0 !important; background: transparent !important; padding-left: 14px !important; width: 100% !important; box-sizing: border-box !important;">
+            </div>
+          </div>
+          <div class="seu-row">
+            <label class="seu-label">Telefon 2</label>
+            <div class="bq-sdrawer-pro__phone-wrap">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              <input class="seu-input" id="seuTel2" type="tel" placeholder="90 123-45-67" style="border: 0 !important; background: transparent !important; padding-left: 14px !important; width: 100% !important; box-sizing: border-box !important;">
+            </div>
+          </div>
         </div>
         <div class="seu-grid2">
           <div class="seu-row"><label class="seu-label"><i class="fa-brands fa-telegram" style="color:#2aabee"></i> Telegram</label><input class="seu-input" id="seuTelegram" type="text" placeholder="@username"></div>
@@ -1827,6 +1837,27 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
       .then(r => r.json())
       .then(res => {
         if (!res.ok) { seuToast(res.error || "Xatolik", "err"); closeStudentEditDrawer(); return; }
+        
+        // Dynamic group tab visibility based on role
+        const isStudent = res.data.role === "student";
+        $("seuTabGroups").style.display = isStudent ? "" : "none";
+        
+        // Update Title and Badge dynamically
+        const titleEl = $("seuDrawerTitle");
+        const badgeEl = $("seuDrawerBadge");
+        if (titleEl && badgeEl) {
+          if (res.data.role === "manager") {
+            titleEl.innerHTML = '<i class="fa-solid fa-user-pen"></i> Managerni tahrirlash';
+            badgeEl.innerHTML = '<i class="fa-solid fa-user-shield" style="font-size:.6rem"></i> Manager';
+          } else if (res.data.role === "parent") {
+            titleEl.innerHTML = '<i class="fa-solid fa-user-pen"></i> Ota-onani tahrirlash';
+            badgeEl.innerHTML = '<i class="fa-solid fa-users" style="font-size:.6rem"></i> Ota-ona';
+          } else {
+            titleEl.innerHTML = '<i class="fa-solid fa-user-pen"></i> O\'quvchini tahrirlash';
+            badgeEl.innerHTML = '<i class="fa-solid fa-graduation-cap" style="font-size:.6rem"></i> O\'quvchi';
+          }
+        }
+        
         seuPopulate(res.data);
         seuRenderEnrollments(res.data.enrollments || []);
       })
@@ -1854,8 +1885,8 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
     $("seuIsm").value      = d.ism           || "";
     $("seuFamilya").value  = d.familya       || "";
     $("seuOtchestvo").value= d.otchestvo     || "";
-    $("seuTel1").value     = d.telefon1      || "";
-    $("seuTel2").value     = d.telefon2      || "";
+    $("seuTel1").value     = formatPhoneValue(d.telefon1);
+    $("seuTel2").value     = formatPhoneValue(d.telefon2);
     $("seuBirth").value    = d.birth_date    || "";
     $("seuGender").value   = d.gender        || "";
     $("seuPassport").value = d.passport_id   || "";
@@ -2185,6 +2216,49 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
     clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove("seu-show"), 3400);
   }
 
+  /* ── Input formatting and masks ── */
+  function formatPhoneValue(value) {
+    const digits = String(value || "").replace(/\D/g, "").replace(/^998/, "").slice(0, 9);
+    const parts = [];
+    if (digits.slice(0, 2)) parts.push(digits.slice(0, 2));
+    if (digits.slice(2, 5)) parts.push(digits.slice(2, 5));
+    if (digits.slice(5, 7)) parts.push(digits.slice(5, 7));
+    if (digits.slice(7, 9)) parts.push(digits.slice(7, 9));
+    return parts.join(" ");
+  }
+
+  // Initialize masks for Telefon 1 & 2
+  ["seuTel1", "seuTel2"].forEach(id => {
+    const input = $(id);
+    if (!input) return;
+    
+    input.setAttribute('placeholder', '90 123-45-67');
+    input.setAttribute('maxlength', '12');
+    input.setAttribute('inputmode', 'numeric');
+    input.setAttribute('autocomplete', 'off');
+
+    function applyPhoneMask() {
+      input.value = formatPhoneValue(input.value);
+    }
+    input.addEventListener("input", applyPhoneMask);
+    input.addEventListener("blur", function () {
+      const digits = input.value.replace(/\D/g, "").replace(/^998/, "");
+      input.value = digits ? formatPhoneValue(input.value) : "";
+    });
+  });
+
+  // Telegram & Instagram usernames auto-@ prefix
+  ["seuTelegram", "seuInsta"].forEach(id => {
+    const inp = $(id);
+    if (!inp) return;
+    inp.addEventListener('input', function() {
+      if (this.value && !this.value.startsWith('@')) this.value = '@' + this.value;
+    });
+    inp.addEventListener('blur', function() {
+      if (this.value === '@') this.value = '';
+    });
+  });
+
   document.addEventListener("keydown", e => { if (e.key === "Escape" && _sid) closeStudentEditDrawer(); });
 })();
 </script>
@@ -2205,4 +2279,10 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
     });
   });
 </script>
+
+{% if user_kind == 'teachers' %}
+  {% include "core/includes/teacher_edit_drawer_include.html" %}
+  {% include "core/includes/teacher_delete_modal_include.html" %}
+{% endif %}
+
 {% endblock %}

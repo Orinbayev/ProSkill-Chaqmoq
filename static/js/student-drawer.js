@@ -112,6 +112,11 @@
 
   function initInputFormatting(scope) {
     scope.querySelectorAll("#id_telefon1, #id_telefon2").forEach(function (input) {
+      input.setAttribute('placeholder', '90 123-45-67');
+      input.setAttribute('maxlength', '12');
+      input.setAttribute('inputmode', 'numeric');
+      input.setAttribute('autocomplete', 'off');
+
       function applyPhoneMask() {
         input.value = formatPhoneValue(input.value);
       }
@@ -148,6 +153,16 @@
       applyPassportMask();
       input.addEventListener("input", applyPassportMask);
       input.addEventListener("blur", applyPassportMask);
+    });
+
+    scope.querySelectorAll("#id_telegram_username, #id_instagram_username").forEach(function (inp) {
+      inp.setAttribute('placeholder', '@username');
+      inp.addEventListener('input', function() {
+        if (this.value && !this.value.startsWith('@')) this.value = '@' + this.value;
+      });
+      inp.addEventListener('blur', function() {
+        if (this.value === '@') this.value = '';
+      });
     });
   }
 

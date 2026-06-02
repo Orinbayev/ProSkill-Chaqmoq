@@ -1043,6 +1043,7 @@ def student_edit_ajax(request, pk):
             "ok": True,
             "data": {
                 "id": student.pk,
+                "role": student.role,
                 "ism": student.ism,
                 "familya": student.familya,
                 "otchestvo": student.otchestvo or "",
@@ -1069,8 +1070,32 @@ def student_edit_ajax(request, pk):
         student.ism     = (request.POST.get("ism")     or "").strip() or student.ism
         student.familya = (request.POST.get("familya") or "").strip() or student.familya
         student.otchestvo        = (request.POST.get("otchestvo")        or "").strip()
-        student.telefon1         = (request.POST.get("telefon1")         or "").strip()
-        student.telefon2         = (request.POST.get("telefon2")         or "").strip()
+        
+        tel1 = (request.POST.get("telefon1") or "").strip()
+        tel2 = (request.POST.get("telefon2") or "").strip()
+        
+        if tel1:
+            tel1_digits = "".join(filter(str.isdigit, tel1))
+            if tel1_digits.startswith("998") and len(tel1_digits) == 12:
+                student.telefon1 = "+" + tel1_digits
+            elif len(tel1_digits) == 9:
+                student.telefon1 = "+998" + tel1_digits
+            else:
+                student.telefon1 = tel1
+        else:
+            student.telefon1 = ""
+
+        if tel2:
+            tel2_digits = "".join(filter(str.isdigit, tel2))
+            if tel2_digits.startswith("998") and len(tel2_digits) == 12:
+                student.telefon2 = "+" + tel2_digits
+            elif len(tel2_digits) == 9:
+                student.telefon2 = "+998" + tel2_digits
+            else:
+                student.telefon2 = tel2
+        else:
+            student.telefon2 = ""
+
         student.passport_id      = (request.POST.get("passport_id")      or "").strip()
         student.jshr             = (request.POST.get("jshr")             or "").strip()
         student.address          = (request.POST.get("address")          or "").strip()
@@ -1081,6 +1106,8 @@ def student_edit_ajax(request, pk):
         birth_raw = (request.POST.get("birth_date") or "").strip()
         if birth_raw:
             student.birth_date = _parse_date(birth_raw)
+        else:
+            student.birth_date = None
         if "avatar" in request.FILES:
             student.avatar = request.FILES["avatar"]
         student.save()

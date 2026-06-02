@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block body_class %}users-stats-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+{% endblock %}
 {% block content %}
 <style>
   :root {
@@ -514,9 +517,10 @@
         <i class="fa-solid fa-file-import"></i> Import
       </button>
 
-      <a href="{% url 'accounts:add_user' %}?role=teacher" class="btn-action btn-primary">
+      <button type="button" id="open-user-drawer-btn" class="btn-action btn-primary"
+        data-drawer-url="{% url 'accounts:add_user' %}?drawer=1&role=teacher&next={{ request.get_full_path|urlencode }}">
         <i class="fa-solid fa-plus"></i> Yangi o'qituvchi
-      </a>
+      </button>
 
       <a href="{% url 'core:users_export_excel' %}?role=teacher" class="btn-action btn-excel">
         <i class="fa-solid fa-file-excel"></i>
@@ -586,16 +590,12 @@
                   <a href="{% url 'core:teacher_detail' t.id %}">
                     <i class="fa-solid fa-eye"></i> Ko'rish
                   </a>
-                  <a href="{% url 'core:teacher_edit' t.id %}">
+                  <button type="button" onclick="closeAllMenus(); openTeacherEditDrawer({{ t.id }});">
                     <i class="fa-solid fa-pen"></i> Tahrirlash
-                  </a>
-                  <form method="post" action="{% url 'core:teacher_delete' t.id %}"
-                    onsubmit="return confirm('O\'qituvchini o\'chirishni tasdiqlaysizmi?');" style="margin:0;">
-                    {% csrf_token %}
-                    <button type="submit" class="text-red">
-                      <i class="fa-solid fa-trash"></i> O'chirish
-                    </button>
-                  </form>
+                  </button>
+                  <button type="button" class="text-red" onclick="closeAllMenus(); openTeacherDeleteModal('{{ t.get_full_name|escapejs }}', '{% url 'core:teacher_delete' t.id %}')">
+                    <i class="fa-solid fa-trash"></i> O'chirish
+                  </button>
                 </div>
               </div>
             </td>
@@ -898,4 +898,47 @@
   </div>
 </div>
 
+{% include "core/includes/teacher_edit_drawer_include.html" %}
+{% include "core/includes/teacher_delete_modal_include.html" %}
+
+{% endblock %}
+
+{% block modals %}
+<div id="student-drawer-overlay" class="bq-sdrawer-overlay" aria-hidden="true"></div>
+<aside id="student-drawer-panel" class="bq-sdrawer" aria-hidden="true">
+  <div class="bq-sdrawer__header">
+    <div>
+      <h3 class="bq-sdrawer__title">Yangi o'qituvchi qo'shish</h3>
+    </div>
+    <button type="button" class="bq-sdrawer__close" id="student-drawer-close-btn" aria-label="Yopish">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div id="student-drawer-body" class="bq-sdrawer__body">
+    <div class="bq-sdrawer-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Forma yuklanmoqda...</span>
+    </div>
+  </div>
+</aside>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/student-drawer.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!window.initStudentDrawer) return;
+
+    window.initStudentDrawer({
+      triggerSelector: "#open-user-drawer-btn",
+      overlaySelector: "#student-drawer-overlay",
+      panelSelector: "#student-drawer-panel",
+      bodySelector: "#student-drawer-body",
+      closeButtonSelector: "#student-drawer-close-btn",
+      onSuccess: function () {
+        window.location.reload();
+      }
+    });
+  });
+</script>
 {% endblock %}

@@ -379,10 +379,10 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-white-10 p-2">
               <li>
-                <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2"
-                  href="{% url 'core:teacher_edit' teacher.id %}">
+                <button class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2" type="button"
+                  onclick="openTeacherEditDrawer({{ teacher.id }})">
                   <i class="fa-solid fa-pen-to-square text-warning"></i> Tahrirlash
-                </a>
+                </button>
               </li>
               <li>
                 <hr class="dropdown-divider opacity-10">
@@ -556,6 +556,9 @@
     </div>
   </div>
 </div>
+
+{% include "core/includes/teacher_edit_drawer_include.html" %}
+
 {% endblock %}
 
 {% block extra_js %}

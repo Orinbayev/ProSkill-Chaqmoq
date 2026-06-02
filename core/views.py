@@ -607,6 +607,145 @@ def teacher_edit(request, pk):
 
 
 @login_required
+def teacher_edit_ajax(request, pk):
+    from django.utils.dateparse import parse_date as _parse_date
+    from accounts.forms import PasswordUpdateForm
+
+    if not _staff_only(request):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    center = _get_center(request)
+    teacher = get_object_or_404(User, pk=pk, role="teacher")
+    _assert_same_center(teacher, center)
+
+    # ── GET: Return full teacher details + their groups ──
+    if request.method == "GET":
+        groups = Group.objects.filter(oqituvchi=teacher, is_archived=False).order_by("nom")
+        group_data = [
+            {
+                "id": g.pk,
+                "nom": g.nom,
+                "kurs_narxi": g.kurs_narxi,
+                "oqituvchi_foiz": g.oqituvchi_foiz if g.oqituvchi_foiz is not None else teacher.oqituvchi_foizi,
+                "student_count": g.enrollments.filter(is_active=True, is_deleted=False).count(),
+            }
+            for g in groups
+        ]
+        return JsonResponse({
+            "ok": True,
+            "data": {
+                "id": teacher.pk,
+                "ism": teacher.ism,
+                "familya": teacher.familya,
+                "otchestvo": teacher.otchestvo or "",
+                "email": teacher.email,
+                "telefon1": teacher.telefon1 or "",
+                "telefon2": teacher.telefon2 or "",
+                "birth_date": teacher.birth_date.strftime("%Y-%m-%d") if teacher.birth_date else "",
+                "gender": teacher.gender or "",
+                "passport_id": teacher.passport_id or "",
+                "jshr": teacher.jshr or "",
+                "address": teacher.address or "",
+                "telegram_username": teacher.telegram_username or "",
+                "instagram_username": teacher.instagram_username or "",
+                "avatar_url": teacher.avatar.url if teacher.avatar else None,
+                "full_name": teacher.get_full_name(),
+                "oqituvchi_foizi": teacher.oqituvchi_foizi or 0,
+                "groups": group_data,
+            }
+        })
+
+    action = request.POST.get("action")
+
+    # ── POST: Update profile ──
+    if action == "update_profile":
+        teacher.ism = (request.POST.get("ism") or "").strip() or teacher.ism
+        teacher.familya = (request.POST.get("familya") or "").strip() or teacher.familya
+        teacher.otchestvo = (request.POST.get("otchestvo") or "").strip()
+
+        tel1 = (request.POST.get("telefon1") or "").strip()
+        tel2 = (request.POST.get("telefon2") or "").strip()
+
+        if tel1:
+            tel1_digits = "".join(filter(str.isdigit, tel1))
+            if tel1_digits.startswith("998") and len(tel1_digits) == 12:
+                teacher.telefon1 = "+" + tel1_digits
+            elif len(tel1_digits) == 9:
+                teacher.telefon1 = "+998" + tel1_digits
+            else:
+                teacher.telefon1 = tel1
+        else:
+            teacher.telefon1 = ""
+
+        if tel2:
+            tel2_digits = "".join(filter(str.isdigit, tel2))
+            if tel2_digits.startswith("998") and len(tel2_digits) == 12:
+                teacher.telefon2 = "+" + tel2_digits
+            elif len(tel2_digits) == 9:
+                teacher.telefon2 = "+998" + tel2_digits
+            else:
+                teacher.telefon2 = tel2
+        else:
+            teacher.telefon2 = ""
+
+        teacher.passport_id = (request.POST.get("passport_id") or "").strip().upper()
+        teacher.jshr = (request.POST.get("jshr") or "").strip()
+        teacher.address = (request.POST.get("address") or "").strip()
+        teacher.telegram_username = (request.POST.get("telegram_username") or "").strip()
+        teacher.instagram_username = (request.POST.get("instagram_username") or "").strip()
+
+        gender = (request.POST.get("gender") or "").strip()
+        teacher.gender = gender or None
+
+        birth_raw = (request.POST.get("birth_date") or "").strip()
+        if birth_raw:
+            teacher.birth_date = _parse_date(birth_raw)
+        else:
+            teacher.birth_date = None
+
+        raw_foiz = (request.POST.get("oqituvchi_foizi") or "").strip()
+        old_foiz = teacher.oqituvchi_foizi
+        yangi_foiz = old_foiz
+        if raw_foiz.isdigit():
+            yangi_foiz = int(raw_foiz)
+            teacher.oqituvchi_foizi = yangi_foiz
+
+        if "avatar" in request.FILES:
+            teacher.avatar = request.FILES["avatar"]
+
+        teacher.save()
+
+        # Update teacher percentage if changed across their groups & active enrollments
+        if yangi_foiz != old_foiz:
+            if _has_field(Group, "oqituvchi") and _has_field(Group, "oqituvchi_foiz"):
+                Group.objects.filter(oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
+            if _has_field(Enrollment, "oqituvchi_foiz"):
+                Enrollment.objects.filter(group__oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
+
+        return JsonResponse({
+            "ok": True,
+            "message": "Profil yangilandi ✅",
+            "full_name": teacher.get_full_name(),
+            "avatar_url": teacher.avatar.url if teacher.avatar else None,
+            "oqituvchi_foizi": teacher.oqituvchi_foizi,
+        })
+
+    # ── POST: Update password ──
+    if action == "update_password":
+        form = PasswordUpdateForm(request.POST)
+        if form.is_valid():
+            teacher.set_password(form.cleaned_data["new_password"])
+            teacher.save()
+            return JsonResponse({"ok": True, "message": "Parol yangilandi 🔒"})
+        return JsonResponse({"ok": False, "errors": form.errors}, status=400)
+
+    return JsonResponse({"ok": False, "error": "Noto'g'ri so'rov."}, status=400)
+
+
+
+
+
+@login_required
 def teacher_delete(request, pk):
     if request.user.role not in ("manager", "director") and not request.user.is_superuser:
         messages.error(request, "Ruxsat yo‘q.")

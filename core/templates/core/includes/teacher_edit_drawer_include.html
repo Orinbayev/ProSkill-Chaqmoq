@@ -1,0 +1,645 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+<!-- {# ═══════════════════════════════════════════════════════════════════════════
+   TEACHER EDIT DRAWER — shared include
+   Requires: {% url 'core:teacher_edit_ajax' 9999999 %}, {{ csrf_token }}
+ ═══════════════════════════════════════════════════════════════════════════ #} -->
+
+<style>
+.teu-overlay {
+  position: fixed; inset: 0;
+  background: rgba(2, 6, 23, .6);
+  backdrop-filter: blur(5px);
+  z-index: 9100;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s ease;
+}
+.teu-overlay.teu-open { opacity: 1; pointer-events: all; }
+
+.teu-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(460px, 100vw);
+  z-index: 9101;
+  display: flex; flex-direction: column;
+  background: #0f172a;
+  border-left: 1px solid rgba(255,255,255,.08);
+  box-shadow: -12px 0 50px rgba(0,0,0,.5);
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+}
+.teu-panel.teu-open { transform: translateX(0); }
+
+.teu-head {
+  flex-shrink: 0;
+  padding: 18px 22px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(16,185,129,.05));
+}
+.teu-head-title { font-size: .93rem; font-weight: 900; color: #f1f5f9; letter-spacing: -.3px; }
+.teu-head-title i { color: #6366f1; margin-right: 8px; }
+.teu-close-btn {
+  width: 34px; height: 34px;
+  border-radius: 9px; border: 1px solid rgba(255,255,255,.1);
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: .82rem;
+  transition: background .15s, color .15s;
+}
+.teu-close-btn:hover { background: rgba(255,255,255,.08); color: #f1f5f9; }
+
+.teu-avatar-bar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.teu-avatar-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
+.teu-avatar {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(99,102,241,.35);
+  background: linear-gradient(135deg, #6366f1, #10b981);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; font-weight: 900; color: #fff;
+  user-select: none; overflow: hidden;
+}
+.teu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.teu-av-cam {
+  position: absolute; bottom: 0; right: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #6366f1; border: 2px solid #0f172a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .5rem; color: #fff;
+}
+.teu-av-info { flex: 1; min-width: 0; }
+.teu-av-name  { font-size: 1rem; font-weight: 900; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teu-av-email { font-size: .78rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teu-av-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 5px; padding: 2px 9px;
+  border-radius: 99px; font-size: .7rem; font-weight: 700;
+  background: rgba(99,102,241,.12); color: #818cf8;
+}
+
+.teu-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.teu-body::-webkit-scrollbar { width: 3px; }
+.teu-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+
+.teu-sec-label {
+  font-size: .68rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: #475569; margin-bottom: 10px;
+}
+.teu-sec-box {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px; padding: 14px;
+  display: flex; flex-direction: column; gap: 11px;
+}
+.teu-row { display: flex; flex-direction: column; gap: 4px; }
+.teu-label { font-size: .73rem; font-weight: 700; color: #475569; }
+.teu-input {
+  padding: 9px 13px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  font-size: .88rem; color: #f1f5f9;
+  outline: none; width: 100%; box-sizing: border-box;
+  transition: border-color .2s, box-shadow .2s;
+}
+.teu-input::placeholder { color: #334155; }
+.teu-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+.teu-input[readonly] { background: rgba(255,255,255,.02); color: #475569; cursor: default; border-color: rgba(255,255,255,.05); }
+.teu-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.teu-email-blk {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 13px;
+  border-radius: 9px; background: rgba(255,255,255,.02);
+  border: 1.5px solid rgba(255,255,255,.05);
+}
+.teu-email-blk i   { color: #334155; font-size: .82rem; }
+.teu-email-blk span { font-size: .88rem; color: #475569; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.teu-note { font-size: .7rem; color: #334155; margin-top: 4px; }
+
+.teu-btn {
+  width: 100%; padding: 10px;
+  border-radius: 10px; border: none; cursor: pointer;
+  font-size: .86rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: opacity .2s, transform .15s, box-shadow .2s;
+}
+.teu-btn:active { transform: scale(.98); }
+.teu-btn:disabled { opacity: .5; cursor: not-allowed; }
+.teu-btn--indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; box-shadow: 0 4px 14px rgba(99,102,241,.3); }
+.teu-btn--indigo:hover { box-shadow: 0 6px 20px rgba(99,102,241,.45); }
+.teu-btn--purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; box-shadow: 0 4px 14px rgba(139,92,246,.3); }
+.teu-btn--purple:hover { box-shadow: 0 6px 20px rgba(139,92,246,.45); }
+
+.teu-pass-err { font-size: .75rem; color: #f87171; display: none; padding: 2px 0; }
+
+.teu-toast {
+  position: fixed; bottom: 28px; right: 28px;
+  padding: 11px 18px; border-radius: 13px;
+  font-size: .86rem; font-weight: 700; color: #fff;
+  z-index: 9999; display: flex; align-items: center; gap: 8px;
+  transform: translateY(10px); opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 310px;
+}
+.teu-toast.teu-show { opacity: 1; transform: translateY(0); }
+.teu-toast--ok  { background: linear-gradient(135deg, #10b981, #0891b2); }
+.teu-toast--err { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+.teu-tabs {
+  flex-shrink: 0;
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.15);
+}
+.teu-tab {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; padding: 11px 8px;
+  font-size: .7rem; font-weight: 700; color: #475569;
+  cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent;
+  transition: color .18s, border-color .18s, background .18s;
+}
+.teu-tab i { font-size: 1rem; }
+.teu-tab:hover { color: #94a3b8; background: rgba(255,255,255,.03); }
+.teu-tab.teu-tab--active { color: #6366f1; border-bottom-color: #6366f1; background: rgba(99,102,241,.06); }
+.teu-tab--groups.teu-tab--active { color: #10b981; border-bottom-color: #10b981; background: rgba(16,185,129,.06); }
+.teu-tab--pass.teu-tab--active   { color: #8b5cf6; border-bottom-color: #8b5cf6; background: rgba(139,92,246,.06); }
+
+.teu-pane { display: none; }
+.teu-pane.teu-pane--active { display: flex; flex-direction: column; gap: 14px; }
+
+.teu-select {
+  padding: 9px 13px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  font-size: .88rem; color: #f1f5f9;
+  outline: none; width: 100%; box-sizing: border-box;
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%2364748b'%3E%3Cpath d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.teu-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+.teu-select option { background: #1e293b; color: #f1f5f9; }
+
+.teu-enr-list { display: flex; flex-direction: column; gap: 8px; }
+.teu-enr-empty { text-align: center; padding: 24px 0; color: #334155; font-size: .83rem; }
+.teu-enr-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
+  overflow: hidden;
+  padding: 11px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.teu-enr-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(99,102,241,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; color: #818cf8;
+}
+.teu-enr-main { flex: 1; min-width: 0; }
+.teu-enr-name  { font-size: .88rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teu-enr-price { font-size: .78rem; color: #64748b; margin-top: 2px; }
+.teu-enr-meta  { font-size: .72rem; color: #10b981; font-weight: 700; margin-top: 2px; }
+
+/* ── Light mode ── */
+html[data-role-theme="light"] .teu-overlay { background: rgba(15,23,42,.35); }
+html[data-role-theme="light"] .teu-panel { background: #fff; border-left-color: rgba(148,163,184,.2); box-shadow: -8px 0 40px rgba(15,23,42,.12); }
+html[data-role-theme="light"] .teu-head { background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(16,185,129,.04)); border-bottom-color: rgba(148,163,184,.18); }
+html[data-role-theme="light"] .teu-head-title { color: #0f172a; }
+html[data-role-theme="light"] .teu-close-btn { border-color: rgba(148,163,184,.3); color: #64748b; }
+html[data-role-theme="light"] .teu-close-btn:hover { background: #f1f5f9; color: #0f172a; }
+html[data-role-theme="light"] .teu-avatar-bar { border-bottom-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .teu-avatar { border-color: rgba(99,102,241,.25); }
+html[data-role-theme="light"] .teu-av-cam { border-color: #fff; }
+html[data-role-theme="light"] .teu-av-name { color: #0f172a; }
+html[data-role-theme="light"] .teu-av-email { color: #64748b; }
+html[data-role-theme="light"] .teu-av-badge { background: rgba(99,102,241,.08); color: #4f46e5; }
+html[data-role-theme="light"] .teu-tabs { background: rgba(0,0,0,.03); border-bottom-color: rgba(148,163,184,.15); }
+html[data-role-theme="light"] .teu-tab { color: #94a3b8; }
+html[data-role-theme="light"] .teu-tab:hover { color: #64748b; background: rgba(0,0,0,.03); }
+html[data-role-theme="light"] .teu-tab.teu-tab--active { color: #6366f1; }
+html[data-role-theme="light"] .teu-tab--groups.teu-tab--active { color: #059669; }
+html[data-role-theme="light"] .teu-tab--pass.teu-tab--active { color: #7c3aed; }
+html[data-role-theme="light"] .teu-sec-label { color: #94a3b8; }
+html[data-role-theme="light"] .teu-sec-box { background: #f8fafc; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .teu-label { color: #475569; }
+html[data-role-theme="light"] .teu-input { background: #fff; border-color: rgba(148,163,184,.35); color: #0f172a; }
+html[data-role-theme="light"] .teu-input::placeholder { color: #cbd5e1; }
+html[data-role-theme="light"] .teu-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+html[data-role-theme="light"] .teu-input[readonly] { background: #f1f5f9; color: #94a3b8; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .teu-select { background-color: #fff; border-color: rgba(148,163,184,.35); color: #0f172a; }
+html[data-role-theme="light"] .teu-select option { background: #fff; color: #0f172a; }
+html[data-role-theme="light"] .teu-email-blk { background: #f1f5f9; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .teu-email-blk i { color: #94a3b8; }
+html[data-role-theme="light"] .teu-email-blk span { color: #64748b; }
+html[data-role-theme="light"] .teu-note { color: #94a3b8; }
+html[data-role-theme="light"] .teu-pass-err { color: #dc2626; }
+html[data-role-theme="light"] .teu-enr-card { background: #f8fafc; border-color: rgba(148,163,184,.2); }
+html[data-role-theme="light"] .teu-enr-name { color: #0f172a; }
+html[data-role-theme="light"] .teu-enr-price { color: #64748b; }
+html[data-role-theme="light"] .teu-enr-meta { color: #059669; }
+html[data-role-theme="light"] .teu-enr-empty { color: #94a3b8; }
+</style>
+
+<!-- Overlay + Panel -->
+<div class="teu-overlay" id="teuOverlay" onclick="closeTeacherEditDrawer()"></div>
+<div class="teu-panel" id="teuPanel">
+
+  <div class="teu-head">
+    <div class="teu-head-title"><i class="fa-solid fa-user-gear"></i>O'qituvchini tahrirlash</div>
+    <button class="teu-close-btn" onclick="closeTeacherEditDrawer()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="teu-avatar-bar">
+    <div class="teu-avatar-wrap" onclick="document.getElementById('teuAvatarFile').click()" title="Rasm o'zgartirish">
+      <div class="teu-avatar" id="teuAvatar"><span id="teuInitial">—</span></div>
+      <div class="teu-av-cam"><i class="fa-solid fa-camera"></i></div>
+    </div>
+    <div class="teu-av-info">
+      <div class="teu-av-name"  id="teuFullName">—</div>
+      <div class="teu-av-email" id="teuEmailTop">—</div>
+      <div class="teu-av-badge"><i class="fa-solid fa-chalkboard-user" style="font-size:.6rem"></i> O'qituvchi</div>
+    </div>
+  </div>
+  <input type="file" id="teuAvatarFile" accept="image/*" style="display:none">
+
+  <div class="teu-tabs">
+    <button class="teu-tab teu-tab--active" id="teuTabProfile" onclick="teuSwitchTab('profile')">
+      <i class="fa-solid fa-user"></i> Profil
+    </button>
+    <button class="teu-tab teu-tab--groups" id="teuTabGroups" onclick="teuSwitchTab('groups')">
+      <i class="fa-solid fa-users"></i> Guruhlar
+    </button>
+    <button class="teu-tab teu-tab--pass" id="teuTabPass" onclick="teuSwitchTab('pass')">
+      <i class="fa-solid fa-key"></i> Parol
+    </button>
+  </div>
+
+  <div class="teu-body">
+
+    <!-- TAB: PROFILE -->
+    <div class="teu-pane teu-pane--active" id="teuPaneProfile">
+      <div class="teu-sec-label"><i class="fa-solid fa-address-card me-1"></i>Shaxsiy ma'lumotlar</div>
+      <div class="teu-sec-box">
+        <div class="teu-grid2">
+          <div class="teu-row"><label class="teu-label">Ism</label><input class="teu-input" id="teuIsm" type="text" placeholder="Ism..."></div>
+          <div class="teu-row"><label class="teu-label">Familya</label><input class="teu-input" id="teuFamilya" type="text" placeholder="Familya..."></div>
+        </div>
+        <div class="teu-row"><label class="teu-label">Otasining ismi</label><input class="teu-input" id="teuOtchestvo" type="text" placeholder="Otasining ismi..."></div>
+        <div class="teu-grid2">
+          <div class="teu-row"><label class="teu-label">Tug'ilgan sana</label><input class="teu-input" id="teuBirth" type="date"></div>
+          <div class="teu-row">
+            <label class="teu-label">Jinsi</label>
+            <select class="teu-select" id="teuGender">
+              <option value="">— Tanlang —</option>
+              <option value="male">Erkak</option>
+              <option value="female">Ayol</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="teu-sec-label"><i class="fa-solid fa-percent me-1"></i>Ulish ulushi</div>
+      <div class="teu-sec-box">
+        <div class="teu-row">
+          <label class="teu-label">O'qituvchi ulushi (%)</label>
+          <input class="teu-input" id="teuFoiz" type="number" min="0" max="100" placeholder="40">
+          <div class="teu-note"><i class="fa-solid fa-circle-info me-1"></i>Ushbu ulush o'zgarganda uning barcha faol guruhlari va o'quvchilari ulushi ham avtomatik yangilanadi.</div>
+        </div>
+      </div>
+
+      <div class="teu-sec-label"><i class="fa-solid fa-phone me-1"></i>Aloqa</div>
+      <div class="teu-sec-box">
+        <div class="teu-grid2">
+          <div class="teu-row">
+            <label class="teu-label">Telefon 1</label>
+            <div class="bq-sdrawer-pro__phone-wrap">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              <input class="teu-input" id="teuTel1" type="tel" placeholder="90 123-45-67" style="border: 0 !important; background: transparent !important; padding-left: 14px !important; width: 100% !important; box-sizing: border-box !important;">
+            </div>
+          </div>
+          <div class="teu-row">
+            <label class="teu-label">Telefon 2</label>
+            <div class="bq-sdrawer-pro__phone-wrap">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              <input class="teu-input" id="teuTel2" type="tel" placeholder="90 123-45-67" style="border: 0 !important; background: transparent !important; padding-left: 14px !important; width: 100% !important; box-sizing: border-box !important;">
+            </div>
+          </div>
+        </div>
+        <div class="teu-grid2">
+          <div class="teu-row"><label class="teu-label"><i class="fa-brands fa-telegram" style="color:#2aabee"></i> Telegram</label><input class="teu-input" id="teuTelegram" type="text" placeholder="@username"></div>
+          <div class="teu-row"><label class="teu-label"><i class="fa-brands fa-instagram" style="color:#e1306c"></i> Instagram</label><input class="teu-input" id="teuInsta" type="text" placeholder="@username"></div>
+        </div>
+        <div class="teu-row"><label class="teu-label">Manzil</label><textarea class="teu-input" id="teuAddress" rows="2" placeholder="Yashash manzili..." style="resize:vertical"></textarea></div>
+      </div>
+
+      <div class="teu-sec-label"><i class="fa-solid fa-id-card me-1"></i>Hujjat</div>
+      <div class="teu-sec-box">
+        <div class="teu-grid2">
+          <div class="teu-row"><label class="teu-label">Pasport seriya/raqam</label><input class="teu-input" id="teuPassport" type="text" placeholder="AA 1234567"></div>
+          <div class="teu-row"><label class="teu-label">JSHR / PINFL</label><input class="teu-input" id="teuJshr" type="text" placeholder="12345678901234" maxlength="14"></div>
+        </div>
+      </div>
+
+      <div class="teu-sec-label"><i class="fa-solid fa-envelope me-1"></i>Login (Email)</div>
+      <div class="teu-sec-box">
+        <div class="teu-email-blk">
+          <i class="fa-solid fa-lock" style="color:#475569"></i>
+          <span id="teuEmailRO">—</span>
+        </div>
+        <div class="teu-note"><i class="fa-solid fa-circle-info me-1"></i>Email login sifatida ishlatiladi va o'zgartirilmaydi.</div>
+      </div>
+
+      <button class="teu-btn teu-btn--indigo" id="teuSaveProfile" onclick="teuSaveProfile()">
+        <i class="fa-solid fa-floppy-disk"></i> Profilni saqlash
+      </button>
+    </div>
+
+    <!-- TAB: GROUPS -->
+    <div class="teu-pane" id="teuPaneGroups">
+      <div class="teu-sec-label"><i class="fa-solid fa-chalkboard-user me-1"></i>Biriktirilgan guruhlar</div>
+      <div class="teu-enr-list" id="teuGroupList">
+        <div class="teu-enr-empty"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <!-- TAB: PASSWORD -->
+    <div class="teu-pane" id="teuPanePass">
+      <div class="teu-sec-label"><i class="fa-solid fa-shield-halved me-1"></i>Parol xavfsizligi</div>
+      <div class="teu-sec-box">
+        <div class="teu-row"><label class="teu-label">Yangi parol</label><input class="teu-input" id="teuNewPass" type="password" placeholder="Kamida 8 ta belgi..." autocomplete="new-password"></div>
+        <div class="teu-row"><label class="teu-label">Yangi parol (takror)</label><input class="teu-input" id="teuConfPass" type="password" placeholder="Takrorlang..." autocomplete="new-password"></div>
+        <div class="teu-pass-err" id="teuPassErr"></div>
+        <button class="teu-btn teu-btn--purple" id="teuSavePassBtn" onclick="teuSavePass()">
+          <i class="fa-solid fa-key"></i> Parolni yangilash
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /teu-body -->
+</div><!-- /teu-panel -->
+<div class="teu-toast" id="teuToast"></div>
+
+<script>
+(function () {
+  const _TPL = "{% url 'core:teacher_edit_ajax' 9999999 %}";
+  const url  = id => _TPL.replace("9999999", id);
+  const CSRF = "{{ csrf_token }}";
+  let _tid = null;
+
+  const $ = id => document.getElementById(id);
+
+  function fmtPrice(n) {
+    return Number(n).toLocaleString("uz-UZ") + " so'm";
+  }
+
+  window.teuSwitchTab = function (tab) {
+    ["profile","groups","pass"].forEach(t => {
+      const capT = t.charAt(0).toUpperCase() + t.slice(1);
+      $("teuPane" + capT)?.classList.remove("teu-pane--active");
+      $("teuTab"  + capT)?.classList.remove("teu-tab--active");
+    });
+    const capTab = tab.charAt(0).toUpperCase() + tab.slice(1);
+    $("teuPane" + capTab)?.classList.add("teu-pane--active");
+    $("teuTab"  + capTab)?.classList.add("teu-tab--active");
+  };
+
+  window.openTeacherEditDrawer = function (teacherId) {
+    _tid = teacherId;
+    $("teuOverlay").classList.add("teu-open");
+    $("teuPanel").classList.add("teu-open");
+    document.body.style.overflow = "hidden";
+    $("teuFullName").textContent = "Yuklanmoqda...";
+    $("teuEmailTop").textContent = "";
+    teuSwitchTab("profile");
+
+    fetch(url(teacherId), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => r.json())
+      .then(res => {
+        if (!res.ok) { teuToast(res.error || "Xatolik", "err"); closeTeacherEditDrawer(); return; }
+        teuPopulate(res.data);
+        teuRenderGroups(res.data.groups || []);
+      })
+      .catch(() => { teuToast("Ma'lumot yuklanmadi", "err"); closeTeacherEditDrawer(); });
+  };
+
+  window.closeTeacherEditDrawer = function () {
+    $("teuOverlay").classList.remove("teu-open");
+    $("teuPanel").classList.remove("teu-open");
+    document.body.style.overflow = "";
+    _tid = null;
+    $("teuNewPass").value  = "";
+    $("teuConfPass").value = "";
+    $("teuPassErr").style.display = "none";
+    $("teuAvatarFile").value = "";
+  };
+
+  function teuPopulate(d) {
+    $("teuIsm").value       = d.ism                  || "";
+    $("teuFamilya").value   = d.familya              || "";
+    $("teuOtchestvo").value = d.otchestvo            || "";
+    $("teuTel1").value      = formatPhoneValue(d.telefon1);
+    $("teuTel2").value      = formatPhoneValue(d.telefon2);
+    $("teuBirth").value     = d.birth_date           || "";
+    $("teuGender").value    = d.gender               || "";
+    $("teuPassport").value  = d.passport_id          || "";
+    $("teuJshr").value      = d.jshr                 || "";
+    $("teuAddress").value   = d.address              || "";
+    $("teuTelegram").value  = d.telegram_username    || "";
+    $("teuInsta").value     = d.instagram_username   || "";
+    $("teuFoiz").value      = d.oqituvchi_foizi      || "";
+    $("teuEmailRO").textContent  = d.email    || "—";
+    $("teuEmailTop").textContent = d.email    || "—";
+    $("teuFullName").textContent = d.full_name|| "—";
+
+    const av  = $("teuAvatar");
+    const ini = $("teuInitial");
+    const oldImg = av.querySelector("img");
+    if (oldImg) oldImg.remove();
+    if (d.avatar_url) {
+      ini.style.display = "none";
+      const img = document.createElement("img"); img.src = d.avatar_url; av.appendChild(img);
+    } else {
+      ini.style.display = "";
+      ini.textContent = (d.ism || "?")[0].toUpperCase();
+    }
+  }
+
+  function teuRenderGroups(list) {
+    const el = $("teuGroupList");
+    if (!list.length) {
+      el.innerHTML = '<div class="teu-enr-empty"><i class="fa-solid fa-circle-info me-1"></i>Hech qanday guruhga biriktirilmagan</div>';
+      return;
+    }
+    el.innerHTML = list.map(g => `
+      <div class="teu-enr-card">
+        <div class="teu-enr-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="teu-enr-main">
+          <div class="teu-enr-name">${g.nom}</div>
+          <div class="teu-enr-price">Kurs narxi: ${fmtPrice(g.kurs_narxi)}</div>
+          <div class="teu-enr-meta">Foiz: ${g.oqituvchi_foiz}% &nbsp;·&nbsp; ${g.student_count} ta o'quvchi</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  $("teuAvatarFile").addEventListener("change", function () {
+    const file = this.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const av = $("teuAvatar"); const ini = $("teuInitial");
+      let img = av.querySelector("img");
+      if (!img) { img = document.createElement("img"); av.appendChild(img); }
+      img.src = e.target.result; ini.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  window.teuSaveProfile = function () {
+    if (!_tid) return;
+    const btn = $("teuSaveProfile");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';
+    const fd = new FormData();
+    fd.append("action",             "update_profile");
+    fd.append("ism",                $("teuIsm").value.trim());
+    fd.append("familya",            $("teuFamilya").value.trim());
+    fd.append("otchestvo",          $("teuOtchestvo").value.trim());
+    fd.append("telefon1",           $("teuTel1").value.trim());
+    fd.append("telefon2",           $("teuTel2").value.trim());
+    fd.append("birth_date",         $("teuBirth").value);
+    fd.append("gender",             $("teuGender").value);
+    fd.append("passport_id",        $("teuPassport").value.trim());
+    fd.append("jshr",               $("teuJshr").value.trim());
+    fd.append("address",            $("teuAddress").value.trim());
+    fd.append("telegram_username",  $("teuTelegram").value.trim());
+    fd.append("instagram_username", $("teuInsta").value.trim());
+    fd.append("oqituvchi_foizi",    $("teuFoiz").value.trim());
+    const f = $("teuAvatarFile").files[0];
+    if (f) fd.append("avatar", f);
+    fetch(url(_tid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          $("teuFullName").textContent = res.full_name || "—";
+          if (res.avatar_url) {
+            const av = $("teuAvatar"); const ini = $("teuInitial");
+            let img = av.querySelector("img");
+            if (!img) { img = document.createElement("img"); av.appendChild(img); }
+            img.src = res.avatar_url; ini.style.display = "none";
+          }
+          teuToast(res.message || "Saqlandi ✅", "ok");
+          // Optionally reload the page or update list row
+          setTimeout(() => window.location.reload(), 1000);
+        } else { teuToast(res.error || "Xatolik", "err"); }
+      })
+      .catch(() => teuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Profilni saqlash'; });
+  };
+
+  window.teuSavePass = function () {
+    if (!_tid) return;
+    const np = $("teuNewPass").value;
+    const cp = $("teuConfPass").value;
+    const errEl = $("teuPassErr");
+    errEl.style.display = "none";
+    if (np.length < 8) { errEl.textContent = "Kamida 8 ta belgi bo'lishi kerak."; errEl.style.display = "block"; return; }
+    if (np !== cp)     { errEl.textContent = "Parollar mos kelmadi.";              errEl.style.display = "block"; return; }
+    const btn = $("teuSavePassBtn");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yangilanmoqda...';
+    const fd = new FormData();
+    fd.append("action",           "update_password");
+    fd.append("new_password",     np);
+    fd.append("confirm_password", cp);
+    fetch(url(_tid), { method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }, body: fd })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          $("teuNewPass").value = ""; $("teuConfPass").value = "";
+          teuToast(res.message || "Parol yangilandi 🔒", "ok");
+        } else {
+          const msg = res.errors ? Object.values(res.errors).flat().join(" ") : (res.error || "Xatolik");
+          errEl.textContent = msg; errEl.style.display = "block";
+          teuToast("Parol yangilanmadi", "err");
+        }
+      })
+      .catch(() => teuToast("Tarmoq xatoligi", "err"))
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-key"></i> Parolni yangilash'; });
+  };
+
+  let _tt = null;
+  function teuToast(msg, type) {
+    const el = $("teuToast");
+    el.className = "teu-toast teu-toast--" + (type === "ok" ? "ok" : "err");
+    el.innerHTML = '<i class="fa-solid ' + (type === "ok" ? "fa-circle-check" : "fa-circle-exclamation") + '"></i> ' + msg;
+    el.classList.add("teu-show");
+    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove("teu-show"), 3400);
+  }
+
+  function formatPhoneValue(value) {
+    const digits = String(value || "").replace(/\D/g, "").replace(/^998/, "").slice(0, 9);
+    const parts = [];
+    if (digits.slice(0, 2)) parts.push(digits.slice(0, 2));
+    if (digits.slice(2, 5)) parts.push(digits.slice(2, 5));
+    if (digits.slice(5, 7)) parts.push(digits.slice(5, 7));
+    if (digits.slice(7, 9)) parts.push(digits.slice(7, 9));
+    return parts.join(" ");
+  }
+
+  ['teuTel1', 'teuTel2'].forEach(id => {
+    const inp = $(id);
+    if (!inp) return;
+    inp.setAttribute('placeholder', '90 123-45-67');
+    inp.setAttribute('maxlength', '12');
+    inp.setAttribute('inputmode', 'numeric');
+    inp.setAttribute('autocomplete', 'off');
+
+    function applyMask() {
+      inp.value = formatPhoneValue(inp.value);
+    }
+    inp.addEventListener('input', applyMask);
+    inp.addEventListener('blur', function() {
+      const digits = this.value.replace(/\D/g, "").replace(/^998/, "");
+      this.value = digits ? formatPhoneValue(this.value) : "";
+    });
+  });
+
+  ['teuTelegram', 'teuInsta'].forEach(id => {
+    const inp = $(id);
+    if (!inp) return;
+    inp.setAttribute('placeholder', '@username');
+    inp.addEventListener('input', function() {
+      if (this.value && !this.value.startsWith('@')) this.value = '@' + this.value;
+    });
+    inp.addEventListener('blur', function() {
+      if (this.value === '@') this.value = '';
+    });
+  });
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && _tid) closeTeacherEditDrawer(); });
+})();
+</script>
