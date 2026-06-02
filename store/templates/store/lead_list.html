@@ -2200,6 +2200,29 @@
   </div>
 </div>
 
+<div id="cancelConfirmModal" class="lead-modal lead-modal--compact">
+  <div class="lead-modal__card">
+    <div class="lead-modal__head">
+      <div>
+        <h2 class="lead-modal__title">Haqiqatan ham bekor qilamizmi?</h2>
+        <p class="lead-modal__sub">Yozilgan barcha ma'lumotlar o'chib ketadi.</p>
+      </div>
+      <button id="closeCancelConfirmModal" type="button" class="lead-icon-btn lead-modal__close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="lead-modal__foot">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button id="cancelCloseButton" type="button" class="lead-btn">Yo'q, davom etish</button>
+        <button id="confirmCloseButton" type="button" class="lead-btn" style="background: var(--crm-danger); color: #fff; border: 0; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
+          <span>Ha, bekor qilish</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="assignLeadGroupModal" class="lead-modal lead-modal--compact">
   <div class="lead-modal__card">
     <div class="lead-modal__head">
@@ -4226,8 +4249,57 @@
     dom.modal.classList.add('is-open');
   }
 
+  function isFormDirty() {
+    if (state.modalMode === 'create') {
+      const defaultSubject = subjectChoices[0]?.value || '';
+      const defaultStatus = statusChoices[0]?.value || 'new';
+      const defaultManager = resolveDefaultManagerId();
+      return (
+        dom.leadNameInput.value.trim() !== '' ||
+        dom.leadPhoneInput.value.trim() !== '' ||
+        dom.leadNoteInput.value.trim() !== '' ||
+        dom.leadLeadGroupInput.value !== '' ||
+        dom.leadSubjectInput.value !== defaultSubject ||
+        dom.leadStatusInput.value !== defaultStatus ||
+        dom.leadManagerInput.value !== defaultManager
+      );
+    } else if (state.modalMode === 'edit') {
+      if (!state.selectedLead) return false;
+      const lead = state.selectedLead;
+      return (
+        dom.leadNameInput.value.trim() !== (lead.name || '') ||
+        dom.leadPhoneInput.value.trim() !== (lead.phone || '') ||
+        dom.leadNoteInput.value.trim() !== (lead.note || '') ||
+        dom.leadLeadGroupInput.value !== String(lead.lead_group?.value || lead.lead_group_id || '') ||
+        dom.leadSubjectInput.value !== String(lead.subject || lead.subject_object?.id || '') ||
+        dom.leadStatusInput.value !== (lead.status || 'new') ||
+        dom.leadManagerInput.value !== String(lead.manager?.id || '')
+      );
+    }
+    return false;
+  }
+
+  function openCancelConfirmModal() {
+    const cancelModal = document.getElementById('cancelConfirmModal');
+    if (cancelModal) {
+      cancelModal.classList.add('is-open');
+    }
+  }
+
+  function closeCancelConfirmModal() {
+    const cancelModal = document.getElementById('cancelConfirmModal');
+    if (cancelModal) {
+      cancelModal.classList.remove('is-open');
+    }
+  }
+
   function closeModalShell(force = false) {
-    if (!force && (state.pending.save || state.pending.confirm || state.pending.archive)) {
+    const actualForce = (force === true);
+    if (!actualForce && (state.pending.save || state.pending.confirm || state.pending.archive)) {
+      return;
+    }
+    if (!actualForce && isFormDirty()) {
+      openCancelConfirmModal();
       return;
     }
     dom.modal.classList.remove('is-open');
@@ -5100,6 +5172,31 @@
   dom.confirmLeadModal.addEventListener('click', (event) => {
     if (event.target === dom.confirmLeadModal) closeConfirmLeadModal();
   });
+
+  // Cancel Confirm Modal Events
+  const cancelConfirmModal = document.getElementById('cancelConfirmModal');
+  const closeCancelConfirmModalBtn = document.getElementById('closeCancelConfirmModal');
+  const cancelCloseButton = document.getElementById('cancelCloseButton');
+  const confirmCloseButton = document.getElementById('confirmCloseButton');
+
+  if (closeCancelConfirmModalBtn) {
+    closeCancelConfirmModalBtn.addEventListener('click', closeCancelConfirmModal);
+  }
+  if (cancelCloseButton) {
+    cancelCloseButton.addEventListener('click', closeCancelConfirmModal);
+  }
+  if (confirmCloseButton) {
+    confirmCloseButton.addEventListener('click', () => {
+      closeCancelConfirmModal();
+      closeModalShell(true);
+    });
+  }
+  if (cancelConfirmModal) {
+    cancelConfirmModal.addEventListener('click', (event) => {
+      if (event.target === cancelConfirmModal) closeCancelConfirmModal();
+    });
+  }
+
   dom.closeAssignLeadGroupModal.addEventListener('click', closeAssignLeadGroupModal);
   dom.cancelAssignLeadGroupButton.addEventListener('click', closeAssignLeadGroupModal);
   dom.saveAssignLeadGroupButton.addEventListener('click', saveAssignedLeadGroup);
