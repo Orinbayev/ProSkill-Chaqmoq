@@ -14,8 +14,21 @@ from education.models import TuitionMonth, Enrollment, PaymentAllocation
 from education.services.tuition import reallocate_enrollment, ensure_tuition_month
 
 def run_reset():
-    # 1. "Pro Skill" o'quv markazini topamiz
-    center = Center.objects.filter(name__icontains="Pro Skill").first() or Center.objects.filter(slug__icontains="pro-skill").first()
+    import sys
+    
+    center = None
+    if len(sys.argv) > 1:
+        slug_arg = sys.argv[1].strip()
+        center = Center.objects.filter(slug=slug_arg).first()
+        if not center:
+            print(f"❌ XATO: Kiritilgan '{slug_arg}' slugli o'quv markazi topilmadi!")
+    else:
+        # Avtomatik ravishda "proskill" yoki "proskill-center" ni qidiramiz (bo'shliqsiz)
+        center = (
+            Center.objects.filter(slug="proskill").first()
+            or Center.objects.filter(slug="proskill-center").first()
+            or Center.objects.filter(name__icontains="ProSkill").first()
+        )
 
     if not center:
         print("❌ XATO: 'Pro Skill' nomli o'quv markazi topilmadi!")
