@@ -78,7 +78,7 @@ class PhaseOneExamFoundationTests(TestCase):
     def test_exam_settings_permissions(self):
         self.client.force_login(self.director)
         resp = self.client.post(
-            reverse("education:exam_settings"),
+            f"/{self.center.slug}{reverse('education:exam_settings')}",
             {
                 "exam_system_enabled": "on",
                 "exam_every_n_lessons": 10,
@@ -95,10 +95,10 @@ class PhaseOneExamFoundationTests(TestCase):
         self.assertEqual(settings_obj.passing_score_percent, 65)
 
         self.client.force_login(self.teacher)
-        get_resp = self.client.get(reverse("education:exam_settings"))
+        get_resp = self.client.get(f"/{self.center.slug}{reverse('education:exam_settings')}")
         self.assertIn(get_resp.status_code, (200, 302))
         post_resp = self.client.post(
-            reverse("education:exam_settings"),
+            f"/{self.center.slug}{reverse('education:exam_settings')}",
             {
                 "exam_system_enabled": "on",
                 "exam_every_n_lessons": 8,
@@ -123,7 +123,7 @@ class PhaseOneExamFoundationTests(TestCase):
 
         self.client.force_login(self.teacher)
         resp = self.client.post(
-            reverse("education:exam_reminder_action", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:exam_reminder_action', args=[self.group.id])}",
             {"action": "later", "date": timezone.localdate().isoformat()},
         )
         self.assertEqual(resp.status_code, 302)
@@ -146,7 +146,7 @@ class PhaseOneExamFoundationTests(TestCase):
 
         self.client.force_login(self.teacher)
         resp = self.client.post(
-            reverse("education:exam_reminder_action", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:exam_reminder_action', args=[self.group.id])}",
             {"action": "yes", "date": timezone.localdate().isoformat(), "note": "today exam"},
         )
         self.assertEqual(resp.status_code, 302)
@@ -180,7 +180,7 @@ class PhaseOneExamFoundationTests(TestCase):
 
         self.client.force_login(self.teacher)
         resp = self.client.post(
-            reverse("education:exam_session_entry", args=[session.id]),
+            f"/{self.center.slug}{reverse('education:exam_session_entry', args=[session.id])}",
             {
                 f"score_{self.student.id}": "75",
                 f"percent_{self.student.id}": "75",
@@ -215,7 +215,7 @@ class PhaseOneExamFoundationTests(TestCase):
         )
         self.client.force_login(self.teacher)
         resp = self.client.get(
-            reverse("education:group_detail", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:group_detail', args=[self.group.id])}",
             {"date": timezone.localdate().isoformat()},
             follow=True,
         )

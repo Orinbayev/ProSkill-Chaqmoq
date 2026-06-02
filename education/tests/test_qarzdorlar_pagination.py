@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.test import TestCase
 from django.urls import reverse
@@ -35,7 +35,8 @@ class QarzdorlarPaginationTests(TestCase):
             oqituvchi_foiz=40,
             oy_dars_soni=12,
         )
-        history_start = timezone.localdate().replace(day=1) - timedelta(days=30)
+        history_start = date(2026, 4, 1)
+
         for idx in range(25):
             student = User.objects.create_user(
                 email=f"student{idx}@debt.test",

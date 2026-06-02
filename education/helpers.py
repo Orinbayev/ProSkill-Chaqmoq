@@ -36,20 +36,21 @@ def add_months(d: date, n: int = 1) -> date:
 
 def parse_month_str(s: str | None) -> date | None:
     """
-    'YYYY-MM' yoki 'YYYY-M' formatidagi satrni date(YYYY, M, 1) ga aylantiradi.
+    'YYYY-MM' yoki 'YYYY-MM-DD' formatidagi satrni date(YYYY, M, 1) ga aylantiradi.
     Xato bo'lsa None qaytaradi.
     """
     if not s:
         return None
     try:
         parts = str(s).strip().split("-")
-        if len(parts) == 2:
+        if len(parts) >= 2:
             y, m = int(parts[0]), int(parts[1])
             if 1 <= m <= 12:
                 return date(y, m, 1)
     except (ValueError, TypeError):
         pass
     return None
+
 
 
 def model_has_field(model_cls: Any, field_name: str) -> bool:

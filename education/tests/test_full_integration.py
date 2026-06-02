@@ -147,12 +147,11 @@ class TransferAndFeeIntegrationTest(TestCase):
         new_tm_reconciled = reconcile_tuition_month(new_enrollment, MONTH)
 
         # ─── Hisob tekshiruvi ─────────────────────────────────────────
-        # Per lesson: 500,000 // 12 = 41,666
-        per_lesson = 500_000 // 12  # = 41_666
+        per_lesson = 500_000 / 12
 
-        expected_a_fee = 4 * per_lesson   # 166,664
-        expected_b_fee = 6 * per_lesson   # 249,996
-        expected_total = expected_a_fee + expected_b_fee  # 416,660
+        expected_a_fee = round(4 * per_lesson)   # 166,667
+        expected_b_fee = round(6 * per_lesson)   # 250,000
+        expected_total = expected_a_fee + expected_b_fee  # 416,667
 
         actual_a_fee = tuition_month_fee(old_tm_reconciled)
         actual_b_fee = tuition_month_fee(new_tm_reconciled)
@@ -170,6 +169,7 @@ class TransferAndFeeIntegrationTest(TestCase):
             actual_total, expected_total,
             f"Jami fee noto'g'ri: {actual_total} != {expected_total}"
         )
+
 
         # To'lov qilinmagan — qarz = fee
         self.assertEqual(get_month_paid(old_tm_reconciled), 0, "A guruh: to'lov bo'lmasligi kerak")

@@ -105,12 +105,14 @@ def month_range_starts(start_date: date, end_date: date) -> list[date]:
 
 def parse_month_str(s: str) -> Optional[date]:
     """
-    'YYYY-MM' -> date(YYYY,MM,1)
+    'YYYY-MM' yoki 'YYYY-MM-DD' -> date(YYYY,MM,1)
     invalid -> None
     """
     if not s:
         return None
     s = s.strip()
+    if len(s) >= 10:
+        s = s[:7]
     if len(s) != 7 or s[4] != "-":
         return None
     try:
@@ -121,6 +123,7 @@ def parse_month_str(s: str) -> Optional[date]:
         return None
     except Exception:
         return None
+
 
 
 def full_course_amount(enrollment: Enrollment) -> int:
@@ -713,8 +716,11 @@ def calculate_student_month_billing(
     calculated_lessons_count = max(0, int(calculated_lessons_count or 0))
     teacher_percent = max(0, min(100, int(teacher_percent or 0)))
 
-    lesson_price = course_price // standard_lessons_count if course_price > 0 and standard_lessons_count > 0 else 0
-    student_debt = min(calculated_lessons_count * lesson_price, course_price)
+    lesson_price = round_div(course_price, standard_lessons_count)
+    student_debt = min(
+        proportional_amount(course_price, calculated_lessons_count, standard_lessons_count),
+        course_price
+    )
     teacher_month_amount = course_price * teacher_percent // 100
     teacher_per_lesson = (
         teacher_month_amount // standard_lessons_count
@@ -861,10 +867,11 @@ def teacher_monthly_financials(
     #   round_div(125_000 × 12, 12) = 125_000  (12 dars)
     #   round_div(125_000 × 13, 12) = 135_417  (13 dars)
     #   round_div(125_000 × 14, 12) = 145_834  (14 dars)
-    teacher_salary = (
+    raw_teacher_salary = (
         round_div(teacher_salary_cap * billable_lessons, monthly_lessons)
         if monthly_lessons > 0 else 0
     )
+    teacher_salary = min(raw_teacher_salary, teacher_salary_cap)
 
     # O'quvchi to'lovi kurs narxidan oshmaydi
     turnover = min(
@@ -1113,16 +1120,7 @@ def calculate_enrollment_debt_snapshots(
                     # O'chirilgan TuitionMonth — fee=0, virtual hisoblash yo'q
                     fee = 0
                 elif virtual_month_set is None or month in virtual_month_set:
-                    if month < today_month_first:
-                        try:
-                            # Auto-lock past virtual month fee by persisting it in DB
-                            tm = ensure_tuition_month(enrollment, month)
-                            fee = int(getattr(tm, fee_field, 0) or 0)
-                            fee_map[key] = fee
-                        except Exception:
-                            fee = int(prorated_monthly_fee(enrollment, month) or 0)
-                    else:
-                        fee = int(prorated_monthly_fee(enrollment, month) or 0)
+                    fee = int(prorated_monthly_fee(enrollment, month) or 0)
                 else:
                     fee = 0
             else:

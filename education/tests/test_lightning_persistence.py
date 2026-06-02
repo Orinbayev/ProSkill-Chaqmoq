@@ -67,7 +67,7 @@ class LightningPersistenceTests(TestCase):
         )
 
         response = self.client.get(
-            reverse("education:group_detail", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:group_detail', args=[self.group.id])}",
             {"date": self.group.tuzilgan.date().isoformat()},
         )
 
@@ -99,7 +99,7 @@ class LightningPersistenceTests(TestCase):
         )
 
         response = self.client.get(
-            reverse("education:group_detail", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:group_detail', args=[self.group.id])}",
             {"date": selected_date.isoformat()},
         )
 
@@ -119,7 +119,7 @@ class LightningPersistenceTests(TestCase):
         )
 
         post_response = self.client.post(
-            reverse("education:group_points", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:group_points', args=[self.group.id])}",
             {
                 "student_id": self.student_user.id,
                 "rule_id": rule.id,
@@ -139,7 +139,7 @@ class LightningPersistenceTests(TestCase):
 
         selected_date = self.group.tuzilgan.date()
         refresh_response = self.client.get(
-            reverse("education:group_detail", args=[self.group.id]),
+            f"/{self.center.slug}{reverse('education:group_detail', args=[self.group.id])}",
             {"date": selected_date.isoformat()},
         )
         self.assertEqual(refresh_response.status_code, 200)

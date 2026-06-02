@@ -824,11 +824,13 @@ from .models import Enrollment, TuitionMonth, PaymentAllocation
 
 def parse_month_str(s: str) -> date | None:
     """
-    'YYYY-MM' -> date(YYYY, MM, 1)
+    'YYYY-MM' yoki 'YYYY-MM-DD' -> date(YYYY, MM, 1)
     """
     if not s:
         return None
     s = s.strip()
+    if len(s) >= 10:
+        s = s[:7]
     if len(s) != 7 or s[4] != "-":
         return None
     try:
@@ -839,6 +841,7 @@ def parse_month_str(s: str) -> date | None:
         return date(y, m, 1)
     except Exception:
         return None
+
 
 # def user_can_manage_payments(user) -> bool:
 #     # sizda role bor: manager/director
@@ -2706,12 +2709,11 @@ def qarzdorlar_home(request):
         selected_from = _pay_month_start
         selected_to = month_last_day(_pay_month_start)
 
-    # Grafik bilan mos kelishi uchun: filter va jadval har doim faqat
-    # selected_to oyi (oxirgi tanlangan oy) uchun qarzni ko'rsatadi.
-    # date_from faqat UI label va grafik range uchun saqlanadi.
+    # Har doim selected_from va selected_to oralig'idagi oylar bo'yicha qarzni hisoblaymiz.
+    from education.services.tuition import month_range_starts
+    period_months = month_range_starts(selected_from, selected_to)
     _display_month = month_first_day(selected_to)
-    period_months = [_display_month]
-    effective_pay_month = _display_month
+    effective_pay_month = month_first_day(selected_from)
 
     # ─── FAOL ENROLLMENT'LAR ─────────────────────────────────────────────────
     # Faqat:  is_active=True  +  student NOT archived  +  group NOT archived
@@ -2842,11 +2844,10 @@ def qarzdorlar_home(request):
     # Jami qarz: active (non-deferred) + inactive (with debt)
     _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
     _active_total_snaps = calculate_enrollment_debt_snapshots(
-        _total_debt_enrs, chart_months, 
-        cumulative_up_to=today
+        _total_debt_enrs, period_months
     )
     total_center_debt = sum(
-        int(snap.get("net_cumulative_debt", 0) or 0) for snap in _active_total_snaps.values()
+        int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
     )
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
@@ -9490,15 +9491,17 @@ def exam_reminder_action(request, group_id: int):
         messages.info(request, "Hozircha bu nazorat bosqichi bo'yicha amal talab qilinmaydi.")
         return redirect("education:group_detail", pk=group.id)
 
-    decision_session = create_or_update_exam_session_decision(
-        group=group,
-        teacher=request.user,
-        attendance_date=selected_date,
-        actor=request.user,
-        decision=action,
-        decision_note=note,
-        lesson_number_reference=target_checkpoint,
-    )
+    decision_session = None
+    if action != ExamReminderLog.ACTION_LATER:
+        decision_session = create_or_update_exam_session_decision(
+            group=group,
+            teacher=request.user,
+            attendance_date=selected_date,
+            actor=request.user,
+            decision=action,
+            decision_note=note,
+            lesson_number_reference=target_checkpoint,
+        )
 
     log_exam_reminder_action(
         group=group,
@@ -9507,10 +9510,11 @@ def exam_reminder_action(request, group_id: int):
         attendance_date=selected_date,
         note=note,
         metadata={
-            "session_id": decision_session.id,
+            "session_id": decision_session.id if decision_session else None,
             "target_checkpoint": target_checkpoint,
         },
     )
+
     if action == ExamReminderLog.ACTION_NO:
         messages.warning(request, "Imtihon o'tkazilmagan deb qayd etildi.")
     else:
