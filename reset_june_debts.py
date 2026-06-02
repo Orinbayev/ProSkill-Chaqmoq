@@ -328,6 +328,14 @@ def run_reset():
             print("🎉 BARCHASI MUVAFFAQIYATLI TUGADI! Tranzaksiya saqlandi (committed).")
             print("=" * 80)
             
+            # Dashboard keshlarini darhol tozalaymiz
+            try:
+                from django.core.cache import cache
+                cache.clear()
+                print("⚡ Dashboard keshlarining hammasi muvaffaqiyatli tozalandi!")
+            except Exception as ce:
+                print(f"⚠️ Keshni tozalashda xatolik: {ce}")
+            
     except Exception as e:
         print(f"❌ XATO YUZ BERDI: {str(e)}")
         print("Baza holati o'zgartirilmadi (Rollback qilindi).")
