@@ -110,6 +110,8 @@ def serialize_lead(lead: Lead) -> dict:
         "status": status_value,
         "status_label": resolve_dynamic_status_label(lead),
         "status_tone": resolve_dynamic_status_tone(lead),
+        "parent_name": lead.parent_name or "",
+        "bilim_darajasi": lead.bilim_darajasi or "",
         "created_at": created_at.isoformat() if created_at else "",
         "created_at_label": created_at.strftime("%d.%m.%Y") if created_at else "",
         "created_at_full": created_at.strftime("%d.%m.%Y %H:%M") if created_at else "",

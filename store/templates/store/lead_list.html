@@ -2032,6 +2032,10 @@
               <input id="leadPhoneInput" name="phone" class="lead-input" type="text" required>
             </div>
             <div class="lead-field">
+              <label for="leadParentNameInput">Ota-onasi ismi</label>
+              <input id="leadParentNameInput" name="parent_name" class="lead-input" type="text" placeholder="Masalan: Asror aka">
+            </div>
+            <div class="lead-field">
               <label for="leadSubjectInput">Fan</label>
               <select id="leadSubjectInput" name="subject" class="lead-select"></select>
             </div>
@@ -2040,12 +2044,17 @@
               <select id="leadStatusInput" name="status" class="lead-select"></select>
             </div>
             <div class="lead-field">
-              <label for="leadManagerInput">Menejer</label>
-              <select id="leadManagerInput" name="manager" class="lead-select"></select>
+              <label for="leadManagerDisplay">Menejer</label>
+              <input id="leadManagerDisplay" class="lead-input" type="text" readonly style="opacity: 0.85; cursor: not-allowed; background: rgba(148, 163, 184, 0.08); font-weight: 700;">
+              <select id="leadManagerInput" name="manager" class="lead-select" style="display: none;"></select>
             </div>
             <div class="lead-field">
               <label for="leadLeadGroupInput">Lead guruhi</label>
               <select id="leadLeadGroupInput" name="lead_group" class="lead-select"></select>
+            </div>
+            <div class="lead-field">
+              <label for="leadBilimInput">Bilim darajasi / Sinfi</label>
+              <input id="leadBilimInput" name="bilim_darajasi" class="lead-input" type="text" placeholder="Masalan: Beginner yoki 9-sinf">
             </div>
             <div class="lead-field lead-field--full">
               <label for="leadNoteInput">Izoh</label>
@@ -2673,10 +2682,13 @@
     modalErrors: document.getElementById('leadModalErrors'),
     leadNameInput: document.getElementById('leadNameInput'),
     leadPhoneInput: document.getElementById('leadPhoneInput'),
+    leadParentNameInput: document.getElementById('leadParentNameInput'),
     leadSubjectInput: document.getElementById('leadSubjectInput'),
     leadStatusInput: document.getElementById('leadStatusInput'),
     leadManagerInput: document.getElementById('leadManagerInput'),
+    leadManagerDisplay: document.getElementById('leadManagerDisplay'),
     leadLeadGroupInput: document.getElementById('leadLeadGroupInput'),
+    leadBilimInput: document.getElementById('leadBilimInput'),
     leadNoteInput: document.getElementById('leadNoteInput'),
     subjectModal: document.getElementById('subjectModal'),
     subjectModalTitle: document.getElementById('subjectModalTitle'),
@@ -4216,12 +4228,20 @@
     return {
       name: dom.leadNameInput.value.trim(),
       phone: dom.leadPhoneInput.value.trim(),
+      parent_name: dom.leadParentNameInput.value.trim(),
       subject: dom.leadSubjectInput.value,
       status: dom.leadStatusInput.value,
       note: dom.leadNoteInput.value.trim(),
       manager: dom.leadManagerInput.value || resolveDefaultManagerId() || '',
       lead_group: dom.leadLeadGroupInput.value || '',
+      bilim_darajasi: dom.leadBilimInput.value.trim(),
     };
+  }
+
+  function syncLeadManagerDisplay() {
+    const managerId = dom.leadManagerInput.value;
+    const option = managerOptions.find(m => String(m.id) === String(managerId));
+    dom.leadManagerDisplay.value = option ? option.name : (state.selectedLead?.manager?.name || 'Biriktirilmagan');
   }
 
   function resetLeadForm() {
@@ -4229,11 +4249,14 @@
     state.pending.confirm = false;
     state.pending.archive = false;
     dom.leadNameInput.value = '';
-    dom.leadPhoneInput.value = '';
+    dom.leadPhoneInput.value = '+998'; // Avtomatik +998 bo'lishi
+    dom.leadParentNameInput.value = '';
     dom.leadSubjectInput.value = subjectChoices[0]?.value || '';
     dom.leadStatusInput.value = statusChoices[0]?.value || 'new';
     dom.leadManagerInput.value = resolveDefaultManagerId();
+    syncLeadManagerDisplay();
     dom.leadLeadGroupInput.value = '';
+    dom.leadBilimInput.value = '';
     dom.leadNoteInput.value = '';
     dom.modalErrors.textContent = '';
     if (dom.historyList) {
@@ -4256,9 +4279,11 @@
       const defaultManager = resolveDefaultManagerId();
       return (
         dom.leadNameInput.value.trim() !== '' ||
-        dom.leadPhoneInput.value.trim() !== '' ||
+        (dom.leadPhoneInput.value.trim() !== '' && dom.leadPhoneInput.value.trim() !== '+998') ||
+        dom.leadParentNameInput.value.trim() !== '' ||
         dom.leadNoteInput.value.trim() !== '' ||
         dom.leadLeadGroupInput.value !== '' ||
+        dom.leadBilimInput.value.trim() !== '' ||
         dom.leadSubjectInput.value !== defaultSubject ||
         dom.leadStatusInput.value !== defaultStatus ||
         dom.leadManagerInput.value !== defaultManager
@@ -4269,8 +4294,10 @@
       return (
         dom.leadNameInput.value.trim() !== (lead.name || '') ||
         dom.leadPhoneInput.value.trim() !== (lead.phone || '') ||
+        dom.leadParentNameInput.value.trim() !== (lead.parent_name || '') ||
         dom.leadNoteInput.value.trim() !== (lead.note || '') ||
         dom.leadLeadGroupInput.value !== String(lead.lead_group?.value || lead.lead_group_id || '') ||
+        dom.leadBilimInput.value.trim() !== (lead.bilim_darajasi || '') ||
         dom.leadSubjectInput.value !== String(lead.subject || lead.subject_object?.id || '') ||
         dom.leadStatusInput.value !== (lead.status || 'new') ||
         dom.leadManagerInput.value !== String(lead.manager?.id || '')
@@ -4348,10 +4375,13 @@
       syncLeadSelectFallbacks();
       dom.leadNameInput.value = lead.name || '';
       dom.leadPhoneInput.value = lead.phone || '';
+      dom.leadParentNameInput.value = lead.parent_name || '';
       dom.leadSubjectInput.value = String(lead.subject || lead.subject_object?.id || '');
       dom.leadStatusInput.value = lead.status || 'new';
       dom.leadManagerInput.value = String(lead.manager?.id || resolveDefaultManagerId());
+      syncLeadManagerDisplay();
       dom.leadLeadGroupInput.value = lead.lead_group?.value || lead.lead_group_id || '';
+      dom.leadBilimInput.value = lead.bilim_darajasi || '';
       dom.leadNoteInput.value = lead.note || '';
       populateHistory(lead.history || []);
       syncLeadActionState();
@@ -5130,6 +5160,19 @@
     });
   });
   dom.createLeadButton.addEventListener('click', () => openLeadModal());
+
+  // Telefon raqam kiritishda avtomatik +998 prefiksini saqlash
+  dom.leadPhoneInput.addEventListener('focus', () => {
+    if (!dom.leadPhoneInput.value.trim() || dom.leadPhoneInput.value.trim() === '+') {
+      dom.leadPhoneInput.value = '+998';
+    }
+  });
+  dom.leadPhoneInput.addEventListener('input', () => {
+    if (!dom.leadPhoneInput.value.startsWith('+998') && dom.leadPhoneInput.value.length < 4) {
+      dom.leadPhoneInput.value = '+998';
+    }
+  });
+
   dom.createLeadGroupButton.addEventListener('click', () => openLeadGroupModal());
   dom.closeLeadModal.addEventListener('click', closeModalShell);
   dom.cancelLeadModal.addEventListener('click', closeModalShell);

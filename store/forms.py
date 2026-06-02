@@ -44,7 +44,9 @@ class LeadForm(forms.ModelForm):
             'telefon1',
             'telefon2',
             'parent_phone',
+            'parent_name',
             'address',
+            'bilim_darajasi',
             'manba',
             'yonalish',
             'assigned_manager',
@@ -64,7 +66,9 @@ class LeadForm(forms.ModelForm):
             'telefon1': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Telefon raqam 1'}),
             'telefon2': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Telefon raqam 2'}),
             'parent_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ota-ona telefoni'}),
+            'parent_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ota-onasi ismi'}),
             'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Yashash manzili'}),
+            'bilim_darajasi': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Bilim darajasi / Sinfi'}),
             'manba': forms.Select(attrs={'class': 'form-select'}),
             'yonalish': forms.Select(attrs={'class': 'form-select'}),
             'assigned_manager': forms.Select(attrs={'class': 'form-select'}),
@@ -270,6 +274,8 @@ class LeadApiFilterForm(forms.Form):
 class LeadApiForm(forms.Form):
     name = forms.CharField(max_length=220, required=True)
     phone = forms.CharField(max_length=20, required=True)
+    parent_name = forms.CharField(max_length=150, required=False)
+    bilim_darajasi = forms.CharField(max_length=100, required=False)
     subject = forms.ModelChoiceField(queryset=Yonalish.objects.none(), required=True)
     status = forms.ChoiceField(choices=(), required=False, initial=Lead.PipelineStatus.NEW)
     note = forms.CharField(required=False, widget=forms.Textarea)
@@ -347,6 +353,8 @@ class LeadApiForm(forms.Form):
         lead.ism = name_parts[0] if name_parts else raw_name
         lead.familya = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
         lead.telefon1 = self.cleaned_data["phone"]
+        lead.parent_name = (self.cleaned_data.get("parent_name") or "").strip()
+        lead.bilim_darajasi = (self.cleaned_data.get("bilim_darajasi") or "").strip()
         lead.yonalish = self.cleaned_data["subject"]
         lead.comment = (self.cleaned_data.get("note") or "").strip()
         lead.lead_group = self.cleaned_data.get("lead_group")
