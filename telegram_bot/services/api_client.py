@@ -4,6 +4,12 @@ from app_config import BACKEND_URL, API_SECRET
 
 logger = logging.getLogger(__name__)
 
+def _get_headers() -> dict:
+    return {
+        "X-API-SECRET": API_SECRET,
+        "X-Forwarded-Proto": "https"
+    }
+
 async def link_account_api(phone: str, code: str, telegram_id: str, telegram_username: str = None):
     url = f"{BACKEND_URL}/api/v1/auth/link-telegram/"
     data = {
@@ -12,7 +18,7 @@ async def link_account_api(phone: str, code: str, telegram_id: str, telegram_use
         "telegram_id": telegram_id,
         "telegram_username": telegram_username
     }
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     
     async with httpx.AsyncClient() as client:
         try:
@@ -24,7 +30,7 @@ async def link_account_api(phone: str, code: str, telegram_id: str, telegram_use
 async def get_user_status_api(telegram_id: str):
     url = f"{BACKEND_URL}/hisob/login/bot-user-status/"
     params = {"telegram_id": telegram_id}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     
     async with httpx.AsyncClient() as client:
         try:
@@ -38,7 +44,7 @@ async def get_user_details_api(telegram_id: str, email: str = None):
     params = {"telegram_id": telegram_id}
     if email:
         params["email"] = email
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     
     async with httpx.AsyncClient() as client:
         try:
@@ -51,7 +57,7 @@ async def unlink_account_api(telegram_id: str, email: str = None):
     data = {"telegram_id": telegram_id}
     if email:
         data["email"] = email
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     
     async with httpx.AsyncClient() as client:
         try:
@@ -65,7 +71,7 @@ async def unlink_account_api(telegram_id: str, email: str = None):
 async def get_admin_dashboard_api(admin_tg_id: str):
     url = f"{BACKEND_URL}/hisob/login/bot-admin-dashboard/"
     params = {"admin_tg_id": admin_tg_id}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -76,7 +82,7 @@ async def get_admin_dashboard_api(admin_tg_id: str):
 async def get_linked_users_api(admin_tg_id: str, role: str = "all", offset: int = 0, limit: int = 20):
     url = f"{BACKEND_URL}/hisob/login/bot-linked-users/"
     params = {"admin_tg_id": admin_tg_id, "role": role, "offset": offset, "limit": limit}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -87,7 +93,7 @@ async def get_linked_users_api(admin_tg_id: str, role: str = "all", offset: int 
 async def get_broadcast_list_api(admin_tg_id: str, role: str = "all"):
     url = f"{BACKEND_URL}/hisob/login/bot-broadcast-list/"
     params = {"admin_tg_id": admin_tg_id, "role": role}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -98,7 +104,7 @@ async def get_broadcast_list_api(admin_tg_id: str, role: str = "all"):
 async def download_excel_api(admin_tg_id: str):
     url = f"{BACKEND_URL}/hisob/login/bot-excel-export/"
     params = {"admin_tg_id": admin_tg_id}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -111,7 +117,7 @@ async def manage_admins_api(admin_tg_id: str, action: str = "list", target_tg_id
     params = {"admin_tg_id": admin_tg_id, "action": action}
     if target_tg_id: params["target_tg_id"] = target_tg_id
     if target_username: params["target_username"] = target_username
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -122,7 +128,7 @@ async def manage_admins_api(admin_tg_id: str, action: str = "list", target_tg_id
 async def get_settings_api(admin_tg_id: str):
     url = f"{BACKEND_URL}/hisob/login/bot-settings/"
     params = {"admin_tg_id": admin_tg_id}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, params=params, headers=headers)
@@ -133,7 +139,7 @@ async def get_settings_api(admin_tg_id: str):
 async def update_settings_api(admin_tg_id: str, data: dict):
     url = f"{BACKEND_URL}/hisob/login/bot-settings/"
     params = {"admin_tg_id": admin_tg_id}
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(url, json=data, params=params, headers=headers)
@@ -143,7 +149,7 @@ async def update_settings_api(admin_tg_id: str, data: dict):
 
 async def get_parent_reports_api():
     url = f"{BACKEND_URL}/hisob/login/bot-parent-reports-data/"
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, headers=headers)
@@ -154,7 +160,7 @@ async def get_parent_reports_api():
 
 async def _bot_json_request(method: str, path: str, *, params: dict | None = None, data: dict | None = None):
     url = f"{BACKEND_URL}/hisob/login/{path.lstrip('/')}"
-    headers = {"X-API-SECRET": API_SECRET}
+    headers = _get_headers()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.request(method.upper(), url, params=params, json=data, headers=headers)
