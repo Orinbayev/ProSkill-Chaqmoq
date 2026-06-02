@@ -77,7 +77,7 @@ def run_reset():
         with transaction.atomic():
             now = timezone.now()
             
-            # 1. Faol enrollmentlar uchun Iyun 2026 dan boshqa barcha oylar qarzlarini o'chiramiz
+            # 1. Faol enrollmentlar uchun Iyun 2026 dan boshqa barcha oylar qarzlarini vaqtincha soft-delete qilamiz (pastda to'lovlar borligi uchun qayta tiklaymiz)
             tms_to_delete = TuitionMonth.objects.filter(
                 enrollment__in=enrollments
             ).exclude(
@@ -91,8 +91,7 @@ def run_reset():
             )
             print(f"🗑️ 1. O'chirilgan faol o'quvchilar non-June TuitionMonth yozuvlari: {deleted_tms_count}")
             
-            # 1b. Arxivlangan o'quvchilar yoki o'chirilgan guruhlar uchun Iyun 2026 qarzlarini to'liq o'chiramiz (Soft-Delete)
-            # Bu bazadagi ortiqcha (~53 mln so'mlik yolg'on) qarzlarni butunlay tozalaydi!
+            # 1b. Arxivlangan o'quvchilar yoki o'chirilgan guruhlar uchun June 2026 qarzlarini to'liq o'chiramiz (Soft-Delete)
             tms_inactive_june = TuitionMonth.objects.filter(
                 center=center,
                 month=target_month
@@ -121,7 +120,7 @@ def run_reset():
             )
             print(f"🗑️ 2. O'chirilgan non-June PaymentAllocation yozuvlari: {deleted_allocs_count}")
             
-            # 2b. Arxivlangan/no-faol o'quvchilar uchun Iyun 2026 to'lov taqsimotlarini ham o'chiramiz
+            # 2b. Arxivlangan/no-faol o'quvchilar uchun June 2026 to'lov taqsimotlarini ham o'chiramiz
             allocs_inactive_june = PaymentAllocation.objects.filter(
                 tuition_month__center=center,
                 tuition_month__month=target_month
@@ -140,11 +139,10 @@ def run_reset():
             enrollments.update(credit_balance=0)
             print("🔄 3. Barcha faol enrollmentlar uchun credit_balance nollashtirildi.")
             
-            # 4. Faqat faol enrollmentlar uchun IYUN 2026 oyi qarzini (full fee) yozamiz
+            # 4. Hamma-hamma enrollmentlar uchun IYUN 2026 oyi qarzini (full fee) yozamiz
             created_tms = 0
             for enr in enrollments:
                 fee = _resolve_fee_amount(enr)
-                # Agar kurs narxi aniqlanmagan bo'lsa, default 300 000 so'm qo'yamiz
                 if fee <= 0:
                     fee = 300000
                     
@@ -161,93 +159,84 @@ def run_reset():
                 created_tms += 1
             print(f"📝 4. Barcha faol enrollmentlar uchun Iyun 2026 qarzlar yozildi: {created_tms} ta.")
             
-            # 5. To'lovlarni studentlar kesimida qayta taqsimlaymiz (Reallocate)
-            # Bu guruhlararo aralash va umumiy to'lovlarni 100% to'g'ri taqsimlanishini ta'minlaydi!
+            # 5. To'lovlarni o'z oylariga bog'lab qayta taqsimlaymiz (Reallocate)
+            # - Iyun oyi oldidan kiritilgan to'lovlar o'z oylarida qoladi va Iyun oyiga o'tmaydi.
+            # - Iyun va undan keyingi oylardagi to'lovlar Iyun oyiga yo'naltiriladi.
             reallocated_count = 0
-            unique_students = list({enr.student for enr in enrollments})
-            
-            for student in unique_students:
-                student_enrs = list(enrollments.filter(student=student))
-                student_enr_ids = [e.id for e in student_enrs]
-                
-                # Ushbu o'quvchining faol guruhdagi to'lov taqsimotlarini o'chiramiz
-                PaymentAllocation.objects.filter(tuition_month__enrollment_id__in=student_enr_ids).delete()
-                
-                # Ushbu o'quvchining barcha faol to'lovlarini olamiz (eng eskisidan boshlab)
+            for enr in enrollments:
                 payments = Payment.objects.filter(
-                    student=student,
-                    is_deleted=False
-                ).order_by("paid_date", "id")
+                    models.Q(enrollment=enr) | models.Q(student=enr.student, group=enr.group)
+                ).filter(is_deleted=False).order_by("paid_date", "id")
                 
+                # Ushbu enrollment uchun mavjud bo'lgan barcha to'lov taqsimotlarini o'chiramiz
+                PaymentAllocation.objects.filter(tuition_month__enrollment=enr).delete()
+                
+                # To'lovlarni oylar bo'yicha guruhlaymiz
+                payments_by_month = {}
                 for p in payments:
+                    if not p.enrollment_id:
+                        p.enrollment = enr
+                        p.save(update_fields=["enrollment"])
+                        
+                    p_date = getattr(p, "paid_date", None)
+                    if not p_date:
+                        p_date = target_month
+                        
+                    p_month = p_date.replace(day=1)
+                    if p_month not in payments_by_month:
+                        payments_by_month[p_month] = []
+                    payments_by_month[p_month].append(p)
+                    
+                # 5a. Tarixiy oylar uchun (April, May) qarz summasini to'langan summaga tenglashtiramiz
+                # Bu orqali tarixiy oylardagi qoldiq qarz 0 bo'ladi va ular Iyun oyiga oqib o'tmaydi.
+                for p_month, p_list in payments_by_month.items():
+                    if p_month < target_month:
+                        total_p = sum(p.summa for p in p_list)
+                        
+                        # Tarixiy oy uchun TuitionMonth yaratamiz/yangilaymiz
+                        tm, created = TuitionMonth.all_objects.update_or_create(
+                            enrollment=enr,
+                            month=p_month,
+                            defaults={
+                                "center": enr.center or center,
+                                "is_deleted": False,
+                                "deleted_at": None,
+                                fee_field: total_p
+                            }
+                        )
+                        
+                        # Ushbu tarixiy oy to'lovlarini to'liq shu oyga yopamiz
+                        for p in p_list:
+                            PaymentAllocation.objects.create(
+                                center=p.center or enr.center,
+                                payment=p,
+                                tuition_month=tm,
+                                amount=p.summa
+                            )
+                            
+                # 5b. Iyun va undan keyingi oylar to'lovlarini Iyun oyiga taqsimlaymiz
+                june_and_later_payments = []
+                for p_month, p_list in payments_by_month.items():
+                    if p_month >= target_month:
+                        june_and_later_payments.extend(p_list)
+                        
+                june_and_later_payments.sort(key=lambda p: (getattr(p, "paid_date", target_month), p.id))
+                
+                for p in june_and_later_payments:
                     cash = int(getattr(p, "cash_amount", 0) or 0)
                     card = int(getattr(p, "card_amount_som", 0) or getattr(p, "card_amount", 0) or 0)
                     total = cash + card
                     if total <= 0:
                         continue
-                    
-                    remaining = total
-                    
-                    # 1-Qadam: Birinchi navbatda, to'lov qilingan guruhning (p.group) Iyun oyi qarzini yopamiz (agar u faol bo'lsa)
-                    primary_enr = next((e for e in student_enrs if e.group_id == p.group_id), None)
-                    if primary_enr:
-                        # June TuitionMonth
-                        tm = TuitionMonth.objects.filter(enrollment=primary_enr, month=target_month, is_deleted=False).first()
-                        if tm:
-                            tm_fee = int(getattr(tm, fee_field, 0) or 0)
-                            paid_now = PaymentAllocation.objects.filter(
-                                tuition_month=tm, is_deleted=False
-                            ).aggregate(s=models.Sum("amount"))["s"] or 0
-                            owed = max(0, tm_fee - paid_now)
-                            
-                            if owed > 0:
-                                portion = min(remaining, owed)
-                                PaymentAllocation.objects.create(
-                                    center=p.center or primary_enr.center,
-                                    payment=p,
-                                    tuition_month=tm,
-                                    amount=portion
-                                )
-                                remaining -= portion
-                                
-                    # 2-Qadam: Agar hali pul qolgan bo'lsa, uni boshqa faol guruhlarning Iyun oyi qarzlariga yo'naltiramiz
-                    if remaining > 0:
-                        for enr in student_enrs:
-                            if remaining <= 0:
-                                break
-                            if primary_enr and enr.id == primary_enr.id:
-                                continue
-                                
-                            tm = TuitionMonth.objects.filter(enrollment=enr, month=target_month, is_deleted=False).first()
-                            if tm:
-                                tm_fee = int(getattr(tm, fee_field, 0) or 0)
-                                paid_now = PaymentAllocation.objects.filter(
-                                    tuition_month=tm, is_deleted=False
-                                ).aggregate(s=models.Sum("amount"))["s"] or 0
-                                owed = max(0, tm_fee - paid_now)
-                                
-                                if owed > 0:
-                                    portion = min(remaining, owed)
-                                    PaymentAllocation.objects.create(
-                                        center=p.center or enr.center,
-                                        payment=p,
-                                        tuition_month=tm,
-                                        amount=portion
-                                    )
-                                    remaining -= portion
-                                    
-                    # 3-Qadam: Agar hali ham ortiqcha pul qolsa (avans), uni primary enrollment'ning credit_balance ga yozamiz
-                    if remaining > 0:
-                        target_enr = primary_enr or student_enrs[0]
-                        Enrollment.objects.filter(pk=target_enr.pk).update(
-                            credit_balance=models.F("credit_balance") + remaining
-                        )
+                        
+                    tm = find_earliest_unpaid_month(enr, start_month=target_month)
+                    _allocate_amount_forward(enrollment=enr, payment=p, amount=total, start_month=tm.month)
                 
                 reallocated_count += 1
                 
-            print(f"⚡ 5. Barcha {reallocated_count} ta o'quvchi to'lovlari studentlar kesimida qayta taqsimlandi.")
+            print(f"⚡ 5. Barcha {reallocated_count} ta o'quvchi to'lovlari o'z oylari kesimida qayta taqsimlandi.")
             
-            # 5b. Guruhlararo to'lov va avanslarni o'zaro hisob-kitob qilish (Net-Out)
+            # 5c. Guruhlararo to'lov va avanslarni o'zaro hisob-kitob qilish (Net-Out)
             seen_students = set()
             netted_count = 0
             for enr in enrollments:
@@ -258,7 +247,7 @@ def run_reset():
                         netted_count += 1
                     except Exception:
                         pass
-            print(f"🔄 5b. Barcha {netted_count} ta o'quvchi uchun guruhlararo to'lov/avanslar o'zaro net-out qilindi.")
+            print(f"🔄 5c. Barcha {netted_count} ta o'quvchi uchun guruhlararo to'lov/avanslar o'zaro net-out qilindi.")
             
             # 6. Ortiqcha kelajak oylarni tozalab, pulni credit_balance ga o'tkazamiz
             future_tms = TuitionMonth.objects.filter(
