@@ -13,10 +13,21 @@ from accounts.models import Center, User
 from education.models import TuitionMonth, Enrollment, PaymentAllocation, Payment
 from django.db.models import Sum, Q
 
+import sys
+
 def run():
-    center = Center.objects.filter(slug="proskill").first()
+    slug = "proskill"
+    if len(sys.argv) > 1:
+        slug = sys.argv[1].strip()
+    elif os.environ.get("CENTER_SLUG"):
+        slug = os.environ.get("CENTER_SLUG")
+
+    center = Center.objects.filter(slug=slug).first()
     if not center:
-        print("❌ XATO: 'proskill' markazi topilmadi!")
+        available_slugs = list(Center.objects.values_list("slug", flat=True))
+        print(f"❌ XATO: '{slug}' markazi topilmadi!")
+        print(f"Mavjud markaz sluglari: {available_slugs}")
+        print("Foydalanish: python fix_dashboard_instantly.py <markaz_slugi>")
         return
         
     print(f"🎯 Markaz topildi: {center.name} (ID: {center.id})")
