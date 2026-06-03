@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -318,13 +324,25 @@
 
           <div class="form-group">
             <label class="form-label">Telefon 1</label>
-            {{ form.telefon1 }}
+            <div class="bq-sdrawer-pro__phone-wrap" style="background: rgba(2, 6, 23, 0.5) !important;">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              {{ form.telefon1 }}
+            </div>
             {{ form.telefon1.errors }}
           </div>
 
           <div class="form-group">
             <label class="form-label">Telefon 2</label>
-            {{ form.telefon2 }}
+            <div class="bq-sdrawer-pro__phone-wrap" style="background: rgba(2, 6, 23, 0.5) !important;">
+              <span class="bq-sdrawer-pro__phone-prefix">
+                <span class="bq-sdrawer-pro__phone-flag">🇺🇿</span>
+                <span class="bq-sdrawer-pro__phone-code">+998</span>
+              </span>
+              {{ form.telefon2 }}
+            </div>
             {{ form.telefon2.errors }}
           </div>
 
@@ -446,6 +464,50 @@
     if (jshrInput) {
       jshrInput.addEventListener("input", (e) => {
         e.target.value = e.target.value.replace(/\D/g, '').substring(0, 14);
+      });
+    }
+
+    // ✅ Phone Mask
+    const formatPhoneValue = (value) => {
+      const digits = String(value || "").replace(/\D/g, "").replace(/^998/, "").slice(0, 9);
+      const parts = [];
+      if (digits.slice(0, 2)) parts.push(digits.slice(0, 2));
+      if (digits.slice(2, 5)) parts.push(digits.slice(2, 5));
+      if (digits.slice(5, 7)) parts.push(digits.slice(5, 7));
+      if (digits.slice(7, 9)) parts.push(digits.slice(7, 9));
+      return parts.join(" ");
+    };
+
+    const tel1Input = document.getElementById("id_telefon1");
+    const tel2Input = document.getElementById("id_telefon2");
+
+    if (tel1Input) {
+      tel1Input.value = formatPhoneValue(tel1Input.value);
+      tel1Input.setAttribute('placeholder', '90 123-45-67');
+      tel1Input.setAttribute('maxlength', '12');
+      tel1Input.setAttribute('inputmode', 'numeric');
+      tel1Input.setAttribute('autocomplete', 'off');
+      tel1Input.addEventListener("input", function() {
+        this.value = formatPhoneValue(this.value);
+      });
+      tel1Input.addEventListener("blur", function() {
+        const digits = this.value.replace(/\D/g, "").replace(/^998/, "");
+        this.value = digits ? formatPhoneValue(this.value) : "";
+      });
+    }
+
+    if (tel2Input) {
+      tel2Input.value = formatPhoneValue(tel2Input.value);
+      tel2Input.setAttribute('placeholder', '90 123-45-67');
+      tel2Input.setAttribute('maxlength', '12');
+      tel2Input.setAttribute('inputmode', 'numeric');
+      tel2Input.setAttribute('autocomplete', 'off');
+      tel2Input.addEventListener("input", function() {
+        this.value = formatPhoneValue(this.value);
+      });
+      tel2Input.addEventListener("blur", function() {
+        const digits = this.value.replace(/\D/g, "").replace(/^998/, "");
+        this.value = digits ? formatPhoneValue(this.value) : "";
       });
     }
   });
