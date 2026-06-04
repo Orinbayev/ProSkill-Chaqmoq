@@ -3026,9 +3026,17 @@
     dom.convertGroupTeacherInput.disabled = true;
     try {
       const data = await fetchJson(`${apiAvailableTeachersUrl}?${params.toString()}`, {}, 'Bo\'sh ustozlarni yuklashda xatolik yuz berdi');
-      teacherOptions = Array.isArray(data?.results) ? data.results : [];
+      const availableTeachers = Array.isArray(data?.results) ? data.results : [];
+      const availableIds = new Set(availableTeachers.map(t => String(t.id)));
+      teacherOptions = initialTeacherOptions.map((teacher) => {
+        const isAvailable = availableIds.has(String(teacher.id));
+        return {
+          ...teacher,
+          name: isAvailable ? teacher.name : `${teacher.name} (Band / Noma'lum)`
+        };
+      });
       applyTeacherOptions();
-      if (selectedTeacherId && teacherOptions.some((item) => String(item.id) === String(selectedTeacherId))) {
+      if (selectedTeacherId) {
         dom.convertGroupTeacherInput.value = selectedTeacherId;
       }
       updateConvertTeacherShare(dom.convertGroupTeacherInput.value);
