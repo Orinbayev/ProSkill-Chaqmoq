@@ -1088,11 +1088,19 @@ class LeadApiTests(TestCase):
         self.assertIsNotNone(lead_group.converted_group_id)
         self.assertEqual(real_group.oqituvchi_foiz, 45)
         self.assertTrue(confirmed_lead.converted_to_student)
-        self.assertFalse(pending_lead.converted_to_student)
+        self.assertTrue(pending_lead.converted_to_student)
         self.assertTrue(EducationStudent.objects.filter(user_id=confirmed_lead.converted_user_id, center=self.center).exists())
+        self.assertTrue(EducationStudent.objects.filter(user_id=pending_lead.converted_user_id, center=self.center).exists())
         self.assertTrue(
             Enrollment.objects.filter(
                 student_id=confirmed_lead.converted_user_id,
+                group_id=lead_group.converted_group_id,
+                is_active=True,
+            ).exists()
+        )
+        self.assertTrue(
+            Enrollment.objects.filter(
+                student_id=pending_lead.converted_user_id,
                 group_id=lead_group.converted_group_id,
                 is_active=True,
             ).exists()
@@ -1103,12 +1111,17 @@ class LeadApiTests(TestCase):
                 group_id=lead_group.converted_group_id,
             ).exists()
         )
-        self.assertEqual(convert_response.json()["converted_count"], 1)
-        self.assertEqual(convert_response.json()["skipped_unconfirmed"], 1)
-        self.assertEqual(convert_response.json()["created_student_count"], 1)
+        self.assertTrue(
+            GroupStudent.objects.filter(
+                student_id=pending_lead.converted_user_id,
+                group_id=lead_group.converted_group_id,
+            ).exists()
+        )
+        self.assertEqual(convert_response.json()["converted_count"], 2)
+        self.assertEqual(convert_response.json()["skipped_unconfirmed"], 0)
+        self.assertEqual(convert_response.json()["created_student_count"], 2)
         self.assertEqual(convert_response.json()["linked_existing_student_count"], 0)
-        self.assertIn("1 ta tasdiqlangan lead o‘quvchiga aylantirildi.", convert_response.json()["message"])
-        self.assertIn("1 ta tasdiqlanmagan lead o‘tkazib yuborildi.", convert_response.json()["message"])
+        self.assertIn("2 ta lead o‘quvchiga aylantirildi.", convert_response.json()["message"])
 
     def test_superuser_can_override_teacher_share_on_real_group_conversion(self):
         lead_group = LeadGroup.objects.create(

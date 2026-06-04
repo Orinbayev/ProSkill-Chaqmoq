@@ -542,8 +542,8 @@ def _convert_lead_group_to_real_group(*, lead_group, payload, actor, center):
 
     for lead in leads:
         if not is_lead_confirmed(lead):
-            skipped_unconfirmed += 1
-            continue
+            confirm_lead(lead=lead, actor=actor)
+            lead.refresh_from_db()
 
         student, _, student_created = convert_lead_to_student_safe(
             lead=lead,
@@ -1110,10 +1110,7 @@ def lead_group_convert_api(request, pk: int):
         return JsonResponse({"errors": errors}, status=400)
 
     lead_group.refresh_from_db()
-    message = (
-        f"Real guruh yaratildi. {result['converted_count']} ta tasdiqlangan lead o‘quvchiga aylantirildi. "
-        f"{result['skipped_unconfirmed']} ta tasdiqlanmagan lead o‘tkazib yuborildi."
-    )
+    message = f"Real guruh yaratildi. {result['converted_count']} ta lead o‘quvchiga aylantirildi."
     if result["added_to_group_count"]:
         message += f" {result['added_to_group_count']} ta student yangi real guruhga biriktirildi."
     if result["linked_existing_student_count"]:
