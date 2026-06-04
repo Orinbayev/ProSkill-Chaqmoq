@@ -871,7 +871,7 @@ def teacher_monthly_financials(
         round_div(teacher_salary_cap * billable_lessons, monthly_lessons)
         if monthly_lessons > 0 else 0
     )
-    teacher_salary = min(raw_teacher_salary, teacher_salary_cap)
+    teacher_salary = raw_teacher_salary
 
     # O'quvchi to'lovi kurs narxidan oshmaydi
     turnover = min(

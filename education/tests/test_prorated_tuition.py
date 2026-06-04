@@ -377,10 +377,10 @@ class ProratedTuitionTests(TestCase):
             "Yakshanba tanlangani uchun hisob-kitob 27.04.2026 dan boshlandi",
         )
 
-    def test_teacher_salary_is_capped_at_full_month_share(self):
+    def test_teacher_salary_is_not_capped_at_full_month_share(self):
         """
-        13 ta billable bo'lsa ham teacher full-month cap dan oshmaydi:
-        550k * 40% = 220k
+        13 ta billable bo'lsa, teacher full-month cap dan oshib keta oladi:
+        round_div(220_000 * 13, 12) = 238_333
         """
         s = self._make_student("cap-teacher@t")
         enr = self._enroll(s, start_date=date(2026, 3, 1))
@@ -394,9 +394,10 @@ class ProratedTuitionTests(TestCase):
             self.center,
         )
 
-        self.assertEqual(salary_data["salary"], 220_000)
+        expected_salary = 238_333
+        self.assertEqual(salary_data["salary"], expected_salary)
         self.assertEqual(salary_data["attendance_count"], 13)
-        self.assertEqual(salary_data["details"][0]["enrollments"][0]["daromad"], 220_000)
+        self.assertEqual(salary_data["details"][0]["enrollments"][0]["daromad"], expected_salary)
 
     def test_teacher_salary_uses_full_price_even_when_student_has_discount(self):
         """
