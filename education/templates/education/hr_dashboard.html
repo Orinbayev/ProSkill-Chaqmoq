@@ -2929,7 +2929,11 @@
   }
   function setPhoneFromValue(raw) {
     let digits = String(raw || "").replace(/\D+/g, "");
-    if (digits.startsWith("998")) digits = digits.slice(3);
+    if (digits.startsWith("998")) {
+      digits = digits.slice(3);
+    } else if (digits.startsWith("8") && digits.length > 9) {
+      digits = digits.slice(1);
+    }
     dom.employeePhoneInput.value = formatPhoneDigits(digits);
   }
   function getPhoneE164() {
@@ -3346,7 +3350,12 @@
 
   // ─── Phone formatter
   dom.employeePhoneInput.addEventListener("input", (event) => {
-    const digits = event.target.value.replace(/\D+/g, "");
+    let digits = event.target.value.replace(/\D+/g, "");
+    if (digits.startsWith("998") && digits.length > 9) {
+      digits = digits.slice(3);
+    } else if (digits.startsWith("8") && digits.length > 9) {
+      digits = digits.slice(1);
+    }
     event.target.value = formatPhoneDigits(digits);
   });
   dom.employeePhoneInput.addEventListener("paste", (event) => {
@@ -3355,7 +3364,11 @@
     if (/\d/.test(text)) {
       event.preventDefault();
       let digits = text.replace(/\D+/g, "");
-      if (digits.startsWith("998")) digits = digits.slice(3);
+      if (digits.startsWith("998")) {
+        digits = digits.slice(3);
+      } else if (digits.startsWith("8") && digits.length > 9) {
+        digits = digits.slice(1);
+      }
       dom.employeePhoneInput.value = formatPhoneDigits(digits);
     }
   });

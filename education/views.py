@@ -2542,9 +2542,18 @@ def group_month_attendance(request, group_id):
     days_in_month = calendar.monthrange(year, month)[1]
     day_list = [first_day + timedelta(days=i) for i in range(days_in_month)]
 
+    from django.db.models import Exists, OuterRef, Q
+
+    has_attendance = Attendance.objects.filter(
+        group=group,
+        student=OuterRef('student')
+    )
+
     enrollments = (
         Enrollment.objects
         .filter(group=group)
+        .annotate(has_att=Exists(has_attendance))
+        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
         .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
@@ -2857,6 +2866,9 @@ def qarzdorlar_home(request):
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
         debt = int(snapshot.get("debt", 0) or 0)
+        _e_unenrolled = getattr(e, "_is_unenrolled", False)
+        if _e_unenrolled and debt <= 0:
+            continue
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
@@ -3156,9 +3168,18 @@ def group_month_attendance_export(request, group_id):
     days_in_month = calendar.monthrange(year, month)[1]
     day_list = [first_day + timedelta(days=i) for i in range(days_in_month)]
 
+    from django.db.models import Exists, OuterRef, Q
+
+    has_attendance = Attendance.objects.filter(
+        group=group,
+        student=OuterRef('student')
+    )
+
     enrollments = (
         Enrollment.objects
         .filter(group=group)
+        .annotate(has_att=Exists(has_attendance))
+        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
         .select_related("student")
         .order_by("student__ism", "student__familya")
     )
