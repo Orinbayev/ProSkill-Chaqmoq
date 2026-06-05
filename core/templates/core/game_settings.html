@@ -496,6 +496,254 @@
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(-6px); }
   }
+
+  /* ==========================================
+     LIGHT THEME STYLING
+     ========================================== */
+  html[data-role-theme="light"] {
+    --bg-dark: #f8fafc;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --border: rgba(15, 23, 42, 0.08);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --orange: #ea580c;
+  }
+
+  html[data-role-theme="light"] body {
+    background: radial-gradient(1200px 520px at 50% -10%, rgba(37, 99, 235, 0.06), transparent 60%),
+        linear-gradient(180deg, #f8fafc, #f1f5f9);
+  }
+
+  html[data-role-theme="light"] .back-btn {
+    background: rgba(15, 23, 42, 0.04);
+    color: var(--text-muted);
+  }
+  html[data-role-theme="light"] .back-btn:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: var(--text-main);
+  }
+
+  html[data-role-theme="light"] .page-title {
+    background: linear-gradient(135deg, #0f172a, #475569);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  html[data-role-theme="light"] .superuser-banner {
+    background: rgba(37, 99, 235, 0.05);
+    border-color: rgba(37, 99, 235, 0.15);
+    color: #1e40af;
+  }
+  html[data-role-theme="light"] .superuser-banner b {
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .tabs-nav {
+    background: rgba(15, 23, 42, 0.03);
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+  html[data-role-theme="light"] .tab-btn {
+    color: #64748b;
+  }
+  html[data-role-theme="light"] .tab-btn:hover {
+    color: #0f172a;
+  }
+  html[data-role-theme="light"] .tab-btn.active {
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+  }
+
+  html[data-role-theme="light"] .game-card,
+  html[data-role-theme="light"] .suggestions-section,
+  html[data-role-theme="light"] .balls-config-card {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.08);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+  }
+
+  html[data-role-theme="light"] .game-card.disabled-global {
+    background: #f8fafc;
+  }
+
+  html[data-role-theme="light"] .card-top {
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+
+  html[data-role-theme="light"] .slider {
+    background: #e2e8f0;
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+  html[data-role-theme="light"] .slider:before {
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  }
+
+  html[data-role-theme="light"] .global-off-warning {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  html[data-role-theme="light"] .compact-input {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+  html[data-role-theme="light"] .compact-input:focus {
+    background: #ffffff;
+    border-color: #3b82f6;
+  }
+
+  html[data-role-theme="light"] .suggestions-header {
+    background: rgba(15, 23, 42, 0.01);
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+
+  html[data-role-theme="light"] .suggestion-row:not(:last-child) {
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+  html[data-role-theme="light"] .suggestion-row:hover {
+    background: rgba(15, 23, 42, 0.01);
+  }
+
+  html[data-role-theme="light"] .avatar-circle {
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  html[data-role-theme="light"] .review-btn {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+  }
+  html[data-role-theme="light"] .review-btn:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+
+  html[data-role-theme="light"] .reviewed-badge {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #16a34a;
+  }
+
+  html[data-role-theme="light"] .global-off-badge {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #ef4444;
+  }
+
+  html[data-role-theme="light"] .toast-item {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  html[data-role-theme="light"] .suggestion-game-name {
+    color: #d97706;
+  }
+
+  html[data-role-theme="light"] .suggestion-count-badge {
+    background: rgba(234, 88, 12, 0.1);
+    border-color: rgba(234, 88, 12, 0.2);
+    color: #ea580c;
+  }
+
+  /* ---- New CSS Classes for Balls Config Card ---- */
+  .balls-config-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    backdrop-filter: blur(20px);
+  }
+  .bc-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bc-card-title i {
+    color: var(--orange);
+  }
+  .bc-inputs-wrap {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .bc-input-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bc-input-box label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .bc-number-input {
+    width: 120px !important;
+  }
+  .bc-orange-text {
+    color: var(--orange) !important;
+  }
+  .bc-hint-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .bc-action-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .bc-save-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 24px;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bc-save-btn:hover {
+    opacity: 0.9;
+  }
+  .bc-save-btn:active {
+    transform: scale(0.97);
+  }
+
+  .suggestion-count-badge {
+    margin-left: 4px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+    font-size: 11px;
+  }
 </style>
 {% endblock %}
 
@@ -523,30 +771,27 @@
 
   <!-- ===== BALLS CONFIG CARD ===== -->
   {% if balls_config %}
-  <div style="background:var(--card,rgba(15,23,42,.6));border:1px solid var(--border,rgba(255,255,255,.08));border-radius:16px;padding:22px 24px;margin-bottom:24px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;">
+  <div class="balls-config-card">
     <div style="flex:1;min-width:220px">
-      <div style="font-size:13px;font-weight:700;color:var(--muted,#94a3b8);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
-        <i class="fa-solid fa-circle-bolt" style="color:#f59e0b;margin-right:6px"></i>Ball → Chaqmoq Sozlamasi
+      <div class="bc-card-title">
+        <i class="fa-solid fa-circle-bolt"></i>Ball → Chaqmoq Sozlamasi
       </div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;">
-        <div>
-          <label style="font-size:12px;color:var(--muted,#94a3b8);display:block;margin-bottom:4px">Minimal ball (almashtirish uchun)</label>
-          <input type="number" id="bcMinBalls" min="1" max="9999" value="{{ balls_config.min_balls_to_convert }}"
-            style="background:rgba(255,255,255,.07);border:1px solid var(--border,rgba(255,255,255,.08));border-radius:10px;padding:8px 14px;color:var(--text,#f8fafc);font-size:15px;font-weight:700;width:120px;">
+      <div class="bc-inputs-wrap">
+        <div class="bc-input-box">
+          <label>Minimal ball (almashtirish uchun)</label>
+          <input type="number" id="bcMinBalls" min="1" max="9999" value="{{ balls_config.min_balls_to_convert }}" class="compact-input bc-number-input">
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--muted,#94a3b8);display:block;margin-bottom:4px">Chaqmoq (1 konvertatsiyada)</label>
-          <input type="number" id="bcChaqmoq" min="1" max="999" value="{{ balls_config.chaqmoq_per_conversion }}"
-            style="background:rgba(255,255,255,.07);border:1px solid var(--border,rgba(255,255,255,.08));border-radius:10px;padding:8px 14px;color:#f59e0b;font-size:15px;font-weight:700;width:100px;">
+        <div class="bc-input-box">
+          <label>Chaqmoq (1 konvertatsiyada)</label>
+          <input type="number" id="bcChaqmoq" min="1" max="999" value="{{ balls_config.chaqmoq_per_conversion }}" class="compact-input bc-number-input bc-orange-text">
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted,#94a3b8);margin-top:8px">
+      <div class="bc-hint-text">
         Misol: o'quvchi <span id="bcExMin">{{ balls_config.min_balls_to_convert }}</span> ball to'plaganda <span id="bcExChq" style="color:#f59e0b">{{ balls_config.chaqmoq_per_conversion }} ⚡</span> oladi
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-      <button onclick="saveBallsConfig()"
-        style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;">
+    <div class="bc-action-wrap">
+      <button onclick="saveBallsConfig()" class="bc-save-btn">
         <i class="fa-solid fa-floppy-disk"></i> Saqlash
       </button>
       <span id="bcSaveMsg" style="font-size:12px;display:none"></span>
@@ -561,7 +806,7 @@
     </button>
     <button class="tab-btn" onclick="switchTab('suggestions', this)">
       <i class="fa-solid fa-lightbulb"></i>&nbsp; O'yin Takliflari
-      <span style="margin-left:4px; padding:1px 7px; border-radius:20px; background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; font-size:11px;">{{ suggestions|length }}</span>
+      <span class="suggestion-count-badge">{{ suggestions|length }}</span>
     </button>
   </div>
 
