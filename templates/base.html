@@ -990,7 +990,7 @@
         if (name === 'q' || name === 'query' || name === 'search' || name === 'filter') return false;
         if (placeholder.includes('qidir') || placeholder.includes('search') || placeholder.includes('ism') || placeholder.includes('familiya')) return false;
         if (className.includes('search') || className.includes('filter')) return false;
-        if (target.closest('.bq-sdrawer-pro__phone-wrap')) return false;
+        if (target.closest('.bq-sdrawer-pro__phone-wrap') || target.closest('.hrx-phone-wrap') || target.hasAttribute('data-no-auto-prefix')) return false;
         
         // Exclude Telegram inputs explicitly to avoid treating username field as phone input
         if (name.includes('telegram') || id.includes('telegram')) return false;
