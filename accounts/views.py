@@ -1137,12 +1137,18 @@ def student_edit_ajax(request, pk):
         return JsonResponse({"ok": True, "message": f"'{group_name}' guruhidan chiqarildi ✅"})
 
     # ── Enrollment: update price / date / pattern ──
+    # ── Enrollment: update price / date / pattern ──
     if action == "enrollment_update":
-        from education.models import Enrollment
+        from education.models import Enrollment, StudentGroupHistory
+        from education.views import sync_tuition_fee
         enr = get_object_or_404(Enrollment, pk=request.POST.get("enrollment_id"), student=student)
         raw_price = (request.POST.get("kurs_narhi") or "").strip()
+        price_changed = False
         if raw_price.isdigit():
-            enr.kurs_narhi = int(raw_price)
+            new_price = int(raw_price)
+            if enr.kurs_narhi != new_price:
+                enr.kurs_narhi = new_price
+                price_changed = True
         joined_raw = (request.POST.get("joined_at") or "").strip()
         if joined_raw:
             enr.joined_at = _parse_date(joined_raw)
@@ -1150,6 +1156,17 @@ def student_edit_ajax(request, pk):
         if pattern:
             enr.lesson_pattern = pattern
         enr.save(update_fields=["kurs_narhi", "joined_at", "lesson_pattern"])
+        
+        if price_changed:
+            StudentGroupHistory.objects.filter(
+                student=student,
+                group=enr.group,
+                end_date__isnull=True
+            ).update(kurs_narxi=enr.kurs_narhi)
+            
+            # Sinxronlashtirish
+            sync_tuition_fee(enr, new_fee=enr.kurs_narhi)
+            
         return JsonResponse({
             "ok": True,
             "message": "Guruh ma'lumotlari yangilandi ✅",

@@ -47,7 +47,7 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
         self.cur_month = month_first_day(self.today)
         self.prev_month = _prev_month_start(self.today)
 
-        self.center = Center.objects.create(name="MM Center", slug="mm-center")
+        self.center = Center.objects.create(name="MM Center", slug="mm-center", features={"finance": True})
         self.manager = User.objects.create_user(
             email="manager@mm.test",
             password="testpass123",
@@ -366,3 +366,189 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
         # Ichida
         response = self.client.get(self.url, {"min_debt": 500_000, "max_debt": 2_000_000})
         self.assertEqual(response.context["page_obj"].paginator.count, 1)
+
+
+class PriceSyncTests(TestCase):
+    def setUp(self):
+        from accounts.models import Center, User
+        from education.models import Group, Enrollment, StudentGroupHistory
+        from education.services.tuition import ensure_tuition_month
+        from django.utils import timezone
+
+        self.center = Center.objects.create(name="Sync Center", slug="sync-center", features={"finance": True})
+        
+        self.manager = User.objects.create_user(
+            email="manager@sync.test",
+            password="testpass123",
+            role="manager",
+            center=self.center,
+            ism="Sync",
+            familya="Manager",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher@sync.test",
+            password="testpass123",
+            role="teacher",
+            center=self.center,
+            ism="Sync",
+            familya="Teacher",
+            oqituvchi_foizi=40,
+        )
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Sync Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=400_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        
+        # O'quvchi 1: guruh eski narxi bilan
+        self.student1 = User.objects.create_user(
+            email="stu1@sync.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Stu",
+            familya="One",
+        )
+        first_of_month = timezone.localdate().replace(day=1)
+        self.enr1 = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student1,
+            kurs_narhi=400_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+            joined_at=first_of_month,
+        )
+        self.hist1 = StudentGroupHistory.objects.create(
+            student=self.student1,
+            group=self.group,
+            center=self.center,
+            start_date=first_of_month,
+            kurs_narxi=400_000,
+            oqituvchi_foiz=40,
+        )
+        
+        # O'quvchi 2: Narxi 0 bo'lgan
+        self.student2 = User.objects.create_user(
+            email="stu2@sync.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Stu",
+            familya="Two",
+        )
+        self.enr2 = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student2,
+            kurs_narhi=0,
+            oqituvchi_foiz=40,
+            is_active=True,
+            joined_at=first_of_month,
+        )
+        self.hist2 = StudentGroupHistory.objects.create(
+            student=self.student2,
+            group=self.group,
+            center=self.center,
+            start_date=first_of_month,
+            kurs_narxi=0,
+            oqituvchi_foiz=40,
+        )
+        
+        # O'quvchi 3: Custom narxli o'quvchi
+        self.student3 = User.objects.create_user(
+            email="stu3@sync.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Stu",
+            familya="Three",
+        )
+        self.enr3 = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student3,
+            kurs_narhi=300_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+            joined_at=first_of_month,
+        )
+        self.hist3 = StudentGroupHistory.objects.create(
+            student=self.student3,
+            group=self.group,
+            center=self.center,
+            start_date=first_of_month,
+            kurs_narxi=300_000,
+            oqituvchi_foiz=40,
+        )
+        
+        self.tm1 = ensure_tuition_month(self.enr1, timezone.localdate())
+        self.tm2 = ensure_tuition_month(self.enr2, timezone.localdate())
+        self.tm3 = ensure_tuition_month(self.enr3, timezone.localdate())
+        
+        self.client.force_login(self.manager)
+
+    def test_group_price_edit_syncs_correct_students(self):
+        url = reverse("education:group_edit", args=[self.group.pk])
+        group_edit_url = f"/{self.center.slug}{url}"
+        
+        post_data = {
+            "nom": "Sync Group (Edited)",
+            "oqituvchi": self.teacher.pk,
+            "kurs_narxi": 600_000,
+            "oqituvchi_foiz": 40,
+        }
+        
+        response = self.client.post(group_edit_url, post_data)
+        self.assertEqual(response.status_code, 302)
+        
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.kurs_narxi, 600_000)
+        
+        # enr1 updated
+        self.enr1.refresh_from_db()
+        self.assertEqual(self.enr1.kurs_narhi, 600_000)
+        self.hist1.refresh_from_db()
+        self.assertEqual(self.hist1.kurs_narxi, 600_000)
+        self.tm1.refresh_from_db()
+        self.assertEqual(self.tm1.fee_amount, 600_000)
+        
+        # enr2 updated
+        self.enr2.refresh_from_db()
+        self.assertEqual(self.enr2.kurs_narhi, 600_000)
+        self.hist2.refresh_from_db()
+        self.assertEqual(self.hist2.kurs_narxi, 600_000)
+        self.tm2.refresh_from_db()
+        self.assertEqual(self.tm2.fee_amount, 600_000)
+        
+        # enr3 untouched (custom price)
+        self.enr3.refresh_from_db()
+        self.assertEqual(self.enr3.kurs_narhi, 300_000)
+        self.hist3.refresh_from_db()
+        self.assertEqual(self.hist3.kurs_narxi, 300_000)
+        self.tm3.refresh_from_db()
+        self.assertEqual(self.tm3.fee_amount, 300_000)
+
+    def test_student_enrollment_price_edit_via_ajax_syncs_tuition(self):
+        url = reverse("accounts:student_edit_ajax", args=[self.student3.pk])
+        ajax_url = f"/{self.center.slug}{url}" if not url.startswith(f"/{self.center.slug}") else url
+        
+        post_data = {
+            "action": "enrollment_update",
+            "enrollment_id": self.enr3.pk,
+            "kurs_narhi": 350_000,
+        }
+        response = self.client.post(ajax_url, post_data)
+        self.assertEqual(response.status_code, 200)
+        
+        self.enr3.refresh_from_db()
+        self.assertEqual(self.enr3.kurs_narhi, 350_000)
+        
+        self.hist3.refresh_from_db()
+        self.assertEqual(self.hist3.kurs_narxi, 350_000)
+        
+        self.tm3.refresh_from_db()
+        self.assertEqual(self.tm3.fee_amount, 350_000)

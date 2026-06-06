@@ -8572,16 +8572,36 @@ def group_edit(request, pk):
         
         # Agar guruhning foizi yoki narxi o'zgargan bo'lsa, joriy o'quvchilarga ham ta'sir qilsin
         if updated_group.oqituvchi_foiz != old_foiz or updated_group.kurs_narxi != old_narx:
-            from education.models import Enrollment
+            from education.models import Enrollment, StudentGroupHistory
+            from education.views import sync_tuition_fee
+            from django.db.models import Q
+            
             enrollments = Enrollment.objects.filter(group=updated_group)
-            update_data = {}
+            
+            # 1. Agar foiz o'zgargan bo'lsa, barcha o'quvchilar foizini yangilaymiz
             if updated_group.oqituvchi_foiz != old_foiz:
-                update_data["oqituvchi_foiz"] = updated_group.oqituvchi_foiz
+                enrollments.update(oqituvchi_foiz=updated_group.oqituvchi_foiz)
+                StudentGroupHistory.objects.filter(
+                    group=updated_group,
+                    end_date__isnull=True
+                ).update(oqituvchi_foiz=updated_group.oqituvchi_foiz)
+            
+            # 2. Agar narx o'zgargan bo'lsa, faqat narxi 0 bo'lgan yoki old_narx ga teng bo'lganlarni yangilaymiz
             if updated_group.kurs_narxi != old_narx:
-                update_data["kurs_narhi"] = updated_group.kurs_narxi
-                
-            if update_data:
-                enrollments.update(**update_data)
+                affected_enrollments = enrollments.filter(Q(kurs_narhi=0) | Q(kurs_narhi=old_narx))
+                for enr in affected_enrollments:
+                    enr.kurs_narhi = updated_group.kurs_narxi
+                    enr.save(update_fields=["kurs_narhi"])
+                    
+                    # StudentGroupHistory'ni ham yangilaymiz
+                    StudentGroupHistory.objects.filter(
+                        student=enr.student,
+                        group=updated_group,
+                        end_date__isnull=True
+                    ).update(kurs_narxi=updated_group.kurs_narxi)
+                    
+                    # TuitionMonth oylik to'lovlarini sinxronlashtiramiz
+                    sync_tuition_fee(enr, new_fee=updated_group.kurs_narxi)
                 
         messages.success(request, "✅ Guruh yangilandi.")
         return redirect("education:group_detail", pk=g.id)
