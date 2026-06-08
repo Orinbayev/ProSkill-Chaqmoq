@@ -294,6 +294,67 @@ def _student_enrollment_catalog(enrollments: list[Enrollment]) -> dict:
     }
 
 
+def get_student_total_debt(student, center=None) -> int:
+    from django.db.models import Q as _Q
+    from django.utils import timezone
+    from education.models import Enrollment, TuitionMonth
+    _center_q = (
+        _Q(center=center)
+        | _Q(center__isnull=True, group__center=center)
+        | _Q(center__isnull=True, student__center=center)
+    )
+    active_enrs = list(
+        Enrollment.objects.filter(
+            student=student,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        ).filter(_center_q)
+    )
+    _inactive_enr_ids = (
+        TuitionMonth.objects
+        .filter(
+            enrollment__student=student,
+            enrollment__is_active=False,
+            is_deleted=False,
+            enrollment__student__is_archived=False,
+            enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
+        )
+        .values_list("enrollment_id", flat=True)
+        .distinct()
+    )
+    inactive_enrs = list(
+        Enrollment.objects.filter(
+            id__in=_inactive_enr_ids,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        ).filter(_center_q)
+    )
+    all_enrs = active_enrs + inactive_enrs
+    if not all_enrs:
+        return 0
+
+    today = timezone.localdate()
+    selected_from = today.replace(day=1)
+    selected_to = today
+    from education.services.tuition import month_range_starts, calculate_enrollment_debt_snapshots
+    period_months = month_range_starts(selected_from, selected_to)
+
+    snapshots = calculate_enrollment_debt_snapshots(
+        all_enrs, period_months, cumulative_up_to=selected_to
+    )
+    total_debt = 0
+    for snap in snapshots.values():
+        total_debt += int(snap.get("debt", 0) or 0)
+        total_debt += int(snap.get("previous_unpaid", 0) or 0)
+    return total_debt
+
+
+
+
 def _serialize_tuition_preview(preview: dict) -> dict:
     period_end = preview.get("period_end_date") or month_last_day(preview["month"])
     return {
@@ -1314,6 +1375,17 @@ def create_payment(request):
         except Exception as e:
             messages.error(request, f"❌ Xatolik: {e}")
 
+    try:
+        target_student = None
+        if enrollment_id:
+            target_student = enrollment.student
+        elif student_id:
+            target_student = student
+        if target_student and get_student_total_debt(target_student, center) <= 0:
+            next_url = reverse("education:tolovlar_home")
+    except Exception:
+        pass
+
     return redirect(next_url)
 
 
@@ -1921,6 +1993,8 @@ def enrollment_edit(request, enrollment_id):
             tuition_month.restore()
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
+        if get_student_total_debt(active_enrollment.student, center) <= 0:
+            next_url = reverse("education:tolovlar_home")
         return redirect(next_url)
 
     return _render_enrollment_edit_form(
@@ -2546,7 +2620,9 @@ def group_month_attendance(request, group_id):
 
     has_attendance = Attendance.objects.filter(
         group=group,
-        student=OuterRef('student')
+        student=OuterRef('student'),
+        date__year=year,
+        date__month=month
     )
 
     enrollments = (
@@ -3172,7 +3248,9 @@ def group_month_attendance_export(request, group_id):
 
     has_attendance = Attendance.objects.filter(
         group=group,
-        student=OuterRef('student')
+        student=OuterRef('student'),
+        date__year=year,
+        date__month=month
     )
 
     enrollments = (
@@ -4737,19 +4815,30 @@ def group_detail(request, pk: int):
         selected_date = localdate()
     selected_month = month_first_day(selected_date)
 
+    from django.db.models import Exists, OuterRef, Q
+
+    has_attendance = Attendance.objects.filter(
+        group=g,
+        student=OuterRef('student'),
+        date__year=selected_month.year,
+        date__month=selected_month.month
+    )
     enrollments = list(
         Enrollment.objects
-        .filter(group=g, is_active=True)
+        .filter(group=g)
+        .annotate(has_att=Exists(has_attendance))
+        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
         .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
     student_user_ids = [e.student_id for e in enrollments]
     student_enrollment_qs = Enrollment.objects.filter(
         student_id__in=student_user_ids,
-        is_active=True,
         student__is_archived=False,
         group__is_archived=False,
         group__is_deleted=False,
+    ).filter(
+        Q(is_active=True) | Q(group=g, id__in=[e.id for e in enrollments])
     )
     if center:
         student_enrollment_qs = student_enrollment_qs.filter(center=center)
@@ -7365,9 +7454,23 @@ def group_rollcall(request, pk):
     except Exception:
         the_date = localdate()
 
-    students = [
-        e.student for e in g.enrollments.filter(is_active=True).select_related("student").order_by("student__ism", "student__familya")
-    ]
+    from django.db.models import Exists, OuterRef, Q
+
+    has_attendance = Attendance.objects.filter(
+        group=g,
+        student=OuterRef('student'),
+        date__year=the_date.year,
+        date__month=the_date.month
+    )
+    enrollments_qs = (
+        Enrollment.objects
+        .filter(group=g)
+        .annotate(has_att=Exists(has_attendance))
+        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
+        .select_related("student")
+        .order_by("student__ism", "student__familya")
+    )
+    students = [e.student for e in enrollments_qs]
 
     pres_map = {
         a.student_id: a.present for a in Attendance.objects.filter(group=g, date=the_date)
@@ -11144,11 +11247,12 @@ def edit_student_month_debt(request, student_id):
     tms[0].refresh_from_db(fields=[fee_field])
     saved_fee = int(getattr(tms[0], fee_field, 0) or 0) if tms else 0
     saved_paid = paid_per_tm[0] if paid_per_tm else 0
-    saved_debt = max(0, saved_fee - saved_paid)
     expected_fee = new_debt + (paid_per_tm[0] if paid_per_tm else 0)
     if saved_fee != expected_fee:
         return JsonResponse({"ok": False, "error": "Ma'lumot saqlanmadi. Qaytadan urinib ko'ring."}, status=500)
-    return JsonResponse({"ok": True, "fee": saved_fee, "paid": saved_paid, "debt": saved_debt})
+    saved_debt = max(0, saved_fee - saved_paid)
+    total_debt = get_student_total_debt(student, center)
+    return JsonResponse({"ok": True, "fee": saved_fee, "paid": saved_paid, "debt": saved_debt, "total_debt": total_debt})
 
 
 # ============================================================

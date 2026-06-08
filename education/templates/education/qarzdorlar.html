@@ -1878,6 +1878,10 @@ tr.row-deferred {
                     .then(r => r.json())
                     .then(result => {
                         if (result.ok) {
+                            if (result.total_debt === 0) {
+                                window.location.href = buildTenantPath('/talim/tolovlar/');
+                                return;
+                            }
                             const sid = efState.studentId;
                             const savedMonth = efState.month;
 

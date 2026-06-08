@@ -1146,8 +1146,9 @@ def student_edit_ajax(request, pk):
         price_changed = False
         if raw_price.isdigit():
             new_price = int(raw_price)
-            if enr.kurs_narhi != new_price:
+            if enr.kurs_narhi != new_price or enr.student_payable_amount is not None:
                 enr.kurs_narhi = new_price
+                enr.student_payable_amount = None
                 price_changed = True
         joined_raw = (request.POST.get("joined_at") or "").strip()
         if joined_raw:
@@ -1155,7 +1156,7 @@ def student_edit_ajax(request, pk):
         pattern = (request.POST.get("lesson_pattern") or "").strip()
         if pattern:
             enr.lesson_pattern = pattern
-        enr.save(update_fields=["kurs_narhi", "joined_at", "lesson_pattern"])
+        enr.save(update_fields=["kurs_narhi", "student_payable_amount", "joined_at", "lesson_pattern"])
         
         if price_changed:
             StudentGroupHistory.objects.filter(
@@ -1165,7 +1166,7 @@ def student_edit_ajax(request, pk):
             ).update(kurs_narxi=enr.kurs_narhi)
             
             # Sinxronlashtirish
-            sync_tuition_fee(enr, new_fee=enr.kurs_narhi)
+            sync_tuition_fee(enr, new_fee=enr.kurs_narhi, start_month=enr.joined_at)
             
         return JsonResponse({
             "ok": True,
