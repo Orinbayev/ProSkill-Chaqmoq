@@ -1139,11 +1139,14 @@ def student_edit_ajax(request, pk):
     # ── Enrollment: update price / date / pattern ──
     # ── Enrollment: update price / date / pattern ──
     if action == "enrollment_update":
+        from django.utils import timezone as _tz
         from education.models import Enrollment, StudentGroupHistory
         from education.views import sync_tuition_fee
+        from education.services.tuition import ensure_tuition_month, month_first_day
         enr = get_object_or_404(Enrollment, pk=request.POST.get("enrollment_id"), student=student)
         raw_price = (request.POST.get("kurs_narhi") or "").strip()
         price_changed = False
+        new_price = None
         if raw_price.isdigit():
             new_price = int(raw_price)
             if enr.kurs_narhi != new_price or enr.student_payable_amount is not None:
@@ -1157,17 +1160,27 @@ def student_edit_ajax(request, pk):
         if pattern:
             enr.lesson_pattern = pattern
         enr.save(update_fields=["kurs_narhi", "student_payable_amount", "joined_at", "lesson_pattern"])
-        
-        if price_changed:
+
+        # Narx 0 bo'lsa va price_changed=False bo'lsa ham sync qilish kerak:
+        # TuitionMonth stale qiymat saqlab qolgan bo'lishi mumkin.
+        should_sync = price_changed or (new_price == 0)
+        if should_sync:
             StudentGroupHistory.objects.filter(
                 student=student,
                 group=enr.group,
                 end_date__isnull=True
             ).update(kurs_narxi=enr.kurs_narhi)
-            
-            # Sinxronlashtirish
-            sync_tuition_fee(enr, new_fee=enr.kurs_narhi, start_month=enr.joined_at)
-            
+
+            # start_month: joined_at va bugunning minimumi.
+            # Agar joined_at kelajakda bo'lsa, joriy oy ham qamrab olinadi.
+            _today = _tz.localdate()
+            _joined = enr.joined_at if enr.joined_at else _today
+            _sync_start = min(_joined, _today)
+            sync_tuition_fee(enr, new_fee=enr.kurs_narhi, start_month=_sync_start)
+
+            # Joriy oy TuitionMonth mavjud bo'lmasa — yaratib, to'g'ri fee bilan to'ldirish
+            ensure_tuition_month(enr, month_first_day(_today))
+
         return JsonResponse({
             "ok": True,
             "message": "Guruh ma'lumotlari yangilandi ✅",
