@@ -2582,14 +2582,12 @@ def attendance_groups(request):
     # ✅ Filter: teacher
     if teacher_id:
         if is_teacher:
-            # Support teacher ham o'z guruhlarini ko'rsin (asosiy yoki support sifatida)
-            from education.services.support_teacher import is_support_enabled
-            if is_support_enabled(center):
-                groups = groups.filter(
-                    Q(oqituvchi_id=teacher_id) | Q(support_teacher_id=teacher_id)
-                )
-            else:
-                groups = groups.filter(oqituvchi_id=teacher_id)
+            # Support teacher ham o'z guruhlarini ko'rsin:
+            # asosiy o'qituvchi (oqituvchi_id) yoki support sifatida biriktirilgan (support_teacher_id).
+            # is_support_enabled tekshiruvi keraksiz — biriktirilgan bo'lsa ko'rishi kerak.
+            groups = groups.filter(
+                Q(oqituvchi_id=teacher_id) | Q(support_teacher_id=teacher_id)
+            )
         else:
             groups = groups.filter(oqituvchi_id=teacher_id)
 
@@ -9256,17 +9254,22 @@ def enrollment_leave(request, pk):
 
 @login_required
 def my_groups(request):
-    rows = (
-        Group.objects.filter(oqituvchi=request.user, is_archived=False)
-        .select_related("center", "oqituvchi", "category_obj")
-        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
-        .order_by("nom")
-    )
     from core.tenant import get_request_center
     center = get_request_center(request)
+    # Asosiy o'qituvchi yoki support teacher sifatida biriktirilgan barcha guruhlar
+    rows = (
+        Group.objects.filter(
+            Q(oqituvchi=request.user) | Q(support_teacher=request.user),
+            is_archived=False,
+        )
+        .select_related("center", "oqituvchi", "category_obj")
+        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
+        .distinct()
+        .order_by("nom")
+    )
     if center:
         rows = rows.filter(center=center)
-    return render(request, "education/my_groups.html", {"rows": rows})
+    return render(request, "education/my_groups.html", {"rows": rows, "is_support": True})
 
 
 @login_required
