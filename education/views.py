@@ -1381,7 +1381,15 @@ def create_payment(request):
             target_student = enrollment.student
         elif student_id:
             target_student = student
-        if target_student and get_student_total_debt(target_student, center) <= 0:
+        # Faqat tolovlar bo'limidan kelgan va qarz to'liq yopilgan bo'lsa
+        # tolovlar_home ga o'tamiz. Qarzdorlar bo'limidan kelgan bo'lsa —
+        # next_url o'zgarmaydi, foydalanuvchi shu sahifada qoladi.
+        _from_qarzdorlar = "qarzdorlar" in (next_url or "")
+        if (
+            not _from_qarzdorlar
+            and target_student
+            and get_student_total_debt(target_student, center) <= 0
+        ):
             next_url = reverse("education:tolovlar_home")
     except Exception:
         pass

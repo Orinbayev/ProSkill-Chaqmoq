@@ -109,44 +109,68 @@ class DebtorPriceAndRedirectTests(TestCase):
         self.assertEqual(getattr(self.tm_may, fee_field), 350_000)
         self.assertEqual(getattr(self.tm_june, fee_field), 350_000)
 
-    def test_payment_clearing_debt_redirects(self):
+    def test_payment_clearing_debt_stays_in_qarzdorlar(self):
         """
-        Making a payment that brings total debt to 0 redirects to /talim/tolovlar/
+        Qarzdorlar bo'limidan to'lov qilinganda — qarz to'liq yopilsa ham —
+        foydalanuvchi qarzdorlar sahifasida qoladi (tolovlar_home ga o'tmaydi).
         """
-        # Calculate initial total debt
         total_debt_before = get_student_total_debt(self.student, self.center)
         self.assertGreater(total_debt_before, 0)
 
-        # Create a partial payment
         url = reverse("education:create_payment")
         tenant_url = f"/{self.center.slug}{url}"
-        
+        qarzdorlar_url = f"/{self.center.slug}/talim/qarzdorlar/"
+
+        # Qisman to'lov
         payload_partial = {
             "student_id": self.student.id,
             "enrollment_id": self.enrollment.id,
             "cash_amount": "200000",
             "card_amount": "0",
             "paid_date": "2026-06-08",
-            "next": f"/{self.center.slug}/talim/qarzdorlar/",
+            "next": qarzdorlar_url,
         }
         response = self.client.post(tenant_url, payload_partial)
-        # Should redirect back to next URL specified in POST
-        self.assertRedirects(response, f"/{self.center.slug}/talim/qarzdorlar/", target_status_code=302)
+        self.assertRedirects(response, qarzdorlar_url, target_status_code=302)
 
-        # Pay remaining
+        # To'liq to'lov — qarz 0 ga tushadi
         remaining = get_student_total_debt(self.student, self.center)
         self.assertGreater(remaining, 0)
-        
+
         payload_full = {
             "student_id": self.student.id,
             "enrollment_id": self.enrollment.id,
             "cash_amount": str(remaining),
             "card_amount": "0",
             "paid_date": "2026-06-08",
-            "next": f"/{self.center.slug}/talim/qarzdorlar/",
+            "next": qarzdorlar_url,
         }
         response = self.client.post(tenant_url, payload_full)
-        # Should automatically redirect to tolovlar_home since total debt is 0
+        # Qarzdorlardan kelgan bo'lsa — shu sahifada qoladi
+        self.assertRedirects(response, qarzdorlar_url, target_status_code=302)
+
+    def test_payment_from_tolovlar_redirects_to_tolovlar_when_debt_zero(self):
+        """
+        To'lovlar bo'limidan to'lov qilinib qarz 0 bo'lsa — tolovlar_home ga o'tadi.
+        """
+        total_debt_before = get_student_total_debt(self.student, self.center)
+        self.assertGreater(total_debt_before, 0)
+
+        url = reverse("education:create_payment")
+        tenant_url = f"/{self.center.slug}{url}"
+        tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
+
+        # To'liq to'lov, to'lovlar bo'limidan
+        payload_full = {
+            "student_id": self.student.id,
+            "enrollment_id": self.enrollment.id,
+            "cash_amount": str(total_debt_before),
+            "card_amount": "0",
+            "paid_date": "2026-06-08",
+            "next": tolovlar_url,
+        }
+        response = self.client.post(tenant_url, payload_full)
+        # To'lovlardan kelgan bo'lsa — tolovlar_home ga o'tadi
         expected_redirect = reverse("education:tolovlar_home")
         self.assertRedirects(response, expected_redirect, target_status_code=302)
 
