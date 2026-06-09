@@ -378,6 +378,59 @@
                     <div class="text-white-50" style="font-size:14px;">Bu oy hali davomat qayd etilmagan</div>
                 </div>
                 {% endif %}
+
+                {% if is_support_member and salary_data.support_details %}
+                <div class="px-2 pb-3 mt-2">
+                    <div class="text-white-50 small fw-semibold mb-2 px-1" style="letter-spacing:.05em;">
+                        <i class="fa-solid fa-user-tie me-1" style="color:#f59e0b;"></i> Support sifatidagi daromad
+                    </div>
+                    <table class="income-table w-100">
+                        <thead>
+                            <tr>
+                                <th style="width:35%">Guruh</th>
+                                <th class="text-center" style="width:12%">Darslar</th>
+                                <th class="text-center" style="width:10%">Foiz</th>
+                                <th class="text-end" style="width:20%">Daromad</th>
+                                <th style="width:23%"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in salary_data.support_details %}
+                            <tr class="income-row">
+                                <td>
+                                    <div class="income-group-name">{{ d.group_name }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="att-pill">{{ d.attendance }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="pct-pill">{{ d.fi }}%</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="income-amount format-money">{{ d.salary|floatformat:0 }}</div>
+                                    <div class="income-currency">so'm</div>
+                                </td>
+                                <td class="bar-cell ps-3">
+                                    <div class="income-bar-wrap">
+                                        <div class="income-bar-fill" style="width: {% widthratio d.salary support_salary_total 100 %}%;background:#f59e0b;"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="income-total-row">
+                                <td><span class="income-total-label">Support jami</span></td>
+                                <td colspan="2"></td>
+                                <td class="text-end">
+                                    <div class="income-total-amount format-money">{{ support_salary_total|floatformat:0 }}</div>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

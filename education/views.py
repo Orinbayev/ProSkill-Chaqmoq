@@ -2581,7 +2581,17 @@ def attendance_groups(request):
 
     # ✅ Filter: teacher
     if teacher_id:
-        groups = groups.filter(oqituvchi_id=teacher_id)
+        if is_teacher:
+            # Support teacher ham o'z guruhlarini ko'rsin (asosiy yoki support sifatida)
+            from education.services.support_teacher import is_support_enabled
+            if is_support_enabled(center):
+                groups = groups.filter(
+                    Q(oqituvchi_id=teacher_id) | Q(support_teacher_id=teacher_id)
+                )
+            else:
+                groups = groups.filter(oqituvchi_id=teacher_id)
+        else:
+            groups = groups.filter(oqituvchi_id=teacher_id)
 
     # ✅ Search
     if q:
@@ -4828,7 +4838,9 @@ def group_detail(request, pk: int):
     g = get_object_or_404(qs, pk=pk)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return HttpResponseForbidden("Siz bu guruhni ko'ra olmaysiz.")
+        # Support teacher ham guruhni ko'ra oladi va davomat qila oladi
+        if g.support_teacher_id != request.user.id:
+            return HttpResponseForbidden("Siz bu guruhni ko'ra olmaysiz.")
 
     date_str = request.GET.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -6229,9 +6241,10 @@ def attend_all(request, pk):
         qs = qs.filter(center=center)
     g = get_object_or_404(qs, pk=pk)
 
-    # faqat direktor/manager/teacher
+    # faqat direktor/manager/teacher yoki support teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
+        if g.support_teacher_id != request.user.id:
+            return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
 
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -6261,7 +6274,8 @@ def attend_all_students(request, g_id):
     g = get_object_or_404(qs, pk=g_id)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
+        if g.support_teacher_id != request.user.id:
+            return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
 
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -6304,9 +6318,10 @@ def attendance_today(request, pk: int):
     if center and g.center_id != center.id:
         return JsonResponse({"ok": False, "error": "Center mismatch"}, status=403)
 
-    # faqat direktor/manager/teacher
+    # faqat direktor/manager/teacher yoki support teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo'q"}, status=403)
+        if g.support_teacher_id != request.user.id:
+            return JsonResponse({"ok": False, "error": "ruxsat yo'q"}, status=403)
 
     enr_id = request.POST.get("enr_id")
     if not enr_id:
@@ -9285,6 +9300,26 @@ def teacher_income_dashboard(request):
     # HistoricalFinanceService orqali ma'lumotlarni olish (snapshot yoki dinamik)
     salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, selected_year, selected_month, center)
 
+    # Support teacher daromadini ham qo'shamiz
+    from education.services.support_teacher import (
+        is_support_enabled, list_support_user_ids, calculate_support_salary,
+    )
+    support_salary_data = None
+    support_salary_total = 0
+    is_support_member = (
+        is_support_enabled(center)
+        and teacher.id in list_support_user_ids(center=center)
+    )
+    if is_support_member:
+        support_salary_data = calculate_support_salary(teacher, selected_year, selected_month, center)
+        support_salary_total = support_salary_data.get("salary", 0)
+        # salary_data ga support detaillarni qo'shamiz (template uchun)
+        combined_salary = salary_data.get("salary", 0) + support_salary_total
+        salary_data = dict(salary_data)
+        salary_data["salary"] = combined_salary
+        salary_data["support_details"] = support_salary_data.get("details", [])
+        salary_data["support_salary"] = support_salary_total
+
     # Get all 12 months for the yearly chart efficiently
     monthly_income = HistoricalFinanceService.get_yearly_teacher_salary(teacher, selected_year, center)
     total_year_income = sum(monthly_income)
@@ -9346,6 +9381,8 @@ def teacher_income_dashboard(request):
         'months_dict': months_dict,
         'is_locked': salary_data.get('is_locked', False),
         'is_admin': is_admin,
+        'is_support_member': is_support_member,
+        'support_salary_total': support_salary_total,
         # Prognoz
         'current_expected': current_expected,
         'next_expected': next_expected,
@@ -9513,7 +9550,9 @@ def expense_create(request):
 def _teacher_or_management_can_access_group(user, group: Group):
     if user.is_superuser or getattr(user, "role", None) in ("director", "manager"):
         return True
-    return getattr(user, "role", None) == "teacher" and group.oqituvchi_id == user.id
+    if getattr(user, "role", None) == "teacher":
+        return group.oqituvchi_id == user.id or group.support_teacher_id == user.id
+    return False
 
 
 def _decode_exam_session_note(raw_text: str) -> dict:
