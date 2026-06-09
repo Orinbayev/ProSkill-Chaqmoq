@@ -275,7 +275,7 @@ def _student_enrollment_catalog(enrollments: list[Enrollment]) -> dict:
                 "stored_lesson_pattern": getattr(enrollment, "lesson_pattern", Enrollment.LESSON_PATTERN_GROUP),
                 "resolved_lesson_pattern": enrollment_lesson_pattern(enrollment),
                 "monthly_lessons": int(getattr(enrollment, "monthly_lessons", 0) or getattr(enrollment.group, "oy_dars_soni", 0) or 12),
-                "course_price": int(getattr(enrollment, "kurs_narhi", 0) or getattr(enrollment.group, "kurs_narxi", 0) or 0),
+                "course_price": int(getattr(enrollment, "kurs_narhi", 0)),
                 "teacher_percent": int(getattr(enrollment, "oqituvchi_foiz", 0) or getattr(enrollment.group, "oqituvchi_foiz", 0) or 0),
                 "student_payable_amount": getattr(enrollment, "student_payable_amount", None),
                 "remaining_lessons_override": getattr(enrollment, "remaining_lessons_override", None),
@@ -1981,12 +1981,33 @@ def enrollment_edit(request, enrollment_id):
         )
         billing_month = month_first_day(active_enrollment.joined_at or start_month)
         fee_field = tuition_month_fee_field()
+        # TuitionMonth fee: o'quvchidan real olinadigan summa (student_payable_amount hisobga olinadi).
+        # billing_preview["fee_amount"] full_course_amount asosida — individual chegirma bo'lsa
+        # effective narx bilan qayta hisoblaymiz.
+        _eff_price = int(effective_student_payable_amount(active_enrollment) or 0)
+        _full_price = int(full_course_amount(active_enrollment) or 0)
+        if _eff_price != _full_price:
+            _ml = int(
+                getattr(active_enrollment, "monthly_lessons", 0)
+                or getattr(selected_group, "oy_dars_soni", 0)
+                or 12
+            )
+            _eff_bd = tuition_amount_breakdown(
+                active_enrollment,
+                billing_lesson_count,
+                course_price=_eff_price,
+                monthly_lessons=_ml,
+                teacher_percent=int(getattr(active_enrollment, "oqituvchi_foiz", 0) or 0),
+            )
+            _tuition_fee = int(_eff_bd["fee_amount"])
+        else:
+            _tuition_fee = int(billing_preview["fee_amount"] or 0)
         tuition_month, _ = TuitionMonth.all_objects.update_or_create(
             enrollment=active_enrollment,
             month=billing_month,
             defaults={
                 "center": active_enrollment.center,
-                fee_field: int(billing_preview["fee_amount"] or 0),
+                fee_field: _tuition_fee,
             },
         )
         if tuition_month.is_deleted:
@@ -11393,7 +11414,7 @@ def student_monthly_breakdown(request, student_id):
         if not month_map[m_key]["price_per_lesson"] and tm.enrollment:
             enr = tm.enrollment
             ml = int(getattr(enr, "monthly_lessons", 0) or 0) or int(getattr(enr.group, "oy_dars_soni", 0) or 12)
-            kn = int(getattr(enr, "kurs_narhi", 0) or 0) or int(getattr(enr.group, "kurs_narxi", 0) or 0)
+            kn = int(getattr(enr, "kurs_narhi", 0))
             month_map[m_key]["monthly_lessons"] = ml
             month_map[m_key]["price_per_lesson"] = round(kn / ml) if ml > 0 else 0
 
