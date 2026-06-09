@@ -51,6 +51,7 @@ urlpatterns = [
     path("guruh/yaratish/it/", views.group_create, {"category": Group.IT}, name="group_create_it"),
 
     path("guruh/<int:pk>/tahrirlash/", views.group_edit, name="group_edit"),
+    path("guruh/<int:pk>/oy-qarzi-yozish/", views.group_generate_month_debt, name="group_generate_month_debt"),
     path("guruh/<int:pk>/o’chirish/", views.group_delete, name="group_delete"),
     path('guruhlar/hub/', views.groups_hub, name='groups_hub'),
 

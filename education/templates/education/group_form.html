@@ -372,6 +372,104 @@
   </form>
 </div><!-- /ngf-shell -->
 
+{% if group.pk %}
+{% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+<!-- ═══ XAVFLI AMALLAR — faqat director/manager ko'radi ═══ -->
+<div class="ngf-danger-zone" id="dangerZoneWrap" style="max-width:860px;margin:32px auto 0;padding:0 16px;">
+  <button type="button" class="ngf-dz-toggle" id="dangerZoneToggle"
+    onclick="document.getElementById('dangerZoneBody').classList.toggle('ngf-dz--open')"
+    aria-expanded="false">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span>Texnik amallar (kengaytirish)</span>
+    <i class="fa-solid fa-chevron-down ngf-dz-chevron"></i>
+  </button>
+
+  <div class="ngf-dz-body" id="dangerZoneBody">
+    <div class="ngf-dz-item">
+      <div class="ngf-dz-info">
+        <div class="ngf-dz-title">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          Joriy oy qarzi yozish
+        </div>
+        <div class="ngf-dz-desc">
+          Guruhdagi <strong>barcha aktiv o'quvchilar</strong> uchun joriy oy TuitionMonth
+          yozuvlarini yaratadi yoki yangilaydi.<br>
+          <span class="ngf-dz-warn">Faqat guruh oy o'rtasidan ochilgan va qarz yozilmagan bo'lsa ishlating!</span>
+        </div>
+      </div>
+      <form method="post" action="{% url 'education:group_generate_month_debt' pk=group.pk %}"
+            id="generateDebtForm"
+            onsubmit="return confirmGenerateDebt()">
+        {% csrf_token %}
+        <button type="submit" class="ngf-dz-btn">
+          <i class="fa-solid fa-pen-to-square"></i>
+          Oy qarzini yozish
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.ngf-dz-toggle {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 16px;
+  background: transparent;
+  border: 1px dashed rgba(239,68,68,0.25);
+  border-radius: 10px;
+  color: rgba(239,68,68,0.55);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .2s;
+}
+.ngf-dz-toggle:hover { border-color: rgba(239,68,68,0.5); color: rgba(239,68,68,0.8); }
+.ngf-dz-chevron { margin-left: auto; transition: transform .25s; }
+.ngf-dz-body { display: none; }
+.ngf-dz-body.ngf-dz--open { display: block; }
+.ngf-dz--open ~ .ngf-dz-toggle .ngf-dz-chevron,
+#dangerZoneBody.ngf-dz--open + .ngf-dz-toggle .ngf-dz-chevron { transform: rotate(180deg); }
+.ngf-dz-item {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  margin-top: 12px; padding: 18px 20px;
+  background: rgba(239,68,68,0.04);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: 12px;
+}
+.ngf-dz-title { font-size: 14px; font-weight: 600; color: #f87171; margin-bottom: 6px; }
+.ngf-dz-title i { margin-right: 6px; }
+.ngf-dz-desc { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+.ngf-dz-warn { display: inline-block; margin-top: 6px; font-size: 12px; color: #fbbf24; font-style: italic; }
+.ngf-dz-btn {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid rgba(239,68,68,0.4);
+  border-radius: 8px;
+  color: #f87171; font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+}
+.ngf-dz-btn:hover { background: rgba(239,68,68,0.1); border-color: #f87171; }
+html[data-role-theme="light"] .ngf-dz-toggle { color: rgba(185,28,28,0.6); border-color: rgba(239,68,68,0.2); }
+html[data-role-theme="light"] .ngf-dz-item { background: rgba(239,68,68,0.03); }
+html[data-role-theme="light"] .ngf-dz-title { color: #dc2626; }
+html[data-role-theme="light"] .ngf-dz-desc { color: #64748b; }
+html[data-role-theme="light"] .ngf-dz-btn { color: #dc2626; border-color: rgba(239,68,68,0.35); }
+</style>
+
+<script>
+function confirmGenerateDebt() {
+  return confirm(
+    '⚠️ Diqqat!\n\n' +
+    '"{{ group.nom }}" guruhi uchun JORIY OY qarzlarini yozmoqchimisiz?\n\n' +
+    'Barcha aktiv o\'quvchilar uchun TuitionMonth yaratiladi.\n' +
+    'Agar yozuvlar allaqachon mavjud bo\'lsa — yangilanadi.\n\n' +
+    'Davom etasizmi?'
+  );
+}
+</script>
+{% endif %}
+{% endif %}
+
 <style>
 /* ══ SHELL ══ */
 .ngf-shell {

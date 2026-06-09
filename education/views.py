@@ -8755,7 +8755,66 @@ def group_edit(request, pk):
         "form": form,
         "title": "Guruhni tahrirlash",
         "description": "Guruh ma'lumotlarini tahrirlash",
+        "group": g,
     })
+
+
+@login_required
+@require_POST
+def group_generate_month_debt(request, pk):
+    """Guruhning barcha aktiv o'quvchilari uchun joriy oy TuitionMonth ni yaratadi.
+
+    Faqat director/manager/superuser ishlatishi mumkin.
+    Guruh oy o'rtasidan ochilgan va o'quvchilarda qarz yozilmagan holatlar uchun.
+    """
+    if not (request.user.is_superuser or getattr(request.user, "role", None) in ("director", "manager")):
+        messages.error(request, "Ruxsat yo'q.")
+        return redirect("education:group_edit", pk=pk)
+
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
+
+    today = timezone.localdate()
+    cur_month = month_first_day(today)
+
+    enrollments = (
+        Enrollment.objects
+        .filter(group=g, is_active=True, is_deleted=False)
+        .select_related("student")
+    )
+    created_count = 0
+    updated_count = 0
+    for enr in enrollments:
+        try:
+            fee_field = tuition_month_fee_field()
+            existing = TuitionMonth.all_objects.filter(
+                enrollment=enr, month=cur_month, is_deleted=False
+            ).first()
+            old_fee = int(getattr(existing, fee_field, 0) or 0) if existing else None
+            tm = ensure_tuition_month(enr, cur_month)
+            new_fee = int(getattr(tm, fee_field, 0) or 0)
+            if old_fee is None:
+                created_count += 1
+            elif old_fee != new_fee:
+                updated_count += 1
+        except Exception:
+            pass
+
+    month_label = today.strftime("%Y-%B").replace(
+        today.strftime("%B"),
+        ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+         "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"][today.month - 1]
+    )
+    messages.success(
+        request,
+        f"✅ {g.nom} guruhi uchun {month_label} oyi qarzlari yozildi: "
+        f"{created_count} yangi, {updated_count} yangilangan."
+    )
+    return redirect("education:group_edit", pk=pk)
 
 
 
