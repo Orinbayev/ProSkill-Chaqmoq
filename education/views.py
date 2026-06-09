@@ -9303,34 +9303,39 @@ def teacher_income_dashboard(request):
     # HistoricalFinanceService orqali ma'lumotlarni olish (snapshot yoki dinamik)
     salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, selected_year, selected_month, center)
 
-    # Support teacher daromadini ham qo'shamiz
+    # Support teacher daromadini ham qo'shamiz (feature flag tekshiruvisiz —
+    # biriktirilgan bo'lsa har doim ko'rsatish kerak)
     from education.services.support_teacher import (
-        is_support_enabled, list_support_user_ids, calculate_support_salary,
+        list_support_user_ids, calculate_support_salary, get_yearly_support_salary,
     )
     support_salary_data = None
     support_salary_total = 0
-    is_support_member = (
-        is_support_enabled(center)
-        and teacher.id in list_support_user_ids(center=center)
-    )
+    is_support_member = teacher.id in list_support_user_ids(center=center)
     if is_support_member:
         support_salary_data = calculate_support_salary(teacher, selected_year, selected_month, center)
         support_salary_total = support_salary_data.get("salary", 0)
-        # salary_data ga support detaillarni qo'shamiz (template uchun)
-        combined_salary = salary_data.get("salary", 0) + support_salary_total
         salary_data = dict(salary_data)
-        salary_data["salary"] = combined_salary
+        salary_data["salary"] = salary_data.get("salary", 0) + support_salary_total
         salary_data["support_details"] = support_salary_data.get("details", [])
         salary_data["support_salary"] = support_salary_total
 
     # Get all 12 months for the yearly chart efficiently
     monthly_income = HistoricalFinanceService.get_yearly_teacher_salary(teacher, selected_year, center)
+    if is_support_member:
+        # Support yillik daromadini asosiy daromad bilan qo'shamiz
+        support_monthly = get_yearly_support_salary(teacher, selected_year, center)
+        monthly_income = [m + s for m, s in zip(monthly_income, support_monthly)]
     total_year_income = sum(monthly_income)
 
     # Get daily breakdown for the selected month (now returned by the service)
     _, num_days = calendar.monthrange(selected_year, selected_month)
-    daily_income_long = salary_data.get('daily_breakdown', [0] * 31)
-    daily_income = daily_income_long[:num_days]
+    main_daily = salary_data.get('daily_breakdown', [0] * 31)
+    if is_support_member and support_salary_data:
+        support_daily = support_salary_data.get('daily_breakdown', [0] * 31)
+        combined_daily = [a + b for a, b in zip(main_daily, support_daily)]
+    else:
+        combined_daily = main_daily
+    daily_income = combined_daily[:num_days]
 
     # Yearly labels for JS
     monthly_labels = ["Yan", "Fev", "Mar", "Apr", "May", "Iyun", "Iyul", "Avg", "Sen", "Okt", "Noy", "Dek"]

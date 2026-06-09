@@ -64,10 +64,7 @@ def calculate_support_salary(user, year, month, center=None):
 
     Logika asosiy o'qituvchi salary'siga o'xshash:
     har student davomati uchun `support_foiz` foiziga to'g'ri keladigan summa.
-    Markaz foydasiga ta'sir qilish (alohida) — bu yerda hisoblanmaydi
-    chunki hozirgi tizimda asosiy o'qituvchi uchun `center_profit` allaqachon
-    `turnover - teacher_salary` deb hisoblangan; support summasi shu
-    `center_profit`'dan ayriladi (markaz hisobotida quyidagicha ko'rsatiladi).
+    `daily_breakdown` — kunlik daromad grafigi uchun (31 elementli list).
     """
     groups = get_support_groups_for_user(user, center=center)
     if not groups:
@@ -75,6 +72,7 @@ def calculate_support_salary(user, year, month, center=None):
             "salary": 0,
             "attendance_count": 0,
             "details": [],
+            "daily_breakdown": [0] * 31,
         }
 
     from education.services.historical_finance_service import HistoricalFinanceService
@@ -87,6 +85,7 @@ def calculate_support_salary(user, year, month, center=None):
     total_salary = 0
     total_lessons = 0
     details = []
+    daily_breakdown = [0] * 31
 
     for group in groups:
         support_foiz = int(getattr(group, "support_foiz", 0) or 0)
@@ -127,6 +126,16 @@ def calculate_support_salary(user, year, month, center=None):
 
             group_salary += financials["teacher_salary"]
             group_lessons += financials["billable_lessons"]
+
+            # Kunlik daromadni hisoblash (grafik uchun)
+            if financials["billable_lessons"] > 0 and days:
+                base = financials["teacher_salary"] // financials["billable_lessons"]
+                extra = financials["teacher_salary"] - (base * financials["billable_lessons"])
+                for idx, day in enumerate(sorted(days)):
+                    day_idx = day - 1
+                    if 0 <= day_idx < 31:
+                        daily_breakdown[day_idx] += base + (1 if idx < extra else 0)
+
             try:
                 student_name = (
                     enrollment.student.get_full_name() or enrollment.student.email
@@ -161,7 +170,89 @@ def calculate_support_salary(user, year, month, center=None):
         "salary": int(total_salary),
         "attendance_count": int(total_lessons),
         "details": details,
+        "daily_breakdown": daily_breakdown,
     }
+
+
+def get_yearly_support_salary(user, year, center=None) -> list:
+    """Support teacher uchun yillik (12 oy) daromad ro'yxatini qaytaradi.
+
+    Qaytaradi: [jan, feb, ..., dec] — har oylik support daromad (so'm).
+    """
+    groups = get_support_groups_for_user(user, center=center)
+    if not groups:
+        return [0] * 12
+
+    from education.services.historical_finance_service import HistoricalFinanceService
+    from django.db.models import Q
+
+    from education.models import Attendance, StudentGroupHistory
+
+    group_ids = [g.id for g in groups]
+    history_lookup = HistoricalFinanceService._history_lookup(group_ids)
+
+    # Bir so'rovda barcha yillik davomatni olamiz
+    rows = (
+        Attendance.objects.filter(
+            group_id__in=group_ids,
+            date__year=year,
+        )
+        .filter(HistoricalFinanceService._billable_attendance_filter())
+        .values("group_id", "student_id", "date__month", "date__day")
+    )
+
+    # group_id -> month -> student_id -> [days]
+    yearly_att: dict = {}
+    for row in rows:
+        (
+            yearly_att
+            .setdefault(row["group_id"], {})
+            .setdefault(row["date__month"], {})
+            .setdefault(row["student_id"], [])
+            .append(row["date__day"])
+        )
+
+    enr_lookup = {}
+    for group in groups:
+        enr_lookup[group.id] = {
+            e.student_id: e for e in getattr(group, "all_enrollments", [])
+        }
+
+    monthly_totals = [0] * 12
+
+    for month_num in range(1, 13):
+        month_start, month_end = HistoricalFinanceService._month_bounds(year, month_num)
+        month_total = 0
+
+        for group in groups:
+            support_foiz = int(getattr(group, "support_foiz", 0) or 0)
+            if support_foiz <= 0:
+                continue
+            enr_map = enr_lookup.get(group.id, {})
+            for student_id, days in yearly_att.get(group.id, {}).get(month_num, {}).items():
+                if not days:
+                    continue
+                enrollment = enr_map.get(student_id)
+                if enrollment is None:
+                    continue
+                membership_hit = HistoricalFinanceService._student_was_in_group(
+                    history_lookup, group.id, student_id, month_start, month_end
+                )
+                if membership_hit is False:
+                    continue
+                if membership_hit is None:
+                    created_at = getattr(enrollment, "created_at", None)
+                    created_date = created_at.date() if created_at else None
+                    if created_date and created_date > month_end:
+                        continue
+                financials = teacher_monthly_financials(
+                    enrollment, len(days), teacher_percent=support_foiz
+                )
+                month_total += financials["teacher_salary"]
+
+        monthly_totals[month_num - 1] = int(month_total)
+
+    return monthly_totals
 
 
 def list_support_user_ids(center=None) -> set:
