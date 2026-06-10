@@ -2956,14 +2956,25 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
-    # Joriy oy TuitionMonth feesini lazy yangilash: group.oy_dars_soni o'zgargan
-    # bo'lsa, DB dagi stale fee to'g'rilanadi (faqat faol, yopilmagan oylar uchun).
+    # Lazy tuzatish: GroupSchedule bo'lsa lesson_pattern "group" bo'lishi shart,
+    # aks holda "odd"/"even" GroupSchedule ni bypass qilib 12-13 ta dars beradi.
+    # Keyin TuitionMonth feesini ham yangilaymiz (stale oy_dars_soni → to'g'ri fee).
     _cur_month_for_recalc = today.replace(day=1)
     from education.services.tuition import ensure_tuition_month as _etm
+    from education.models import GroupSchedule as _GS
+    _groups_with_schedule = set(
+        _GS.objects.filter(group_id__in={e.group_id for e in active_list if e.group_id})
+        .values_list("group_id", flat=True)
+        .distinct()
+    )
     for e in active_list:
         if not getattr(e, "is_active", False):
             continue
         try:
+            # lesson_pattern stale bo'lsa tuzat
+            if e.group_id in _groups_with_schedule and e.lesson_pattern in ("odd", "even", "daily"):
+                e.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
+                e.save(update_fields=["lesson_pattern"])
             _etm(e, _cur_month_for_recalc)
         except Exception:
             pass
@@ -8768,19 +8779,25 @@ def group_edit(request, pk):
                     ).update(kurs_narxi=updated_group.kurs_narxi)
                     sync_tuition_fee(enr, new_fee=updated_group.kurs_narxi)
 
-        # Barcha faol enrollmentlarning monthly_lessons ni guruh bilan sinxronlaymiz
-        # va joriy oy TuitionMonth feesini qayta hisoblaymiz (oy_dars_soni o'zgargan
-        # bo'lsa yoki eski stale qiymatlar DB da qolgan bo'lsa ham to'g'rilanadi).
+        # Barcha faol enrollmentlarning monthly_lessons va lesson_pattern ni guruh bilan sinxronlaymiz
+        # va joriy oy TuitionMonth feesini qayta hisoblaymiz.
         from education.services.tuition import ensure_tuition_month
+        from education.models import GroupSchedule
         today = timezone.localdate()
         cur_month = today.replace(day=1)
+        has_group_schedule = GroupSchedule.objects.filter(group=updated_group).exists()
         active_enrollments = list(
             Enrollment.objects.filter(group=updated_group, is_active=True)
             .select_related("group", "student")
         )
         for enr in active_enrollments:
+            update_fields = ["monthly_lessons"]
             enr.monthly_lessons = new_oy_dars_soni
-            enr.save(update_fields=["monthly_lessons"])
+            # GroupSchedule bor bo'lsa, lesson_pattern "group" bo'lishi shart
+            if has_group_schedule and enr.lesson_pattern in ("odd", "even", "daily", None, ""):
+                enr.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
+                update_fields.append("lesson_pattern")
+            enr.save(update_fields=update_fields)
             try:
                 ensure_tuition_month(enr, cur_month)
             except Exception:

@@ -339,11 +339,14 @@ class ProratedTuitionTests(TestCase):
         enr.monthly_lessons = LESSONS_PER_MONTH
         enr.save(update_fields=["lesson_pattern", "joined_at", "monthly_lessons"])
 
-        expected_lessons = pattern_lessons_between(date(2026, 4, 1), date(2026, 4, 30), "odd")
+        raw_lessons = pattern_lessons_between(date(2026, 4, 1), date(2026, 4, 30), "odd")
+        # April 2026 odd = 13, lekin oy_dars_soni=12 → cap → 12
+        # Fee bir xil: min(13,12)/12 × price = 12/12 × 550,000 = 550,000
+        capped_lessons = min(raw_lessons, LESSONS_PER_MONTH)
         preview = tuition_month_preview(enr, self.MONTH)
 
-        self.assertEqual(tuition_month_lesson_count(enr, self.MONTH), expected_lessons)
-        self.assertEqual(preview["lesson_count"], expected_lessons)
+        self.assertEqual(tuition_month_lesson_count(enr, self.MONTH), capped_lessons)
+        self.assertEqual(preview["lesson_count"], capped_lessons)
         self.assertEqual(preview["lesson_pattern_label"], "Toq kunlari")
         self.assertEqual(preview["fee_amount"], BASE_PRICE)
 

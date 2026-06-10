@@ -154,14 +154,15 @@ class MidMonthProratedTest(TestCase):
     # ─── 3. OY BOSHIDA QOSHILGANDA LESSON COUNT ─────────────────────────────
 
     def test_lesson_count_june1_join(self):
-        """Oy birinchisida qo'shilsa — barcha darslar hisoblanadi."""
+        """Oy birinchisida qo'shilsa — darslar soni oy_dars_soni ga cap qilinadi."""
         s = self._make_student("s4@mid.test")
         enr = self._enroll(s, date(2026, 6, 1))
 
         count = tuition_month_lesson_count(enr, MONTH)
-        # Du: 1,8,15,22,29 + Ch: 3,10,17,24 = 9
-        self.assertEqual(count, 9,
-            f"June 1 dan qoshilsа lesson count noto'g'ri: {count} (kutilgan 9)")
+        # Du/Ch June 2026: 9 ta real kun, lekin oy_dars_soni=8 → cap → 8
+        # Fee bir xil: 8/8 × 800,000 = 800,000 (to'liq narx)
+        self.assertEqual(count, 8,
+            f"June 1 dan qoshilsа lesson count noto'g'ri: {count} (kutilgan 8 = oy_dars_soni)")
 
     # ─── 4. ENSURE_TUITION_MONTH — DB DA TO'G'RI YOZILADI ──────────────────
 

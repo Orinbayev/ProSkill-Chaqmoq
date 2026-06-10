@@ -29,6 +29,11 @@ class EnrollmentService:
         history_start_date = schedule_meta["start_date"]
         resolved_monthly_lessons = int(monthly_lessons or getattr(group, "oy_dars_soni", 0) or 12)
         pattern = schedule_meta["lesson_pattern"]
+        # Agar guruhda GroupSchedule bo'lsa, har doim "group" pattern ishlatiladi.
+        # "odd"/"even" auto-detect GroupSchedule ni bypass qilib noto'g'ri hisob beradi.
+        from education.models import GroupSchedule as _GS
+        if pattern not in ("group",) and _GS.objects.filter(group=group).exists():
+            pattern = Enrollment.LESSON_PATTERN_GROUP
         
         # Use all_objects to check if a soft-deleted enrollment exists (Fix for IntegrityError)
         enrollment = Enrollment.all_objects.filter(student=student, group=group).first()

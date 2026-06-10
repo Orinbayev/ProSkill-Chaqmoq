@@ -631,17 +631,34 @@ def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -
     if start > end:
         return 0
 
-    # enrollment_lesson_pattern() always resolves "group" to auto odd/even,
-    # so we must check the stored pattern directly first.
     stored = normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
+    group = getattr(enrollment, "group", None)
+
+    # "odd"/"even"/"daily" — aniq belgilangan pattern. Lekin guruhda oy_dars_soni
+    # bo'lsa, bu pattern GroupSchedule ni inobatga olmaydi. GroupSchedule ustuvor.
     if stored in {LESSON_PATTERN_ODD, LESSON_PATTERN_EVEN, LESSON_PATTERN_DAILY}:
+        if group:
+            scheduled = scheduled_lessons_between(group, start, end)
+            if scheduled > 0:
+                return scheduled
         return pattern_lessons_between(start, end, stored)
 
-    group = getattr(enrollment, "group", None)
+    # "group" yoki bo'sh — GroupSchedule dan o'qish
     if group:
         scheduled = scheduled_lessons_between(group, start, end)
         if scheduled > 0:
             return scheduled
+
+        # GroupSchedule yo'q, lekin oy_dars_soni belgilangan →
+        # kalendar proporsiyas orqali hisoblash (to'g'ri prorating)
+        oy_dars_soni = int(getattr(group, "oy_dars_soni", 0) or 0)
+        if oy_dars_soni > 0:
+            # end — har doim oy oxiri (month_last_day)
+            month_start_d = end.replace(day=1)
+            total_days = (end - month_start_d).days + 1
+            period_days = (end - start).days + 1
+            from math import ceil as _ceil
+            return min(_ceil(oy_dars_soni * period_days / total_days), oy_dars_soni)
 
     auto_pattern = enrollment_lesson_pattern(enrollment)
     return pattern_lessons_between(start, end, auto_pattern)
@@ -907,7 +924,12 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
     if start_date > month_end:
         return 0
     period_start = max(start_date, month_start)
-    return expected_lessons_in_period(enrollment, period_start, month_end)
+    count = expected_lessons_in_period(enrollment, period_start, month_end)
+    # Darslar soni oy_dars_soni (standart) dan oshmasin.
+    # Masalan: Du/Ch jadvalda iyunda 9 ta kun, lekin oy_dars_soni=8 → 8 ta.
+    # Bu "15 ta dars" kabi ko'rsatilmaydi, foydalanuvchi belgilagan son ishlaydi.
+    standard = _monthly_lessons_count(enrollment)
+    return min(count, standard)
 
 
 def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
@@ -921,7 +943,7 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
     month_end = month_last_day(month_start)
     period_start = max(start_date, month_start)
     lesson_dates = expected_lesson_dates_in_period(enrollment, period_start, month_end)
-    lesson_count = len(lesson_dates)
+    lesson_count = min(len(lesson_dates), monthly_lessons)
     teacher_percent = int(getattr(enrollment, "oqituvchi_foiz", 0) or 0)
     fee_billing = calculate_student_month_billing(
         effective_amount,
