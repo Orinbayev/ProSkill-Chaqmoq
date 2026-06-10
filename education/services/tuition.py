@@ -632,18 +632,13 @@ def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -
         return 0
 
     stored = normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
-    group = getattr(enrollment, "group", None)
 
-    # "odd"/"even"/"daily" — aniq belgilangan pattern. Lekin guruhda oy_dars_soni
-    # bo'lsa, bu pattern GroupSchedule ni inobatga olmaydi. GroupSchedule ustuvor.
+    # "odd"/"even"/"daily" — aniq belgilangan pattern, to'g'ridan-to'g'ri ishlatiladi
     if stored in {LESSON_PATTERN_ODD, LESSON_PATTERN_EVEN, LESSON_PATTERN_DAILY}:
-        if group:
-            scheduled = scheduled_lessons_between(group, start, end)
-            if scheduled > 0:
-                return scheduled
         return pattern_lessons_between(start, end, stored)
 
-    # "group" yoki bo'sh — GroupSchedule dan o'qish
+    # "group" yoki bo'sh — avval GroupSchedule, bo'lmasa oy_dars_soni proporsiyas
+    group = getattr(enrollment, "group", None)
     if group:
         scheduled = scheduled_lessons_between(group, start, end)
         if scheduled > 0:

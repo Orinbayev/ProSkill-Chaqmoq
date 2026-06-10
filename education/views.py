@@ -2961,18 +2961,14 @@ def qarzdorlar_home(request):
     # Keyin TuitionMonth feesini ham yangilaymiz (stale oy_dars_soni → to'g'ri fee).
     _cur_month_for_recalc = today.replace(day=1)
     from education.services.tuition import ensure_tuition_month as _etm
-    from education.models import GroupSchedule as _GS
-    _groups_with_schedule = set(
-        _GS.objects.filter(group_id__in={e.group_id for e in active_list if e.group_id})
-        .values_list("group_id", flat=True)
-        .distinct()
-    )
     for e in active_list:
         if not getattr(e, "is_active", False):
             continue
         try:
-            # lesson_pattern stale bo'lsa tuzat
-            if e.group_id in _groups_with_schedule and e.lesson_pattern in ("odd", "even", "daily"):
+            # lesson_pattern stale bo'lsa tuzat:
+            # guruhda oy_dars_soni belgilangan → "group" pattern (calendar proportion)
+            _oy_ds = int(getattr(getattr(e, "group", None), "oy_dars_soni", 0) or 0)
+            if _oy_ds > 0 and e.lesson_pattern in ("odd", "even", "daily"):
                 e.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
                 e.save(update_fields=["lesson_pattern"])
             _etm(e, _cur_month_for_recalc)
@@ -8785,7 +8781,6 @@ def group_edit(request, pk):
         from education.models import GroupSchedule
         today = timezone.localdate()
         cur_month = today.replace(day=1)
-        has_group_schedule = GroupSchedule.objects.filter(group=updated_group).exists()
         active_enrollments = list(
             Enrollment.objects.filter(group=updated_group, is_active=True)
             .select_related("group", "student")
@@ -8793,8 +8788,9 @@ def group_edit(request, pk):
         for enr in active_enrollments:
             update_fields = ["monthly_lessons"]
             enr.monthly_lessons = new_oy_dars_soni
-            # GroupSchedule bor bo'lsa, lesson_pattern "group" bo'lishi shart
-            if has_group_schedule and enr.lesson_pattern in ("odd", "even", "daily", None, ""):
+            # oy_dars_soni belgilangan bo'lsa, lesson_pattern "group" bo'lishi shart
+            # (GroupSchedule bo'lmasa ham — calendar proportion ishlatiladi)
+            if new_oy_dars_soni > 0 and enr.lesson_pattern in ("odd", "even", "daily", None, ""):
                 enr.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
                 update_fields.append("lesson_pattern")
             enr.save(update_fields=update_fields)

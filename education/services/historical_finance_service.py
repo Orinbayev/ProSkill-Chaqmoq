@@ -54,7 +54,7 @@ class HistoricalFinanceService:
             groups.prefetch_related(
                 Prefetch(
                     "enrollments",
-                    queryset=Enrollment.all_objects.select_related("student"),
+                    queryset=Enrollment.all_objects.select_related("student", "group"),
                     to_attr="all_enrollments",
                 )
             )
@@ -137,10 +137,17 @@ class HistoricalFinanceService:
 
         enr_lookup = {}
         for group in groups:
-            enr_lookup[group.id] = {
-                enrollment.student_id: enrollment
-                for enrollment in getattr(group, "all_enrollments", [])
-            }
+            # Bir talabaning guruhda bir nechta enrollmenti bo'lishi mumkin
+            # (masalan, o'chirilgan + faol). Faol enrollment USTUVOR bo'lishi kerak.
+            student_enr: dict = {}
+            for enr in getattr(group, "all_enrollments", []):
+                sid = enr.student_id
+                existing = student_enr.get(sid)
+                if existing is None:
+                    student_enr[sid] = enr
+                elif getattr(enr, "is_active", False) and not getattr(existing, "is_active", False):
+                    student_enr[sid] = enr
+            enr_lookup[group.id] = student_enr
 
         total_salary = 0
         total_turnover = 0
