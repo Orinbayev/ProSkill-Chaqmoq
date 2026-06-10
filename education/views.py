@@ -8716,11 +8716,22 @@ def group_edit(request, pk):
 
     form = GroupForm(request.POST or None, instance=g, center=center)
 
+    if request.method == "POST" and not form.is_valid():
+        print(f"[GROUP_EDIT DEBUG] pk={g.pk} FORM INVALID: {dict(form.errors)}", flush=True)
+
     if request.method == "POST" and form.is_valid():
         old_oy_dars_soni = g.oy_dars_soni or 12
         updated_group = form.save(commit=False)
         schedule_mode = form.cleaned_data.get("schedule_mode", "")
         custom_days = form.cleaned_data.get("custom_days") or []
+
+        print(
+            f"[GROUP_EDIT DEBUG] pk={g.pk} | POST oy_dars_soni={request.POST.get('oy_dars_soni')!r}"
+            f" | cleaned={form.cleaned_data.get('oy_dars_soni')!r}"
+            f" | schedule_mode={schedule_mode!r} | custom_days={custom_days!r}"
+            f" | obj.oy_dars_soni={updated_group.oy_dars_soni!r}",
+            flush=True,
+        )
 
         if schedule_mode in {"odd", "even", "custom"}:
             day_count = len(custom_days) if schedule_mode == "custom" else 3

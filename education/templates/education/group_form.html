@@ -1310,7 +1310,10 @@ html[data-role-theme="light"] .ngf-errors {
   const saveBtn = document.getElementById("save-btn");
   const groupForm = document.getElementById("group-form");
   if (saveBtn && groupForm) {
-    groupForm.addEventListener("submit", () => {
+    groupForm.addEventListener("submit", (e) => {
+      if (oyDarsSoniInput) {
+        console.log("SUBMIT: oy_dars_soni =", oyDarsSoniInput.value, "| manual =", oyDarsSoniManual);
+      }
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saqlanmoqda...</span>';
     });
