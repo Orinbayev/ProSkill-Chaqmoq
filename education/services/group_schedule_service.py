@@ -151,9 +151,11 @@ def sync_simple_group_schedule(
     if not weekdays:
         return []
 
-    if not getattr(group, "pk", None) or not getattr(group, "center_id", None) or not start_time:
+    if not getattr(group, "pk", None) or not getattr(group, "center_id", None):
         return []
 
+    from datetime import time as _time
+    effective_start = start_time or _time(9, 0)
     clean_room = (room or "").strip()
 
     GroupSchedule.objects.filter(group=group, center=group.center).delete()
@@ -163,7 +165,7 @@ def sync_simple_group_schedule(
                 center=group.center,
                 group=group,
                 weekday=weekday,
-                start_time=start_time,
+                start_time=effective_start,
                 end_time=end_time,
                 room=clean_room,
             )

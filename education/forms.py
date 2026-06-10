@@ -240,8 +240,6 @@ class GroupForm(forms.ModelForm):
                 custom_days = []
 
         has_schedule = schedule_mode in {"odd", "even"} or (schedule_mode == "custom" and custom_days)
-        if has_schedule and not schedule_start_time:
-            self.add_error("schedule_start_time", "Boshlanish vaqti majburiy.")
         if schedule_end_time and schedule_start_time and schedule_end_time <= schedule_start_time:
             self.add_error("schedule_end_time", "Tugash vaqti boshlanishdan keyin bo'lishi kerak.")
 
