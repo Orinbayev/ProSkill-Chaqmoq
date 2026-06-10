@@ -6828,7 +6828,8 @@ def group_create_by_category(request, category_id):
             group.center = center
             if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
                 group.lessons_per_week = 3
-                group.oy_dars_soni = 12
+                if not group.oy_dars_soni:
+                    group.oy_dars_soni = 12
 
             # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
             if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
@@ -8965,7 +8966,8 @@ def group_add(request):
             group.center = center
         if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
             group.lessons_per_week = 3
-            group.oy_dars_soni = 12
+            if not group.oy_dars_soni:
+                group.oy_dars_soni = 12
 
         # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
         if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:

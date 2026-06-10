@@ -1131,6 +1131,11 @@ html[data-role-theme="light"] .ngf-errors {
   const scheduleStartTimeInput = document.getElementById("{{ form.schedule_start_time.id_for_label }}");
   const scheduleEndTimeInput = document.getElementById("{{ form.schedule_end_time.id_for_label }}");
   const oyDarsSoniInput = document.getElementById("{{ form.oy_dars_soni.id_for_label }}");
+  // Track whether user has manually edited oy_dars_soni — if yes, never auto-override.
+  let oyDarsSoniManual = false;
+  if (oyDarsSoniInput) {
+    oyDarsSoniInput.addEventListener("input", () => { oyDarsSoniManual = true; });
+  }
   const sumStart = document.getElementById("sum-start");
   const sumDur = document.getElementById("sum-dur");
   const sumEnd = document.getElementById("sum-end");
@@ -1181,13 +1186,11 @@ html[data-role-theme="light"] .ngf-errors {
 
     if (scheduleBlock) scheduleBlock.classList.toggle("show", days.length > 0);
 
-    // Auto-calc oy_dars_soni = days × 4 (only if field is empty or was auto-set)
-    if (oyDarsSoniInput && days.length > 0) {
+    // Auto-calc oy_dars_soni = days × 4 ONLY when field is truly empty and user hasn't manually typed.
+    if (oyDarsSoniInput && days.length > 0 && !oyDarsSoniManual) {
       const current = parseInt(oyDarsSoniInput.value || "0", 10);
-      const suggested = days.length * 4;
-      const autoValues = [4, 8, 12, 16, 20, 24, 28];
-      if (!current || autoValues.includes(current)) {
-        oyDarsSoniInput.value = suggested;
+      if (!current) {
+        oyDarsSoniInput.value = days.length * 4;
       }
     }
 
