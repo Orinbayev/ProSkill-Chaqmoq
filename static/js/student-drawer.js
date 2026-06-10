@@ -379,7 +379,240 @@
     };
   }
 
+  // ── Yangi UI: #bqGrpOpenBtn modali (student_drawer_form.html) ──────────────
+  function initGroupModal(scope) {
+    var form = scope.querySelector('[data-student-drawer-form]');
+    var selGrp = scope.querySelector('#id_group');
+    var openBtn = scope.querySelector('#bqGrpOpenBtn');
+    var btnText = scope.querySelector('#bqGrpBtnText');
+    var chipsContainer = scope.querySelector('#bqGrpChips');
+    var assignmentsField = scope.querySelector('#id_group_assignments');
+    if (!openBtn || !selGrp) return; // Bu UI mavjud emas
+
+    var MODAL_ID = 'bqGModal_sd';
+    var existing = document.getElementById(MODAL_ID);
+    if (existing) existing.remove();
+
+    var priceTpl = form ? (form.dataset.groupPriceTemplate || '') : '';
+    var opts = Array.from(selGrp.options).filter(function(o){ return o.value; })
+      .map(function(o){ return {value: o.value, label: o.text.trim()}; });
+
+    var groups = [];
+    var pickedNow = null;
+
+    // Modal DOM
+    var ov = document.createElement('div');
+    ov.id = MODAL_ID;
+    ov.className = 'bq-gm-ov';
+    ov.hidden = true;
+    ov.innerHTML =
+      '<div class="bq-gm">' +
+        '<div class="bq-gm__head">' +
+          '<div class="bq-gm__head-ico"><i class="fa-solid fa-layer-group"></i></div>' +
+          '<div class="bq-gm__head-title">Guruh qo\'shish</div>' +
+          '<button type="button" class="bq-gm__close" id="bqGMClose_sd"><i class="fa-solid fa-xmark"></i></button>' +
+        '</div>' +
+        '<div class="bq-gm__added" id="bqGMAdded_sd" hidden>' +
+          '<div class="bq-gm__added-list" id="bqGMAddedList_sd"></div>' +
+        '</div>' +
+        '<div class="bq-gm__search-wrap">' +
+          '<i class="fa-solid fa-magnifying-glass bq-gm__search-ico"></i>' +
+          '<input type="text" class="bq-gm__search-inp" id="bqGMSearch_sd" placeholder="Guruh nomini yozing..." autocomplete="off">' +
+        '</div>' +
+        '<div class="bq-gm__list-wrap"><div class="bq-gm__list" id="bqGMList_sd"></div></div>' +
+        '<div class="bq-gm__cascade" id="bqGMCascade_sd" hidden>' +
+          '<div class="bq-gm__sel-badge">' +
+            '<i class="fa-solid fa-circle-check"></i>' +
+            '<span id="bqGMSelName_sd"></span>' +
+            '<button type="button" class="bq-gm__desel-btn" id="bqGMDesel_sd"><i class="fa-solid fa-xmark"></i></button>' +
+          '</div>' +
+          '<div class="bq-gm__cascade-row">' +
+            '<div class="bq-gm__cascade-field">' +
+              '<label>Kurs narxi <span class="bq-gm__cascade-opt">(so\'m)</span></label>' +
+              '<input type="number" id="bqGMPrice_sd" placeholder="0" min="0">' +
+            '</div>' +
+            '<div class="bq-gm__cascade-field">' +
+              '<label>Qo\'shilish sanasi</label>' +
+              '<input type="date" id="bqGMDate_sd">' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bq-gm__foot">' +
+          '<button type="button" class="bq-gm__btn-cancel" id="bqGMClose2_sd">Yopish</button>' +
+          '<button type="button" class="bq-gm__btn-confirm" id="bqGMConfirm_sd" disabled>' +
+            '<i class="fa-solid fa-plus"></i> Qo\'shish' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    var gmSearch  = document.getElementById('bqGMSearch_sd');
+    var gmList    = document.getElementById('bqGMList_sd');
+    var gmCascade = document.getElementById('bqGMCascade_sd');
+    var gmSelName = document.getElementById('bqGMSelName_sd');
+    var gmDesel   = document.getElementById('bqGMDesel_sd');
+    var gmPrice   = document.getElementById('bqGMPrice_sd');
+    var gmDate    = document.getElementById('bqGMDate_sd');
+    var gmClose   = document.getElementById('bqGMClose_sd');
+    var gmClose2  = document.getElementById('bqGMClose2_sd');
+    var gmConfirm = document.getElementById('bqGMConfirm_sd');
+    var gmAdded   = document.getElementById('bqGMAdded_sd');
+    var gmAddedList = document.getElementById('bqGMAddedList_sd');
+
+    function todayStr() {
+      var t = new Date();
+      return t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+    }
+    function fmtDate(s) {
+      if (!s) return '';
+      var d = new Date(s);
+      return d.toLocaleDateString('uz-UZ', {day:'numeric', month:'long'});
+    }
+    function fetchPrice(id, cb) {
+      if (!priceTpl) return cb('');
+      fetch(priceTpl.replace(/0\/?$/, id+'/'), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(function(r){ return r.ok ? r.json() : {}; })
+        .then(function(d){ cb(d.price||''); })
+        .catch(function(){ cb(''); });
+    }
+    function serialize() {
+      var payload = groups.map(function(g){
+        return {group_id: parseInt(g.value), start_date: g.date, course_price: g.price ? parseInt(g.price) : ''};
+      });
+      if (assignmentsField) assignmentsField.value = groups.length ? JSON.stringify(payload) : '';
+      if (btnText) btnText.textContent = groups.length ? 'Guruh qo\'shish ('+groups.length+')' : 'Guruh qo\'shish';
+    }
+    function renderChips() {
+      if (!chipsContainer) return;
+      chipsContainer.innerHTML = groups.map(function(g, i) {
+        var meta = [];
+        if (g.price) meta.push(Number(g.price).toLocaleString()+" so'm");
+        if (g.date) meta.push(fmtDate(g.date));
+        return '<div class="bq-gtrg__chip">' +
+          '<span class="bq-gtrg__chip-ico"><i class="fa-solid fa-layer-group"></i></span>' +
+          '<div class="bq-gtrg__chip-body">' +
+            '<span class="bq-gtrg__chip-name">'+escapeHtml(g.label)+'</span>' +
+            (meta.length ? '<span class="bq-gtrg__chip-meta">'+meta.join(' · ')+'</span>' : '') +
+          '</div>' +
+          '<button type="button" class="bq-gtrg__chip-del" data-del-idx="'+i+'"><i class="fa-solid fa-xmark"></i></button>' +
+        '</div>';
+      }).join('');
+      chipsContainer.querySelectorAll('[data-del-idx]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          groups.splice(parseInt(btn.dataset.delIdx), 1);
+          serialize(); renderChips(); renderAddedInModal(); refreshList();
+        });
+      });
+    }
+    function renderAddedInModal() {
+      if (!groups.length) { gmAdded.hidden = true; return; }
+      gmAdded.hidden = false;
+      gmAddedList.innerHTML = groups.map(function(g, i){
+        return '<div class="bq-gm__added-item">' +
+          '<i class="fa-solid fa-check"></i><span>'+escapeHtml(g.label)+'</span>' +
+          '<button type="button" class="bq-gm__added-del" data-modal-del="'+i+'">' +
+            '<i class="fa-solid fa-xmark"></i>' +
+          '</button></div>';
+      }).join('');
+      gmAddedList.querySelectorAll('[data-modal-del]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          groups.splice(parseInt(btn.dataset.modalDel), 1);
+          serialize(); renderChips(); renderAddedInModal(); refreshList();
+        });
+      });
+    }
+    function showHint() {
+      gmList.innerHTML = '<div class="bq-gm__empty bq-gm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing</div>';
+    }
+    function refreshList() {
+      var q = gmSearch.value.trim().toLowerCase();
+      if (q.length >= 3) {
+        renderSearchResults(opts.filter(function(o){ return o.label.toLowerCase().includes(q); }));
+      } else if (q.length === 0) {
+        showHint();
+      }
+    }
+    function renderSearchResults(items) {
+      gmList.innerHTML = '';
+      if (!items.length) { gmList.innerHTML = '<div class="bq-gm__empty">Guruh topilmadi</div>'; return; }
+      items.forEach(function(item){
+        var alreadyAdded = groups.some(function(g){ return g.value === item.value; });
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'bq-gm__item' + (pickedNow && pickedNow.value===item.value ? ' is-active' : '') + (alreadyAdded ? ' is-added' : '');
+        b.textContent = item.label;
+        if (alreadyAdded) { b.disabled = true; }
+        else { b.addEventListener('click', function(){ pickGroup(item); }); }
+        gmList.appendChild(b);
+      });
+    }
+    function pickGroup(item) {
+      pickedNow = item;
+      gmSelName.textContent = item.label;
+      gmCascade.hidden = false;
+      gmConfirm.disabled = false;
+      gmDate.value = todayStr();
+      refreshList();
+      fetchPrice(item.value, function(p){ gmPrice.value = p; });
+    }
+    function clearPick() {
+      pickedNow = null; gmCascade.hidden = true; gmConfirm.disabled = true; refreshList();
+    }
+    function addGroup() {
+      if (!pickedNow) return;
+      if (groups.some(function(g){ return g.value===pickedNow.value; })) return;
+      groups.push({value: pickedNow.value, label: pickedNow.label, price: gmPrice.value, date: gmDate.value});
+      serialize(); renderChips(); renderAddedInModal();
+      pickedNow = null; gmCascade.hidden = true; gmConfirm.disabled = true;
+      gmSearch.value = ''; showHint();
+      setTimeout(function(){ gmSearch.focus(); }, 60);
+    }
+    function openModal() {
+      ov.hidden = false; document.body.style.overflow = 'hidden';
+      pickedNow = null; gmCascade.hidden = true; gmConfirm.disabled = true;
+      gmSearch.value = ''; showHint(); renderAddedInModal();
+      setTimeout(function(){ gmSearch.focus(); }, 60);
+    }
+    function closeModal() { ov.hidden = true; document.body.style.overflow = ''; }
+
+    gmSearch.addEventListener('input', function(){
+      if (this.value.trim().length === 0) { showHint(); clearPick(); }
+    });
+    gmSearch.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter') return; e.preventDefault();
+      var q = this.value.trim().toLowerCase();
+      if (q.length < 3) return;
+      renderSearchResults(opts.filter(function(o){ return o.label.toLowerCase().includes(q); }));
+    });
+    openBtn.addEventListener('click', openModal);
+    gmClose.addEventListener('click', closeModal);
+    gmClose2.addEventListener('click', closeModal);
+    gmDesel.addEventListener('click', clearPick);
+    gmConfirm.addEventListener('click', addGroup);
+    ov.addEventListener('click', function(e){ if (e.target === ov) closeModal(); });
+    document.addEventListener('keydown', function(e){ if (e.key==='Escape' && !ov.hidden) closeModal(); });
+
+    // Validation error dan keyin restore
+    if (assignmentsField && assignmentsField.value) {
+      try {
+        var parsed = JSON.parse(assignmentsField.value);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(function(item){
+            var opt = opts.find(function(o){ return o.value===String(item.group_id); });
+            if (opt) groups.push({value: opt.value, label: opt.label, price: item.course_price||'', date: item.start_date||''});
+          });
+          serialize(); renderChips();
+        }
+      } catch(e) {}
+    }
+  }
+
   function initGroupAssignments(scope) {
+    var openBtn = scope.querySelector('#bqGrpOpenBtn');
+    if (openBtn) {
+      // Yangi modal UI (student_drawer_form.html) — initGroupModal ishlatadi
+      return initGroupModal(scope);
+    }
     const form = scope.querySelector("[data-student-drawer-form]");
     const builder = scope.querySelector("[data-group-assignments-builder]");
     const template = form ? form.dataset.groupPriceTemplate : "";
