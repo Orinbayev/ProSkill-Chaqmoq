@@ -20,6 +20,7 @@ from education.models import (
 )
 from education.services.tuition import (
     reconcile_tuition_month,
+    scheduled_lessons_between,
     teacher_monthly_financials,
 )
 
@@ -157,6 +158,16 @@ class HistoricalFinanceService:
         details_map = {}
 
         for group in groups:
+            # Oy uchun to'g'ri standart: oy_dars_soni (agar ≥ 4 ta) USTUVOR.
+            # Aks holda GroupSchedule dan hisoblaymiz — bu "2 ta kun/hafta" kabi
+            # noto'g'ri oy_dars_soni (masalan 2) holida ham to'g'ri ishlaydi.
+            _oy_ds = int(getattr(group, "oy_dars_soni", 0) or 0)
+            if _oy_ds >= 4:
+                group_standard = _oy_ds
+            else:
+                _sched = scheduled_lessons_between(group, month_start, month_end)
+                group_standard = _sched if _sched >= 4 else (_oy_ds if _oy_ds > 0 else 12)
+
             for student_id, days in att_lookup.get(group.id, {}).items():
                 if not days:
                     continue
@@ -184,6 +195,7 @@ class HistoricalFinanceService:
                     enrollment,
                     len(days),
                     teacher_percent=getattr(teacher, "oqituvchi_foizi", 0) or None,
+                    monthly_lessons_override=group_standard,
                 )
                 if financials["billable_lessons"] <= 0:
                     continue

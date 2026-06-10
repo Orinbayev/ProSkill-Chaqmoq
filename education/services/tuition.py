@@ -851,6 +851,7 @@ def teacher_monthly_financials(
     billable_lessons: int,
     *,
     teacher_percent: Optional[int] = None,
+    monthly_lessons_override: Optional[int] = None,
 ) -> dict:
     """
     O'qituvchi to'lovini standart oylik dars narxidan hisoblaydi.
@@ -863,7 +864,7 @@ def teacher_monthly_financials(
     o'qituvchi har ortiqcha dars uchun qo'shimcha per_lesson oladi.
     O'quvchi to'lovi (turnover) kurs narxidan oshmaydi.
     """
-    monthly_lessons = _monthly_lessons_count(enrollment)
+    monthly_lessons = int(monthly_lessons_override or 0) or _monthly_lessons_count(enrollment)
 
     billable_lessons = max(0, int(billable_lessons or 0))
     full_amount = full_course_amount(enrollment)
