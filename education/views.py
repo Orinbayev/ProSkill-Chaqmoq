@@ -2956,6 +2956,18 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
+    # Joriy oy TuitionMonth feesini lazy yangilash: group.oy_dars_soni o'zgargan
+    # bo'lsa, DB dagi stale fee to'g'rilanadi (faqat faol, yopilmagan oylar uchun).
+    _cur_month_for_recalc = today.replace(day=1)
+    from education.services.tuition import ensure_tuition_month as _etm
+    for e in active_list:
+        if not getattr(e, "is_active", False):
+            continue
+        try:
+            _etm(e, _cur_month_for_recalc)
+        except Exception:
+            pass
+
     debt_snapshots = calculate_enrollment_debt_snapshots(
         enrollment_list, period_months
     )
@@ -8697,6 +8709,7 @@ def group_edit(request, pk):
     form = GroupForm(request.POST or None, instance=g, center=center)
 
     if request.method == "POST" and form.is_valid():
+        old_oy_dars_soni = g.oy_dars_soni or 12
         updated_group = form.save(commit=False)
         schedule_mode = form.cleaned_data.get("schedule_mode", "")
         custom_days = form.cleaned_data.get("custom_days") or []
@@ -8727,40 +8740,52 @@ def group_edit(request, pk):
             end_time=form.cleaned_data.get("schedule_end_time"),
             room=form.cleaned_data.get("schedule_room"),
         )
-        
+
+        new_oy_dars_soni = updated_group.oy_dars_soni or 12
+        from education.models import Enrollment, StudentGroupHistory
+        from django.db.models import Q
+
         # Agar guruhning foizi yoki narxi o'zgargan bo'lsa, joriy o'quvchilarga ham ta'sir qilsin
         if updated_group.oqituvchi_foiz != old_foiz or updated_group.kurs_narxi != old_narx:
-            from education.models import Enrollment, StudentGroupHistory
-            from education.views import sync_tuition_fee
-            from django.db.models import Q
-            
             enrollments = Enrollment.objects.filter(group=updated_group)
-            
-            # 1. Agar foiz o'zgargan bo'lsa, barcha o'quvchilar foizini yangilaymiz
+
             if updated_group.oqituvchi_foiz != old_foiz:
                 enrollments.update(oqituvchi_foiz=updated_group.oqituvchi_foiz)
                 StudentGroupHistory.objects.filter(
                     group=updated_group,
                     end_date__isnull=True
                 ).update(oqituvchi_foiz=updated_group.oqituvchi_foiz)
-            
-            # 2. Agar narx o'zgargan bo'lsa, faqat narxi 0 bo'lgan yoki old_narx ga teng bo'lganlarni yangilaymiz
+
             if updated_group.kurs_narxi != old_narx:
                 affected_enrollments = enrollments.filter(Q(kurs_narhi=0) | Q(kurs_narhi=old_narx))
                 for enr in affected_enrollments:
                     enr.kurs_narhi = updated_group.kurs_narxi
                     enr.save(update_fields=["kurs_narhi"])
-                    
-                    # StudentGroupHistory'ni ham yangilaymiz
                     StudentGroupHistory.objects.filter(
                         student=enr.student,
                         group=updated_group,
                         end_date__isnull=True
                     ).update(kurs_narxi=updated_group.kurs_narxi)
-                    
-                    # TuitionMonth oylik to'lovlarini sinxronlashtiramiz
                     sync_tuition_fee(enr, new_fee=updated_group.kurs_narxi)
-                
+
+        # Barcha faol enrollmentlarning monthly_lessons ni guruh bilan sinxronlaymiz
+        # va joriy oy TuitionMonth feesini qayta hisoblaymiz (oy_dars_soni o'zgargan
+        # bo'lsa yoki eski stale qiymatlar DB da qolgan bo'lsa ham to'g'rilanadi).
+        from education.services.tuition import ensure_tuition_month
+        today = timezone.localdate()
+        cur_month = today.replace(day=1)
+        active_enrollments = list(
+            Enrollment.objects.filter(group=updated_group, is_active=True)
+            .select_related("group", "student")
+        )
+        for enr in active_enrollments:
+            enr.monthly_lessons = new_oy_dars_soni
+            enr.save(update_fields=["monthly_lessons"])
+            try:
+                ensure_tuition_month(enr, cur_month)
+            except Exception:
+                pass
+
         messages.success(request, "✅ Guruh yangilandi.")
         return redirect("education:group_detail", pk=g.id)
 
@@ -11540,7 +11565,7 @@ def student_monthly_breakdown(request, student_id):
         # Bitta dars narxini enrollment dan olamiz (birinchi TuitionMonth dan)
         if not month_map[m_key]["price_per_lesson"] and tm.enrollment:
             enr = tm.enrollment
-            ml = int(getattr(enr, "monthly_lessons", 0) or 0) or int(getattr(enr.group, "oy_dars_soni", 0) or 12)
+            ml = int(getattr(enr.group, "oy_dars_soni", 0) or 0) or int(getattr(enr, "monthly_lessons", 0) or 0) or 12
             kn = int(getattr(enr, "kurs_narhi", 0))
             month_map[m_key]["monthly_lessons"] = ml
             month_map[m_key]["price_per_lesson"] = round(kn / ml) if ml > 0 else 0
