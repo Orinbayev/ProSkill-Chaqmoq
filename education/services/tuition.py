@@ -672,10 +672,13 @@ def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
 
 
 def _monthly_lessons_count(enrollment: Enrollment) -> int:
+    # Guruh oy_dars_soni HAR DOIM ustuvor — bu guruh uchun yagona haqiqat manba'i.
+    # enrollment.monthly_lessons faqat guruh bo'lmagan (arxivlangan/o'chirilgan) holda ishlatiladi.
+    group = getattr(enrollment, "group", None)
+    group_lessons = int(getattr(group, "oy_dars_soni", 0) or 0)
+    if group_lessons > 0:
+        return group_lessons
     monthly_lessons = int(getattr(enrollment, "monthly_lessons", 0) or 0)
-    if monthly_lessons <= 0:
-        group = getattr(enrollment, "group", None)
-        monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
     return monthly_lessons if monthly_lessons > 0 else 12
 
 

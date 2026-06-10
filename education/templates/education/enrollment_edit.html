@@ -1115,7 +1115,7 @@
 	        id="billingPreview"
 	        data-course-price="{{ enr.kurs_narhi|default:'0' }}"
 	        data-teacher-percent="{{ enr.oqituvchi_foiz|default:'40' }}"
-	        data-monthly-lessons="{{ enr.monthly_lessons|default:'12' }}">
+	        data-monthly-lessons="{{ enr.group.oy_dars_soni|default:enr.monthly_lessons|default:'12' }}">
 	        <div class="section-head">
 	          <div>
 	            <h3 class="section-title">O'qish davri</h3>
@@ -1132,7 +1132,7 @@
 	            <input type="date" name="joined_at" id="joinedAtInput"
 	              value="{{ enr.joined_at|date:'Y-m-d' }}"
 	              class="form-control custom-input">
-	            <input type="hidden" name="monthly_lessons" id="monthlyLessonsInput" value="{{ enr.monthly_lessons|default:'12' }}">
+	            <input type="hidden" name="monthly_lessons" id="monthlyLessonsInput" value="{{ enr.group.oy_dars_soni|default:enr.monthly_lessons|default:'12' }}">
 	          </div>
             <div class="field-stack period-field">
               <label class="form-label">Tugash sanasi</label>

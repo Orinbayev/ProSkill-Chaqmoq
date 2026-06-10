@@ -274,7 +274,7 @@ def _student_enrollment_catalog(enrollments: list[Enrollment]) -> dict:
                 "joined_at": enrollment.joined_at.isoformat() if enrollment.joined_at else "",
                 "stored_lesson_pattern": getattr(enrollment, "lesson_pattern", Enrollment.LESSON_PATTERN_GROUP),
                 "resolved_lesson_pattern": enrollment_lesson_pattern(enrollment),
-                "monthly_lessons": int(getattr(enrollment, "monthly_lessons", 0) or getattr(enrollment.group, "oy_dars_soni", 0) or 12),
+                "monthly_lessons": int(getattr(enrollment.group, "oy_dars_soni", 0) or getattr(enrollment, "monthly_lessons", 0) or 12),
                 "course_price": int(getattr(enrollment, "kurs_narhi", 0)),
                 "teacher_percent": int(getattr(enrollment, "oqituvchi_foiz", 0) or getattr(enrollment.group, "oqituvchi_foiz", 0) or 0),
                 "student_payable_amount": getattr(enrollment, "student_payable_amount", None),
@@ -1858,12 +1858,13 @@ def enrollment_edit(request, enrollment_id):
         active_enrollment.lesson_pattern = schedule_meta["lesson_pattern"]
         if schedule_meta["adjustment_note"]:
             messages.info(request, schedule_meta["adjustment_note"])
+        # Guruh oy_dars_soni — yagona manba', stale enrollment qiymatini yangilash
         monthly_lessons_raw = (request.POST.get("monthly_lessons") or "").strip()
         try:
             active_enrollment.monthly_lessons = int(
-                monthly_lessons_raw
+                getattr(selected_group, "oy_dars_soni", 0)
+                or monthly_lessons_raw
                 or getattr(active_enrollment, "monthly_lessons", 0)
-                or getattr(selected_group, "oy_dars_soni", 0)
                 or 12
             )
         except (TypeError, ValueError):
