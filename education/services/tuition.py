@@ -608,12 +608,18 @@ def expected_lesson_dates_in_period(enrollment: Enrollment, start: date, end: da
     if start > end:
         return []
 
-    pattern = enrollment_lesson_pattern(enrollment)
-    if pattern != LESSON_PATTERN_GROUP:
-        return lesson_dates_between(start, end, pattern)
+    # enrollment_lesson_pattern() always resolves "group" to auto odd/even,
+    # so we must check the stored pattern directly first.
+    stored = normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
+    if stored in {LESSON_PATTERN_ODD, LESSON_PATTERN_EVEN, LESSON_PATTERN_DAILY}:
+        return lesson_dates_between(start, end, stored)
 
     group = getattr(enrollment, "group", None)
-    return lesson_dates_between(start, end, LESSON_PATTERN_GROUP, group=group)
+    if group and lesson_pattern_weekdays(LESSON_PATTERN_GROUP, group=group):
+        return lesson_dates_between(start, end, LESSON_PATTERN_GROUP, group=group)
+
+    auto_pattern = enrollment_lesson_pattern(enrollment)
+    return lesson_dates_between(start, end, auto_pattern)
 
 
 def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -> int:
@@ -625,19 +631,20 @@ def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -
     if start > end:
         return 0
 
-    pattern = enrollment_lesson_pattern(enrollment)
-    if pattern != LESSON_PATTERN_GROUP:
-        return pattern_lessons_between(start, end, pattern)
+    # enrollment_lesson_pattern() always resolves "group" to auto odd/even,
+    # so we must check the stored pattern directly first.
+    stored = normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
+    if stored in {LESSON_PATTERN_ODD, LESSON_PATTERN_EVEN, LESSON_PATTERN_DAILY}:
+        return pattern_lessons_between(start, end, stored)
 
-    group = enrollment.group
-    scheduled = scheduled_lessons_between(group, start, end)
-    if scheduled > 0:
-        return scheduled
+    group = getattr(enrollment, "group", None)
+    if group:
+        scheduled = scheduled_lessons_between(group, start, end)
+        if scheduled > 0:
+            return scheduled
 
-    oy_dars_soni = _monthly_lessons_count(enrollment)
-    month_total_days = calendar.monthrange(start.year, start.month)[1]
-    period_days = (end - start).days + 1
-    return min(oy_dars_soni, proportional_amount(oy_dars_soni, period_days, month_total_days))
+    auto_pattern = enrollment_lesson_pattern(enrollment)
+    return pattern_lessons_between(start, end, auto_pattern)
 
 
 def billable_attendance_count(enrollment: Enrollment, month: date) -> int:

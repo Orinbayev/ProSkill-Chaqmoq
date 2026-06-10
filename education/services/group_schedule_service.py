@@ -88,15 +88,16 @@ def apply_group_duration_defaults(group, *, force_recalculate: bool = False):
 def infer_simple_schedule(group) -> dict:
     from education.models import GroupSchedule
 
+    empty = {"mode": "", "weekdays": [], "start_time": None, "end_time": None, "room": ""}
     if not getattr(group, "pk", None) or not getattr(group, "center_id", None):
-        return {"mode": "", "start_time": None, "end_time": None, "room": ""}
+        return empty
 
     schedules = list(
         GroupSchedule.objects.filter(group=group, center=group.center)
         .order_by("weekday", "start_time")
     )
     if not schedules:
-        return {"mode": "", "start_time": None, "end_time": None, "room": ""}
+        return empty
 
     first = schedules[0]
     weekdays = tuple(item.weekday for item in schedules)
@@ -107,7 +108,7 @@ def infer_simple_schedule(group) -> dict:
         for item in schedules
     )
 
-    mode = "manual"
+    mode = "custom"
     if same_time and weekdays == ODD_WEEKDAYS:
         mode = "odd"
     elif same_time and weekdays == EVEN_WEEKDAYS:
@@ -115,6 +116,7 @@ def infer_simple_schedule(group) -> dict:
 
     return {
         "mode": mode,
+        "weekdays": list(weekdays),
         "start_time": first.start_time,
         "end_time": first.end_time,
         "room": first.room or "",
@@ -125,6 +127,7 @@ def sync_simple_group_schedule(
     *,
     group,
     schedule_mode: str,
+    custom_days=None,
     start_time=None,
     end_time=None,
     room: str = "",
@@ -132,13 +135,25 @@ def sync_simple_group_schedule(
     from education.models import GroupSchedule
 
     mode = (schedule_mode or "").strip().lower()
-    if mode not in {"odd", "even"}:
+
+    if mode == "odd":
+        weekdays = ODD_WEEKDAYS
+    elif mode == "even":
+        weekdays = EVEN_WEEKDAYS
+    elif mode == "custom" and custom_days:
+        try:
+            weekdays = tuple(sorted(int(d) for d in custom_days if str(d).strip().isdigit() and 1 <= int(d) <= 7))
+        except (ValueError, TypeError):
+            weekdays = ()
+    else:
+        return []
+
+    if not weekdays:
         return []
 
     if not getattr(group, "pk", None) or not getattr(group, "center_id", None) or not start_time:
         return []
 
-    weekdays = ODD_WEEKDAYS if mode == "odd" else EVEN_WEEKDAYS
     clean_room = (room or "").strip()
 
     GroupSchedule.objects.filter(group=group, center=group.center).delete()

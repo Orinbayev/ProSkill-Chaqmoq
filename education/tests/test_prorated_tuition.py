@@ -139,10 +139,10 @@ class ProratedTuitionTests(TestCase):
         """Scenariy C: 18-sanada qo'shildi, chegirma yo'q — expected × per_lesson"""
         s = self._make_student("c@t")
         enr = self._enroll(s, start_date=date(2026, 4, 18))
-        # 18-aprel 2026 = shanba, demak avtomatik "Juft kunlari".
+        # GroupSchedule (1,3,5) ustuvor — avtomatik odd/even emas.
         fee = prorated_monthly_fee(enr, self.MONTH)
         per_lesson = BASE_PRICE / LESSONS_PER_MONTH  # 45,833.33
-        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
+        expected = scheduled_lessons_between(self.group, date(2026, 4, 18), date(2026, 4, 30))
         self.assertEqual(fee, round(expected * per_lesson))
         self.assertLess(fee, BASE_PRICE)  # to'liq narxdan kam
 
@@ -163,7 +163,7 @@ class ProratedTuitionTests(TestCase):
         s = self._make_student("f@t")
         enr = self._enroll(s, start_date=date(2026, 4, 18), payable=330_000)
         per_lesson = 330_000 / LESSONS_PER_MONTH  # 27,500
-        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
+        expected = scheduled_lessons_between(self.group, date(2026, 4, 18), date(2026, 4, 30))
         self.assertEqual(prorated_monthly_fee(enr, self.MONTH), round(expected * per_lesson))
 
     def test_G_free_plus_partial(self):
@@ -253,7 +253,7 @@ class ProratedTuitionTests(TestCase):
         enr = self._enroll(s, start_date=date(2026, 4, 18))
         tm = ensure_tuition_month(enr, self.MONTH)
         per_lesson = BASE_PRICE / LESSONS_PER_MONTH
-        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
+        expected = scheduled_lessons_between(self.group, date(2026, 4, 18), date(2026, 4, 30))
         self.assertEqual(_tm_fee(tm), round(expected * per_lesson))
         self.assertLess(_tm_fee(tm), BASE_PRICE)
 

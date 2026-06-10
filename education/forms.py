@@ -12,12 +12,17 @@ class GroupForm(forms.ModelForm):
         ("", "Keyin kiritaman"),
         ("odd", "Toq kunlari"),
         ("even", "Juft kunlari"),
+        ("custom", "Maxsus kunlar"),
     )
 
     schedule_mode = forms.ChoiceField(
         choices=SCHEDULE_MODE_CHOICES,
         required=False,
         label="Dars kunlari",
+    )
+    schedule_days = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
     )
     schedule_start_time = forms.TimeField(
         required=False,
@@ -49,6 +54,7 @@ class GroupForm(forms.ModelForm):
             "category_obj",
             "oqituvchi",
             "kurs_narxi",
+            "oy_dars_soni",
             "max_students",
             "course_start_date",
             "duration_months",
@@ -58,10 +64,11 @@ class GroupForm(forms.ModelForm):
         ]
         labels = {
             "nom": "Guruh nomi",
-            "category_obj": "Bo'lim (Yo'nalish)",
-            "oqituvchi": "O‘qituvchi",
-            "kurs_narxi": "Kurs narxi (so‘m)",
-            "max_students": "Maksimal o'quvchi soni",
+            "category_obj": "Bo’lim (Yo’nalish)",
+            "oqituvchi": "O’qituvchi",
+            "kurs_narxi": "Kurs narxi (so’m)",
+            "oy_dars_soni": "Oyda darslar soni",
+            "max_students": "Maksimal o’quvchi soni",
             "course_start_date": "Boshlanish sanasi",
             "duration_months": "Davomiyligi (oy)",
             "estimated_end_date": "Tugash sanasi",
@@ -69,6 +76,7 @@ class GroupForm(forms.ModelForm):
             "support_foiz": "Support foizi (%)",
         }
         widgets = {
+            "oy_dars_soni": forms.NumberInput(attrs={"min": "1", "step": "1", "placeholder": "Masalan: 8"}),
             "max_students": forms.NumberInput(attrs={"min": "1", "step": "1"}),
             "course_start_date": forms.DateInput(attrs={"type": "date"}),
             "duration_months": forms.NumberInput(attrs={"min": "1", "step": "1"}),
@@ -152,6 +160,7 @@ class GroupForm(forms.ModelForm):
 
         for f in [
             "kurs_narxi",
+            "oy_dars_soni",
             "max_students",
             "course_start_date",
             "duration_months",
@@ -200,10 +209,14 @@ class GroupForm(forms.ModelForm):
             from education.services.group_schedule_service import infer_simple_schedule
 
             schedule_info = infer_simple_schedule(self.instance)
-            self.fields["schedule_mode"].initial = schedule_info["mode"] if schedule_info["mode"] in {"odd", "even"} else ""
+            mode = schedule_info["mode"]
+            self.fields["schedule_mode"].initial = mode if mode in {"odd", "even", "custom"} else ""
             self.fields["schedule_start_time"].initial = schedule_info["start_time"]
             self.fields["schedule_end_time"].initial = schedule_info["end_time"]
             self.fields["schedule_room"].initial = schedule_info["room"]
+            weekdays = schedule_info.get("weekdays", [])
+            if weekdays:
+                self.fields["schedule_days"].initial = ",".join(str(w) for w in weekdays)
 
     def clean(self):
         cleaned = super().clean()
@@ -217,10 +230,22 @@ class GroupForm(forms.ModelForm):
 
         from education.services.group_schedule_service import calculate_estimated_end_date
 
-        if schedule_mode in {"odd", "even"} and not schedule_start_time:
+        schedule_days_raw = cleaned.get("schedule_days", "")
+        custom_days = []
+        if schedule_days_raw:
+            try:
+                custom_days = [int(d) for d in schedule_days_raw.split(",") if d.strip().isdigit()]
+                custom_days = sorted(set(d for d in custom_days if 1 <= d <= 7))
+            except (ValueError, TypeError):
+                custom_days = []
+
+        has_schedule = schedule_mode in {"odd", "even"} or (schedule_mode == "custom" and custom_days)
+        if has_schedule and not schedule_start_time:
             self.add_error("schedule_start_time", "Boshlanish vaqti majburiy.")
         if schedule_end_time and schedule_start_time and schedule_end_time <= schedule_start_time:
             self.add_error("schedule_end_time", "Tugash vaqti boshlanishdan keyin bo'lishi kerak.")
+
+        cleaned["custom_days"] = custom_days
 
         cleaned["estimated_end_date"] = calculate_estimated_end_date(
             course_start_date=course_start_date,
@@ -228,12 +253,18 @@ class GroupForm(forms.ModelForm):
             lessons_per_week=3,
         )
 
-        if teacher and schedule_mode in {"odd", "even"} and schedule_start_time and self.center:
+        if teacher and has_schedule and schedule_start_time and self.center:
             from education.services.group_schedule_service import EVEN_WEEKDAYS, ODD_WEEKDAYS
             from education.services.hr import teacher_is_available
 
-            weekdays = ODD_WEEKDAYS if schedule_mode == "odd" else EVEN_WEEKDAYS
-            if not teacher_is_available(
+            if schedule_mode == "odd":
+                weekdays = ODD_WEEKDAYS
+            elif schedule_mode == "even":
+                weekdays = EVEN_WEEKDAYS
+            else:
+                weekdays = tuple(custom_days)
+
+            if weekdays and not teacher_is_available(
                 teacher,
                 center=self.center,
                 weekdays=weekdays,

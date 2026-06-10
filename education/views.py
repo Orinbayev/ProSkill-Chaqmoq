@@ -8613,9 +8613,14 @@ def group_create(request, category=None):
 
     if request.method == "POST" and form.is_valid():
         g = form.save(commit=False)
-        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
-            g.lessons_per_week = 3
-            g.oy_dars_soni = 12
+        schedule_mode = form.cleaned_data.get("schedule_mode", "")
+        custom_days = form.cleaned_data.get("custom_days") or []
+
+        if schedule_mode in {"odd", "even", "custom"}:
+            day_count = len(custom_days) if schedule_mode == "custom" else 3
+            g.lessons_per_week = day_count
+            if not g.oy_dars_soni:
+                g.oy_dars_soni = day_count * 4
 
         # 🔹 Kategoriya bo'sh bo'lsa, avtomatik to'ldir
         g.category = category or Group.LANG
@@ -8652,7 +8657,8 @@ def group_create(request, category=None):
         g.save()
         sync_simple_group_schedule(
             group=g,
-            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            schedule_mode=schedule_mode,
+            custom_days=custom_days,
             start_time=form.cleaned_data.get("schedule_start_time"),
             end_time=form.cleaned_data.get("schedule_end_time"),
             room=form.cleaned_data.get("schedule_room"),
@@ -8691,10 +8697,15 @@ def group_edit(request, pk):
 
     if request.method == "POST" and form.is_valid():
         updated_group = form.save(commit=False)
-        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
-            updated_group.lessons_per_week = 3
-            updated_group.oy_dars_soni = 12
-        
+        schedule_mode = form.cleaned_data.get("schedule_mode", "")
+        custom_days = form.cleaned_data.get("custom_days") or []
+
+        if schedule_mode in {"odd", "even", "custom"}:
+            day_count = len(custom_days) if schedule_mode == "custom" else 3
+            updated_group.lessons_per_week = day_count
+            if not updated_group.oy_dars_soni:
+                updated_group.oy_dars_soni = day_count * 4
+
         # Agar o'qituvchi o'zgargan bo'lsa, mos foizni avtomatik olamiz
         if updated_group.oqituvchi and updated_group.oqituvchi_id != old_oqituvchi_id:
             teacher_foiz = getattr(updated_group.oqituvchi, 'oqituvchi_foizi', None)
@@ -8709,7 +8720,8 @@ def group_edit(request, pk):
         updated_group.save()
         sync_simple_group_schedule(
             group=updated_group,
-            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            schedule_mode=schedule_mode,
+            custom_days=custom_days,
             start_time=form.cleaned_data.get("schedule_start_time"),
             end_time=form.cleaned_data.get("schedule_end_time"),
             room=form.cleaned_data.get("schedule_room"),

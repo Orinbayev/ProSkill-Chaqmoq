@@ -167,6 +167,20 @@
             <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> O'quvchi qo'shganda avtomatik yoziladi</div>
             {% for e in form.kurs_narxi.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
+
+          <!-- Oyda darslar soni -->
+          <div class="ngf-field" id="oy-dars-soni-field">
+            <label class="ngf-label" for="{{ form.oy_dars_soni.id_for_label }}">
+              <i class="fa-solid fa-hashtag ngf-label__ico"></i>Oyda darslar soni
+            </label>
+            <div class="ngf-input-wrap">
+              <span class="ngf-input-prefix"><i class="fa-solid fa-chalkboard-user"></i></span>
+              {{ form.oy_dars_soni }}
+              <span class="ngf-input-suffix">dars</span>
+            </div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Dars kunlari tanlaganda avtomatik hisoblanadi</div>
+            {% for e in form.oy_dars_soni.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
+          </div>
         </div>
       </div>
 
@@ -236,7 +250,6 @@
       </div>
 
       <!-- ══ SECTION 3: Dars jadvali ══ -->
-      {% if not form.instance.pk %}
       <div class="ngf-card">
         <div class="ngf-sec-head">
           <div class="ngf-sec-head__dot ngf-sec-head__dot--green"></div>
@@ -246,14 +259,24 @@
 
         <div class="ngf-row">
           <div class="ngf-field ngf-field--full">
-            <label class="ngf-label" for="{{ form.schedule_mode.id_for_label }}">
+            <label class="ngf-label">
               <i class="fa-solid fa-calendar-week ngf-label__ico"></i>Dars kunlari
             </label>
-            <div class="ngf-input-wrap">
-              <span class="ngf-input-prefix"><i class="fa-regular fa-calendar-days"></i></span>
-              {{ form.schedule_mode }}
+            <div class="ngf-day-picker" id="day-picker">
+              <button type="button" class="ngf-day-btn" data-day="1">Du</button>
+              <button type="button" class="ngf-day-btn" data-day="2">Se</button>
+              <button type="button" class="ngf-day-btn" data-day="3">Ch</button>
+              <button type="button" class="ngf-day-btn" data-day="4">Pa</button>
+              <button type="button" class="ngf-day-btn" data-day="5">Ju</button>
+              <button type="button" class="ngf-day-btn" data-day="6">Sha</button>
+              <button type="button" class="ngf-day-btn" data-day="7">Yak</button>
             </div>
-            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Toq: Du/Ch/Ju · Juft: Se/Pa/Sh</div>
+            <div class="ngf-day-presets">
+              <button type="button" class="ngf-preset-btn" data-preset="odd">Toq (Du/Ch/Ju)</button>
+              <button type="button" class="ngf-preset-btn" data-preset="even">Juft (Se/Pa/Sha)</button>
+            </div>
+            <input type="hidden" name="{{ form.schedule_days.html_name }}" id="{{ form.schedule_days.id_for_label }}" value="{{ form.schedule_days.value|default_if_none:'' }}">
+            <input type="hidden" name="{{ form.schedule_mode.html_name }}" id="id_schedule_mode_hidden" value="{{ form.schedule_mode.value|default_if_none:'' }}">
             {% for e in form.schedule_mode.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
 
@@ -291,23 +314,6 @@
           </div>
         </div>
       </div>
-      {% else %}
-      <div class="ngf-card">
-        <div class="ngf-sec-head">
-          <div class="ngf-sec-head__dot ngf-sec-head__dot--green"></div>
-          <span class="ngf-sec-head__title">Dars jadvali</span>
-          <div class="ngf-sec-head__line"></div>
-        </div>
-        <div class="ngf-schedule-link">
-          <i class="fa-solid fa-calendar-check"></i>
-          <span>Dars jadvali (kun, vaqt, xona) <a href="{% url 'education:group_schedule_manage' group_id=form.instance.pk %}">Jadval</a> tabidan boshqariladi.</span>
-        </div>
-        <input type="hidden" name="{{ form.schedule_mode.html_name }}" value="{{ form.schedule_mode.value|default_if_none:'' }}">
-        <input type="hidden" name="{{ form.schedule_start_time.html_name }}" value="{% if form.schedule_start_time.value %}{{ form.schedule_start_time.value|time:'H:i' }}{% endif %}">
-        <input type="hidden" name="{{ form.schedule_end_time.html_name }}" value="{% if form.schedule_end_time.value %}{{ form.schedule_end_time.value|time:'H:i' }}{% endif %}">
-        <input type="hidden" name="{{ form.schedule_room.html_name }}" value="{{ form.schedule_room.value|default_if_none:'' }}">
-      </div>
-      {% endif %}
 
       <!-- ══ SECTION 4: Support (agar yoqilgan bo'lsa) ══ -->
       {% if form.use_support %}
@@ -829,6 +835,57 @@ function confirmGenerateDebt() {
   .ngf-schedule-block.show { grid-template-columns: 1fr; }
 }
 
+/* ══ DAY PICKER ══ */
+.ngf-day-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.ngf-day-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line, #e2e8f0);
+  background: var(--bg2, #f8fafc);
+  color: var(--text-muted, #64748b);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.ngf-day-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.ngf-day-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,.3);
+}
+.ngf-day-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.ngf-preset-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.ngf-preset-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
 /* ══ SCHEDULE LINK (edit mode) ══ */
 .ngf-schedule-link {
   display: flex;
@@ -1085,7 +1142,9 @@ html[data-role-theme="light"] .ngf-errors {
 <script>
 (function(){
   'use strict';
-  const modeSelect = document.getElementById("{{ form.schedule_mode.id_for_label }}");
+  const dayPicker = document.getElementById("day-picker");
+  const scheduleDaysInput = document.getElementById("{{ form.schedule_days.id_for_label }}");
+  const scheduleModeInput = document.getElementById("id_schedule_mode_hidden");
   const scheduleBlock = document.getElementById("schedule-block");
   const startDateInput = document.getElementById("{{ form.course_start_date.id_for_label }}");
   const durationInput = document.getElementById("{{ form.duration_months.id_for_label }}");
@@ -1094,6 +1153,7 @@ html[data-role-theme="light"] .ngf-errors {
   const teacherHint = document.getElementById("teacher-availability-hint");
   const scheduleStartTimeInput = document.getElementById("{{ form.schedule_start_time.id_for_label }}");
   const scheduleEndTimeInput = document.getElementById("{{ form.schedule_end_time.id_for_label }}");
+  const oyDarsSoniInput = document.getElementById("{{ form.oy_dars_soni.id_for_label }}");
   const sumStart = document.getElementById("sum-start");
   const sumDur = document.getElementById("sum-dur");
   const sumEnd = document.getElementById("sum-end");
@@ -1122,11 +1182,78 @@ html[data-role-theme="light"] .ngf-errors {
     return [ty, pad(tm), pad(Math.min(p[2], new Date(ty, tm, 0).getDate()))].join("-");
   };
 
-  function syncScheduleBlock(){
-    if (!modeSelect || !scheduleBlock) return;
-    const show = modeSelect.value === "odd" || modeSelect.value === "even";
-    scheduleBlock.classList.toggle("show", show);
+  function getSelectedDays() {
+    if (!dayPicker) return [];
+    return Array.from(dayPicker.querySelectorAll(".ngf-day-btn.active"))
+      .map(b => parseInt(b.dataset.day, 10))
+      .sort((a, b) => a - b);
   }
+
+  function syncDayState() {
+    const days = getSelectedDays();
+    if (scheduleDaysInput) scheduleDaysInput.value = days.join(",");
+
+    let mode = "";
+    if (days.length > 0) {
+      const odd = [1,3,5], even = [2,4,6];
+      if (days.length === 3 && days.join(",") === odd.join(",")) mode = "odd";
+      else if (days.length === 3 && days.join(",") === even.join(",")) mode = "even";
+      else mode = "custom";
+    }
+    if (scheduleModeInput) scheduleModeInput.value = mode;
+
+    if (scheduleBlock) scheduleBlock.classList.toggle("show", days.length > 0);
+
+    // Auto-calc oy_dars_soni = days × 4 (only if field is empty or was auto-set)
+    if (oyDarsSoniInput && days.length > 0) {
+      const current = parseInt(oyDarsSoniInput.value || "0", 10);
+      const suggested = days.length * 4;
+      const autoValues = [4, 8, 12, 16, 20, 24, 28];
+      if (!current || autoValues.includes(current)) {
+        oyDarsSoniInput.value = suggested;
+      }
+    }
+
+    syncAvailableTeachers();
+  }
+
+  // Restore existing days from hidden field on page load
+  function restoreInitialDays() {
+    if (!dayPicker || !scheduleDaysInput) return;
+    const val = scheduleDaysInput.value || "";
+    if (!val) return;
+    const days = val.split(",").map(d => parseInt(d, 10)).filter(d => d >= 1 && d <= 7);
+    days.forEach(d => {
+      const btn = dayPicker.querySelector(`.ngf-day-btn[data-day="${d}"]`);
+      if (btn) btn.classList.add("active");
+    });
+    if (scheduleBlock && days.length > 0) scheduleBlock.classList.add("show");
+  }
+
+  if (dayPicker) {
+    dayPicker.querySelectorAll(".ngf-day-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        syncDayState();
+      });
+    });
+  }
+
+  // Preset buttons
+  document.querySelectorAll(".ngf-preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!dayPicker) return;
+      const preset = btn.dataset.preset;
+      dayPicker.querySelectorAll(".ngf-day-btn").forEach(b => b.classList.remove("active"));
+      const presetDays = preset === "odd" ? [1,3,5] : [2,4,6];
+      presetDays.forEach(d => {
+        const b = dayPicker.querySelector(`.ngf-day-btn[data-day="${d}"]`);
+        if (b) b.classList.add("active");
+      });
+      syncDayState();
+    });
+  });
+
   function restoreTeacherOptions(){
     if (!teacherSelect) return;
     const cur = teacherSelect.value;
@@ -1135,13 +1262,12 @@ html[data-role-theme="light"] .ngf-errors {
     if (teacherHint) teacherHint.innerHTML = '<i class="fa-solid fa-circle-info"></i> Jadval va vaqt tanlang, bo\'sh ustozlar filtrlanadi';
   }
   async function syncAvailableTeachers(){
-    if (!teacherSelect || !modeSelect || !scheduleStartTimeInput) return;
-    const mode = modeSelect.value;
+    if (!teacherSelect || !scheduleStartTimeInput) return;
+    const days = getSelectedDays();
     const startTime = scheduleStartTimeInput.value;
-    if (!(mode === "odd" || mode === "even") || !startTime) { restoreTeacherOptions(); return; }
-    const days = mode === "odd" ? ["1","3","5"] : ["2","4","6"];
+    if (!days.length || !startTime) { restoreTeacherOptions(); return; }
     const params = new URLSearchParams();
-    days.forEach(d => params.append("day", d));
+    days.forEach(d => params.append("day", String(d)));
     params.set("time", startTime);
     if (scheduleEndTimeInput?.value) params.set("end_time", scheduleEndTimeInput.value);
     if (excludeGroupId) params.set("exclude_group_id", excludeGroupId);
@@ -1178,11 +1304,6 @@ html[data-role-theme="light"] .ngf-errors {
     if (sumEnd) sumEnd.textContent = calc ? formatDate(calc) : "Hisoblanadi";
   }
 
-  if (modeSelect) {
-    modeSelect.addEventListener("change", syncScheduleBlock);
-    modeSelect.addEventListener("change", syncAvailableTeachers);
-    syncScheduleBlock();
-  }
   if (scheduleStartTimeInput) {
     scheduleStartTimeInput.addEventListener("change", syncAvailableTeachers);
     scheduleStartTimeInput.addEventListener("input", syncAvailableTeachers);
@@ -1215,6 +1336,7 @@ html[data-role-theme="light"] .ngf-errors {
     });
   }
 
+  restoreInitialDays();
   syncEndDate();
   syncAvailableTeachers();
 
