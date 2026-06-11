@@ -935,11 +935,19 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
         return 0
     period_start = max(start_date, month_start)
     count = expected_lessons_in_period(enrollment, period_start, month_end)
-    # Darslar soni oy_dars_soni (standart) dan oshmasin.
-    # Masalan: Du/Ch jadvalda iyunda 9 ta kun, lekin oy_dars_soni=8 → 8 ta.
-    # Bu "15 ta dars" kabi ko'rsatilmaydi, foydalanuvchi belgilagan son ishlaydi.
-    standard = _monthly_lessons_count(enrollment)
-    return min(count, standard)
+
+    # Manual rejim (center da "manual_oy_dars_soni" feature yoqilgan):
+    #   oy_dars_soni chegarasidan oshmaydi — masalan oy_dars_soni=8, iyunda 9 kun → 8.
+    # Standart rejim (feature o'chirilgan):
+    #   haqiqiy kalendar soni qaytariladi (12 dan oshishi mumkin).
+    #   O'qituvchi: 150k/12 × actual.  Masalan 13 dars → 162,500 so'm.
+    group = getattr(enrollment, "group", None)
+    center = getattr(group, "center", None) if group else None
+    if center:
+        from billing.services import center_has_feature
+        if center_has_feature(center, "manual_oy_dars_soni"):
+            return min(count, _monthly_lessons_count(enrollment))
+    return count
 
 
 def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
