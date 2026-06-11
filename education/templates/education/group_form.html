@@ -155,7 +155,7 @@
               {{ form.oy_dars_soni }}
               <span class="ngf-input-suffix">dars</span>
             </div>
-            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Dars kunlari tanlaganda avtomatik hisoblanadi</div>
+            <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Bo'sh qoldirsangiz, tizim 12 dars bilan hisoblaydi</div>
             {% for e in form.oy_dars_soni.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
         </div>
@@ -1131,11 +1131,6 @@ html[data-role-theme="light"] .ngf-errors {
   const scheduleStartTimeInput = document.getElementById("{{ form.schedule_start_time.id_for_label }}");
   const scheduleEndTimeInput = document.getElementById("{{ form.schedule_end_time.id_for_label }}");
   const oyDarsSoniInput = document.getElementById("{{ form.oy_dars_soni.id_for_label }}");
-  // Track whether user has manually edited oy_dars_soni — if yes, never auto-override.
-  let oyDarsSoniManual = false;
-  if (oyDarsSoniInput) {
-    oyDarsSoniInput.addEventListener("input", () => { oyDarsSoniManual = true; });
-  }
   const sumStart = document.getElementById("sum-start");
   const sumDur = document.getElementById("sum-dur");
   const sumEnd = document.getElementById("sum-end");
@@ -1185,14 +1180,6 @@ html[data-role-theme="light"] .ngf-errors {
     if (scheduleModeInput) scheduleModeInput.value = mode;
 
     if (scheduleBlock) scheduleBlock.classList.toggle("show", days.length > 0);
-
-    // Auto-calc oy_dars_soni = days × 4 ONLY when field is truly empty and user hasn't manually typed.
-    if (oyDarsSoniInput && days.length > 0 && !oyDarsSoniManual) {
-      const current = parseInt(oyDarsSoniInput.value || "0", 10);
-      if (!current) {
-        oyDarsSoniInput.value = days.length * 4;
-      }
-    }
 
     syncAvailableTeachers();
   }
@@ -1310,10 +1297,7 @@ html[data-role-theme="light"] .ngf-errors {
   const saveBtn = document.getElementById("save-btn");
   const groupForm = document.getElementById("group-form");
   if (saveBtn && groupForm) {
-    groupForm.addEventListener("submit", (e) => {
-      if (oyDarsSoniInput) {
-        console.log("SUBMIT: oy_dars_soni =", oyDarsSoniInput.value, "| manual =", oyDarsSoniManual);
-      }
+    groupForm.addEventListener("submit", () => {
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saqlanmoqda...</span>';
     });
