@@ -92,6 +92,22 @@ class ParentTelegramLinkTokenAdmin(admin.ModelAdmin):
 
 
 
+class CenterFeatureOverrideInline(admin.TabularInline):
+    """Markaz profilida feature override'larni to'g'ridan-to'g'ri boshqarish."""
+    from billing.models import CenterFeatureOverride as _CFO
+    model = _CFO
+    fk_name = "center"
+    extra = 0
+    fields = ("feature", "enabled", "note")
+    autocomplete_fields = ("feature",)
+    verbose_name = "Xususiyat Override"
+    verbose_name_plural = "Xususiyatlar (per-markaz override)"
+
+    def get_queryset(self, request):
+        from billing.models import CenterFeatureOverride
+        return CenterFeatureOverride.objects.select_related("feature").order_by("feature__name")
+
+
 @admin.register(Center)
 class CenterAdmin(admin.ModelAdmin):
     list_display = (
@@ -112,6 +128,8 @@ class CenterAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug", "address")
     ordering = ("name",)
 
+    inlines = [CenterFeatureOverrideInline]
+
     actions = (
         "extend_30_days",
         "extend_90_days",
@@ -124,6 +142,8 @@ class CenterAdmin(admin.ModelAdmin):
         "disable_support_teacher",
         "enable_ai_feature",
         "disable_ai_feature",
+        "enable_manual_oy_dars_soni",
+        "disable_manual_oy_dars_soni",
     )
     raw_id_fields = ("parent_center",)
 
@@ -196,6 +216,31 @@ class CenterAdmin(admin.ModelAdmin):
             f"⚠️ {updated} ta markazda AI Yordamchi O'CHIRILDI.",
             level=messages.WARNING,
         )
+
+    def _set_feature_override(self, request, queryset, *, slug: str, enabled: bool):
+        from billing.models import PlanFeature, CenterFeatureOverride
+        feature = PlanFeature.objects.filter(code=slug).first()
+        if not feature:
+            self.message_user(request, f"Feature '{slug}' topilmadi.", level=messages.ERROR)
+            return
+        n = 0
+        for center in queryset:
+            CenterFeatureOverride.objects.update_or_create(
+                center=center,
+                feature=feature,
+                defaults={"enabled": enabled},
+            )
+            n += 1
+        state = "YOQILDI ✅" if enabled else "O'CHIRILDI ⚠️"
+        self.message_user(request, f"{n} ta markazda '{feature.name}' {state}.", level=messages.SUCCESS)
+
+    @admin.action(description="🔢 Qo'lda oylik dars soni: YOQISH")
+    def enable_manual_oy_dars_soni(self, request, queryset):
+        self._set_feature_override(request, queryset, slug="manual_oy_dars_soni", enabled=True)
+
+    @admin.action(description="🔢 Qo'lda oylik dars soni: O'CHIRISH")
+    def disable_manual_oy_dars_soni(self, request, queryset):
+        self._set_feature_override(request, queryset, slug="manual_oy_dars_soni", enabled=False)
 
     def status_badge(self, obj: Center):
         if obj.status == Center.STATUS_BLOCKED:
