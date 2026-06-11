@@ -493,6 +493,38 @@
                     </div>
                 </div>
 
+                <!-- Billing Xususiyatlari (per-markaz override) -->
+                <div class="full-width mt-4">
+                    <label class="form-label-custom mb-3">
+                        <i class="bi bi-sliders me-1"></i> Billing Xususiyatlari (per-markaz)
+                    </label>
+                    <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.18);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:4px;">
+                                🔢 Qo'lda oylik dars soni
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Yoqilganda guruh yaratishda "bir oyda necha dars" maydonini qo'lda kiritish mumkin.
+                                <strong style="color:#94a3b8;">O'chirilganda tizim har doim 12 dars bilan hisoblaydi.</strong>
+                            </div>
+                        </div>
+                        <div style="flex-shrink:0;">
+                            <input type="hidden" name="manual_oy_dars_soni" value="0">
+                            <div class="form-check form-switch" style="margin:0;">
+                                <input type="checkbox" class="form-check-input" name="manual_oy_dars_soni"
+                                       id="id_manual_oy_dars_soni" value="1"
+                                       style="width:48px;height:24px;cursor:pointer;"
+                                       {% if manual_oy_dars_soni_enabled %}checked{% endif %}>
+                                <label class="form-check-label ms-2" for="id_manual_oy_dars_soni"
+                                       id="manual_oy_dars_soni_label"
+                                       style="font-size:13px;font-weight:600;cursor:pointer;color:{% if manual_oy_dars_soni_enabled %}#34d399{% else %}#94a3b8{% endif %};">
+                                    {% if manual_oy_dars_soni_enabled %}Yoqilgan{% else %}O'chirilgan{% endif %}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn-cancel">
                         Bekor qilish
@@ -771,6 +803,16 @@
                 aiLabel.style.color = this.checked ? '#34d399' : '#94a3b8';
             });
             aiLabel.style.color = aiToggle.checked ? '#34d399' : '#94a3b8';
+        }
+
+        // manual_oy_dars_soni toggle — label rangini dinamik yangilash
+        const modsToggle = document.getElementById('id_manual_oy_dars_soni');
+        const modsLabel  = document.getElementById('manual_oy_dars_soni_label');
+        if (modsToggle && modsLabel) {
+            modsToggle.addEventListener('change', function () {
+                modsLabel.textContent = this.checked ? 'Yoqilgan' : 'O\'chirilgan';
+                modsLabel.style.color = this.checked ? '#34d399' : '#94a3b8';
+            });
         }
     });
 </script>

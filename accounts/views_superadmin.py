@@ -366,9 +366,30 @@ def center_edit(request, pk):
         except Exception:
             pass  # sync xato bo'lsa asosiy save saqlanadi
 
+        # manual_oy_dars_soni feature override saqlash
+        try:
+            from billing.models import PlanFeature, CenterFeatureOverride
+            feature = PlanFeature.objects.filter(code="manual_oy_dars_soni").first()
+            if feature:
+                enabled = request.POST.get("manual_oy_dars_soni") == "1"
+                CenterFeatureOverride.objects.update_or_create(
+                    center=center,
+                    feature=feature,
+                    defaults={"enabled": enabled},
+                )
+        except Exception:
+            pass
+
         messages.success(request, f"✅ Markaz '{center.name}' yangilandi!")
         return redirect('platform_global:superadmin_dashboard')
-    
+
+    # manual_oy_dars_soni joriy holati
+    try:
+        from billing.services import center_has_feature
+        manual_oy_dars_soni_enabled = center_has_feature(center, "manual_oy_dars_soni")
+    except Exception:
+        manual_oy_dars_soni_enabled = False
+
     # Prepare Plans JSON for frontend calculation
     plans_qs = SubscriptionPlan.objects.filter(active=True)
     plans_data = []
@@ -392,6 +413,7 @@ def center_edit(request, pk):
         'center': center,
         'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder),
         'center_ui_feature_defaults': CENTER_UI_FEATURE_DEFAULTS,
+        'manual_oy_dars_soni_enabled': manual_oy_dars_soni_enabled,
     })
 
 
