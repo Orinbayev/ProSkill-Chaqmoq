@@ -2376,13 +2376,15 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         _inactive_base = Enrollment.objects.filter(id__in=_inactive_enr_ids)
 
         _target_enrs = list(_active_base) + list(_inactive_base)
-        
+
         if _target_enrs:
+             from education.services.tuition import preload_group_schedules
              preload_enrollment_history_starts(_target_enrs)
+             preload_group_schedules({e.group_id for e in _target_enrs if e.group_id})
              # Bizga target_date (d_to) dagi kümülatif qarz kerak
              snaps = calculate_enrollment_debt_snapshots(
-                 _target_enrs, 
-                 [month_first_day(d_to)], 
+                 _target_enrs,
+                 [month_first_day(d_to)],
                  cumulative_up_to=d_to
              )
              
@@ -2441,8 +2443,9 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     # Qarzdorlar (snapshot) — oldingi davr oxirida
     prev_total_debt = 0
     try:
-        from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts
-        
+        from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts, preload_group_schedules
+        from education.models import TuitionMonth as _TM_prev
+
         _prev_active = Enrollment.objects.filter(
             group__center=center,
             is_active=True,
@@ -2451,22 +2454,37 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         )
         if branch:
             _prev_active = _prev_active.filter(group__branch=branch)
-            
-        _prev_inactive = Enrollment.objects.filter(
-            group__center=center,
-            is_active=False,
-            student__is_archived=False,
+
+        # Faqat TuitionMonth yozuvi mavjud bo'lgan inactive enrollment'lar
+        # (current period block dagi kabi — ALL inactive'ni fetch qilish N+1 manbai)
+        _prev_inactive_ids = (
+            _TM_prev.objects.filter(
+                enrollment__group__center=center,
+                enrollment__is_active=False,
+                is_deleted=False,
+                enrollment__student__is_archived=False,
+            ).values_list("enrollment_id", flat=True).distinct()
         )
         if branch:
-            _prev_inactive = _prev_inactive.filter(group__branch=branch)
+            _prev_inactive_ids = (
+                _TM_prev.objects.filter(
+                    enrollment__group__center=center,
+                    enrollment__group__branch=branch,
+                    enrollment__is_active=False,
+                    is_deleted=False,
+                    enrollment__student__is_archived=False,
+                ).values_list("enrollment_id", flat=True).distinct()
+            )
+        _prev_inactive = Enrollment.objects.filter(id__in=_prev_inactive_ids)
 
         _prev_enrs = list(_prev_active) + list(_prev_inactive)
-        
+
         if _prev_enrs:
              preload_enrollment_history_starts(_prev_enrs)
+             preload_group_schedules({e.group_id for e in _prev_enrs if e.group_id})
              prev_snaps = calculate_enrollment_debt_snapshots(
-                 _prev_enrs, 
-                 [month_first_day(_pt)], 
+                 _prev_enrs,
+                 [month_first_day(_pt)],
                  cumulative_up_to=_pt
              )
              for snap in prev_snaps.values():

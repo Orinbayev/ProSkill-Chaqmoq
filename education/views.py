@@ -2943,54 +2943,91 @@ def qarzdorlar_home(request):
     # weekday counts. Bu N+1 muammoning ASOSIY manbasi — har enrollment uchun
     # alohida `GroupSchedule.objects.filter(group=...)` chaqiruvi qilinmaydi.
     preload_enrollment_history_starts(enrollment_list)
-    from education.services.tuition import preload_group_schedules, auto_net_student_credits
+    from education.services.tuition import preload_group_schedules
     preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
 
-    # Automagically net out cross-group credits and debts for each unique student in the list
-    seen_students = set()
-    for e in enrollment_list:
-        if e.student_id not in seen_students:
-            seen_students.add(e.student_id)
-            try:
-                auto_net_student_credits(e.student)
-            except Exception:
-                pass
+    # auto_net_student_credits is a payment-time write operation — calling it on
+    # every page load causes 5+ queries per student (N+1). It is triggered by
+    # the payment save path; skip it here entirely.
 
-    # Lazy tuzatish: GroupSchedule bo'lsa lesson_pattern "group" bo'lishi shart,
-    # aks holda "odd"/"even" GroupSchedule ni bypass qilib 12-13 ta dars beradi.
-    # Keyin TuitionMonth feesini ham yangilaymiz (stale oy_dars_soni → to'g'ri fee).
+    # Lazy tuzatish: lesson_pattern stale bo'lsa "group" ga o'tkaz.
+    # bulk_update bilan bir so'rovda, N+1 save() o'rniga.
     _cur_month_for_recalc = today.replace(day=1)
     from education.services.tuition import ensure_tuition_month as _etm
-    for e in active_list:
-        if not getattr(e, "is_active", False):
-            continue
-        try:
-            # lesson_pattern stale bo'lsa tuzat:
-            # guruhda oy_dars_soni belgilangan → "group" pattern (calendar proportion)
-            _oy_ds = int(getattr(getattr(e, "group", None), "oy_dars_soni", 0) or 0)
-            if _oy_ds > 0 and e.lesson_pattern in ("odd", "even", "daily"):
-                e.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
-                e.save(update_fields=["lesson_pattern"])
-            _etm(e, _cur_month_for_recalc)
-        except Exception:
-            pass
+    _pattern_stale = [
+        e for e in active_list
+        if getattr(e, "is_active", False)
+        and int(getattr(getattr(e, "group", None), "oy_dars_soni", 0) or 0) > 0
+        and e.lesson_pattern in ("odd", "even", "daily")
+    ]
+    if _pattern_stale:
+        for _e in _pattern_stale:
+            _e.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
+        Enrollment.objects.bulk_update(_pattern_stale, ["lesson_pattern"])
+
+    # ensure_tuition_month: Pre-fetch existing TuitionMonth IDs for current month
+    # in ONE query, then only call _etm for enrollments that are missing one.
+    _active_ids = [e.id for e in active_list if getattr(e, "is_active", False)]
+    if _active_ids:
+        from education.models import TuitionMonth as _TM
+        _existing_tm_enr_ids = set(
+            _TM.objects.filter(
+                enrollment_id__in=_active_ids,
+                month=_cur_month_for_recalc,
+                is_deleted=False,
+            ).values_list("enrollment_id", flat=True)
+        )
+        for e in active_list:
+            if not getattr(e, "is_active", False):
+                continue
+            if e.id in _existing_tm_enr_ids:
+                continue
+            try:
+                _etm(e, _cur_month_for_recalc)
+            except Exception:
+                pass
 
     debt_snapshots = calculate_enrollment_debt_snapshots(
         enrollment_list, period_months
     )
 
     # ─── JAMI QARZ SUMMASI (barcha 12 oy bo'yicha) ───────────────────────────
-    # Dashboard bilan AYNAN bir xil filtr: is_deferred=False + aktiv enrollment.
-    # Bu kechiktirilgan (deferred) o'quvchilarning to'lanmagan tarixiy
-    # TuitionMonth yozuvlarini chiqarib tashlaydi — ular haqiqiy qarz emas.
-    # Jami qarz: active (non-deferred) + inactive (with debt)
-    _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
-    _active_total_snaps = calculate_enrollment_debt_snapshots(
-        _total_debt_enrs, period_months
-    )
-    total_center_debt = sum(
-        int(snap.get("debt", 0) or 0) for snap in _active_total_snaps.values()
-    )
+    # 2 ta DB query bilan hisoblaymiz (avval 2 full enrollment fetch +
+    # calculate_enrollment_debt_snapshots edi — yuzlab query).
+    total_center_debt = 0
+    try:
+        from education.models import TuitionMonth as _TM2, PaymentAllocation as _PA
+        from education.services.tuition import tuition_month_fee_field as _fee_f
+        from django.db.models import Sum as _Sum
+        _ff = _fee_f()
+        _tm_rows = list(
+            _TM2.objects.filter(
+                enrollment__group__center=center,
+                month__in=period_months,
+                is_deleted=False,
+            ).filter(
+                _Q(enrollment__is_active=True, enrollment__is_deferred=False,
+                   enrollment__student__is_archived=False)
+                | _Q(enrollment__is_active=False,
+                     enrollment__student__is_archived=False)
+            ).values("id", _ff)
+        )
+        if _tm_rows:
+            _tm_ids2 = [r["id"] for r in _tm_rows]
+            _paid_map2 = {
+                r["tuition_month_id"]: int(r["paid"] or 0)
+                for r in _PA.objects.filter(
+                    tuition_month_id__in=_tm_ids2,
+                    tuition_month__is_deleted=False,
+                    payment__is_deleted=False,
+                ).values("tuition_month_id").annotate(paid=_Sum("amount"))
+            }
+            total_center_debt = sum(
+                max(0, int(r[_ff] or 0) - _paid_map2.get(r["id"], 0))
+                for r in _tm_rows
+            )
+    except Exception:
+        total_center_debt = 0
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
     student_map = {}   # {student_id: row_dict}
