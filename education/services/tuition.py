@@ -684,14 +684,28 @@ def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
 
 
 def _monthly_lessons_count(enrollment: Enrollment) -> int:
-    # Guruh oy_dars_soni HAR DOIM ustuvor — bu guruh uchun yagona haqiqat manba'i.
-    # enrollment.monthly_lessons faqat guruh bo'lmagan (arxivlangan/o'chirilgan) holda ishlatiladi.
+    """
+    O'quvchi oylik standart darslar soni (bo'linuvchi).
+
+    "manual_oy_dars_soni" feature yoqilgan markaz:
+        guruh.oy_dars_soni → enrollment.monthly_lessons → 12
+
+    Boshqa markazlar (standart rejim):
+        har doim 12  — o'qituvchi va o'quvchi hisob-kitobi barqaror bo'lishi uchun
+    """
     group = getattr(enrollment, "group", None)
-    group_lessons = int(getattr(group, "oy_dars_soni", 0) or 0)
-    if group_lessons > 0:
-        return group_lessons
-    monthly_lessons = int(getattr(enrollment, "monthly_lessons", 0) or 0)
-    return monthly_lessons if monthly_lessons > 0 else 12
+    center = getattr(group, "center", None) if group else None
+
+    if center:
+        from billing.services import center_has_feature
+        if center_has_feature(center, "manual_oy_dars_soni"):
+            group_lessons = int(getattr(group, "oy_dars_soni", 0) or 0)
+            if group_lessons > 0:
+                return group_lessons
+            monthly_lessons = int(getattr(enrollment, "monthly_lessons", 0) or 0)
+            return monthly_lessons if monthly_lessons > 0 else 12
+
+    return 12
 
 
 def _prorated_monthly_fee_from_amount(

@@ -6820,16 +6820,27 @@ def group_create_by_category(request, category_id):
         if category.center_id and category.center_id != center.id:
             raise PermissionDenied("Bu bo'limga ruxsat yo'q")
 
+    from billing.services import center_has_feature
+    has_manual_oy_dars_soni = center_has_feature(center, "manual_oy_dars_soni") if center else False
+
     if request.method == "POST":
         form = GroupForm(request.POST, center=center)
         if form.is_valid():
             group = form.save(commit=False)
             group.category_obj = category
             group.center = center
-            if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
-                group.lessons_per_week = 3
-                if not group.oy_dars_soni:
+            schedule_mode = form.cleaned_data.get("schedule_mode", "")
+            custom_days = form.cleaned_data.get("custom_days") or []
+            if schedule_mode in {"odd", "even", "custom"}:
+                day_count = len(custom_days) if schedule_mode == "custom" else 3
+                group.lessons_per_week = day_count
+                if has_manual_oy_dars_soni:
+                    if not group.oy_dars_soni:
+                        group.oy_dars_soni = day_count * 4
+                else:
                     group.oy_dars_soni = 12
+            if not group.oy_dars_soni:
+                group.oy_dars_soni = 12
 
             # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
             if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
@@ -6845,7 +6856,8 @@ def group_create_by_category(request, category_id):
             group.save()
             sync_simple_group_schedule(
                 group=group,
-                schedule_mode=form.cleaned_data.get("schedule_mode"),
+                schedule_mode=schedule_mode,
+                custom_days=custom_days,
                 start_time=form.cleaned_data.get("schedule_start_time"),
                 end_time=form.cleaned_data.get("schedule_end_time"),
                 room=form.cleaned_data.get("schedule_room"),
@@ -6859,6 +6871,7 @@ def group_create_by_category(request, category_id):
         "form": form,
         "category": category,
         "course_templates": course_templates,
+        "has_manual_oy_dars_soni": has_manual_oy_dars_soni,
     })
 
 
@@ -8630,6 +8643,9 @@ def group_create(request, category=None):
 
     from core.tenant import get_request_center
     center = get_request_center(request) or getattr(request.user, "center", None)
+    from billing.services import center_has_feature
+    has_manual_oy_dars_soni = center_has_feature(center, "manual_oy_dars_soni") if center else False
+
     form = FormCls(request.POST or None, center=center)
 
     if request.method == "POST" and form.is_valid():
@@ -8640,8 +8656,11 @@ def group_create(request, category=None):
         if schedule_mode in {"odd", "even", "custom"}:
             day_count = len(custom_days) if schedule_mode == "custom" else 3
             g.lessons_per_week = day_count
-            if not g.oy_dars_soni:
-                g.oy_dars_soni = day_count * 4
+            if has_manual_oy_dars_soni:
+                if not g.oy_dars_soni:
+                    g.oy_dars_soni = day_count * 4
+            else:
+                g.oy_dars_soni = 12
 
         # 🔹 Kategoriya bo'sh bo'lsa, avtomatik to'ldir
         g.category = category or Group.LANG
@@ -8666,7 +8685,6 @@ def group_create(request, category=None):
         elif not g.oqituvchi_foiz:
             g.oqituvchi_foiz = 40
 
-        # ✅ Oylik dars soni
         if not g.oy_dars_soni:
             g.oy_dars_soni = 12
 
@@ -8693,6 +8711,7 @@ def group_create(request, category=None):
     course_templates = CourseTemplate.objects.filter(center=center, is_active=True).order_by("name") if center else []
     return render(request, "education/group_form.html", {
         "form": form, "title": title, "course_templates": course_templates,
+        "has_manual_oy_dars_soni": has_manual_oy_dars_soni,
     })
 
 
@@ -8714,6 +8733,9 @@ def group_edit(request, pk):
     old_narx = g.kurs_narxi
     old_oqituvchi_id = g.oqituvchi_id
 
+    from billing.services import center_has_feature
+    has_manual_oy_dars_soni = center_has_feature(center, "manual_oy_dars_soni") if center else False
+
     form = GroupForm(request.POST or None, instance=g, center=center)
 
     if request.method == "POST" and form.is_valid():
@@ -8725,10 +8747,13 @@ def group_edit(request, pk):
         if schedule_mode in {"odd", "even", "custom"}:
             day_count = len(custom_days) if schedule_mode == "custom" else 3
             updated_group.lessons_per_week = day_count
-            if not updated_group.oy_dars_soni:
-                updated_group.oy_dars_soni = day_count * 4
+            if has_manual_oy_dars_soni:
+                if not updated_group.oy_dars_soni:
+                    updated_group.oy_dars_soni = day_count * 4
+            else:
+                updated_group.oy_dars_soni = 12
 
-        # Bo'sh qolsa — default 12
+        # Har holda bo'sh qolmasin
         if not updated_group.oy_dars_soni:
             updated_group.oy_dars_soni = 12
 
@@ -8812,6 +8837,7 @@ def group_edit(request, pk):
         "title": "Guruhni tahrirlash",
         "description": "Guruh ma'lumotlarini tahrirlash",
         "group": g,
+        "has_manual_oy_dars_soni": has_manual_oy_dars_soni,
     })
 
 
@@ -8963,15 +8989,26 @@ def group_add(request):
 
     from core.tenant import get_request_center
     center = get_request_center(request) or getattr(request.user, "center", None)
+    from billing.services import center_has_feature
+    has_manual_oy_dars_soni = center_has_feature(center, "manual_oy_dars_soni") if center else False
+
     form = GroupForm(request.POST or None, center=center)
     if request.method == "POST" and form.is_valid():
         group = form.save(commit=False)
         if not group.center_id:
             group.center = center
-        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
-            group.lessons_per_week = 3
-            if not group.oy_dars_soni:
+        schedule_mode = form.cleaned_data.get("schedule_mode", "")
+        custom_days = form.cleaned_data.get("custom_days") or []
+        if schedule_mode in {"odd", "even", "custom"}:
+            day_count = len(custom_days) if schedule_mode == "custom" else 3
+            group.lessons_per_week = day_count
+            if has_manual_oy_dars_soni:
+                if not group.oy_dars_soni:
+                    group.oy_dars_soni = day_count * 4
+            else:
                 group.oy_dars_soni = 12
+        if not group.oy_dars_soni:
+            group.oy_dars_soni = 12
 
         # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
         if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
@@ -8987,7 +9024,8 @@ def group_add(request):
         group.save()
         sync_simple_group_schedule(
             group=group,
-            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            schedule_mode=schedule_mode,
+            custom_days=custom_days,
             start_time=form.cleaned_data.get("schedule_start_time"),
             end_time=form.cleaned_data.get("schedule_end_time"),
             room=form.cleaned_data.get("schedule_room"),
@@ -8998,6 +9036,7 @@ def group_add(request):
     return render(request, "education/group_form.html", {
         "form": form,
         "title": "Yangi guruh qo'shish",
+        "has_manual_oy_dars_soni": has_manual_oy_dars_soni,
     })
 
 

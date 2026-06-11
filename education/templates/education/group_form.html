@@ -145,7 +145,8 @@
             {% for e in form.kurs_narxi.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
 
-          <!-- Oyda darslar soni -->
+          <!-- Oyda darslar soni — faqat manual_oy_dars_soni feature yoqilgan markazlarda ko'rinadi -->
+          {% if has_manual_oy_dars_soni %}
           <div class="ngf-field" id="oy-dars-soni-field">
             <label class="ngf-label" for="{{ form.oy_dars_soni.id_for_label }}">
               <i class="fa-solid fa-hashtag ngf-label__ico"></i>Oyda darslar soni
@@ -158,6 +159,7 @@
             <div class="ngf-hint"><i class="fa-solid fa-circle-info"></i> Bo'sh qoldirsangiz, tizim 12 dars bilan hisoblaydi</div>
             {% for e in form.oy_dars_soni.errors %}<div class="ngf-err">{{ e }}</div>{% endfor %}
           </div>
+          {% endif %}
         </div>
       </div>
 
