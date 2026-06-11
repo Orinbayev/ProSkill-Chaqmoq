@@ -312,4 +312,150 @@
     .ui-title { font-size: 24px; }
     .ui-kv { grid-template-columns: 1fr; gap: 4px; }
   }
+
+  /* Page background for all education phase pages */
+  html[data-role-theme="light"] body.education-phase-page,
+  html[data-role-theme="light"] body.cert-candidates-page,
+  html[data-role-theme="light"] body.exam-list-page,
+  html[data-role-theme="light"] body.failed-students-page,
+  html[data-role-theme="light"] body.cert-templates-page {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+  }
+
+  /* ==============================================================
+     LIGHT MODE — generic overrides for all ui-* classes
+     Applied on any page when html[data-role-theme="light"]
+     ============================================================== */
+  html[data-role-theme="light"] .ui-shell { color: #1e293b !important; }
+
+  html[data-role-theme="light"] .ui-panel {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.07) !important;
+    backdrop-filter: none !important;
+  }
+  html[data-role-theme="light"] .ui-title        { color: #0f172a !important; }
+  html[data-role-theme="light"] .ui-sub          { color: #64748b !important; }
+  html[data-role-theme="light"] .ui-section-title { color: #1e293b !important; }
+  html[data-role-theme="light"] .ui-label        { color: #475569 !important; }
+  html[data-role-theme="light"] .ui-empty        { color: #94a3b8 !important; }
+  html[data-role-theme="light"] .ui-muted        { color: #94a3b8 !important; }
+
+  /* inputs & selects */
+  html[data-role-theme="light"] .ui-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  html[data-role-theme="light"] .ui-panel select,
+  html[data-role-theme="light"] .ui-panel textarea {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+  }
+  html[data-role-theme="light"] .ui-panel input:focus,
+  html[data-role-theme="light"] .ui-panel select:focus,
+  html[data-role-theme="light"] .ui-panel textarea:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+  }
+  html[data-role-theme="light"] .ui-panel input[type="file"] {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+  }
+
+  /* buttons */
+  html[data-role-theme="light"] .ui-btn,
+  html[data-role-theme="light"] .ui-btn:link,
+  html[data-role-theme="light"] .ui-btn:visited {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border-color: #e2e8f0 !important;
+  }
+  html[data-role-theme="light"] .ui-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+  html[data-role-theme="light"] .ui-btn-primary,
+  html[data-role-theme="light"] .ui-btn-primary:link,
+  html[data-role-theme="light"] .ui-btn-primary:visited {
+    background: linear-gradient(135deg,#3b82f6,#2563eb) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.25) !important;
+  }
+  html[data-role-theme="light"] .ui-btn-primary:hover {
+    background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+    box-shadow: 0 6px 16px rgba(37,99,235,0.35) !important;
+  }
+  html[data-role-theme="light"] .ui-btn-secondary,
+  html[data-role-theme="light"] .ui-btn-secondary:link,
+  html[data-role-theme="light"] .ui-btn-secondary:visited {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+  }
+  html[data-role-theme="light"] .ui-btn-secondary:hover {
+    background: #f8fafc !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+  }
+  html[data-role-theme="light"] .ui-btn-warning,
+  html[data-role-theme="light"] .ui-btn-warning:link,
+  html[data-role-theme="light"] .ui-btn-warning:visited {
+    background: linear-gradient(135deg,#f59e0b,#d97706) !important;
+    color: #0f172a !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.25) !important;
+  }
+  html[data-role-theme="light"] .ui-btn-warning:hover {
+    background: linear-gradient(135deg,#d97706,#b45309) !important;
+  }
+  html[data-role-theme="light"] .ui-btn-danger,
+  html[data-role-theme="light"] .ui-btn-danger:link,
+  html[data-role-theme="light"] .ui-btn-danger:visited {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border-color: #fca5a5 !important;
+  }
+
+  /* badges */
+  html[data-role-theme="light"] .ui-badge-success {
+    background: #dcfce7 !important; color: #166534 !important; border-color: #bbf7d0 !important;
+  }
+  html[data-role-theme="light"] .ui-badge-warning {
+    background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important;
+  }
+  html[data-role-theme="light"] .ui-badge-danger {
+    background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important;
+  }
+  html[data-role-theme="light"] .ui-badge-neutral {
+    background: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important;
+  }
+
+  /* table */
+  html[data-role-theme="light"] .ui-table-wrap {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+  }
+  html[data-role-theme="light"] .ui-table         { color: #1e293b !important; }
+  html[data-role-theme="light"] .ui-table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
+  }
+  html[data-role-theme="light"] .ui-table tbody td  { border-color: #f1f5f9 !important; }
+  html[data-role-theme="light"] .ui-table tbody tr:hover { background: #f0f7ff !important; }
+
+  /* note / kv */
+  html[data-role-theme="light"] .ui-note {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1e40af !important;
+  }
+  html[data-role-theme="light"] .ui-note.ui-note-muted {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+  }
+  html[data-role-theme="light"] .ui-kv-key { color: #64748b !important; }
+  html[data-role-theme="light"] .ui-kv-val { color: #1e293b !important; }
 </style>

@@ -1,115 +1,260 @@
 {% extends "base.html" %}
+{% block body_class %}cert-templates-page{% endblock %}
+{% block title %}Sertifikatlar | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ================================================================
+   CERTIFICATES — page-scoped styles (dark + light)
+   ================================================================ */
+.cert-shell {
+  display: grid;
+  gap: 14px;
+}
+.cert-top-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 14px;
+}
+.cert-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.cert-stat {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.66);
+}
+.cert-stat-label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cert-stat-value {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 24px;
+  font-weight: 900;
+}
+.cert-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.cert-form-grid .full {
+  grid-column: 1 / -1;
+}
+.cert-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.cert-group-card,
+.cert-template-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.68);
+}
+.cert-group-name,
+.cert-template-name {
+  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.cert-group-sub,
+.cert-template-sub {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cert-group-meta,
+.cert-template-meta {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cert-template-list {
+  display: grid;
+  gap: 12px;
+}
+.cert-template-actions {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.field-error {
+  margin-top: 6px;
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 700;
+}
+@media (max-width: 1100px) {
+  .cert-top-grid,
+  .cert-groups,
+  .cert-stats { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .cert-form-grid { grid-template-columns: 1fr; }
+}
+
+/* ================================================================
+   LIGHT MODE
+   ================================================================ */
+html[data-role-theme="light"] body.cert-templates-page {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* ui-shell / panel */
+html[data-role-theme="light"] body.cert-templates-page .ui-shell { color: #1e293b !important; }
+
+html[data-role-theme="light"] body.cert-templates-page .ui-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06) !important;
+  backdrop-filter: none !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-title         { color: #0f172a !important; }
+html[data-role-theme="light"] body.cert-templates-page .ui-sub           { color: #64748b !important; }
+html[data-role-theme="light"] body.cert-templates-page .ui-section-title { color: #1e293b !important; }
+html[data-role-theme="light"] body.cert-templates-page .ui-label         { color: #475569 !important; }
+html[data-role-theme="light"] body.cert-templates-page .ui-empty         { color: #94a3b8 !important; }
+
+/* inputs & selects */
+html[data-role-theme="light"] body.cert-templates-page .ui-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-role-theme="light"] body.cert-templates-page .ui-panel select,
+html[data-role-theme="light"] body.cert-templates-page .ui-panel textarea {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-panel input:focus,
+html[data-role-theme="light"] body.cert-templates-page .ui-panel select:focus,
+html[data-role-theme="light"] body.cert-templates-page .ui-panel textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-panel input[type="file"] {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* buttons */
+html[data-role-theme="light"] body.cert-templates-page .ui-btn,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn:link,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn:visited {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-primary,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-primary:link,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-primary:visited {
+  background: linear-gradient(135deg,#3b82f6,#2563eb) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25) !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-primary:hover {
+  background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-secondary,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-secondary:link,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-secondary:visited {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-secondary:hover {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-danger,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-danger:link,
+html[data-role-theme="light"] body.cert-templates-page .ui-btn-danger:visited {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+/* badges */
+html[data-role-theme="light"] body.cert-templates-page .ui-badge-success {
+  background: #dcfce7 !important; color: #166534 !important; border-color: #bbf7d0 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-badge-warning {
+  background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-badge-danger {
+  background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-badge-neutral {
+  background: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important;
+}
+
+/* note blocks */
+html[data-role-theme="light"] body.cert-templates-page .ui-note {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .ui-note.ui-note-muted {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* stat cards */
+html[data-role-theme="light"] body.cert-templates-page .cert-stat {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05) !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .cert-stat-label { color: #64748b !important; }
+html[data-role-theme="light"] body.cert-templates-page .cert-stat-value { color: #0f172a !important; }
+
+/* group & template cards */
+html[data-role-theme="light"] body.cert-templates-page .cert-group-card,
+html[data-role-theme="light"] body.cert-templates-page .cert-template-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06) !important;
+}
+html[data-role-theme="light"] body.cert-templates-page .cert-group-name,
+html[data-role-theme="light"] body.cert-templates-page .cert-template-name { color: #0f172a !important; }
+html[data-role-theme="light"] body.cert-templates-page .cert-group-sub,
+html[data-role-theme="light"] body.cert-templates-page .cert-template-sub  { color: #64748b !important; }
+html[data-role-theme="light"] body.cert-templates-page .cert-group-meta,
+html[data-role-theme="light"] body.cert-templates-page .cert-template-meta { color: #334155 !important; }
+
+/* form field errors */
+html[data-role-theme="light"] body.cert-templates-page .field-error { color: #b91c1c !important; }
+</style>
+{% endblock %}
+
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<style>
-  .cert-shell {
-    display: grid;
-    gap: 14px;
-  }
-  .cert-top-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 14px;
-  }
-  .cert-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .cert-stat {
-    padding: 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.66);
-  }
-  .cert-stat-label {
-    color: #94a3b8;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .cert-stat-value {
-    margin-top: 6px;
-    color: #f8fafc;
-    font-size: 24px;
-    font-weight: 900;
-  }
-  .cert-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .cert-form-grid .full {
-    grid-column: 1 / -1;
-  }
-  .cert-groups {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .cert-group-card,
-  .cert-template-card {
-    padding: 16px;
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.68);
-  }
-  .cert-group-name,
-  .cert-template-name {
-    color: #f8fafc;
-    font-size: 17px;
-    font-weight: 900;
-    line-height: 1.2;
-  }
-  .cert-group-sub,
-  .cert-template-sub {
-    margin-top: 4px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .cert-group-meta,
-  .cert-template-meta {
-    margin-top: 12px;
-    display: grid;
-    gap: 6px;
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .cert-template-list {
-    display: grid;
-    gap: 12px;
-  }
-  .cert-template-actions {
-    margin-top: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .field-error {
-    margin-top: 6px;
-    color: #fca5a5;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  @media (max-width: 1100px) {
-    .cert-top-grid,
-    .cert-groups,
-    .cert-stats {
-      grid-template-columns: 1fr;
-    }
-  }
-  @media (max-width: 700px) {
-    .cert-form-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
 
 <div class="ui-shell cert-shell">
+
+  <!-- Header -->
   <div class="ui-panel ui-header glass">
     <div>
       <h3 class="ui-title">🎓 Sertifikatlar</h3>
@@ -118,6 +263,7 @@
   </div>
 
   <div class="cert-top-grid">
+    <!-- Upload form -->
     <div class="ui-panel ui-section glass">
       <h4 class="ui-section-title">Yangi shablon yuklash</h4>
       <form method="post" enctype="multipart/form-data" class="cert-form-grid">
@@ -147,11 +293,14 @@
           {% for e in form.note.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
         </div>
         <div class="full">
-          <button type="submit" class="ui-btn ui-btn-primary">Shablonni saqlash</button>
+          <button type="submit" class="ui-btn ui-btn-primary">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Shablonni saqlash
+          </button>
         </div>
       </form>
     </div>
 
+    <!-- Stats -->
     <div class="ui-panel ui-section glass">
       <h4 class="ui-section-title">Qisqa holat</h4>
       <div class="cert-stats">
@@ -169,11 +318,15 @@
         </div>
       </div>
       {% if not active_templates_count %}
-        <div class="ui-note mt-3 mb-0">Hali faol shablon yo'q. Sertifikat berishdan oldin kamida bitta faol shablon yuklang.</div>
+        <div class="ui-note mt-3 mb-0">
+          <i class="fa-solid fa-circle-exclamation me-1"></i>
+          Hali faol shablon yo'q. Sertifikat berishdan oldin kamida bitta faol shablon yuklang.
+        </div>
       {% endif %}
     </div>
   </div>
 
+  <!-- Groups -->
   <div class="ui-panel ui-section glass">
     <h4 class="ui-section-title">Guruhlar bo'yicha sertifikat berish</h4>
     <div class="cert-groups">
@@ -184,11 +337,14 @@
             {% if group.oqituvchi %}{{ group.oqituvchi.get_full_name }}{% else %}O'qituvchi belgilanmagan{% endif %}
           </div>
           <div class="cert-group-meta">
-            <div>Faol o'quvchilar: {{ group.active_students_count }}</div>
-            <div>Berilgan sertifikatlar: {{ group.issued_certificates_count }}</div>
+            <div>Faol o'quvchilar: <strong>{{ group.active_students_count }}</strong></div>
+            <div>Berilgan sertifikatlar: <strong>{{ group.issued_certificates_count }}</strong></div>
           </div>
           <div class="cert-template-actions">
-            <a href="{% url 'education:group_certificate_candidates' group.id %}" class="ui-btn ui-btn-secondary">Nomzodlarni ko'rish</a>
+            <a href="{% url 'education:group_certificate_candidates' group.id %}"
+               class="ui-btn ui-btn-secondary">
+              <i class="fa-solid fa-users"></i> Nomzodlarni ko'rish
+            </a>
           </div>
         </div>
       {% empty %}
@@ -197,13 +353,16 @@
     </div>
   </div>
 
+  <!-- Templates list -->
   <div class="ui-panel ui-section glass">
     <h4 class="ui-section-title">Mavjud shablonlar</h4>
     <div class="cert-template-list">
       {% for t in templates %}
         <div class="cert-template-card glass">
           <div class="cert-template-name">{{ t.name }}</div>
-          <div class="cert-template-sub">{{ t.get_template_type_display }} • {{ t.updated_at|date:"d.m.Y H:i" }}</div>
+          <div class="cert-template-sub">
+            {{ t.get_template_type_display }} &bull; {{ t.updated_at|date:"d.m.Y H:i" }}
+          </div>
           <div class="cert-template-meta">
             <div>Holat:
               {% if t.is_active %}
@@ -216,12 +375,16 @@
           </div>
           <div class="cert-template-actions">
             {% if t.template_file %}
-              <a href="{{ t.template_file.url }}" target="_blank" class="ui-btn ui-btn-secondary">Ko'rish</a>
+              <a href="{{ t.template_file.url }}" target="_blank" class="ui-btn ui-btn-secondary">
+                <i class="fa-solid fa-eye"></i> Ko'rish
+              </a>
             {% endif %}
             {% if not t.is_active %}
               <form method="post" action="{% url 'education:certificate_template_activate' t.id %}">
                 {% csrf_token %}
-                <button class="ui-btn ui-btn-primary" type="submit">Faollashtirish</button>
+                <button class="ui-btn ui-btn-primary" type="submit">
+                  <i class="fa-solid fa-circle-check"></i> Faollashtirish
+                </button>
               </form>
             {% endif %}
           </div>
@@ -231,5 +394,6 @@
       {% endfor %}
     </div>
   </div>
+
 </div>
 {% endblock %}

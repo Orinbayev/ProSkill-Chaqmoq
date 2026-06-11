@@ -1,142 +1,377 @@
 {% extends "base.html" %}
+{% block body_class %}exam-list-page{% endblock %}
+{% block title %}Barcha sessiyalar | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ================================================================
+   EXAM LIST — page-scoped styles (dark + light)
+   ================================================================ */
+
+/* ---------- layout ---------- */
+.exam-simple-shell {
+  display: grid;
+  gap: 14px;
+}
+.exam-simple-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.exam-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.exam-pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.exam-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+/* ---------- stat cards ---------- */
+.exam-simple-stat {
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.64);
+}
+.exam-simple-stat-label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.exam-simple-stat-value {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+/* ---------- session cards ---------- */
+.exam-card {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.68);
+}
+.exam-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.exam-card-name {
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.exam-card-sub {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.exam-card-metrics {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.exam-card-metric {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+.exam-card-metric-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.exam-card-metric-value {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 900;
+}
+.exam-card-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.exam-card-date {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .exam-card-list,
+  .exam-simple-stats { grid-template-columns: 1fr; }
+  .exam-filter-grid  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .exam-filter-grid,
+  .exam-card-metrics { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   LIGHT MODE — html[data-role-theme="light"] body.exam-list-page
+   ================================================================ */
+html[data-role-theme="light"] body.exam-list-page {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* --- phase_theme ui-* overrides --- */
+html[data-role-theme="light"] body.exam-list-page .ui-shell {
+  color: #1e293b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-title {
+  color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-sub {
+  color: #64748b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-section-title {
+  color: #1e293b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-label {
+  color: #475569 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-empty {
+  color: #94a3b8 !important;
+}
+
+/* inputs & selects */
+html[data-role-theme="light"] body.exam-list-page .ui-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-role-theme="light"] body.exam-list-page .ui-panel select,
+html[data-role-theme="light"] body.exam-list-page .ui-panel textarea {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-panel input:focus,
+html[data-role-theme="light"] body.exam-list-page .ui-panel select:focus,
+html[data-role-theme="light"] body.exam-list-page .ui-panel textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* buttons */
+html[data-role-theme="light"] body.exam-list-page .ui-btn,
+html[data-role-theme="light"] body.exam-list-page .ui-btn:link,
+html[data-role-theme="light"] body.exam-list-page .ui-btn:visited {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-btn-primary,
+html[data-role-theme="light"] body.exam-list-page .ui-btn-primary:link,
+html[data-role-theme="light"] body.exam-list-page .ui-btn-primary:visited {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-btn-secondary,
+html[data-role-theme="light"] body.exam-list-page .ui-btn-secondary:link,
+html[data-role-theme="light"] body.exam-list-page .ui-btn-secondary:visited {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-btn-secondary:hover {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+
+/* badges */
+html[data-role-theme="light"] body.exam-list-page .ui-badge-success {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border-color: #bbf7d0 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-badge-warning {
+  background: #fef9c3 !important;
+  color: #854d0e !important;
+  border-color: #fde047 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-badge-danger {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-badge-neutral {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* --- exam-specific card overrides --- */
+html[data-role-theme="light"] body.exam-list-page .exam-simple-stat {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-simple-stat-label {
+  color: #64748b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-simple-stat-value {
+  color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-name {
+  color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-sub {
+  color: #64748b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-metric {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-metric-label {
+  color: #64748b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-metric-value {
+  color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .exam-card-date {
+  color: #475569 !important;
+}
+
+/* table (if ever used on this page) */
+html[data-role-theme="light"] body.exam-list-page .ui-table-wrap {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-table {
+  color: #1e293b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-table thead th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-table tbody td {
+  border-color: #f1f5f9 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-table tbody tr:hover {
+  background: #f0f7ff !important;
+}
+
+/* note blocks */
+html[data-role-theme="light"] body.exam-list-page .ui-note {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-note.ui-note-muted {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-kv-key {
+  color: #64748b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-kv-val {
+  color: #1e293b !important;
+}
+
+html[data-role-theme="light"] body.exam-list-page .ui-muted {
+  color: #94a3b8 !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<style>
-  .exam-simple-shell {
-    display: grid;
-    gap: 14px;
-  }
-  .exam-simple-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .exam-simple-stat {
-    padding: 16px 18px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.64);
-  }
-  .exam-simple-stat-label {
-    color: #94a3b8;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .exam-simple-stat-value {
-    margin-top: 6px;
-    color: #f8fafc;
-    font-size: 26px;
-    font-weight: 900;
-  }
-  .exam-filter-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 12px;
-    align-items: end;
-  }
-  .exam-card-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .exam-card {
-    padding: 18px;
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.68);
-  }
-  .exam-card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .exam-card-name {
-    color: #f8fafc;
-    font-size: 18px;
-    font-weight: 900;
-    line-height: 1.2;
-  }
-  .exam-card-sub {
-    margin-top: 4px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .exam-card-metrics {
-    margin-top: 14px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .exam-card-metric {
-    padding: 12px;
-    border-radius: 14px;
-    background: rgba(2, 6, 23, 0.38);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-  }
-  .exam-card-metric-label {
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .exam-card-metric-value {
-    margin-top: 6px;
-    color: #f8fafc;
-    font-size: 18px;
-    font-weight: 900;
-  }
-  .exam-card-actions {
-    margin-top: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .exam-card-date {
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .exam-pagination {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  @media (max-width: 1100px) {
-    .exam-card-list,
-    .exam-simple-stats {
-      grid-template-columns: 1fr;
-    }
-    .exam-filter-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 700px) {
-    .exam-filter-grid,
-    .exam-card-metrics {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
 
 <div class="ui-shell exam-simple-shell">
+
+  <!-- Header -->
   <div class="ui-panel ui-header glass">
     <div>
       <h3 class="ui-title">Barcha sessiyalar</h3>
       <div class="ui-sub">Imtihon sessiyalarini sodda ko'rinishda kuzatish</div>
     </div>
     <div class="ui-actions">
-      <a href="{% url 'education:exam_create' %}" class="ui-btn ui-btn-primary">Sessiya yaratish</a>
+      <a href="{% url 'education:exam_create' %}" class="ui-btn ui-btn-primary">
+        <i class="fa-solid fa-plus"></i> Sessiya yaratish
+      </a>
     </div>
   </div>
 
+  <!-- Stats -->
   <div class="exam-simple-stats">
     <div class="exam-simple-stat glass">
       <div class="exam-simple-stat-label">Jami sessiya</div>
@@ -152,6 +387,7 @@
     </div>
   </div>
 
+  <!-- Filters -->
   <div class="ui-panel ui-section glass">
     <form method="get" class="exam-filter-grid">
       <div>
@@ -176,7 +412,7 @@
         <label class="ui-label">Holat</label>
         <select name="status">
           <option value="">Barchasi</option>
-          <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Qoralama</option>
+          <option value="draft"     {% if filters.status == 'draft'     %}selected{% endif %}>Qoralama</option>
           <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Yakunlangan</option>
           <option value="cancelled" {% if filters.status == 'cancelled' %}selected{% endif %}>Bekor qilingan</option>
         </select>
@@ -187,15 +423,20 @@
       </div>
       <div>
         <label class="ui-label">&nbsp;</label>
-        <button class="ui-btn ui-btn-primary w-100" type="submit">Saralash</button>
+        <button class="ui-btn ui-btn-primary w-100" type="submit">
+          <i class="fa-solid fa-filter"></i> Saralash
+        </button>
       </div>
       <div>
         <label class="ui-label">&nbsp;</label>
-        <a href="{% url 'education:exam_list' %}" class="ui-btn ui-btn-secondary w-100">Tozalash</a>
+        <a href="{% url 'education:exam_list' %}" class="ui-btn ui-btn-secondary w-100">
+          <i class="fa-solid fa-xmark"></i> Tozalash
+        </a>
       </div>
     </form>
   </div>
 
+  <!-- Session cards -->
   <div class="exam-card-list">
     {% for session in sessions %}
       <div class="exam-card glass">
@@ -228,13 +469,19 @@
           </div>
           <div class="exam-card-metric">
             <div class="exam-card-metric-label">O'rtacha foiz</div>
-            <div class="exam-card-metric-value">{% if session.avg_percent is not None %}{{ session.avg_percent|floatformat:1 }}%{% else %}—{% endif %}</div>
+            <div class="exam-card-metric-value">
+              {% if session.avg_percent is not None %}{{ session.avg_percent|floatformat:1 }}%{% else %}—{% endif %}
+            </div>
           </div>
         </div>
 
         <div class="exam-card-actions">
-          <div class="exam-card-date">Sana: {{ session.exam_date|date:"d.m.Y" }}</div>
-          <a href="{% url 'education:exam_session_detail' session.id %}" class="ui-btn ui-btn-secondary">Batafsil</a>
+          <div class="exam-card-date">
+            <i class="fa-regular fa-calendar" style="opacity:.6;margin-right:4px;"></i>{{ session.exam_date|date:"d.m.Y" }}
+          </div>
+          <a href="{% url 'education:exam_session_detail' session.id %}" class="ui-btn ui-btn-secondary">
+            Batafsil <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i>
+          </a>
         </div>
       </div>
     {% empty %}
@@ -244,16 +491,26 @@
     {% endfor %}
   </div>
 
+  <!-- Pagination -->
   {% if sessions.has_other_pages %}
     <div class="exam-pagination">
       {% if sessions.has_previous %}
-        <a class="ui-btn ui-btn-secondary" href="?page={{ sessions.previous_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">Oldingi</a>
+        <a class="ui-btn ui-btn-secondary"
+           href="?page={{ sessions.previous_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">
+          <i class="fa-solid fa-chevron-left" style="font-size:11px;"></i> Oldingi
+        </a>
       {% endif %}
-      <span class="ui-btn ui-btn-secondary">{{ sessions.number }} / {{ sessions.paginator.num_pages }}</span>
+      <span class="ui-btn" style="pointer-events:none; opacity:.7;">
+        {{ sessions.number }} / {{ sessions.paginator.num_pages }}
+      </span>
       {% if sessions.has_next %}
-        <a class="ui-btn ui-btn-secondary" href="?page={{ sessions.next_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">Keyingi</a>
+        <a class="ui-btn ui-btn-secondary"
+           href="?page={{ sessions.next_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">
+          Keyingi <i class="fa-solid fa-chevron-right" style="font-size:11px;"></i>
+        </a>
       {% endif %}
     </div>
   {% endif %}
+
 </div>
 {% endblock %}

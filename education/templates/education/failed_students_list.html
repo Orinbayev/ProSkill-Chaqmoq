@@ -1,137 +1,287 @@
 {% extends "base.html" %}
+{% block body_class %}failed-students-page{% endblock %}
+{% block title %}Zaif o'quvchilar | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ================================================================
+   FAILED STUDENTS — page-scoped styles (dark + light)
+   ================================================================ */
+.failed-shell {
+  display: grid;
+  gap: 14px;
+}
+.failed-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.failed-stat {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.66);
+}
+.failed-stat-label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.failed-stat-value {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 24px;
+  font-weight: 900;
+}
+.failed-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.failed-list {
+  display: grid;
+  gap: 12px;
+}
+.failed-card {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.68);
+}
+.failed-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.failed-card-name {
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 900;
+}
+.failed-card-sub {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.failed-card-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.failed-card-box {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.34);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+.failed-card-box-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.failed-card-box-value {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.failed-followup {
+  margin-top: 14px;
+}
+.failed-followup .ui-inline-form {
+  gap: 8px;
+  align-items: stretch;
+}
+.failed-followup .ui-inline-form select,
+.failed-followup .ui-inline-form input {
+  min-width: 180px;
+}
+@media (max-width: 1100px) {
+  .failed-stats,
+  .failed-card-grid    { grid-template-columns: 1fr; }
+  .failed-filter-grid  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .failed-filter-grid { grid-template-columns: 1fr; }
+  .failed-followup .ui-inline-form select,
+  .failed-followup .ui-inline-form input { min-width: 100%; }
+}
+
+/* ================================================================
+   LIGHT MODE
+   ================================================================ */
+html[data-role-theme="light"] body.failed-students-page {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* ui-shell / panel */
+html[data-role-theme="light"] body.failed-students-page .ui-shell { color: #1e293b !important; }
+
+html[data-role-theme="light"] body.failed-students-page .ui-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: none !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-title { color: #0f172a !important; }
+html[data-role-theme="light"] body.failed-students-page .ui-sub { color: #64748b !important; }
+html[data-role-theme="light"] body.failed-students-page .ui-section-title { color: #1e293b !important; }
+html[data-role-theme="light"] body.failed-students-page .ui-label { color: #475569 !important; }
+html[data-role-theme="light"] body.failed-students-page .ui-empty { color: #94a3b8 !important; }
+
+/* inputs & selects */
+html[data-role-theme="light"] body.failed-students-page .ui-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-role-theme="light"] body.failed-students-page .ui-panel select,
+html[data-role-theme="light"] body.failed-students-page .ui-panel textarea {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-panel input:focus,
+html[data-role-theme="light"] body.failed-students-page .ui-panel select:focus,
+html[data-role-theme="light"] body.failed-students-page .ui-panel textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
+
+/* buttons */
+html[data-role-theme="light"] body.failed-students-page .ui-btn,
+html[data-role-theme="light"] body.failed-students-page .ui-btn:link,
+html[data-role-theme="light"] body.failed-students-page .ui-btn:visited {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-primary,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-primary:link,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-primary:visited {
+  background: linear-gradient(135deg,#3b82f6,#2563eb) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25) !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-primary:hover {
+  background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-secondary,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-secondary:link,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-secondary:visited {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-secondary:hover {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-warning,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-warning:link,
+html[data-role-theme="light"] body.failed-students-page .ui-btn-warning:visited {
+  background: linear-gradient(135deg,#f59e0b,#d97706) !important;
+  color: #0f172a !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(245,158,11,0.25) !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-btn-warning:hover {
+  background: linear-gradient(135deg,#d97706,#b45309) !important;
+}
+
+/* badges */
+html[data-role-theme="light"] body.failed-students-page .ui-badge-success {
+  background: #dcfce7 !important; color: #166534 !important; border-color: #bbf7d0 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-badge-warning {
+  background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-badge-danger {
+  background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-badge-neutral {
+  background: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important;
+}
+
+/* note blocks */
+html[data-role-theme="light"] body.failed-students-page .ui-note {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+html[data-role-theme="light"] body.failed-students-page .ui-note.ui-note-muted {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* stat cards */
+html[data-role-theme="light"] body.failed-students-page .failed-stat {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05) !important;
+}
+html[data-role-theme="light"] body.failed-students-page .failed-stat-label { color: #64748b !important; }
+html[data-role-theme="light"] body.failed-students-page .failed-stat-value { color: #0f172a !important; }
+
+/* student cards */
+html[data-role-theme="light"] body.failed-students-page .failed-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06) !important;
+}
+html[data-role-theme="light"] body.failed-students-page .failed-card-name { color: #0f172a !important; }
+html[data-role-theme="light"] body.failed-students-page .failed-card-sub  { color: #64748b !important; }
+
+html[data-role-theme="light"] body.failed-students-page .failed-card-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+html[data-role-theme="light"] body.failed-students-page .failed-card-box-label { color: #64748b !important; }
+html[data-role-theme="light"] body.failed-students-page .failed-card-box-value { color: #0f172a !important; }
+
+/* inline form inputs inside card */
+html[data-role-theme="light"] body.failed-students-page .failed-followup select,
+html[data-role-theme="light"] body.failed-students-page .failed-followup input[type="text"] {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<style>
-  .failed-shell {
-    display: grid;
-    gap: 14px;
-  }
-  .failed-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .failed-stat {
-    padding: 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.66);
-  }
-  .failed-stat-label {
-    color: #94a3b8;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .failed-stat-value {
-    margin-top: 6px;
-    color: #f8fafc;
-    font-size: 24px;
-    font-weight: 900;
-  }
-  .failed-filter-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 12px;
-    align-items: end;
-  }
-  .failed-list {
-    display: grid;
-    gap: 12px;
-  }
-  .failed-card {
-    padding: 18px;
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(15, 23, 42, 0.68);
-  }
-  .failed-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .failed-card-name {
-    color: #f8fafc;
-    font-size: 18px;
-    font-weight: 900;
-  }
-  .failed-card-sub {
-    margin-top: 4px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .failed-card-grid {
-    margin-top: 14px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .failed-card-box {
-    padding: 12px;
-    border-radius: 14px;
-    background: rgba(2, 6, 23, 0.34);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-  }
-  .failed-card-box-label {
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .failed-card-box-value {
-    margin-top: 6px;
-    color: #f8fafc;
-    font-size: 15px;
-    font-weight: 800;
-    line-height: 1.35;
-  }
-  .failed-followup {
-    margin-top: 14px;
-  }
-  .failed-followup .ui-inline-form {
-    gap: 8px;
-    align-items: stretch;
-  }
-  .failed-followup .ui-inline-form select,
-  .failed-followup .ui-inline-form input {
-    min-width: 180px;
-  }
-  @media (max-width: 1100px) {
-    .failed-stats,
-    .failed-card-grid {
-      grid-template-columns: 1fr;
-    }
-    .failed-filter-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 700px) {
-    .failed-filter-grid {
-      grid-template-columns: 1fr;
-    }
-    .failed-followup .ui-inline-form select,
-    .failed-followup .ui-inline-form input {
-      min-width: 100%;
-    }
-  }
-</style>
 
 <div class="ui-shell failed-shell">
+
+  <!-- Header -->
   <div class="ui-panel ui-header glass">
     <div>
       <h3 class="ui-title">Zaif o'quvchilar</h3>
       <div class="ui-sub">Yiqilgan yoki imtihonda qatnashmagan o'quvchilar ro'yxati</div>
     </div>
     <div class="ui-actions">
-      <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">Sessiyalar tarixi</a>
+      <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">
+        <i class="fa-solid fa-clock-rotate-left"></i> Sessiyalar tarixi
+      </a>
     </div>
   </div>
 
+  <!-- Stats -->
   <div class="failed-stats">
     <div class="failed-stat glass">
       <div class="failed-stat-label">Jami</div>
@@ -147,6 +297,7 @@
     </div>
   </div>
 
+  <!-- Filters -->
   <div class="ui-panel ui-section glass">
     <form method="get" class="failed-filter-grid">
       <div>
@@ -185,19 +336,26 @@
         </select>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <button class="ui-btn ui-btn-warning w-100" type="submit">Saralash</button>
-        <a href="{% url 'education:failed_students_list' %}" class="ui-btn ui-btn-secondary w-100">Tozalash</a>
+        <button class="ui-btn ui-btn-warning w-100" type="submit">
+          <i class="fa-solid fa-filter"></i> Saralash
+        </button>
+        <a href="{% url 'education:failed_students_list' %}" class="ui-btn ui-btn-secondary w-100">
+          <i class="fa-solid fa-xmark"></i> Tozalash
+        </a>
       </div>
     </form>
   </div>
 
+  <!-- Student cards -->
   <div class="failed-list">
     {% for row in rows %}
       <div class="failed-card glass">
         <div class="failed-card-top">
           <div>
             <div class="failed-card-name">{{ row.student.get_full_name }}</div>
-            <div class="failed-card-sub">{{ row.group.nom }}{% if row.teacher %} • {{ row.teacher.get_full_name }}{% endif %}</div>
+            <div class="failed-card-sub">
+              {{ row.group.nom }}{% if row.teacher %} &bull; {{ row.teacher.get_full_name }}{% endif %}
+            </div>
           </div>
           <span class="ui-badge ui-badge-warning">{{ row.get_follow_up_status_display }}</span>
         </div>
@@ -235,7 +393,9 @@
                 {% endfor %}
               </select>
               <input type="text" name="follow_up_note" value="{{ row.follow_up_note }}" placeholder="Qisqa izoh yozing">
-              <button class="ui-btn ui-btn-warning" type="submit">Saqlash</button>
+              <button class="ui-btn ui-btn-warning" type="submit">
+                <i class="fa-solid fa-floppy-disk"></i> Saqlash
+              </button>
             </form>
           {% else %}
             <div class="ui-note ui-note-muted mb-0">{{ row.follow_up_note|default:"Izoh kiritilmagan." }}</div>
@@ -248,5 +408,6 @@
       </div>
     {% endfor %}
   </div>
+
 </div>
 {% endblock %}

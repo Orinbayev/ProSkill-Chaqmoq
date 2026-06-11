@@ -1,4 +1,14 @@
 {% extends "base.html" %}
+{% block body_class %}cert-candidates-page{% endblock %}
+{% block title %}Sertifikatga mos nomzodlar | ChaqmoqApp{% endblock %}
+{% block extra_css %}
+<style>
+html[data-role-theme="light"] body.cert-candidates-page {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+</style>
+{% endblock %}
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
 <div class="ui-shell">
