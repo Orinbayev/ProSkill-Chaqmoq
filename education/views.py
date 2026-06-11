@@ -2991,6 +2991,10 @@ def qarzdorlar_home(request):
         enrollment_list, period_months
     )
 
+    # _total_debt_enrs — chart_snapshots (line below) uchun kerak.
+    # active non-deferred + inactive enrollments (search/group filtersiz).
+    _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
+
     # ─── JAMI QARZ SUMMASI (barcha 12 oy bo'yicha) ───────────────────────────
     # 2 ta DB query bilan hisoblaymiz (avval 2 full enrollment fetch +
     # calculate_enrollment_debt_snapshots edi — yuzlab query).
@@ -3235,6 +3239,11 @@ def qarzdorlar_home(request):
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
     # Chart: Jami qarz bilan bir xil enrollments (_total_debt_enrs) ishlatamiz.
+    # preload_group_schedules allaqachon yuqorida enrollment_list uchun chaqirilgan,
+    # lekin _total_debt_enrs yangi guruhlarni o'z ichiga olishi mumkin — yangilash.
+    from education.services.tuition import preload_group_schedules as _pgs2
+    _pgs2({e.group_id for e in _total_debt_enrs if e.group_id})
+    preload_enrollment_history_starts(_total_debt_enrs)
     chart_snapshots = calculate_enrollment_debt_snapshots(
         _total_debt_enrs,
         chart_months,
