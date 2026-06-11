@@ -122,6 +122,9 @@ def deleted_items_list(request):
 
 @login_required
 def restore_item(request, model_key, pk):
+    if request.method not in ('GET', 'POST'):
+        return redirect('core:deleted_items')
+
     center = _get_center(request)
     if not can_access_trash(request.user, center):
         raise PermissionDenied

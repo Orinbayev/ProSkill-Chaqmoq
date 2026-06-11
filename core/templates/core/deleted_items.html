@@ -34,7 +34,7 @@
         padding: 16px;
     }
 
-    /* PREMIUM HEADER */
+    /* HEADER */
     .trash-header {
         display: flex;
         justify-content: space-between;
@@ -145,7 +145,6 @@
 
     .table-responsive {
         overflow: visible !important;
-        /* Essential for dropdowns in small tables */
     }
 
     .premium-table {
@@ -172,6 +171,10 @@
         font-weight: 600;
     }
 
+    .premium-table tr:last-child td {
+        border-bottom: none;
+    }
+
     .premium-table tr:hover td {
         background: rgba(255, 255, 255, 0.02);
     }
@@ -187,6 +190,7 @@
         font-size: 14px;
         color: var(--primary-glow);
         font-weight: 800;
+        flex-shrink: 0;
     }
 
     .badge-type {
@@ -200,6 +204,7 @@
         text-transform: uppercase;
     }
 
+    /* ACTION BUTTONS */
     .action-btn {
         width: 32px;
         height: 32px;
@@ -207,71 +212,83 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: transparent;
-        border: none;
-        color: var(--slate-400);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
         transition: 0.2s;
+        cursor: pointer;
     }
 
     .action-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.2);
         color: #fff;
     }
 
-    /* Table alignment helpers */
     .align-right-edge {
         text-align: right !important;
         padding-right: 12px !important;
     }
 
+    /* DROPDOWN */
     .dropdown-menu {
         z-index: 100000 !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+        background: #1e293b !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+        border-radius: 12px !important;
+        padding: 6px !important;
+        min-width: 180px !important;
     }
 
     .dropdown-item {
-        transition: all 0.2s ease;
-        padding: 10px 16px !important;
+        transition: all 0.15s ease !important;
+        padding: 9px 14px !important;
         color: #e2e8f0 !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
     }
 
     .dropdown-item:hover {
-        background: rgba(255, 255, 255, 0.05) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
         color: #fff !important;
     }
 
     .dropdown-item i {
-        font-size: 14px;
-        width: 20px;
+        font-size: 13px;
+        width: 18px;
     }
 
-    /* MODALS PREMIUM STYLE - FIXED INTERACTION */
+    .dropdown-divider {
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        margin: 4px 0 !important;
+    }
+
+    /* MODALS */
     .premium-modal {
-        /* Ensure modal is above sidebar and other overlays */
         z-index: 50000 !important;
     }
 
-    /* Modal Backdrop Fix */
     .modal-backdrop {
         z-index: 49999 !important;
-        opacity: 0.6 !important;
+        opacity: 0.65 !important;
         background-color: #000 !important;
     }
 
     .premium-modal .modal-content {
         background: #0f172a !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
     }
 
     .premium-modal .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 24px 32px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        padding: 20px 24px !important;
     }
 
     .premium-modal .modal-body {
-        padding: 32px;
+        padding: 24px !important;
         color: #f1f5f9;
         max-height: 70vh;
         overflow-y: auto;
@@ -280,28 +297,27 @@
     .premium-modal .modal-title {
         color: #fff !important;
         font-weight: 800;
-        font-size: 20px;
+        font-size: 18px;
         display: flex;
         align-items: center;
         gap: 10px;
     }
 
-    /* MANAGER PERMISSIONS LIST */
+    /* MANAGER PERMISSIONS */
     .manager-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 16px;
+        padding: 12px 14px;
         background: rgba(255, 255, 255, 0.02);
-        border-radius: 14px;
-        margin-bottom: 8px;
-        border: 1px solid transparent;
+        border-radius: 12px;
+        margin-bottom: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         transition: 0.2s;
     }
 
     .manager-item:hover {
         background: rgba(255, 255, 255, 0.05);
-        border-color: var(--glass-border);
     }
 
     .manager-info {
@@ -321,13 +337,16 @@
         justify-content: center;
         font-weight: 700;
         font-size: 13px;
+        flex-shrink: 0;
     }
 
+    /* TOGGLE SWITCH */
     .switch {
         position: relative;
         display: inline-block;
         width: 44px;
         height: 24px;
+        flex-shrink: 0;
     }
 
     .switch input {
@@ -344,7 +363,7 @@
         right: 0;
         bottom: 0;
         background-color: #334155;
-        transition: .4s;
+        transition: .3s;
         border-radius: 24px;
     }
 
@@ -356,23 +375,244 @@
         left: 3px;
         bottom: 3px;
         background-color: white;
-        transition: .4s;
+        transition: .3s;
         border-radius: 50%;
     }
 
-    input:checked+.slider {
+    input:checked + .slider {
         background-color: var(--green);
     }
 
-    input:checked+.slider:before {
+    input:checked + .slider:before {
         transform: translateX(20px);
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-state .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.15;
+    }
+
+    /* ============================================================
+       LIGHT MODE OVERRIDES
+       ============================================================ */
+    html[data-role-theme="light"] body.deleted-items-page {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-header {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-header h1 {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-header p {
+        color: #64748b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .search-input-group {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .search-input-group input {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .type-tab {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        color: #64748b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .type-tab:hover {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .type-tab.active {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #fff !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .glass-panel {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-table th {
+        background: #f8fafc !important;
+        color: #64748b !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-table td {
+        border-color: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-table tr:hover td {
+        background: #f8fafc !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .item-icon {
+        background: #eff6ff !important;
+        color: #2563eb !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-item-name {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-item-id {
+        color: #94a3b8 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .badge-type {
+        background: #f1f5f9 !important;
+        border-color: #e2e8f0 !important;
+        color: #64748b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-user-name {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-user-role {
+        color: #2563eb !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-user-chip {
+        background: #e2e8f0 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-date {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-time {
+        color: #94a3b8 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-system-text {
+        color: #94a3b8 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .action-btn {
+        background: #f1f5f9 !important;
+        border-color: #e2e8f0 !important;
+        color: #475569 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .action-btn:hover {
+        background: #e2e8f0 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .dropdown-menu {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .dropdown-item {
+        color: #334155 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .dropdown-item:hover {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .dropdown-divider {
+        border-color: #f1f5f9 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-settings-btn {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        color: #334155 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-settings-btn:hover {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+
+    /* Light mode modals */
+    html[data-role-theme="light"] body.deleted-items-page .premium-modal .modal-content {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-modal .modal-header {
+        border-color: #f1f5f9 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-modal .modal-title {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .premium-modal .modal-body {
+        color: #334155 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .btn-close-white {
+        filter: invert(1) !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-master-card {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-modal-heading {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-modal-note {
+        color: #64748b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-manager-card {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .trash-user-name {
+        color: #1e293b !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .slider {
+        background-color: #cbd5e1 !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page input:checked + .slider {
+        background-color: #16a34a !important;
+    }
+
+    html[data-role-theme="light"] body.deleted-items-page .empty-state .text-muted {
+        color: #94a3b8 !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="trash-container">
-    <!-- PREMIUM HEADER -->
+    <!-- HEADER -->
     <div class="trash-header">
         <div class="header-info">
             <h1><i class="fa-solid fa-trash-can" style="color: var(--primary);"></i> O'chirilganlar</h1>
@@ -389,8 +629,9 @@
             </form>
 
             {% if request.user.role == 'director' or request.user.is_superuser %}
-            <button class="btn btn-outline-light d-flex align-items-center gap-2 trash-settings-btn" id="openSettingsBtn"
-                style="border-radius: 10px; height: 38px; padding: 0 16px; font-weight: 700; font-size: 13px; border-color: var(--border); background: rgba(255,255,255,0.03);">
+            <button class="btn btn-outline-light d-flex align-items-center gap-2 trash-settings-btn"
+                id="openSettingsBtn"
+                style="border-radius: 10px; height: 38px; padding: 0 16px; font-weight: 700; font-size: 13px;">
                 <i class="fa-solid fa-sliders"></i> Sozlamalar
             </button>
             {% endif %}
@@ -425,9 +666,7 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-3">
-                                <div class="item-icon">
-                                    {{ item.name|first|upper }}
-                                </div>
+                                <div class="item-icon">{{ item.name|first|upper }}</div>
                                 <div>
                                     <div class="trash-item-name" style="font-weight: 700; color: #fff; font-size: 14px;">{{ item.name }}</div>
                                     <div class="trash-item-id" style="font-size: 10px; color: var(--text-muted); font-weight: 600;">ID: #{{ item.id }}</div>
@@ -441,7 +680,7 @@
                             {% if item.deleted_by %}
                             <div class="d-flex align-items-center gap-2">
                                 <div class="trash-user-chip"
-                                    style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0;">
                                     {{ item.deleted_by.ism|first|upper }}
                                 </div>
                                 <div>
@@ -454,37 +693,33 @@
                                 </div>
                             </div>
                             {% else %}
-                            <span class="trash-system-text" style="color: var(--slate-500); font-size: 12px;">Tizim tomonidan</span>
+                            <span class="trash-system-text" style="color: #64748b; font-size: 12px;">Tizim tomonidan</span>
                             {% endif %}
                         </td>
                         <td>
                             <div style="line-height: 1.3;">
                                 <div class="trash-date" style="color: #fff; font-size: 13.5px; font-weight: 700;">{{ item.deleted_at|date:"d.m.Y" }}</div>
-                                <div class="trash-time" style="color: var(--text-muted); font-size: 10px; font-weight: 600;">{{ item.deleted_at|date:"H:i" }}
-                                </div>
+                                <div class="trash-time" style="color: var(--text-muted); font-size: 10px; font-weight: 600;">{{ item.deleted_at|date:"H:i" }}</div>
                             </div>
                         </td>
                         <td class="align-right-edge">
                             <div class="dropdown">
                                 <button class="action-btn ms-auto" data-bs-toggle="dropdown"
-                                    data-bs-boundary="viewport">
+                                    data-bs-boundary="viewport" aria-expanded="false">
                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end p-2 shadow-xl trash-actions-menu">
+                                <ul class="dropdown-menu dropdown-menu-end trash-actions-menu">
                                     <li>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 rounded-2 mb-1"
-                                            href="{% url 'core:restore_item' item.type_key item.id %}">
-                                            <i class="fa-solid fa-rotate-left" style="color: var(--green);"></i>
-                                            <span style="font-weight: 600; font-size: 13px;">Qayta tiklash</span>
-                                        </a>
+                                        <button class="dropdown-item d-flex align-items-center gap-2"
+                                            onclick="confirmRestore('{{ item.type_key }}', '{{ item.id }}', '{{ item.name|escapejs }}')">
+                                            <i class="fa-solid fa-rotate-left" style="color: #10b981;"></i>
+                                            <span>Qayta tiklash</span>
+                                        </button>
                                     </li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <hr class="dropdown-divider opacity-10">
-                                    </li>
-                                    <li>
-                                        <button
-                                            class="dropdown-item d-flex align-items-center gap-2 rounded-2 text-danger"
-                                            onclick="confirmHardDelete('{{ item.type_key }}', '{{ item.id }}')">
+                                        <button class="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                            onclick="confirmHardDelete('{{ item.type_key }}', '{{ item.id }}', '{{ item.name|escapejs }}')">
                                             <i class="fa-solid fa-trash-can"></i>
                                             <span>Butunlay o'chirish</span>
                                         </button>
@@ -495,9 +730,11 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="padding: 100px 0; text-align: center;">
-                            <div style="opacity: 0.2; transform: scale(3);">🗑️</div>
-                            <div class="mt-4 text-muted">Hozircha o'chirilgan ma'lumotlar yo'q</div>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-icon">🗑️</div>
+                                <div class="text-muted mt-2" style="font-size: 14px; font-weight: 600;">Hozircha o'chirilgan ma'lumotlar yo'q</div>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -507,26 +744,33 @@
     </div>
 </div>
 
+{# URL templates for JS — rendered once, read by confirmRestore/confirmHardDelete #}
+<span id="js-restore-url-tpl" data-url="{% url 'core:restore_item' '__TYPE__' 0 %}" style="display:none;"></span>
+<span id="js-hard-delete-url-tpl" data-url="{% url 'core:hard_delete_item' '__TYPE__' 0 %}" style="display:none;"></span>
 {% endblock %}
 
+
 {% block modals %}
-<!-- SETTINGS MODAL -->
-<div class="modal fade premium-modal" id="settingsModal" tabindex="-1" aria-hidden="true" style="display: none;">
+<!-- ===================== SETTINGS MODAL ===================== -->
+<div class="modal fade premium-modal" id="settingsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-gear" style="color: var(--primary);"></i> Trash Sozlamalari</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-gear" style="color: var(--primary);"></i> Trash Sozlamalari
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-4 trash-master-card"
+                <!-- Master toggle -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded-4 trash-master-card"
                         style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
                         <div class="pe-4">
-                            <div class="fw-700 text-white mb-1 trash-modal-heading">Managerlar kirishi</div>
-                            <div class="text-muted small trash-modal-note" style="font-size: 11px;">Hamma managerlarga trash ruxsatini
-                                yoqish/o'chirish</div>
+                            <div class="fw-bold text-white mb-1 trash-modal-heading">Managerlar kirishi</div>
+                            <div class="text-muted small trash-modal-note" style="font-size: 11px;">
+                                Hamma managerlarga trash ruxsatini yoqish/o'chirish
+                            </div>
                         </div>
                         <form method="post" action="{% url 'core:toggle_manager_trash_access' %}"
                             class="ajax-toggle-form" data-type="master">
@@ -539,30 +783,30 @@
                     </div>
                 </div>
 
-                <div id="individualPermissionsWrapper" {% if not center.manager_can_access_trash %}style="display: none;" {% endif %}>
-                    <div class="mt-4 pt-4 border-top border-white border-opacity-10">
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <div class="fw-800 text-white trash-modal-heading" style="font-size: 16px;">Individual ruxsatlar</div>
-                            <span
-                                class="badge bg-secondary bg-opacity-25 text-muted smaller px-2 py-1 rounded-pill">Managerlar:
-                                {{ managers|length }}</span>
+                <!-- Individual permissions -->
+                <div id="individualPermissionsWrapper" {% if not center.manager_can_access_trash %}style="display:none;"{% endif %}>
+                    <div class="pt-3 mt-1 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="fw-bold text-white trash-modal-heading" style="font-size: 15px;">Individual ruxsatlar</div>
+                            <span class="badge bg-secondary bg-opacity-25 text-muted px-2 py-1 rounded-pill" style="font-size: 11px;">
+                                Managerlar: {{ managers|length }}
+                            </span>
                         </div>
-
-                        <div class="manager-list pe-1" style="max-height: 300px; overflow-y: auto;">
+                        <div class="manager-list" style="max-height: 300px; overflow-y: auto;">
                             {% for mgr in managers %}
-                            <div class="manager-item mb-3 p-3 trash-manager-card"
-                                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="manager-item trash-manager-card">
                                 <div class="manager-info">
                                     <div class="manager-avatar"
-                                        style="background: linear-gradient(135deg, #FACC15, #EAB308); color: #000; box-shadow: 0 4px 12px rgba(250, 204, 21, 0.2);">
+                                        style="background: linear-gradient(135deg, #FACC15, #EAB308); color: #000;">
                                         {{ mgr.ism|first|upper }}
                                     </div>
                                     <div>
-                                        <div class="fw-700 text-white trash-user-name">{{ mgr.get_full_name }}</div>
-                                        <div class="text-muted trash-modal-note" style="font-size: 11px;">{{ mgr.email }}</div>
+                                        <div class="fw-bold trash-user-name" style="color: #fff; font-size: 13px;">{{ mgr.get_full_name }}</div>
+                                        <div class="trash-modal-note text-muted" style="font-size: 11px;">{{ mgr.email }}</div>
                                     </div>
                                 </div>
-                                <form method="post" action="{% url 'core:toggle_manager_user_trash_access' mgr.id %}"
+                                <form method="post"
+                                    action="{% url 'core:toggle_manager_user_trash_access' mgr.id %}"
                                     class="ajax-toggle-form" data-type="individual">
                                     {% csrf_token %}
                                     <label class="switch">
@@ -580,142 +824,196 @@
             </div>
         </div>
     </div>
+</div>
+<!-- ===================== / SETTINGS MODAL ===================== -->
 
-    <!-- Toast for AJAX notifications -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1000000;">
-        <div id="trashToast" class="toast align-items-center text-white bg-dark border-0" role="alert"
-            aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body" id="toastMessage"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                    aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
 
-    <!-- HARD DELETE MODAL -->
-    <div class="modal fade premium-modal" id="hardDeleteModal" tabindex="-1" aria-hidden="true" style="display: none;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-danger border-opacity-20">
-                <div class="modal-body text-center py-5">
-                    <div style="font-size: 40px; color: var(--red);" class="mb-3">⚠️</div>
-                    <h4 class="fw-800 text-white mb-3">Butunlay o'chirilsinmi?</h4>
-                    <p class="text-muted small mb-4">Bu amal qaytarilmas hisoblanadi. Ma'lumotlar bazadan to'liq
-                        yo'qoladi.
-                    </p>
-                    <form id="hardDeleteForm" method="post">
-                        {% csrf_token %}
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger py-2 fw-800" style="border-radius: 12px;">HA,
-                                O'CHIRILSIN</button>
-                            <button type="button" class="btn btn-outline-light py-2 text-muted" data-bs-dismiss="modal"
-                                style="border-radius: 12px; border-color: var(--glass-border);">BEKOR
-                                QILISH</button>
-                        </div>
-                    </form>
+<!-- ===================== RESTORE CONFIRM MODAL ===================== -->
+<div class="modal fade premium-modal" id="restoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4 px-4">
+                <div style="font-size: 38px; color: #10b981;" class="mb-3">
+                    <i class="fa-solid fa-rotate-left"></i>
                 </div>
+                <h5 class="fw-bold mb-2" style="color: #fff;">Qayta tiklansinmi?</h5>
+                <p class="text-muted small mb-4" id="restoreItemName"
+                    style="font-size: 12px; line-height: 1.5;">
+                    Ma'lumot tizimga qaytariladi.
+                </p>
+                <form id="restoreForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success py-2 fw-bold"
+                            style="border-radius: 12px; font-size: 14px;">
+                            <i class="fa-solid fa-check me-1"></i> HA, TIKLANSIN
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary py-2"
+                            data-bs-dismiss="modal"
+                            style="border-radius: 12px; font-size: 14px;">
+                            Bekor qilish
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    {% endblock %}
+</div>
+<!-- ===================== / RESTORE CONFIRM MODAL ===================== -->
 
 
-    {% block extra_js %}
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Safe Modal Initialization
-            const initModal = (id) => {
-                const el = document.getElementById(id);
-                if (!el) return null;
-                return bootstrap.Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
-            };
+<!-- ===================== HARD DELETE MODAL ===================== -->
+<div class="modal fade premium-modal" id="hardDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-color: rgba(239,68,68,0.3) !important;">
+            <div class="modal-body text-center py-4 px-4">
+                <div style="font-size: 38px; color: var(--red);" class="mb-3">⚠️</div>
+                <h5 class="fw-bold mb-2" style="color: #fff;">Butunlay o'chirilsinmi?</h5>
+                <p class="text-muted small mb-4" id="hardDeleteItemName"
+                    style="font-size: 12px; line-height: 1.5;">
+                    Bu amal qaytarilmas. Ma'lumotlar bazadan to'liq yo'qoladi.
+                </p>
+                <form id="hardDeleteForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger py-2 fw-bold"
+                            style="border-radius: 12px; font-size: 14px;">
+                            <i class="fa-solid fa-trash me-1"></i> HA, O'CHIRILSIN
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary py-2"
+                            data-bs-dismiss="modal"
+                            style="border-radius: 12px; font-size: 14px;">
+                            Bekor qilish
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===================== / HARD DELETE MODAL ===================== -->
 
-            const settingsModal = initModal('settingsModal');
-            const hardDeleteModal = initModal('hardDeleteModal');
-            const toastEl = document.getElementById('trashToast');
-            const trashToast = toastEl ? new bootstrap.Toast(toastEl, { delay: 3000 }) : null;
 
-            const showToast = (message) => {
-                if (!trashToast) return;
-                document.getElementById('toastMessage').innerText = message;
-                trashToast.show();
-            };
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100000;">
+    <div id="trashToast" class="toast align-items-center text-white bg-dark border-0"
+        role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-            // Settings Button Trigger
-            const openBtn = document.getElementById('openSettingsBtn');
-            if (openBtn && settingsModal) {
-                openBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    settingsModal.show();
-                });
-            }
 
-            // AJAX Toggle Forms
-            document.querySelectorAll('.ajax-toggle-form').forEach(form => {
-                const checkbox = form.querySelector('input[type="checkbox"]');
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // ── Helpers ────────────────────────────────────────────────
+    const getModal = id => bootstrap.Modal.getOrCreateInstance(
+        document.getElementById(id), { backdrop: true, keyboard: true }
+    );
 
-                checkbox.addEventListener('change', function (e) {
-                    // Prevent form submission
-                    e.preventDefault();
+    const settingsModal  = getModal('settingsModal');
+    const restoreModal   = getModal('restoreModal');
+    const hardDeleteModal = getModal('hardDeleteModal');
 
-                    const url = form.getAttribute('action');
-                    const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
-                    const type = form.getAttribute('data-type');
+    const toastEl = document.getElementById('trashToast');
+    const bsToast = toastEl ? new bootstrap.Toast(toastEl, { delay: 3500 }) : null;
 
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.ok) {
-                                showToast(data.message);
+    const showToast = msg => {
+        if (!bsToast) return;
+        document.getElementById('toastMessage').textContent = msg;
+        bsToast.show();
+    };
 
-                                // Handle Master toggle logic
-                                if (type === 'master') {
-                                    const wrapper = document.getElementById('individualPermissionsWrapper');
-                                    if (data.status) {
-                                        wrapper.style.display = 'block';
-                                    } else {
-                                        wrapper.style.display = 'none';
-                                    }
-                                }
-                            } else {
-                                // Revert checkbox on error
-                                checkbox.checked = !checkbox.checked;
-                                showToast("Xatolik: " + (data.error || "Noma'lum"));
-                            }
-                        })
-                        .catch(err => {
-                            checkbox.checked = !checkbox.checked;
-                            showToast("Server bilan aloqa uzildi");
-                            console.error(err);
-                        });
-                });
-            });
+    // Build URLs from Django-rendered template spans
+    // Pattern: /slug/trash/__TYPE__/0/restore/  →  replace __TYPE__ and 0
+    const restoreUrlTpl   = document.getElementById('js-restore-url-tpl').dataset.url;
+    const hardDeleteUrlTpl = document.getElementById('js-hard-delete-url-tpl').dataset.url;
 
-            // Global Cleanup: Remove any stuck overlays
-            const cleanupModals = () => {
-                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = '';
-                document.body.style.paddingRight = '';
-            };
+    const buildUrl = (tpl, type, id) =>
+        tpl.replace('__TYPE__', type).replace('/0/', `/${id}/`);
 
-            // Connect cleanup to modal hide events
-            document.querySelectorAll('.modal').forEach(m => {
-                m.addEventListener('hidden.bs.modal', cleanupModals);
-            });
-
-            // Initialize hard delete function in global scope for onclick attrs
-            window.confirmHardDelete = function (type, id) {
-                const form = document.getElementById('hardDeleteForm');
-                if (form) form.action = `/trash/${type}/${id}/hard-delete/`;
-                if (hardDeleteModal) hardDeleteModal.show();
-            };
+    // ── Settings button ─────────────────────────────────────────
+    const openBtn = document.getElementById('openSettingsBtn');
+    if (openBtn) {
+        openBtn.addEventListener('click', e => {
+            e.preventDefault();
+            settingsModal.show();
         });
-    </script>
-    {% endblock %}
+    }
+
+    // ── Restore confirm ─────────────────────────────────────────
+    window.confirmRestore = function(type, id, name) {
+        const form = document.getElementById('restoreForm');
+        form.action = buildUrl(restoreUrlTpl, type, id);
+        document.getElementById('restoreItemName').textContent =
+            `"${name}" — ma'lumot tizimga qaytariladi.`;
+        restoreModal.show();
+    };
+
+    // ── Hard-delete confirm ──────────────────────────────────────
+    window.confirmHardDelete = function(type, id, name) {
+        const form = document.getElementById('hardDeleteForm');
+        form.action = buildUrl(hardDeleteUrlTpl, type, id);
+        document.getElementById('hardDeleteItemName').textContent =
+            `"${name}" — bu amal qaytarilmas. Ma'lumotlar bazadan to'liq yo'qoladi.`;
+        hardDeleteModal.show();
+    };
+
+    // ── AJAX toggles (settings modal switches) ──────────────────
+    document.querySelectorAll('.ajax-toggle-form').forEach(form => {
+        const checkbox = form.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', e => {
+            e.preventDefault();
+            const url       = form.action;
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+            const type      = form.dataset.type;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    showToast(data.message);
+                    if (type === 'master') {
+                        document.getElementById('individualPermissionsWrapper')
+                            .style.display = data.status ? 'block' : 'none';
+                    }
+                } else {
+                    checkbox.checked = !checkbox.checked;
+                    showToast('Xatolik: ' + (data.error || "Noma'lum"));
+                }
+            })
+            .catch(() => {
+                checkbox.checked = !checkbox.checked;
+                showToast('Server bilan aloqa uzildi');
+            });
+        });
+    });
+
+    // ── Cleanup stuck backdrops on modal close ──────────────────
+    const cleanup = () => {
+        // Only clean up when no modal is actually open
+        if (!document.querySelector('.modal.show')) {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    };
+
+    document.querySelectorAll('.modal').forEach(m =>
+        m.addEventListener('hidden.bs.modal', cleanup)
+    );
+});
+</script>
+{% endblock %}
