@@ -27,6 +27,27 @@ from .models import (
 logger = logging.getLogger(__name__)
 DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT = 50
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Request-scope in-process cache for center_has_feature.
+# center_has_feature is called once per (enrollment × month) in debt snapshot
+# loops — potentially thousands of times per request. Caching the result for
+# (center_id, feature_code) eliminates ~4 DB queries per repeat call.
+# Thread-local is used so the cache is isolated per worker thread / request.
+# ──────────────────────────────────────────────────────────────────────────────
+import threading as _thr
+_chf_local = _thr.local()
+
+
+def _chf_cache() -> dict:
+    if not hasattr(_chf_local, 'd'):
+        _chf_local.d = {}
+    return _chf_local.d
+
+
+def clear_feature_request_cache() -> None:
+    """Call at the start of a long-running view to flush stale entries."""
+    _chf_local.d = {}
+
 
 # ============================================================
 # FEATURE SERVICES — Professional Feature Flag System
@@ -114,12 +135,25 @@ def center_has_feature(center, slug: str) -> bool:
       4. Otherwise, check the active subscription's plan.plan_features M2M.
       5. As a final compatibility layer, fall back to legacy Center.features
          JSONField for keys that have no v2 PlanFeature row yet.
+
+    Results are cached in thread-local storage for the duration of a request
+    to avoid hammering the DB from tight loops (debt snapshot calculations).
     """
     from billing.models import PlanFeature, CenterFeatureOverride
     code = _resolve_feature_code(slug)
 
     # Resolve to root center
     root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+    root_id = getattr(root, 'id', None)
+
+    # ── Request-scope cache ────────────────────────────────────────────────
+    if root_id is not None:
+        ck = (root_id, code)
+        _cache = _chf_cache()
+        if ck in _cache:
+            return _cache[ck]
+
+    # ── Actual DB resolution ───────────────────────────────────────────────
 
     # 1. Override wins
     override = (
@@ -128,27 +162,39 @@ def center_has_feature(center, slug: str) -> bool:
         .first()
     )
     if override:
-        return override.enabled
+        result = override.enabled
+        if root_id is not None:
+            _chf_cache()[(root_id, code)] = result
+        return result
 
     # 2. Look up the feature
     feature = PlanFeature.objects.filter(code=code, is_active=True).first()
 
     # CORE always on
     if feature and feature.is_core:
+        if root_id is not None:
+            _chf_cache()[(root_id, code)] = True
         return True
 
     # 3. Active subscription plan
     sub = get_active_subscription(root)
     if sub and not sub.is_blocked() and sub.plan and feature:
         if sub.plan.plan_features.filter(code=code).exists():
+            if root_id is not None:
+                _chf_cache()[(root_id, code)] = True
             return True
 
     # 4. Legacy JSONField fallback (for UI flags not yet migrated)
     raw = getattr(root, 'features', None) or {}
     if isinstance(raw, dict) and code in raw and isinstance(raw[code], bool):
-        return raw[code]
+        result = raw[code]
+        if root_id is not None:
+            _chf_cache()[(root_id, code)] = result
+        return result
 
     # If we reached here with no feature row at all, default to False (closed)
+    if root_id is not None:
+        _chf_cache()[(root_id, code)] = False
     return False
 
 

@@ -1774,6 +1774,8 @@ def _monthly_turnover_for_scope(center, m_start, m_end, branch=None):
 
 def _boshqaruv_payload(center, d_from, d_to, branch=None):
     """Boshqaruv dashboard uchun barcha ma'lumotlar."""
+    from billing.services import clear_feature_request_cache
+    clear_feature_request_cache()
     today = timezone.localdate()
     present_filter = _attendance_present_filter()
 

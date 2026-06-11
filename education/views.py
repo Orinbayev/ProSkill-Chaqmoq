@@ -2756,6 +2756,8 @@ def group_month_attendance(request, group_id):
 @require_feature("finance")
 def qarzdorlar_home(request):
     from core.tenant import get_request_center, require_center
+    from billing.services import clear_feature_request_cache
+    clear_feature_request_cache()
 
     if not user_can_manage_payments(request.user):
         messages.error(request, "Ruxsat yo'q.")

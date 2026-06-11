@@ -607,6 +607,121 @@
     html[data-role-theme="light"] body.deleted-items-page .empty-state .text-muted {
         color: #94a3b8 !important;
     }
+
+    /* ── PER-PAGE SELECTOR ─────────────────────────────────── */
+    .per-page-select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .per-page-select select {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-main);
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        outline: none;
+        cursor: pointer;
+        appearance: auto;
+        height: 34px;
+    }
+    .per-page-select select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+    }
+
+    /* ── PAGINATION BAR ────────────────────────────────────── */
+    .trash-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+    }
+    .trash-pagination__info {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .trash-pagination__info strong {
+        color: var(--text-main);
+    }
+    .trash-pager {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .trash-pager__btn {
+        min-width: 32px;
+        height: 32px;
+        padding: 0 6px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.04);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: 0.18s;
+        cursor: pointer;
+    }
+    .trash-pager__btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.18);
+        color: #fff;
+    }
+    .trash-pager__btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+    }
+    .trash-pager__btn.disabled {
+        opacity: 0.35;
+        pointer-events: none;
+    }
+    .trash-pager__ellipsis {
+        width: 28px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    /* Light mode overrides */
+    html[data-role-theme="light"] body.deleted-items-page .per-page-select select {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        color: #334155 !important;
+    }
+    html[data-role-theme="light"] body.deleted-items-page .trash-pagination {
+        border-color: #f1f5f9 !important;
+    }
+    html[data-role-theme="light"] body.deleted-items-page .trash-pager__btn {
+        background: #fff !important;
+        border-color: #e2e8f0 !important;
+        color: #475569 !important;
+    }
+    html[data-role-theme="light"] body.deleted-items-page .trash-pager__btn:hover {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+    html[data-role-theme="light"] body.deleted-items-page .trash-pager__btn.active {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #fff !important;
+    }
 </style>
 {% endblock %}
 
@@ -623,9 +738,22 @@
             <form method="get" class="search-input-group">
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i>
                 <input type="text" name="q" value="{{ search_query }}" placeholder="Ism yoki nom bo'yicha qidiruv...">
+                <input type="hidden" name="type" value="{{ type_filter }}">
+                <input type="hidden" name="per_page" value="{{ per_page }}">
                 {% if search_query %}
-                <a href="?type={{ type_filter }}" class="text-muted"><i class="fa-solid fa-xmark"></i></a>
+                <a href="?type={{ type_filter }}&per_page={{ per_page }}" class="text-muted"><i class="fa-solid fa-xmark"></i></a>
                 {% endif %}
+            </form>
+
+            <form method="get" class="per-page-select">
+                <input type="hidden" name="type" value="{{ type_filter }}">
+                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+                <label for="perPageSelect">Ko'rsatish:</label>
+                <select id="perPageSelect" name="per_page" onchange="this.form.submit()">
+                    <option value="10"  {% if per_page == 10  %}selected{% endif %}>10 ta</option>
+                    <option value="20"  {% if per_page == 20  %}selected{% endif %}>20 ta</option>
+                    <option value="50"  {% if per_page == 50  %}selected{% endif %}>50 ta</option>
+                </select>
             </form>
 
             {% if request.user.role == 'director' or request.user.is_superuser %}
@@ -640,10 +768,10 @@
 
     <!-- TYPE TABS -->
     <div class="type-tabs">
-        <a href="?type=all{% if search_query %}&q={{ search_query }}{% endif %}"
+        <a href="?type=all&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}"
             class="type-tab {% if type_filter == 'all' %}active{% endif %}">Barchasi</a>
         {% for key, info in MODELS_INFO.items %}
-        <a href="?type={{ key }}{% if search_query %}&q={{ search_query }}{% endif %}"
+        <a href="?type={{ key }}&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}"
             class="type-tab {% if type_filter == key %}active{% endif %}">{{ info.label }}</a>
         {% endfor %}
     </div>
@@ -741,6 +869,60 @@
                 </tbody>
             </table>
         </div>
+
+        {% if page_obj.paginator.num_pages > 1 or total_count > 0 %}
+        <div class="trash-pagination">
+            <div class="trash-pagination__info">
+                Jami <strong>{{ total_count }}</strong> ta yozuv —
+                {{ page_obj.start_index }}–{{ page_obj.end_index }} ko'rsatilmoqda
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="trash-pager" aria-label="Sahifalar">
+
+                {# Prev #}
+                {% if page_obj.has_previous %}
+                <a class="trash-pager__btn"
+                   href="?type={{ type_filter }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   aria-label="Oldingi">
+                    <i class="fa-solid fa-chevron-left" style="font-size:10px;"></i>
+                </a>
+                {% else %}
+                <span class="trash-pager__btn disabled" aria-disabled="true">
+                    <i class="fa-solid fa-chevron-left" style="font-size:10px;"></i>
+                </span>
+                {% endif %}
+
+                {# Page numbers #}
+                {% for pg in page_obj.paginator.page_range %}
+                    {% if pg == page_obj.number %}
+                        <span class="trash-pager__btn active" aria-current="page">{{ pg }}</span>
+                    {% elif pg == 1 or pg == page_obj.paginator.num_pages or pg >= page_obj.number|add:"-2" and pg <= page_obj.number|add:"2" %}
+                        <a class="trash-pager__btn"
+                           href="?type={{ type_filter }}&per_page={{ per_page }}&page={{ pg }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ pg }}</a>
+                    {% elif pg == page_obj.number|add:"-3" or pg == page_obj.number|add:"3" %}
+                        <span class="trash-pager__ellipsis">…</span>
+                    {% endif %}
+                {% endfor %}
+
+                {# Next #}
+                {% if page_obj.has_next %}
+                <a class="trash-pager__btn"
+                   href="?type={{ type_filter }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   aria-label="Keyingi">
+                    <i class="fa-solid fa-chevron-right" style="font-size:10px;"></i>
+                </a>
+                {% else %}
+                <span class="trash-pager__btn disabled" aria-disabled="true">
+                    <i class="fa-solid fa-chevron-right" style="font-size:10px;"></i>
+                </span>
+                {% endif %}
+
+            </nav>
+            {% endif %}
+        </div>
+        {% endif %}
+
     </div>
 </div>
 

@@ -103,6 +103,19 @@ def deleted_items_list(request):
     # Sort by deleted_at desc
     deleted_items.sort(key=lambda x: x['deleted_at'] or timezone.now(), reverse=True)
 
+    # Pagination
+    from django.core.paginator import Paginator
+    _ALLOWED_PER_PAGE = (10, 20, 50)
+    try:
+        per_page = int(request.GET.get('per_page', 10))
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in _ALLOWED_PER_PAGE:
+        per_page = 10
+
+    paginator = Paginator(deleted_items, per_page)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
     # If Director or Superuser, also fetch managers for the permission modal
     managers = []
     if request.user.role == 'director' or request.user.is_superuser:
@@ -110,13 +123,17 @@ def deleted_items_list(request):
         managers = get_user_model().objects.filter(center=center, role='manager')
 
     context = {
-        'deleted_items': deleted_items,
-        'type_filter': type_filter,
-        'search_query': search_query,
-        'MODELS_INFO': MODELS,
-        'center': center,
-        'managers': managers,
-        'title': "O'chirilganlar"
+        'deleted_items': page_obj,          # paginated
+        'page_obj':      page_obj,
+        'paginator':     paginator,
+        'per_page':      per_page,
+        'total_count':   len(deleted_items),
+        'type_filter':   type_filter,
+        'search_query':  search_query,
+        'MODELS_INFO':   MODELS,
+        'center':        center,
+        'managers':      managers,
+        'title':         "O'chirilganlar",
     }
     return render(request, 'core/deleted_items.html', context)
 
