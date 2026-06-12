@@ -1303,9 +1303,18 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
         },
     )
     if not created and tm.is_deleted:
-        # "manual_cleared" deb belgilangan — foydalanuvchi ataylab o'chirgan.
-        # Bu holda ensure_tuition_month qayta tiklamasligi kerak.
-        if getattr(tm, "deleted_reason", None) == "manual_cleared":
+        # Quyidagi sabablar bilan o'chirilgan oylar qayta tiklanmasligi kerak:
+        # - "manual_cleared": foydalanuvchi ataylab o'chirgan
+        # - "cleanup_*": reset skriptlari tozalagan (reset_june_debts.py va boshqalar)
+        # - "move_future_*": credit balance operatsiyasi
+        # - "reset_*": boshqa reset skriptlari
+        deleted_reason = getattr(tm, "deleted_reason", None) or ""
+        if (
+            deleted_reason == "manual_cleared"
+            or deleted_reason.startswith("cleanup_")
+            or deleted_reason.startswith("move_future_")
+            or deleted_reason.startswith("reset_")
+        ):
             return tm
         tm.restore()
 
