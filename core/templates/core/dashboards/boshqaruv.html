@@ -4670,57 +4670,6 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-charts-toggle__ba
 
       </div>
 
-      <!-- ══════════ KUTILAYOTGAN XARID SO'ROVLARI ══════════ -->
-      {% if pending_purchase_requests %}
-      <section class="bq-pr-section">
-        <div class="bq-pr-card">
-          <div class="bq-pr-card__head">
-            <div class="bq-pr-card__title-wrap">
-              <div class="bq-pr-card__icon">
-                <i class="fa-solid fa-cart-shopping" style="color:#6366f1;font-size:20px;"></i>
-              </div>
-              <div>
-                <h3 class="bq-pr-card__title">Xarid so'rovlari</h3>
-                <p class="bq-pr-card__sub">O'quvchilar yuborgan kutilayotgan so'rovlar</p>
-              </div>
-            </div>
-            <div class="bq-pr-card__head-right">
-              <span class="bq-pr-badge">
-                <i class="fa-solid fa-clock"></i>
-                {{ pending_purchase_requests_count }} kutilmoqda
-              </span>
-              <a href="{% url 'store:requests' %}" class="bq-pr-card__all">Barchasini ko'rish →</a>
-            </div>
-          </div>
-          <div class="bq-pr-list">
-            {% for r in pending_purchase_requests %}
-            <div class="bq-pr-row">
-              <div class="bq-pr-row__student">
-                <div class="bq-pr-row__avatar">{{ r.student_name|first|upper }}</div>
-                <div class="bq-pr-row__txt">
-                  <div class="bq-pr-row__name">{{ r.student_name }}</div>
-                  <div class="bq-pr-row__meta">
-                    <span class="bq-pr-row__product">{{ r.product_name }}</span>
-                    <span class="bq-pr-row__qty">× {{ r.qty }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="bq-pr-row__right">
-                <div class="bq-pr-row__date">{{ r.sana|date:"d.m.Y" }}</div>
-                <a href="{% url 'store:request_approve' r.id %}" class="bq-pr-row__btn bq-pr-row__btn--approve" title="Tasdiqlash">
-                  <i class="fa-solid fa-check"></i> Tasdiqlash
-                </a>
-                <a href="{% url 'store:request_reject' r.id %}" class="bq-pr-row__btn bq-pr-row__btn--reject" title="Rad etish">
-                  <i class="fa-solid fa-xmark"></i>
-                </a>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-      {% endif %}
-
       <!-- ═══════════ CHARTS COLLAPSE TOGGLE ═══════════ -->
       <button class="bq-charts-toggle" id="bqChartsToggle" type="button" aria-expanded="false">
         <div class="bq-charts-toggle__left">
@@ -5007,6 +4956,72 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-charts-toggle__ba
           </div>
         </div>
       </div>
+
+        <!-- ══════════ KUTILAYOTGAN XARID SO'ROVLARI ══════════ -->
+        <section class="bq-pr-section">
+          <div class="bq-pr-card">
+            <div class="bq-pr-card__head">
+              <div class="bq-pr-card__title-wrap">
+                <div class="bq-pr-card__icon">
+                  <i class="fa-solid fa-cart-shopping" style="color:#6366f1;font-size:20px;"></i>
+                </div>
+                <div>
+                  <h3 class="bq-pr-card__title">Xarid so'rovlari</h3>
+                  <p class="bq-pr-card__sub">O'quvchilar yuborgan kutilayotgan so'rovlar</p>
+                </div>
+              </div>
+              <div class="bq-pr-card__head-right">
+                {% if pending_purchase_requests_count %}
+                <span class="bq-pr-badge">
+                  <i class="fa-solid fa-clock"></i>
+                  {{ pending_purchase_requests_count }} kutilmoqda
+                </span>
+                {% else %}
+                <span class="bq-pr-badge bq-pr-badge--empty">
+                  <i class="fa-solid fa-check"></i>
+                  Hech qanday so'rov yo'q
+                </span>
+                {% endif %}
+                <a href="{% url 'store:requests' %}" class="bq-pr-card__all">Barchasini ko'rish →</a>
+              </div>
+            </div>
+            {% if pending_purchase_requests %}
+            <div class="bq-pr-list">
+              {% for r in pending_purchase_requests %}
+              <div class="bq-pr-row">
+                <div class="bq-pr-row__student">
+                  <div class="bq-pr-row__avatar">{{ r.student_name|first|upper }}</div>
+                  <div class="bq-pr-row__txt">
+                    <div class="bq-pr-row__name">{{ r.student_name }}</div>
+                    <div class="bq-pr-row__meta">
+                      <span class="bq-pr-row__product">{{ r.product_name }}</span>
+                      <span class="bq-pr-row__qty">× {{ r.qty }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="bq-pr-row__right">
+                  <div class="bq-pr-row__date">{{ r.sana|date:"d.m.Y" }}</div>
+                  <a href="{% url 'store:request_approve' r.id %}" class="bq-pr-row__btn bq-pr-row__btn--approve" title="Tasdiqlash">
+                    <i class="fa-solid fa-check"></i> Tasdiqlash
+                  </a>
+                  <a href="{% url 'store:request_reject' r.id %}" class="bq-pr-row__btn bq-pr-row__btn--reject" title="Rad etish">
+                    <i class="fa-solid fa-xmark"></i>
+                  </a>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="bq-pr-empty">
+              <div class="bq-pr-empty__icon">✅</div>
+              <div>
+                <div class="bq-pr-empty__title">Hech qanday kutilayotgan so'rov yo'q</div>
+                <div class="bq-pr-empty__sub">O'quvchilar Telegram orqali so'rov yuborganda bu yerda ko'rinadi</div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </section>
 
         </div><!-- /bq-charts-body__inner -->
       </div><!-- /bq-charts-body -->
