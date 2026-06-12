@@ -1302,21 +1302,34 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
             fee_field: fee,
         },
     )
+    # Quyidagi sabablar bilan o'chirilgan yoki saqlangan oylar saqlanmesiga kerak:
+    # - "manual_cleared": foydalanuvchi ataylab o'chirgan
+    # - "cleanup_*": reset skriptlari tozalagan (reset_june_debts.py va boshqalar)
+    # - "move_future_*": credit balance operatsiyasi
+    # - "reset_*": boshqa reset skriptlari
+    _protected_reason = getattr(tm, "deleted_reason", None) or ""
+    _is_protected = (
+        _protected_reason == "manual_cleared"
+        or _protected_reason.startswith("cleanup_")
+        or _protected_reason.startswith("move_future_")
+        or _protected_reason.startswith("reset_")
+    )
+
     if not created and tm.is_deleted:
-        # Quyidagi sabablar bilan o'chirilgan oylar qayta tiklanmasligi kerak:
-        # - "manual_cleared": foydalanuvchi ataylab o'chirgan
-        # - "cleanup_*": reset skriptlari tozalagan (reset_june_debts.py va boshqalar)
-        # - "move_future_*": credit balance operatsiyasi
-        # - "reset_*": boshqa reset skriptlari
-        deleted_reason = getattr(tm, "deleted_reason", None) or ""
-        if (
-            deleted_reason == "manual_cleared"
-            or deleted_reason.startswith("cleanup_")
-            or deleted_reason.startswith("move_future_")
-            or deleted_reason.startswith("reset_")
-        ):
+        if _is_protected:
             return tm
         tm.restore()
+
+    # Himoyalangan oylarning fee'sini qayta yozmaymiz —
+    # reset skripti belgilagan qiymatni saqlaymiz.
+    if _is_protected:
+        update_fields = []
+        if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
+            tm.center = enrollment.center
+            update_fields.append("center")
+        if update_fields:
+            tm.save(update_fields=update_fields)
+        return tm
 
     update_fields = []
     if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
