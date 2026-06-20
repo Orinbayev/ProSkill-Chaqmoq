@@ -79,18 +79,14 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             # --- Qadam 1: allokatsiyalarni soft-delete qilish ---
-            deleted_alloc = 0
-            for pa in PaymentAllocation.all_objects.filter(payment_id__in=pay_ids):
-                if not pa.is_deleted:
-                    pa.soft_delete()
-                    deleted_alloc += 1
+            deleted_alloc = PaymentAllocation.all_objects.filter(
+                payment_id__in=pay_ids, is_deleted=False
+            ).update(is_deleted=True)
 
             # --- Qadam 2: to'lovlarni soft-delete qilish ---
-            deleted_pay = 0
-            for p in Payment.all_objects.filter(id__in=pay_ids):
-                if not p.is_deleted:
-                    p.soft_delete()
-                    deleted_pay += 1
+            deleted_pay = Payment.all_objects.filter(
+                id__in=pay_ids, is_deleted=False
+            ).update(is_deleted=True)
 
             # --- Qadam 3: Iyun TuitionMonth fee ni guruh narxiga tenglash ---
             fee_fixed = 0
