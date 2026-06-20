@@ -10,6 +10,7 @@ from django.utils import timezone
 from education.models import (
     Attendance,
     Enrollment,
+    GroupSchedule,
     PaymentAllocation,
     StudentGroupHistory,
     StudentGroupTransfer,
@@ -303,20 +304,30 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
         monthly_lessons=getattr(new_group, "oy_dars_soni", 0) or getattr(old_enrollment, "monthly_lessons", 0) or 12,
     )
 
-    # Yangi guruh uchun qolgan darslar = standart − eski guruhda haqiqiy davomat.
-    # Masalan: standart=12, davomat=5 → qolgan=7 → new_fee = 7×(350k/12) = 204_167.
-    # Bu formula bir oyda har doim: old_lessons + new_lessons = standart ta dars bo'lishini ta'minlaydi.
+    # Yangi guruh uchun qolgan darslar = shu oyning haqiqiy dars soni − eski guruhda davomat.
+    # Masalan: June da 13 ta dars bo'lsa, davomat=5 → qolgan=8 → new_fee=8×(350k/12).
     _old_attendance = old_period_financials["billable_lessons"]
-    _standard_monthly = (
-        getattr(old_enrollment, "monthly_lessons", 0)
-        or getattr(old_enrollment.group, "oy_dars_soni", 0)
+    # Narx bo'linuvchisi (bir dars narxi = narx / denominator)
+    _denominator = (
+        int(getattr(old_enrollment, "monthly_lessons", 0) or 0)
+        or int(getattr(old_enrollment.group, "oy_dars_soni", 0) or 0)
         or 12
     )
-    _remaining_lessons = max(0, _standard_monthly - _old_attendance)
+    # Shu oyda haqiqiy kutilgan darslar soni (avtomatik aniqlash):
+    #   - GroupSchedule bo'lsa → jadvaldagi haqiqiy kun soni (12, 13 yoki 14 bo'lishi mumkin)
+    #   - Jadval bo'lmasa → oy_dars_soni (admin tomonidan belgilangan)
+    if GroupSchedule.objects.filter(group=old_enrollment.group).exists():
+        _actual_month_lessons = (
+            expected_lessons_in_period(old_enrollment, month_start, month_end)
+            or _denominator
+        )
+    else:
+        _actual_month_lessons = _denominator
+    _remaining_lessons = max(0, _actual_month_lessons - _old_attendance)
     if _remaining_lessons > 0:
         _new_billing = calculate_student_month_billing(
             effective_student_payable_amount(new_enrollment),
-            _standard_monthly,
+            _denominator,
             _remaining_lessons,
             getattr(new_enrollment, "oqituvchi_foiz", 0) or 0,
         )
