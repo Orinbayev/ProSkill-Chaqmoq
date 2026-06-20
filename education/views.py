@@ -3880,14 +3880,19 @@ def _get_payment_dashboard_data(request):
     chart_qs = chart_qs.filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
 
     payment_ids = pay_qs.values_list("id", flat=True)
-    # Oy filtri tanlangan bo'lsa → allokatsiya asosida daromad (faqat shu oyga ketgan pul)
-    # Aks holda → paid_date asosida (barcha tushgan pul)
-    if sel_month and sel_month.isdigit() and center:
+    # Sana oralig'i bir oyda bo'lsa → allokatsiya asosida daromad (faqat shu oyga ketgan pul)
+    # Bir necha oy bo'lsa → paid_date asosida (barcha tushgan pul)
+    _same_month = (
+        selected_from and selected_to and
+        selected_from.year == selected_to.year and
+        selected_from.month == selected_to.month
+    )
+    if _same_month and center:
         filtered_income = (
             PaymentAllocation.objects.filter(
                 center=center,
-                tuition_month__month__year=cur_year,
-                tuition_month__month__month=int(sel_month),
+                tuition_month__month__year=selected_from.year,
+                tuition_month__month__month=selected_from.month,
             ).aggregate(s=Sum("amount"))["s"] or 0
         )
     else:
