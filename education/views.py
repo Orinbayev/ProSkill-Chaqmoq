@@ -3240,6 +3240,13 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
+    # Jami qarz: jadvaldagi ma'lumotlar bilan izchil (arxivlangan guruhlar chiqarib tashlangan),
+    # status filteri qo'llangan, lekin min/max qarz filterlari qo'llanmagan.
+    total_center_debt = sum(
+        r["debt"] for r in all_rows
+        if r.get("group_names") and r["debt"] > 0 and _matches_status_filter(r)
+    )
+
     # Chart: Jami qarz bilan bir xil enrollments (_total_debt_enrs) ishlatamiz.
     # preload_group_schedules allaqachon yuqorida enrollment_list uchun chaqirilgan,
     # lekin _total_debt_enrs yangi guruhlarni o'z ichiga olishi mumkin — yangilash.
