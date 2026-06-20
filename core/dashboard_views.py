@@ -1805,7 +1805,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
 
     exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
     expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
-    net_profit = revenue - expenses
+    net_profit = revenue - expenses  # teacher_salary_total keyin ayiriladi
 
     # Oldingi davr
     period = _period_stats(d_from, d_to)
@@ -2419,7 +2419,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     # ── Oldingi davr KPI deltalari (har bir karta uchun %) ─────────
     _pf, _pt = period["prev_from"], period["prev_to"]
 
-    # Sof foyda — oldingi davr
+    # Sof foyda — oldingi davr (teacher_salary ham keyin ayiriladi)
     try:
         prev_exp_qs = _expenses_for_center(center).filter(sana__date__range=(_pf, _pt))
         prev_expenses_val = int(prev_exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
@@ -2549,7 +2549,7 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "active_students": active_students,
             "new_this_month": new_this_month,
             "revenue": revenue,
-            "net_profit": net_profit,
+            "net_profit": revenue - expenses - teacher_salary_total,
             "expenses": expenses,
             "pay_count": pay_count,
             "total_groups": total_groups,
@@ -2565,7 +2565,10 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "changes": {
                 "revenue": _pct_change(revenue, prev_rev),
                 "students": _pct_change(new_this_month, prev_students),
-                "net_profit": _pct_change(net_profit, prev_net_profit),
+                "net_profit": _pct_change(
+                    revenue - expenses - teacher_salary_total,
+                    prev_rev - prev_expenses_val - prev_teacher_salary,
+                ),
                 "active_students": _pct_change(active_students, prev_active_students),
                 "teachers": _pct_change(teachers_count, prev_teachers_count),
                 "managers": _pct_change(managers_count, prev_managers_count),

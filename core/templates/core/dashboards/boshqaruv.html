@@ -4707,25 +4707,25 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-charts-toggle__ba
               <div>
                 <span class="bq-fin-lbl">Umumiy Aylanma</span>
                 <span class="bq-fin-val" id="fvAylanma">—</span>
-                <span class="bq-fin-hint">Barcha kirim to'lovlar</span>
+                <span class="bq-fin-hint">So'nggi 12 oy · Allokatsiyalar asosida</span>
               </div>
             </div>
             {% if request.user.role != 'manager' %}
             <div class="bq-fin-stat">
               <span class="bq-fin-dot" style="background:var(--bq-green)"></span>
               <div>
-                <span class="bq-fin-lbl">Sof Foyda</span>
+                <span class="bq-fin-lbl">Aylanma Farqi</span>
                 <span class="bq-fin-val" id="fvFoyda">—</span>
-                <span class="bq-fin-hint">Aylanma − Xarajatlar</span>
+                <span class="bq-fin-hint">So'nggi 12 oy · Aylanma − Do'kon xarajatlar</span>
               </div>
             </div>
             {% endif %}
             <div class="bq-fin-stat">
               <span class="bq-fin-dot" style="background:var(--bq-rose)"></span>
               <div>
-                <span class="bq-fin-lbl">Xarajatlar</span>
+                <span class="bq-fin-lbl">Do'kon Xarajatlar</span>
                 <span class="bq-fin-val" id="fvQarz">—</span>
-                <span class="bq-fin-hint">Ijara, maosh, boshqalar</span>
+                <span class="bq-fin-hint">So'nggi 12 oy · Ijara, boshqa chiqimlar</span>
               </div>
             </div>
           </div>
@@ -6843,7 +6843,7 @@ function render(d){
   const _k2s=document.getElementById('k2s');
   const _k2d=document.getElementById('k2d');
   if(_k2v) _k2v.textContent=fmtN(k.net_profit)+' so\'m';
-  if(_k2s) _k2s.textContent='Xarajat: '+fmtN(k.expenses)+' so\'m';
+  if(_k2s) _k2s.textContent='Xarajat: '+fmtN(k.expenses)+' · O\'q.maoshi: '+fmtN(k.teacher_salary_total);
   if(_k2d) badge(_k2d, _ch.net_profit);
 
   document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';

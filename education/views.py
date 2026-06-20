@@ -11508,6 +11508,7 @@ def edit_student_month_debt(request, student_id):
 
     with transaction.atomic():
         # Agar to'langan kamaytirish so'ralgan bo'lsa
+        affected_payment_ids: set = set()
         if new_paid is not None and new_paid < total_paid_now:
             to_free = total_paid_now - new_paid
             # Barcha allocationlarni ko'rib chiqib, kerakli miqdorni ozod qilamiz
@@ -11518,6 +11519,7 @@ def edit_student_month_debt(request, student_id):
                 for alloc in allocs_sorted:
                     if to_free <= 0:
                         break
+                    affected_payment_ids.add(alloc.payment_id)
                     alloc_amt = int(alloc.amount or 0)
                     if alloc_amt <= to_free:
                         # Bu allocationni to'liq o'chiramiz
@@ -11540,6 +11542,31 @@ def edit_student_month_debt(request, student_id):
                 sum(int(a.amount or 0) for a in tm.allocations.filter(is_deleted=False))
                 for tm in tms
             ]
+
+            # To'lovlar bo'limida ham o'zgarishni aks ettirish:
+            # ta'sirlangan Payment yozuvlarini yangilaymiz (yoki o'chiramiz)
+            if affected_payment_ids:
+                for pay_id in affected_payment_ids:
+                    remaining_alloc = (
+                        PaymentAllocation.objects
+                        .filter(payment_id=pay_id, is_deleted=False)
+                        .aggregate(s=Sum("amount"))["s"] or 0
+                    )
+                    pay_obj = Payment.all_objects.filter(pk=pay_id, is_deleted=False).first()
+                    if pay_obj is None:
+                        continue
+                    if remaining_alloc == 0:
+                        # Hech qanday aktiv allocation qolmadi → To'lovlar bo'limidan o'chiramiz
+                        pay_obj.is_deleted = True
+                        pay_obj.save(update_fields=["is_deleted"])
+                    elif remaining_alloc < int(pay_obj.summa or 0):
+                        # Qisman kamaytirish → summani yangi miqdorga o'rnatamiz
+                        pay_obj.summa = remaining_alloc
+                        # cash_amount ni ham mutanosib ravishda kamaytiramiz
+                        old_cash = int(pay_obj.cash_amount or 0)
+                        if old_cash > remaining_alloc:
+                            pay_obj.cash_amount = remaining_alloc
+                        pay_obj.save(update_fields=["summa", "cash_amount"])
 
         # Birinchi TM: fee = new_debt + uning to'lovi (qarz = new_debt)
         setattr(tms[0], fee_field, new_debt + paid_per_tm[0])
