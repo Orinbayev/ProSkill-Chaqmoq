@@ -50,6 +50,12 @@ class MidMonthProratedTest(TestCase):
 
     def setUp(self):
         self.center = Center.objects.create(name="TestCenter", slug="testcenter")
+        from billing.models import PlanFeature, CenterFeatureOverride
+        from billing.services import clear_feature_request_cache
+        _feat = PlanFeature.objects.filter(code="manual_oy_dars_soni").first()
+        if _feat:
+            CenterFeatureOverride.objects.create(center=self.center, feature=_feat, enabled=True)
+        clear_feature_request_cache()
         self.teacher = User.objects.create_user(
             email="teacher@mid.test", password="p",
             role="teacher", center=self.center,

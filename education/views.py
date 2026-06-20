@@ -66,6 +66,7 @@ from education.services.tuition import (
     is_month_closed_for_center,
     normalize_lesson_pattern,
     round_money_to_thousand,
+    round_div,
     resolve_lesson_schedule,
     tuition_month_preview,
     tuition_amount_breakdown,
@@ -3048,6 +3049,16 @@ def qarzdorlar_home(request):
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
+        # lesson_count = fee asosida aniq hisoblash (transfer va prorata holatlar uchun).
+        # snapshot["lesson_count"] expected darslarni beradi (jadval bo'yicha),
+        # lekin fee HAQIQIY davomat (eski guruh) yoki QOLGAN standart (yangi guruh) asosida.
+        # Ikkalasi ham: lesson_count = fee / per_lesson_price formulasi bilan to'g'ri chiqadi.
+        if f > 0:
+            _eff = effective_student_payable_amount(e)
+            _std = int(getattr(getattr(e, "group", None), "oy_dars_soni", 0) or 0) or int(getattr(e, "monthly_lessons", 0) or 0) or 12
+            _per = round_div(_eff, _std) if (_eff > 0 and _std > 0) else 0
+            if _per > 0:
+                lesson_count = round_div(f, _per)
         enr_credit = int(snapshot.get("credit_balance", 0) or 0)
         prev_unpaid = int(snapshot.get("previous_unpaid", 0) or 0)
         start_date = enrollment_start_date(e)
@@ -3119,9 +3130,9 @@ def qarzdorlar_home(request):
                 "lesson_pattern_label": pattern_label,
                 "lesson_count": lesson_count,
                 "debt_amount": debt,
-                "debt_amount_display": format_money(debt),
+                "debt_amount_display": _format_money_exact(debt),
                 "fee_amount": f,
-                "fee_amount_display": format_money(f),
+                "fee_amount_display": _format_money_exact(f),
                 "start_date": start_date,
             })
         if pattern_value and pattern_value not in row["lesson_pattern_values"]:

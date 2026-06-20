@@ -134,16 +134,22 @@ class StudentGroupTransferTests(TestCase):
 
         old_tm = TuitionMonth.objects.get(enrollment=self.enrollment, month=self.month)
         new_tm = TuitionMonth.objects.get(enrollment=result["new_enrollment"], month=self.month)
-        self.assertEqual(old_tm.fee_amount + new_tm.fee_amount, 260_000)
+
+        # Yangi mantiq: old_fee = haqiqiy davomat asosida (1 dars × 260k/26 = 10_000)
+        # new_fee = qolgan standart darslar asosida (26 - 1 = 25 dars × 260k/26 = 250_000)
+        # Jami: 1 + 25 = 26 = standart (bir oy to'liq)
+        per_lesson = 260_000 // 26  # = 10_000
+        old_expected_fee = per_lesson * 1    # 1 ta davomat
+        new_expected_fee = per_lesson * 25   # qolgan = 26 - 1 = 25 ta standart dars
+        self.assertEqual(old_tm.fee_amount, old_expected_fee)
+        self.assertEqual(new_tm.fee_amount, new_expected_fee)
+
+        # Allokatsiya: 260k to'lov → new_fee (250k) ko'chirildi, qolgan 10k old_tm da
         self.assertEqual(PaymentAllocation.objects.filter(payment=self.payment).count(), 2)
-        self.assertEqual(
-            PaymentAllocation.objects.filter(tuition_month=old_tm).aggregate(s=Sum("amount"))["s"],
-            old_tm.fee_amount,
-        )
-        self.assertEqual(
-            PaymentAllocation.objects.filter(tuition_month=new_tm).aggregate(s=Sum("amount"))["s"],
-            new_tm.fee_amount,
-        )
+        old_tm_paid = PaymentAllocation.objects.filter(tuition_month=old_tm).aggregate(s=Sum("amount"))["s"]
+        new_tm_paid = PaymentAllocation.objects.filter(tuition_month=new_tm).aggregate(s=Sum("amount"))["s"]
+        self.assertEqual(new_tm_paid, new_expected_fee)                   # 250_000 to'liq yopilgan
+        self.assertEqual(old_tm_paid, 260_000 - new_expected_fee)        # 10_000 qoldi
 
     def test_transfer_without_attendance_zeros_old_group_financials(self):
         Attendance.objects.filter(group=self.group_a, student=self.student).delete()

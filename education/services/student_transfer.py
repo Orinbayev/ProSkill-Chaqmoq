@@ -303,7 +303,26 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
         monthly_lessons=getattr(new_group, "oy_dars_soni", 0) or getattr(old_enrollment, "monthly_lessons", 0) or 12,
     )
 
-    new_fee = _fee_for_period(new_enrollment, max(transfer_date, month_start), month_end)
+    # Yangi guruh uchun qolgan darslar = standart − eski guruhda haqiqiy davomat.
+    # Masalan: standart=12, davomat=5 → qolgan=7 → new_fee = 7×(350k/12) = 204_167.
+    # Bu formula bir oyda har doim: old_lessons + new_lessons = standart ta dars bo'lishini ta'minlaydi.
+    _old_attendance = old_period_financials["billable_lessons"]
+    _standard_monthly = (
+        getattr(old_enrollment, "monthly_lessons", 0)
+        or getattr(old_enrollment.group, "oy_dars_soni", 0)
+        or 12
+    )
+    _remaining_lessons = max(0, _standard_monthly - _old_attendance)
+    if _remaining_lessons > 0:
+        _new_billing = calculate_student_month_billing(
+            effective_student_payable_amount(new_enrollment),
+            _standard_monthly,
+            _remaining_lessons,
+            getattr(new_enrollment, "oqituvchi_foiz", 0) or 0,
+        )
+        new_fee = int(_new_billing["student_debt"] or 0)
+    else:
+        new_fee = 0
     cap = max(effective_student_payable_amount(old_enrollment), effective_student_payable_amount(new_enrollment))
     if cap > 0 and old_fee + new_fee > cap:
         new_fee = max(0, cap - old_fee)
