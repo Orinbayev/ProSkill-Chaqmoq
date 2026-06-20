@@ -4946,20 +4946,23 @@ def group_detail(request, pk: int):
         .order_by("student__ism", "student__familya")
     )
     student_user_ids = [e.student_id for e in enrollments]
+    # Faqat shu guruh (g) bo'yicha fee/paid hisoblaymiz.
+    # Boshqa guruhlarni kiritish studentni boshqa guruhda ortiqcha to'lagan bo'lsa
+    # bu guruhda ham "To'langan" ko'rsatishiga olib kelgan — noto'g'ri xatti-harakat.
     student_enrollment_qs = Enrollment.objects.filter(
         student_id__in=student_user_ids,
+        group=g,
         student__is_archived=False,
         group__is_archived=False,
         group__is_deleted=False,
     ).filter(
-        Q(is_active=True) | Q(group=g, id__in=[e.id for e in enrollments])
+        Q(is_active=True) | Q(id__in=[e.id for e in enrollments])
     )
     if center:
         student_enrollment_qs = student_enrollment_qs.filter(center=center)
     student_enrollment_ids = list(student_enrollment_qs.values_list("id", flat=True))
 
-    # Studentning barcha aktiv guruhlari bo'yicha TANLANGAN OY
-    # to'lov holatini hisoblaymiz.
+    # Faqat shu guruh bo'yicha tanlangan oy to'lov holatini hisoblaymiz.
     fee_field = tuition_month_fee_field()
     student_enrollments = list(student_enrollment_qs.select_related("group"))
     eligible_enrollment_ids = [enrollment.id for enrollment in student_enrollments]
