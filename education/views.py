@@ -2871,22 +2871,35 @@ def qarzdorlar_home(request):
     )
 
     # ─── GURUHDAN CHIQARILGAN, AMMO QARZI BOR ENROLLMENT'LAR ─────────────────
-    # is_active=False lekin to'lanmagan TuitionMonth mavjud bo'lsa — qarzdorlar
-    # ro'yxatida "Chiqarilgan" belgisi bilan ko'rsatamiz.
-    # Soft-delete yoki arxivlangan guruhlar bundan chiqarib tashlanadi — ular
-    # hech qayerda ko'rinmaydi va enrollment_count ni oshirib yuboradi.
-    _inactive_enr_ids = (
+    # is_active=False lekin joriy PERIOD da TuitionMonth yoki Davomat mavjud → ko'rsatamiz.
+    # period_months ga cheklash: o'tgan oygi chiqarilganlar keyingi oyda ko'rinmaydi.
+    _inactive_tm_enr_ids = set(
         TuitionMonth.objects
         .filter(
             enrollment__is_active=False,
             is_deleted=False,
+            month__in=period_months,
             enrollment__student__is_archived=False,
             enrollment__group__is_archived=False,
             enrollment__group__is_deleted=False,
         )
         .values_list("enrollment_id", flat=True)
-        .distinct()
     )
+    # Davomat yozilgan lekin TuitionMonth yo'q — bu oyda chiqarilgan bo'lishi mumkin
+    _inactive_att_enr_ids = set(
+        Attendance.objects
+        .filter(
+            group__center=center,
+            date__gte=selected_from,
+            date__lte=selected_to,
+            enrollment__is_active=False,
+            enrollment__student__is_archived=False,
+            enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
+        )
+        .values_list("enrollment_id", flat=True)
+    )
+    _inactive_enr_ids = _inactive_tm_enr_ids | _inactive_att_enr_ids
     inactive_enrs_qs = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
@@ -2997,6 +3010,38 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
+    # Chiqarilgan (inactive) o'quvchilar: davomat bor lekin TuitionMonth yo'q → yaratamiz
+    # Davomat soni × bir dars narxi = bu oy uchun to'lov miqdori
+    if inactive_list and _cur_month_for_recalc in period_months:
+        from education.services.tuition import (
+            attendance_based_fee as _abf,
+            billable_attendance_count as _bac,
+        )
+        _inactive_ids = [e.id for e in inactive_list]
+        _existing_inactive_tm_ids = set(
+            TuitionMonth.objects.filter(
+                enrollment_id__in=_inactive_ids,
+                month=_cur_month_for_recalc,
+                is_deleted=False,
+            ).values_list("enrollment_id", flat=True)
+        )
+        for _ie in inactive_list:
+            if _ie.id in _existing_inactive_tm_ids:
+                continue
+            try:
+                _att = _bac(_ie, _cur_month_for_recalc)
+                if _att > 0:
+                    _fee = _abf(_ie, _cur_month_for_recalc)
+                    if _fee > 0:
+                        TuitionMonth.objects.create(
+                            enrollment=_ie,
+                            month=_cur_month_for_recalc,
+                            fee_amount=_fee,
+                            center=_ie.center or getattr(_ie.group, "center", None),
+                        )
+            except Exception:
+                pass
+
     debt_snapshots = calculate_enrollment_debt_snapshots(
         enrollment_list, period_months
     )
@@ -3055,17 +3100,9 @@ def qarzdorlar_home(request):
             continue
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
+        # lesson_count: jadval bo'yicha haqiqiy dars soni (12 yoki 13).
+        # Hisob-kitob denominatori har doim 12 (tuition.py da belgilangan).
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
-        # lesson_count = fee asosida aniq hisoblash (transfer va prorata holatlar uchun).
-        # snapshot["lesson_count"] expected darslarni beradi (jadval bo'yicha),
-        # lekin fee HAQIQIY davomat (eski guruh) yoki QOLGAN standart (yangi guruh) asosida.
-        # Ikkalasi ham: lesson_count = fee / per_lesson_price formulasi bilan to'g'ri chiqadi.
-        if f > 0:
-            _eff = effective_student_payable_amount(e)
-            _std = int(getattr(getattr(e, "group", None), "oy_dars_soni", 0) or 0) or int(getattr(e, "monthly_lessons", 0) or 0) or 12
-            _per = round_div(_eff, _std) if (_eff > 0 and _std > 0) else 0
-            if _per > 0:
-                lesson_count = round_div(f, _per)
         enr_credit = int(snapshot.get("credit_balance", 0) or 0)
         prev_unpaid = int(snapshot.get("previous_unpaid", 0) or 0)
         start_date = enrollment_start_date(e)
