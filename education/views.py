@@ -2886,18 +2886,24 @@ def qarzdorlar_home(request):
         .values_list("enrollment_id", flat=True)
     )
     # Davomat yozilgan lekin TuitionMonth yo'q — bu oyda chiqarilgan bo'lishi mumkin
+    # Attendance da enrollment FK yo'q → student+group orqali Enrollment topamiz
+    from django.db.models import Exists, OuterRef as _OuterRef
     _inactive_att_enr_ids = set(
-        Attendance.objects
-        .filter(
-            group__center=center,
-            date__gte=selected_from,
-            date__lte=selected_to,
-            enrollment__is_active=False,
-            enrollment__student__is_archived=False,
-            enrollment__group__is_archived=False,
-            enrollment__group__is_deleted=False,
-        )
-        .values_list("enrollment_id", flat=True)
+        Enrollment.objects.filter(
+            is_active=False,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        ).filter(_center_q).annotate(
+            _has_att=Exists(
+                Attendance.objects.filter(
+                    student_id=_OuterRef("student_id"),
+                    group_id=_OuterRef("group_id"),
+                    date__gte=selected_from,
+                    date__lte=selected_to,
+                )
+            )
+        ).filter(_has_att=True).values_list("id", flat=True)
     )
     _inactive_enr_ids = _inactive_tm_enr_ids | _inactive_att_enr_ids
     inactive_enrs_qs = (
