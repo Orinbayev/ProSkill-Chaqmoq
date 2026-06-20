@@ -260,11 +260,13 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
     old_period_start = max(month_start, old_enrollment.joined_at or month_start)
     old_period_end = min(month_end, transfer_date - timedelta(days=1))
     old_period_financials = _attendance_financials_for_period(old_enrollment, old_period_start, old_period_end)
-    old_fee = _fee_for_period(old_enrollment, old_period_start, old_period_end)
     if old_period_financials["billable_lessons"] <= 0:
+        # Davomat yo'q → 0 qarz (o'quvchi ko'chirilishidan oldin birorta ham darsga kelmagan)
         old_fee = 0
     else:
-        old_period_financials["student_debt"] = int(old_fee or 0)
+        # Haqiqiy qatnashgan darslar × bir dars narxi (transfer holati)
+        # Masalan: 5 dars × (250_000/12) = 104_167
+        old_fee = old_period_financials["student_debt"]
     attendance_state = _attendance_summary(old_enrollment, old_period_start, old_period_end)
 
     fee_field = tuition_month_fee_field()
@@ -291,13 +293,11 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
     new_enrollment = EnrollmentService.enroll_student(
         student=student,
         group=new_group,
-        kurs_narxi=full_course_amount(old_enrollment) or getattr(new_group, "kurs_narxi", 0) or 0,
+        # Yangi guruhning o'z narxini ishlatamiz — eski guruh narxini emas.
+        # Masalan: Beginner-1 → 250_000, Cefr-2 → 350_000 (yangi guruh narxi)
+        kurs_narxi=getattr(new_group, "kurs_narxi", 0) or 0,
         oqituvchi_foiz=getattr(new_group, "oqituvchi_foiz", None),
-        student_payable_amount=(
-            old_enrollment.student_payable_amount
-            if old_enrollment.student_payable_amount is not None
-            else None
-        ),
+        student_payable_amount=None,  # Yangi guruh uchun individual chegirma yo'q
         start_date=transfer_date,
         lesson_pattern=getattr(old_enrollment, "lesson_pattern", None),
         monthly_lessons=getattr(new_group, "oy_dars_soni", 0) or getattr(old_enrollment, "monthly_lessons", 0) or 12,
