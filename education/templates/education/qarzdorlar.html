@@ -1402,8 +1402,13 @@ tr.row-deferred {
                     // TASK 1: oylar ro'yxatini to'ldirish (avtomatik tanlash)
                     populateMonthSelector();
 
-                    // Auto-fill single cash with full debt
-                    document.getElementById('pv2SingleCash').value = debtRaw || '';
+                    // Auto-fill correct field based on active payment mode
+                    const _am = pv2GetMode();
+                    if (_am === 'card') {
+                        document.getElementById('pv2SingleCard').value = debtRaw || '';
+                    } else {
+                        document.getElementById('pv2SingleCash').value = debtRaw || '';
+                    }
                     pv2Validate();
 
                     fetch(buildTenantPath(`/talim/tolovlar/student/${pv2State.studentId}/groups/`))
@@ -1715,7 +1720,12 @@ tr.row-deferred {
                 pv2Reset();
                 populateMonthSelector(month);  // O'sha oyni oldindan tanlaydi
 
-                document.getElementById('pv2SingleCash').value = debt;
+                const _bm = pv2GetMode();
+                if (_bm === 'card') {
+                    document.getElementById('pv2SingleCard').value = debt;
+                } else {
+                    document.getElementById('pv2SingleCash').value = debt;
+                }
                 pv2Validate();
 
                 bootstrap.Modal.getOrCreateInstance(
