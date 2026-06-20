@@ -2102,15 +2102,22 @@ def enrollment_delete(request, enrollment_id: int):
                     ).update(is_deleted=True, deleted_at=timezone.now(), deleted_by=request.user)
 
                 # 2) Qaysi Payment'lar hech qanday aktiv allocation'siz qoldi —
-                #    ularni soft-delete. Boshqa oylarda allocation bor bo'lsa
-                #    Payment'ni qoldiramiz.
-                payments_to_check = Payment.objects.filter(
+                #    ularni o'chirmay, summa=0 qilib saqlaymiz. Shunday qilsak
+                #    o'quvchi to'lovlar bo'limida "0 so'm" to'lagan deb ko'rinadi
+                #    va yo'qolib ketmaydi.
+                payments_to_zero = Payment.objects.filter(
                     enrollment=enr, is_deleted=False
                 )
-                for p in payments_to_check:
+                _today = timezone.localdate().isoformat()
+                for p in payments_to_zero:
                     has_active_allocations = p.allocations.filter(is_deleted=False).exists()
                     if not has_active_allocations:
-                        p.delete(deleted_by=request.user)
+                        _note = (p.note or "").strip()
+                        p.summa = 0
+                        p.cash_amount = 0
+                        p.card_amount = 0
+                        p.note = (_note + f" [To'lov tozalandi: {_today}]").strip()
+                        p.save(update_fields=["summa", "cash_amount", "card_amount", "note"])
 
                 # 3) Alive TuitionMonth'larni soft-delete.
                 # deleted_reason="manual_cleared" ensure_tuition_month'ni qayta
