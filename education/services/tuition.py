@@ -1284,6 +1284,37 @@ def calculate_enrollment_debt_snapshots(
 
     return snapshots
 
+def _auto_create_zero_payment(enrollment, month: date) -> None:
+    """Bepul o'quvchi (student_payable_amount=0) uchun To'lovlar bo'limida ko'rinsin."""
+    from education.models import Payment as _Payment
+    exists = _Payment.objects.filter(
+        enrollment=enrollment,
+        paid_date__year=month.year,
+        paid_date__month=month.month,
+        summa=0,
+        is_deleted=False,
+    ).exists()
+    if exists:
+        return
+    try:
+        center = getattr(enrollment, "center", None) or getattr(
+            getattr(enrollment, "group", None), "center", None
+        )
+        _Payment.objects.create(
+            enrollment=enrollment,
+            student=enrollment.student,
+            group=enrollment.group,
+            center=center,
+            summa=0,
+            cash_amount=0,
+            paid_date=month,
+            note="Bepul o'quvchi",
+            payment_type="cash",
+        )
+    except Exception:
+        pass
+
+
 def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
@@ -1376,6 +1407,10 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
                 Enrollment.objects.filter(pk=enrollment.pk).update(
                     credit_balance=F("credit_balance") - use
                 )
+
+    # Bepul o'quvchi: To'lovlar bo'limida 0 so'm ko'rinsin
+    if fee == 0 and getattr(enrollment, "student_payable_amount", None) == 0:
+        _auto_create_zero_payment(enrollment, month)
 
     return tm
 
