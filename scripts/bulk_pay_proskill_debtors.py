@@ -31,7 +31,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Sum, Q
 
-from accounts.models import Center, CustomUser
+from accounts.models import Center, User as CustomUser
 from education.models import Enrollment, TuitionMonth, PaymentAllocation, Payment
 from education.services.tuition import (
     month_first_day,
