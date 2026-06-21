@@ -99,7 +99,7 @@ for enr in enrollments:
                 p.deleted_reason = "bulk_pay_corrected"
                 p.save(update_fields=['is_deleted', 'deleted_reason'])
 
-            # 3. Iyun uchun to'g'ri Payment yarat
+            # 3. Iyun uchun to'g'ri Payment + PaymentAllocation yarat
             if june_fee > 0 and not Payment.objects.filter(
                 enrollment=enr,
                 paid_date__year=june.year,
@@ -109,7 +109,7 @@ for enr in enrollments:
                 note="Iyun to'lovi (tuzatildi)",
             ).exists():
                 center = enr.center or (enr.group.center if enr.group else None)
-                Payment.objects.create(
+                new_pay = Payment.objects.create(
                     enrollment=enr,
                     student=enr.student,
                     group=enr.group,
@@ -119,6 +119,11 @@ for enr in enrollments:
                     paid_date=june,
                     note="Iyun to'lovi (tuzatildi)",
                     payment_type='cash',
+                )
+                PaymentAllocation.objects.create(
+                    payment=new_pay,
+                    tuition_month=june_tm,
+                    amount=june_fee,
                 )
         fixed += 1
     except Exception as ex:
