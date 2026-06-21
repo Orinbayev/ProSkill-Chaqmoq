@@ -18,10 +18,10 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings_prod")
 #  SOZLAMALAR — faqat shu yerda o'zgartiring
 # ═══════════════════════════════════════════════════════
 CENTER_SLUG   = "proskill"          # qaysi markaz
-TO_LOV_SANA  = "2026-06-21"        # to'lov sanasi (YYYY-MM-DD)
+TO_LOV_SANA  = "2026-06-22"        # to'lov sanasi (YYYY-MM-DD)
 TO_LOV_TURI  = "cash"              # "cash" | "card" | "mixed"
 IZOH          = "Eski qarz — to'lov bo'limiga o'tkazildi"
-CONFIRM       = False              # True qilsangiz haqiqiy yozuv yaratiladi!
+CONFIRM       = True               # True qilsangiz haqiqiy yozuv yaratiladi!
 # ═══════════════════════════════════════════════════════
 
 from datetime import date, datetime
