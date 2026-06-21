@@ -3010,7 +3010,15 @@ def qarzdorlar_home(request):
             if not getattr(e, "is_active", False):
                 continue
             if e.id in _existing_tm_enr_ids:
-                continue
+                # O'quvchiga maxsus narx belgilangan bo'lsa — TM fee ni yangilaymiz.
+                # kurs_narhi guruh narxidan farqli bo'lsa yoki student_payable_amount set bo'lsa.
+                _group_price = int(getattr(getattr(e, "group", None), "kurs_narxi", 0) or 0)
+                _has_custom = (
+                    e.student_payable_amount is not None
+                    or e.kurs_narhi != _group_price
+                )
+                if not _has_custom:
+                    continue
             try:
                 _etm(e, _cur_month_for_recalc)
             except Exception:
