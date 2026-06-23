@@ -1284,6 +1284,46 @@ def calculate_enrollment_debt_snapshots(
 
     return snapshots
 
+def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
+    """
+    Agar shu oy uchun to'lov mavjud bo'lsa lekin PaymentAllocation yo'q bo'lsa,
+    avtomatik bog'laydi. Natija: to'liq to'langan bo'lsa qarzdorda chiqmaydi.
+    """
+    from django.db.models import Sum as _Sum
+    existing = int(
+        PaymentAllocation.objects.filter(
+            tuition_month=tm,
+            payment__is_deleted=False,
+        ).aggregate(s=_Sum("amount"))["s"] or 0
+    )
+    if existing >= fee:
+        return  # Allaqachon to'liq yopilgan
+
+    remaining = fee - existing
+    linked_ids = set(
+        PaymentAllocation.objects.filter(
+            tuition_month=tm,
+        ).values_list("payment_id", flat=True)
+    )
+    pay = Payment.objects.filter(
+        enrollment=enrollment,
+        is_deleted=False,
+        paid_date__year=month.year,
+        paid_date__month=month.month,
+        summa__gte=remaining,
+    ).exclude(id__in=linked_ids).order_by("-id").first()
+
+    if pay:
+        try:
+            PaymentAllocation.objects.get_or_create(
+                payment=pay,
+                tuition_month=tm,
+                defaults={"amount": remaining},
+            )
+        except Exception:
+            pass
+
+
 def _auto_create_zero_payment(enrollment, month: date) -> None:
     """Bepul o'quvchi (student_payable_amount=0) uchun To'lovlar bo'limida ko'rinsin."""
     from education.models import Payment as _Payment
@@ -1411,6 +1451,11 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     # Bepul o'quvchi: To'lovlar bo'limida 0 so'm ko'rinsin
     if fee == 0 and getattr(enrollment, "student_payable_amount", None) == 0:
         _auto_create_zero_payment(enrollment, month)
+
+    # To'lov bor lekin PaymentAllocation yo'q bo'lsa — avtomatik bog'laymiz.
+    # Shunday bo'lsa qarzdorlarda qarz chiqmaydi.
+    if fee > 0:
+        _auto_link_payment_to_tm(enrollment, tm, fee, month)
 
     return tm
 
