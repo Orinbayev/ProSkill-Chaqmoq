@@ -934,6 +934,11 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
     if start_date > month_end:
         return 0
     period_start = max(start_date, month_start)
+    # Chiqarilgan o'quvchi: last_lesson_date bor bo'lsa, oy oxiri emas
+    # shu sana bilan chegaralaymiz (faqat o'sha oygacha ta'sir qiladi).
+    last_lesson = getattr(enrollment, "last_lesson_date", None)
+    if last_lesson and not getattr(enrollment, "is_active", True):
+        month_end = min(month_end, last_lesson)
     count = expected_lessons_in_period(enrollment, period_start, month_end)
 
     # Manual rejim (center da "manual_oy_dars_soni" feature yoqilgan):
