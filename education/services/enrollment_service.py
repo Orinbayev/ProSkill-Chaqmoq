@@ -117,10 +117,21 @@ class EnrollmentService:
     @transaction.atomic
     def remove_student(student, group):
         """Removes student from group and closes the history record."""
+        from django.utils import timezone
         enrollment = Enrollment.objects.filter(student=student, group=group, is_active=True).first()
         if enrollment:
             enrollment.is_active = False
+            today = timezone.localdate()
+            if not enrollment.last_lesson_date:
+                enrollment.last_lesson_date = today
             enrollment.save()
+            # TM fee ni chiqarilgan sanaga qarab qayta hisoblash
+            try:
+                from education.services.tuition import ensure_tuition_month
+                cur_month = today.replace(day=1)
+                ensure_tuition_month(enrollment, cur_month)
+            except Exception:
+                pass
             
         # Close the latest open history record
         history = StudentGroupHistory.objects.filter(

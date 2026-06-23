@@ -3063,6 +3063,12 @@ def qarzdorlar_home(request):
         )
         for _ie in inactive_list:
             if _ie.id in _existing_inactive_tm_ids:
+                # Inactive o'quvchi: haqiqiy davomat asosida TM fee ni yangilaylik.
+                # Davomat 0 bo'lsa fee=0 → qarzdorlardan chiqib ketadi.
+                try:
+                    _etm(_ie, _cur_month_for_recalc)
+                except Exception:
+                    pass
                 continue
             try:
                 _att = _bac(_ie, _cur_month_for_recalc)

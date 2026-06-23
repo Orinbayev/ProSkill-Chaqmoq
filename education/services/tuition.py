@@ -933,9 +933,28 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
     start_date = enrollment_start_date(enrollment)
     if start_date > month_end:
         return 0
+
+    # Chiqarilgan (inactive) o'quvchi: haqiqiy davomat asosida hisoblaymiz.
+    # Davomat 0 bo'lsa → qarz yo'q; > 0 bo'lsa → haqiqiy dars soni qaytadi.
+    if not getattr(enrollment, "is_active", True):
+        _student = getattr(enrollment, "student", None)
+        _group = getattr(enrollment, "group", None)
+        if _student and _group:
+            try:
+                from django.db.models import Q as _Q
+                from education.models import Attendance as _Att
+                return int(_Att.objects.filter(
+                    student=_student,
+                    group=_group,
+                    date__year=month_start.year,
+                    date__month=month_start.month,
+                ).filter(
+                    _Q(present=True) | _Q(forced=True) | _Q(status="present")
+                ).count())
+            except Exception:
+                pass
+
     period_start = max(start_date, month_start)
-    # Chiqarilgan o'quvchi: last_lesson_date bor bo'lsa, oy oxiri emas
-    # shu sana bilan chegaralaymiz (faqat o'sha oygacha ta'sir qiladi).
     last_lesson = getattr(enrollment, "last_lesson_date", None)
     if last_lesson and not getattr(enrollment, "is_active", True):
         month_end = min(month_end, last_lesson)
