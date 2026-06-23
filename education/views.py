@@ -2998,7 +2998,8 @@ def qarzdorlar_home(request):
     # in ONE query, then only call _etm for enrollments that are missing one.
     _active_ids = [e.id for e in active_list if getattr(e, "is_active", False)]
     if _active_ids:
-        from education.models import TuitionMonth as _TM
+        from education.models import TuitionMonth as _TM, Payment as _Pay, PaymentAllocation as _PA
+        from django.db.models import Sum as _Sum
         _existing_tm_enr_ids = set(
             _TM.objects.filter(
                 enrollment_id__in=_active_ids,
@@ -3006,6 +3007,26 @@ def qarzdorlar_home(request):
                 is_deleted=False,
             ).values_list("enrollment_id", flat=True)
         )
+        # To'lov bor lekin allocation yo'q/yetarli emas → _etm chaqirilsin
+        _pay_enr_ids = set(
+            _Pay.objects.filter(
+                enrollment_id__in=_active_ids,
+                paid_date__year=_cur_month_for_recalc.year,
+                paid_date__month=_cur_month_for_recalc.month,
+                is_deleted=False,
+                summa__gt=0,
+            ).values_list("enrollment_id", flat=True)
+        )
+        _alloc_enr_ids = set(
+            _PA.objects.filter(
+                tuition_month__enrollment_id__in=list(_pay_enr_ids),
+                tuition_month__month=_cur_month_for_recalc,
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False,
+            ).values_list("tuition_month__enrollment_id", flat=True)
+        ) if _pay_enr_ids else set()
+        _unlinked_pay_ids = _pay_enr_ids - _alloc_enr_ids
+
         for e in active_list:
             if not getattr(e, "is_active", False):
                 continue
@@ -3017,7 +3038,8 @@ def qarzdorlar_home(request):
                     e.student_payable_amount is not None
                     or e.kurs_narhi != _group_price
                 )
-                if not _has_custom:
+                # To'lov bor lekin allocation yo'q bo'lsa ham _etm chaqiramiz
+                if not _has_custom and e.id not in _unlinked_pay_ids:
                     continue
             try:
                 _etm(e, _cur_month_for_recalc)
