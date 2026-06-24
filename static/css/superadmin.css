@@ -599,7 +599,7 @@ body.role-superadmin .content-shell {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.82rem;
-  min-width: 800px;
+  min-width: 680px;
 }
 .sa-table thead th {
   padding: 10px 14px;
@@ -2021,3 +2021,84 @@ body.role-superadmin .content-shell {
   .pay-body-list { padding: 0 14px 18px; }
   .saas-chart-container { grid-template-columns: 1fr; }
 }
+
+
+/* ─────────────────────────────────────────────────────────────
+   23. V3 SIMPLIFIED TABLE HELPERS
+───────────────────────────────────────────────────────────── */
+/* Center column: name + badges on one line */
+.sa-center-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.sa-center-slug {
+  font-size: 0.69rem;
+  color: var(--sa-muted);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  margin-bottom: 1px;
+}
+.sa-center-parent {
+  font-size: 0.69rem;
+  color: var(--sa-muted);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 1px;
+}
+.sa-center-avatar--branch {
+  background: var(--sa-cyan-m);
+  border-color: rgba(6,182,212,0.2);
+  color: var(--sa-cyan);
+}
+
+/* Branch badge */
+.sa-badge-branch {
+  background: rgba(6,182,212,0.1);
+  color: var(--sa-cyan);
+  border-color: rgba(6,182,212,0.2);
+  font-size: 0.62rem;
+  padding: 2px 6px;
+}
+.sa-badge-branch::before { display: none; }
+
+/* Warning link (e.g. "Direktorni biriktirish") */
+.sa-link-warn {
+  color: var(--sa-amber);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s;
+}
+.sa-link-warn:hover { opacity: 0.75; }
+
+/* Merged Tarif + MRR column */
+.sa-mrr-inline {
+  font-size: 0.69rem;
+  color: var(--sa-green);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sa-student-row {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: 3px;
+  margin-bottom: 4px;
+}
+.sa-student-count {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--sa-text);
+  font-variant-numeric: tabular-nums;
+}
+.sa-student-label {
+  font-size: 0.69rem;
+  color: var(--sa-muted);
+}
+

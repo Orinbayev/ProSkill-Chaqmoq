@@ -4,14 +4,14 @@
 {% block title %}Global Boshqaruv — Chaqmoq{% endblock %}
 
 {% block extra_css %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260530-sa-redesign-1">
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260624-sa-v3">
 {% endblock %}
 
 {% block content %}
 
 <div class="sa-page">
 
-    <!-- ── Superadmin Quick Nav ───────── -->
+    <!-- ── Quick Nav ── -->
     <nav class="sa-subnav">
         <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sa-subnav-item is-active">
             <i class="bi bi-grid-1x2-fill"></i> Dashboard
@@ -41,81 +41,53 @@
         </a>
     </nav>
 
-    <!-- ══════════════════════════════════
-         HEADER
-    ══════════════════════════════════ -->
+    <!-- ── Header ── -->
     <div class="sa-header">
         <div class="sa-header-left">
             <div class="breadcrumb-bar">
-                <span>Superadmin</span>
-                <span>/</span>
+                <span>Superadmin</span><span>/</span>
                 <span class="bc-current">Global Boshqaruv</span>
             </div>
             <h1>Global Boshqaruv</h1>
             <p class="subtitle">Markazlar, obunalar va daromad nazorati</p>
         </div>
-
         <div class="sa-header-right">
             <a href="{% url 'platform_global:center_create' %}" class="sa-btn sa-btn-primary">
                 <i class="bi bi-plus-lg"></i> Yangi Markaz
-            </a>
-            <div class="sa-divider"></div>
-            <a href="{% url 'platform_global:plans_ui' %}" class="sa-btn sa-btn-secondary">
-                <i class="bi bi-box-seam"></i> Tariflar
-            </a>
-            <a href="{% url 'platform_global:promos_ui' %}" class="sa-btn sa-btn-secondary">
-                <i class="bi bi-ticket-perforated"></i> Promokodlar
-            </a>
-            <a href="{% url 'platform_global:marketing:dashboard' %}" class="sa-btn sa-btn-secondary">
-                <i class="bi bi-megaphone"></i> Marketing
             </a>
             {% include "components/profile_dropdown.html" %}
         </div>
     </div>
 
-    <!-- ══════════════════════════════════
-         ALERT BANNER (if attention needed)
-    ══════════════════════════════════ -->
+    <!-- ── Alert Banner ── -->
     {% if blocked_centers_count or expired_count or expiring_soon_count %}
     <div class="sa-alert-card{% if blocked_centers_count %} alert-red{% endif %}">
         <div class="sa-alert-head">
-            <h6>
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                Diqqat talab qiluvchi holatlar
-            </h6>
-            <span style="font-size:0.75rem;color:var(--sa-muted);">
-                {{ blocked_centers_count|add:expired_count|add:expiring_soon_count }} ta muammo
-            </span>
+            <h6><i class="bi bi-exclamation-triangle-fill"></i> Diqqat talab qiluvchi holatlar</h6>
+            <span>{{ blocked_centers_count|add:expired_count|add:expiring_soon_count }} ta muammo</span>
         </div>
         <div class="sa-alert-links">
             {% if blocked_centers_count %}
             <a href="?status=BLOCKED" class="sa-alert-link sa-alert-link-red">
-                <i class="bi bi-shield-x"></i>
-                {{ blocked_centers_count }} ta markaz bloklangan
+                <i class="bi bi-shield-x"></i> {{ blocked_centers_count }} ta bloklangan
             </a>
             {% endif %}
             {% if expired_count %}
             <a href="?expiry=expired" class="sa-alert-link sa-alert-link-orange">
-                <i class="bi bi-calendar-x"></i>
-                {{ expired_count }} ta obuna tugagan
+                <i class="bi bi-calendar-x"></i> {{ expired_count }} ta obuna tugagan
             </a>
             {% endif %}
             {% if expiring_soon_count %}
             <a href="?expiry=expiring_soon" class="sa-alert-link sa-alert-link-amber">
-                <i class="bi bi-clock-history"></i>
-                {{ expiring_soon_count }} ta 7 kunda tugaydi
+                <i class="bi bi-clock-history"></i> {{ expiring_soon_count }} ta 7 kunda tugaydi
             </a>
             {% endif %}
         </div>
     </div>
     {% endif %}
 
-    <!-- ══════════════════════════════════
-         KPI CARDS (5)
-    ══════════════════════════════════ -->
+    <!-- ── KPI Cards ── -->
     <div class="sa-kpi-grid">
-
-        <!-- Markazlar -->
         <a href="?" class="sa-kpi kpi-indigo">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">Jami Markazlar</span>
@@ -123,17 +95,13 @@
             </div>
             <div class="sa-kpi-value">{{ total_centers }}</div>
             {% widthratio active_centers_count total_centers 100 as centers_width %}
-            <div class="sa-kpi-bar">
-                <div class="sa-kpi-bar-fill" data-progress="{{ centers_width|default:0 }}"></div>
-            </div>
+            <div class="sa-kpi-bar"><div class="sa-kpi-bar-fill" data-progress="{{ centers_width|default:0 }}"></div></div>
             <div class="sa-kpi-sub">
                 <span style="color:#22c55e;">{{ active_centers_count }} faol</span>
                 &nbsp;·&nbsp; {{ blocked_centers_count }} bloklangan
-                &nbsp;·&nbsp; {{ archived_centers_count }} arxiv
             </div>
         </a>
 
-        <!-- MRR — opens payments modal -->
         <div class="sa-kpi kpi-green" onclick="openPaymentsModal()" style="cursor:pointer;">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">MRR (Oylik tushum)</span>
@@ -144,12 +112,10 @@
                 <span style="font-size:0.85rem;font-weight:500;color:var(--sa-muted);">so'm</span>
             </div>
             <div class="sa-kpi-sub" style="margin-top:9px;display:flex;align-items:center;gap:6px;">
-                Shu oylik haqiqiy savdo &nbsp;<i class="bi bi-arrow-up-right-circle-fill" style="opacity:0.6;"></i>
+                Shu oylik haqiqiy savdo <i class="bi bi-arrow-up-right-circle-fill" style="opacity:0.5;"></i>
             </div>
-            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(34,197,94,0.2);"></div>
         </div>
 
-        <!-- Faol Obunalar -->
         <a href="?expiry=active" class="sa-kpi kpi-cyan">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">Faol Obunalar</span>
@@ -159,7 +125,6 @@
             <div class="sa-kpi-sub" style="margin-top:9px;">Joriy to'langan obunalar</div>
         </a>
 
-        <!-- Muddati Tugayotgan -->
         <a href="?expiry=expiring_soon" class="sa-kpi kpi-amber">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">Muddati Tugayotgan</span>
@@ -172,7 +137,6 @@
             </div>
         </a>
 
-        <!-- Jami Talabalar -->
         <a href="?" class="sa-kpi kpi-violet">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">Jami Talabalar</span>
@@ -181,174 +145,61 @@
             <div class="sa-kpi-value">{{ total_students_global|intcomma }}</div>
             <div class="sa-kpi-sub" style="margin-top:9px;">Barcha markazlardagi talabalar</div>
         </a>
-
     </div>
 
-    <!-- ══════════════════════════════════
-         FILTER TOOLBAR (STICKY)
-    ══════════════════════════════════ -->
+    <!-- ── Filter Toolbar ── -->
     <div class="sa-toolbar-wrap">
         <form method="get" class="sa-toolbar" id="filterForm">
             <div class="sa-search-wrap">
                 <i class="bi bi-search"></i>
                 <input type="text" name="q" value="{{ search_q }}" placeholder="Markaz nomi, direktor, tel...">
             </div>
-
             <div class="sa-toolbar-sep"></div>
-
             <select name="status" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Status: Barchasi</option>
                 {% for s_code, s_label in statuses %}
                 <option value="{{ s_code }}" {% if status_filter == s_code %}selected{% endif %}>{{ s_label }}</option>
                 {% endfor %}
             </select>
-
             <select name="plan" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tarif: Barchasi</option>
                 {% for p_code, p_label in plans %}
                 <option value="{{ p_code }}" {% if plan_filter == p_code %}selected{% endif %}>{{ p_label }}</option>
                 {% endfor %}
             </select>
-
             <select name="expiry" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Muddat: Barchasi</option>
-                <option value="active"         {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
-                <option value="today"          {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
-                <option value="expiring_3"     {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda tugaydi</option>
-                <option value="expiring_soon"  {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda tugaydi</option>
-                <option value="grace"          {% if expiry_filter == 'grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
-                <option value="expired"        {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
+                <option value="active"        {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
+                <option value="today"         {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
+                <option value="expiring_3"    {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda</option>
+                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda</option>
+                <option value="grace"         {% if expiry_filter == 'grace' %}selected{% endif %}>Grace davri</option>
+                <option value="expired"       {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan</option>
             </select>
-
             <select name="limit" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Limit: Barchasi</option>
                 <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
             </select>
-
-            <button type="submit" class="sa-btn-submit">
-                <i class="bi bi-search"></i> Qidirish
-            </button>
-
+            <button type="submit" class="sa-btn-submit"><i class="bi bi-search"></i> Qidirish</button>
             {% if search_q or status_filter or plan_filter or expiry_filter or limit_filter %}
-            <a href="?" class="sa-btn-ghost">
-                <i class="bi bi-x-circle"></i> Tozalash
-            </a>
+            <a href="?" class="sa-btn-ghost"><i class="bi bi-x-circle"></i> Tozalash</a>
             {% endif %}
         </form>
     </div>
 
-    <!-- ══════════════════════════════════
-         PAYMENT HISTORY TABLE
-    ══════════════════════════════════ -->
-    {% if payment_history_page_obj and payment_history_page_obj.paginator.count %}
-    <div class="sa-table-card" style="margin-bottom:24px;">
-        <div class="sa-table-head-bar">
-            <h5>
-                <i class="bi bi-credit-card-2-front-fill" style="color:#22c55e;"></i>
-                To'lovlar Tarixi
-                <span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-left:4px;">
-                    jami {{ payment_history_total }} ta
-                </span>
-            </h5>
-            <div class="sa-head-actions">
-                <form method="get">
-                    <input type="hidden" name="q"             value="{{ search_q }}">
-                    <input type="hidden" name="status"        value="{{ status_filter }}">
-                    <input type="hidden" name="plan"          value="{{ plan_filter }}">
-                    <input type="hidden" name="expiry"        value="{{ expiry_filter }}">
-                    <input type="hidden" name="limit"         value="{{ limit_filter }}">
-                    <input type="hidden" name="payments_page" value="1">
-                    <select name="payments_per_page" class="sa-select sa-mini-select" onchange="this.form.submit()">
-                        {% for size in payment_page_size_options %}
-                        <option value="{{ size }}" {% if payments_per_page == size %}selected{% endif %}>{{ size }} ta</option>
-                        {% endfor %}
-                    </select>
-                </form>
-                <span class="sa-count-badge">{{ payment_history_total }} ta to'lov</span>
-            </div>
-        </div>
-
-        <div class="sa-table-wrap">
-            <table class="sa-table">
-                <thead>
-                    <tr>
-                        <th>Markaz</th>
-                        <th>Tarif / Muddat</th>
-                        <th>To'lov summasi</th>
-                        <th>Sana & Status</th>
-                        <th>Obuna davri</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in payment_history %}
-                    {% with paid_dt=p.paid_at|default:p.created_at %}
-                    <tr>
-                        <td>
-                            <div style="font-weight:700;color:#f1f5f9;font-size:0.86rem;">{{ p.center.name }}</div>
-                            <div style="font-size:0.72rem;color:#6366f1;font-weight:600;">@{{ p.center.slug }}</div>
-                        </td>
-                        <td>
-                            <span style="background:rgba(6,182,212,0.1);color:#06b6d4;border:1px solid rgba(6,182,212,0.2);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">
-                                {{ p.plan.title|default:p.plan.code }}
-                            </span>
-                            <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">{{ p.duration_months }} oylik obuna</div>
-                        </td>
-                        <td>
-                            <span style="font-weight:800;color:#4ade80;font-size:0.95rem;">{{ p.final_price|floatformat:0 }} UZS</span>
-                            {% if p.discount_percent > 0 %}
-                            <div style="font-size:0.72rem;color:#f59e0b;">-{{ p.discount_percent }}% chegirma</div>
-                            {% endif %}
-                        </td>
-                        <td style="white-space:nowrap;">
-                            <div style="color:#f1f5f9;font-size:0.84rem;font-weight:600;">{{ paid_dt|localtime|date:"d.m.Y H:i" }}</div>
-                            <span style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;">
-                                ✓ Muvaffaqiyatli
-                            </span>
-                        </td>
-                        <td style="white-space:nowrap;color:#64748b;font-size:0.82rem;">
-                            {{ paid_dt|localtime|date:"d.m.Y" }}
-                            <i class="bi bi-arrow-right" style="font-size:10px;margin:0 4px;"></i>
-                            +{{ p.duration_months }}oy
-                        </td>
-                    </tr>
-                    {% endwith %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="sa-pay-pagination">
-            <span class="sa-page-info">
-                Sahifa {{ payment_history_page_obj.number }} / {{ payment_history_page_obj.paginator.num_pages }}
-            </span>
-            <div class="sa-page-links">
-                {% if payment_history_page_obj.has_previous %}
-                <a class="sa-page-link" href="?{{ payment_base_query }}{% if payment_base_query %}&{% endif %}payments_page={{ payment_history_page_obj.previous_page_number }}&payments_per_page={{ payments_per_page }}">
-                    <i class="bi bi-chevron-left"></i>&nbsp;Oldingi
-                </a>
-                {% else %}
-                <span class="sa-page-link disabled"><i class="bi bi-chevron-left"></i>&nbsp;Oldingi</span>
-                {% endif %}
-
-                {% if payment_history_page_obj.has_next %}
-                <a class="sa-page-link" href="?{{ payment_base_query }}{% if payment_base_query %}&{% endif %}payments_page={{ payment_history_page_obj.next_page_number }}&payments_per_page={{ payments_per_page }}">
-                    Keyingi&nbsp;<i class="bi bi-chevron-right"></i>
-                </a>
-                {% else %}
-                <span class="sa-page-link disabled">Keyingi&nbsp;<i class="bi bi-chevron-right"></i></span>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- ══════════════════════════════════
-         CENTERS TABLE
-    ══════════════════════════════════ -->
+    <!-- ── Centers Table ── -->
     <div class="sa-table-card">
         <div class="sa-table-head-bar">
-            <h5><i class="bi bi-table" style="color:var(--sa-indigo);"></i> Markazlar Ro'yxati</h5>
-            <span class="sa-count-badge">{{ centers.count }} ta natija</span>
+            <h5><i class="bi bi-buildings" style="color:var(--sa-indigo);"></i> Markazlar Ro'yxati</h5>
+            <div class="sa-head-actions">
+                {% if payment_history_page_obj and payment_history_page_obj.paginator.count %}
+                <button type="button" class="sa-btn sa-btn-secondary" onclick="openPaymentsModal()" style="padding:6px 12px;font-size:0.76rem;">
+                    <i class="bi bi-credit-card-2-front-fill" style="color:#22c55e;"></i>
+                    To'lovlar ({{ payment_history_total }})
+                </button>
+                {% endif %}
+                <span class="sa-count-badge">{{ centers.count }} ta natija</span>
+            </div>
         </div>
 
         <div class="sa-table-wrap">
@@ -356,124 +207,105 @@
                 <thead>
                     <tr>
                         <th>Markaz</th>
-                        <th>Status</th>
                         <th>Direktor</th>
-                        <th>Tarif & Limit</th>
-                        <th>Premium xususiyatlar</th>
+                        <th>Tarif & O'quvchilar</th>
                         <th>Obuna Muddati</th>
-                        <th>MRR</th>
-                        <th>Amallar</th>
+                        <th style="text-align:right;">Amallar</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for c in centers %}
                     {% with sub=c.active_subs_list.0 %}
                     <tr>
-                        <!-- ── Markaz ── -->
+
+                        <!-- Markaz + Status -->
                         <td>
                             <div class="sa-center-cell">
-                                <div class="sa-center-avatar" style="{% if c.parent_center %}background:rgba(99,102,241,.2);color:#818cf8;{% endif %}">
+                                <div class="sa-center-avatar{% if c.parent_center %} sa-center-avatar--branch{% endif %}">
                                     {% if c.parent_center %}<i class="bi bi-diagram-2"></i>{% else %}<i class="bi bi-building"></i>{% endif %}
                                 </div>
                                 <div>
-                                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                        <div class="sa-center-name">{{ c.name }}</div>
+                                    <div class="sa-center-name-row">
+                                        <span class="sa-center-name">{{ c.name }}</span>
+                                        {% if c.status == 'ACTIVE' %}
+                                        <span class="sa-badge sa-badge-active">Faol</span>
+                                        {% elif c.status == 'ARCHIVED' %}
+                                        <span class="sa-badge sa-badge-archived">Arxiv</span>
+                                        {% else %}
+                                        <span class="sa-badge sa-badge-blocked">{{ c.status }}</span>
+                                        {% endif %}
                                         {% if c.parent_center %}
-                                        <span style="font-size:0.65rem;padding:2px 7px;background:rgba(129,140,248,.15);color:#818cf8;border:1px solid rgba(129,140,248,.3);border-radius:20px;font-weight:700;white-space:nowrap;">
-                                            📌 Filial
-                                        </span>
+                                        <span class="sa-badge sa-badge-branch">Filial</span>
                                         {% endif %}
                                     </div>
-                                    <div style="font-size:0.72rem;color:#6366f1;font-weight:600;letter-spacing:0.3px;margin-top:1px;">@{{ c.slug }}</div>
+                                    <div class="sa-center-slug">@{{ c.slug }}</div>
                                     {% if c.parent_center %}
-                                    <div style="font-size:0.7rem;color:#fbbf24;margin-top:2px;">
-                                        <i class="bi bi-building" style="margin-right:3px;"></i>
-                                        Asosiy: <strong>{{ c.parent_center.name }}</strong>
+                                    <div class="sa-center-parent">
+                                        <i class="bi bi-building"></i> {{ c.parent_center.name }}
                                     </div>
                                     {% endif %}
+                                    {% if c.address %}
                                     <div class="sa-center-addr">
-                                        <i class="bi bi-geo-alt" style="font-size:0.7rem;"></i>
-                                        {{ c.address|default:"Manzil yo'q" }}
+                                        <i class="bi bi-geo-alt"></i> {{ c.address }}
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
 
-                        <!-- ── Status ── -->
-                        <td>
-                            {% if c.status == 'ACTIVE' %}
-                            <span class="sa-badge sa-badge-active">Faol</span>
-                            {% elif c.status == 'ARCHIVED' %}
-                            <span class="sa-badge sa-badge-archived">Arxiv</span>
-                            {% else %}
-                            <span class="sa-badge sa-badge-blocked">{{ c.status }}</span>
-                            {% endif %}
-                        </td>
-
-                        <!-- ── Direktor ── -->
+                        <!-- Direktor -->
                         <td>
                             {% with director=c.directors.0 %}
                             {% if director %}
                             <div class="sa-director-name">{{ director.get_full_name }}</div>
                             <div class="sa-director-email">{{ director.email }}</div>
                             {% else %}
-                            <a href="{% url 'platform_global:center_manage' c.id %}" class="sa-btn sa-btn-secondary"
-                                style="padding:5px 12px;font-size:0.75rem;border-radius:7px;color:#f59e0b;border-color:rgba(245,158,11,0.25);">
+                            <a href="{% url 'platform_global:center_manage' c.id %}" class="sa-link-warn">
                                 <i class="bi bi-person-plus-fill"></i> Biriktirish
                             </a>
                             {% endif %}
                             {% endwith %}
                         </td>
 
-                        <!-- ── Tarif & Limit ── -->
+                        <!-- Tarif & O'quvchilar & MRR -->
                         <td>
                             {% if sub %}
                             <div class="sa-plan-row">
                                 <span class="sa-badge sa-badge-plan">{{ sub.plan.code }}</span>
-                                <span style="font-size:0.75rem;color:var(--sa-muted);">
-                                    {{ c.student_count }}/{{ c.effective_student_limit }}
-                                </span>
+                                <span class="sa-mrr-inline">{{ c.monthly_price|intcomma }} so'm/oy</span>
                             </div>
+                            <div class="sa-student-row">
+                                <span class="sa-student-count">{{ c.student_count }}/{{ c.effective_student_limit }}</span>
+                                <span class="sa-student-label">talaba</span>
+                            </div>
+                            {% if c.effective_student_limit > 0 %}
+                            {% widthratio c.student_count c.effective_student_limit 100 as student_ratio %}
                             <div class="sa-progress">
-                                {% if c.effective_student_limit > 0 %}
-                                {% widthratio c.student_count c.effective_student_limit 100 as student_ratio %}
                                 <div class="sa-progress-fill {% if c.student_count > c.effective_student_limit %}danger{% endif %}"
                                     data-progress="{{ student_ratio|default:0 }}">
                                 </div>
-                                {% endif %}
                             </div>
+                            {% endif %}
                             {% else %}
-                            <span class="sa-badge sa-badge-archived" style="margin-bottom:4px;display:inline-block;">Free</span>
-                            <div style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }} talaba</div>
+                            <span class="sa-badge sa-badge-archived">Free</span>
+                            <div class="sa-student-row">
+                                <span class="sa-student-count">{{ c.student_count }}</span>
+                                <span class="sa-student-label">talaba</span>
+                            </div>
                             {% endif %}
                         </td>
 
-                        <!-- ── Premium Xususiyatlar ── -->
-                        <td>
-                            {% with feats=c.features %}
-                            <div style="display:flex;flex-wrap:wrap;gap:4px;max-width:220px;">
-                                {% if feats.leads %}<span class="sa-feat-chip chip-on"  title="CRM Huni">🎯</span>{% else %}<span class="sa-feat-chip chip-off" title="CRM Huni">🎯</span>{% endif %}
-                                {% if feats.analytics %}<span class="sa-feat-chip chip-on" title="Analitika">📊</span>{% else %}<span class="sa-feat-chip chip-off" title="Analitika">📊</span>{% endif %}
-                                {% if feats.chaqmoq_store %}<span class="sa-feat-chip chip-on" title="Chaqmoq & Do'kon">⚡</span>{% else %}<span class="sa-feat-chip chip-off" title="Chaqmoq & Do'kon">⚡</span>{% endif %}
-                                {% if feats.salaries %}<span class="sa-feat-chip chip-on"  title="Ish haqi">💰</span>{% else %}<span class="sa-feat-chip chip-off" title="Ish haqi">💰</span>{% endif %}
-                                {% if feats.sms %}<span class="sa-feat-chip chip-on"    title="SMS">📱</span>{% else %}<span class="sa-feat-chip chip-off" title="SMS">📱</span>{% endif %}
-                                {% if feats.branches %}<span class="sa-feat-chip chip-on" title="Filiallar">🏢</span>{% else %}<span class="sa-feat-chip chip-off" title="Filiallar">🏢</span>{% endif %}
-                                {% if feats.roles %}<span class="sa-feat-chip chip-on"   title="Rollar">🛡</span>{% else %}<span class="sa-feat-chip chip-off" title="Rollar">🛡</span>{% endif %}
-                            </div>
-                            {% endwith %}
-                        </td>
-
-                        <!-- ── Obuna Muddati ── -->
+                        <!-- Obuna Muddati -->
                         <td>
                             {% if sub %}
                             {% with days=sub.days_left %}
                             <div class="sa-expiry-date">{{ sub.expires_at|date:"d.m.Y" }}</div>
                             {% if days <= 0 %}
-                                <span class="sa-expiry-tag et-err">TUGAGAN</span>
+                            <span class="sa-expiry-tag et-err">TUGAGAN</span>
                             {% elif days <= 7 %}
-                                <span class="sa-expiry-tag et-warn">{{ days }} kun qoldi</span>
+                            <span class="sa-expiry-tag et-warn">{{ days }} kun qoldi</span>
                             {% else %}
-                                <span class="sa-expiry-tag et-ok">{{ days }} kun qoldi</span>
+                            <span class="sa-expiry-tag et-ok">{{ days }} kun qoldi</span>
                             {% endif %}
                             {% endwith %}
                             {% else %}
@@ -481,13 +313,7 @@
                             {% endif %}
                         </td>
 
-                        <!-- ── MRR ── -->
-                        <td>
-                            <span class="sa-mrr">{{ c.monthly_price|intcomma }}</span>
-                            <span style="font-size:0.72rem;color:var(--sa-muted);"> so'm</span>
-                        </td>
-
-                        <!-- ── Amallar ── -->
+                        <!-- Amallar -->
                         <td style="text-align:right;">
                             <div class="sa-actions-menu">
                                 <button class="sa-actions-trigger" onclick="toggleMenu(this)" type="button">
@@ -504,8 +330,7 @@
                                     <div class="sa-dd-sep"></div>
                                     {% if c.status == 'ARCHIVED' %}
                                     <button class="sa-dd-item" onclick="toggleArchiveCenter('{{ c.id }}', 'restore')">
-                                        <i class="bi bi-arrow-counterclockwise" style="color:var(--sa-green);"></i>
-                                        Arxivdan chiqarish
+                                        <i class="bi bi-arrow-counterclockwise" style="color:var(--sa-green);"></i> Arxivdan chiqarish
                                     </button>
                                     {% else %}
                                     <button class="sa-dd-item" onclick="toggleArchiveCenter('{{ c.id }}', 'archive')">
@@ -525,7 +350,7 @@
                     {% endwith %}
                     {% empty %}
                     <tr>
-                        <td colspan="8">
+                        <td colspan="5">
                             <div class="sa-empty">
                                 <i class="bi bi-search"></i>
                                 <p>Hech qanday markaz topilmadi</p>
@@ -550,10 +375,9 @@
 {% block modals %}
 {{ block.super }}
 
-<!-- ── Hidden CSRF form ──────────────────────── -->
 <form id="saCsrfForm" style="display:none">{% csrf_token %}</form>
 
-<!-- ── Delete Confirm Modal ──────────────────── -->
+<!-- Delete Modal -->
 <div class="del-overlay" id="delOverlay">
     <div class="del-modal" role="dialog" aria-modal="true" aria-labelledby="delTitle">
         <div class="del-icon-wrap"><i class="bi bi-trash3-fill"></i></div>
@@ -577,7 +401,7 @@
     </div>
 </div>
 
-<!-- ── Archive / Restore Confirm Modal ─────── -->
+<!-- Archive Modal -->
 <div class="arch-overlay" id="archOverlay">
     <div class="arch-modal" id="archModal" role="dialog" aria-modal="true">
         <div class="arch-icon-wrap" id="archIcon"></div>
@@ -592,7 +416,7 @@
     </div>
 </div>
 
-<!-- ── SaaS Payments Modal ─────────────────── -->
+<!-- Payments Modal -->
 <div class="pay-overlay" id="payOverlay">
     <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
         <div class="pay-head">
@@ -608,28 +432,19 @@
         <div class="saas-kpi-grid">
             <div class="saas-kpi-card">
                 <div class="icon"><i class="bi bi-cash-stack"></i></div>
-                <div class="info">
-                    <p>Umumiy Tushum</p>
-                    <h3 id="saasTotalRev">—</h3>
-                </div>
+                <div class="info"><p>Umumiy Tushum</p><h3 id="saasTotalRev">—</h3></div>
             </div>
             <div class="saas-kpi-card">
                 <div class="icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
                     <i class="bi bi-graph-up-arrow"></i>
                 </div>
-                <div class="info">
-                    <p>Shu Oy Tushumi</p>
-                    <h3 id="saasMonthRev">—</h3>
-                </div>
+                <div class="info"><p>Shu Oy Tushumi</p><h3 id="saasMonthRev">—</h3></div>
             </div>
             <div class="saas-kpi-card">
                 <div class="icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6;">
                     <i class="bi bi-buildings"></i>
                 </div>
-                <div class="info">
-                    <p>Faol Markazlar</p>
-                    <h3 id="saasSubsCount">—</h3>
-                </div>
+                <div class="info"><p>Faol Markazlar</p><h3 id="saasSubsCount">—</h3></div>
             </div>
         </div>
 
@@ -669,16 +484,13 @@
     </div>
 </div>
 
-<!-- ── JavaScript ─────────────────────────── -->
 <script>
-    // Progress bars
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-progress]').forEach(el => {
             el.style.width = el.getAttribute('data-progress') + '%';
         });
     });
 
-    // CSRF helper
     function getCsrf() {
         const el = document.querySelector('#saCsrfForm [name=csrfmiddlewaretoken]');
         if (el) return el.value;
@@ -686,7 +498,6 @@
         return m ? m[1] : '';
     }
 
-    // ── Dropdown Portal ──────────────────────────
     let currentActiveDropdown = null;
 
     function toggleMenu(btn) {
@@ -708,17 +519,14 @@
         dropdown.style.display = 'block';
         dropdown.style.visibility = 'hidden';
         dropdown.classList.remove('dropup', 'show');
-
         const rect   = btn.getBoundingClientRect();
         const ddRect = dropdown.getBoundingClientRect();
         let top = rect.top - ddRect.height - 8;
         let left = rect.right - ddRect.width;
         let isDropup = true;
-
         if (top < 15) { top = rect.bottom + 8; isDropup = false; }
         if (left < 15) left = 15;
         if (left + ddRect.width > window.innerWidth - 15) left = window.innerWidth - ddRect.width - 15;
-
         dropdown.style.top  = `${top}px`;
         dropdown.style.left = `${left}px`;
         dropdown.style.visibility = 'visible';
@@ -759,9 +567,7 @@
     window.addEventListener('scroll', () => { if (currentActiveDropdown) closeDropdown(currentActiveDropdown); }, true);
     window.addEventListener('resize', () => { if (currentActiveDropdown) closeDropdown(currentActiveDropdown); });
 
-    // ── Delete Center Modal ──────────────────────
     let _delId = null, _delName = null;
-
     function openDeleteModal(id, name) {
         _delId = id; _delName = name;
         document.getElementById('delCenterName').textContent = name;
@@ -775,12 +581,10 @@
         document.getElementById('delOverlay').classList.add('show');
         setTimeout(() => document.getElementById('delInput').focus(), 120);
     }
-
     function closeDeleteModal() {
         document.getElementById('delOverlay').classList.remove('show');
         _delId = _delName = null;
     }
-
     document.getElementById('delInput').addEventListener('input', function () {
         const val  = this.value.trim();
         const hint = document.getElementById('delHint');
@@ -792,7 +596,7 @@
             btn.className = 'del-btn-confirm enabled';
             btn.disabled = false;
         } else if (val.length > 0) {
-            hint.textContent = '✗ Nom mos kelmadi. Qaytadan tekshiring.';
+            hint.textContent = '✗ Nom mos kelmadi.';
             hint.className = 'del-hint err';
             this.classList.remove('match');
             btn.className = 'del-btn-confirm';
@@ -805,23 +609,20 @@
             btn.disabled = true;
         }
     });
-
     document.getElementById('delInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !document.getElementById('delConfirm').disabled)
             document.getElementById('delConfirm').click();
         if (e.key === 'Escape') closeDeleteModal();
     });
-
     document.getElementById('delCancel').addEventListener('click', closeDeleteModal);
     document.getElementById('delOverlay').addEventListener('click', (e) => {
         if (e.target === document.getElementById('delOverlay')) closeDeleteModal();
     });
-
     document.getElementById('delConfirm').addEventListener('click', async function () {
         if (!_delId) return;
         const btn = this;
         btn.className = 'del-btn-confirm loading';
-        btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .6s linear infinite"></span> O\'chirilmoqda...';
+        btn.innerHTML = '<span class="sa-spinner"></span> O\'chirilmoqda...';
         btn.disabled = true;
         try {
             const r = await fetch(`/platform/api/centers/${_delId}/delete/`, {
@@ -843,7 +644,6 @@
             btn.disabled = false;
         }
     });
-
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.btn-delete-center').forEach(btn => {
             btn.addEventListener('click', function () {
@@ -853,14 +653,7 @@
         });
     });
 
-    // Spinner keyframe
-    const _spinStyle = document.createElement('style');
-    _spinStyle.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-    document.head.appendChild(_spinStyle);
-
-    // ── Archive / Restore Center Modal ──────────
     let _archId = null, _archAction = null;
-
     function openArchiveModal(id, action) {
         _archId = id; _archAction = action;
         const isArchive = action === 'archive';
@@ -869,72 +662,52 @@
         document.getElementById('archIcon').innerHTML = isArchive
             ? '<i class="bi bi-archive-fill"></i>'
             : '<i class="bi bi-arrow-counterclockwise"></i>';
-        document.getElementById('archTitle').textContent = isArchive
-            ? "Markazni arxivlash"
-            : "Arxivdan chiqarish";
+        document.getElementById('archTitle').textContent = isArchive ? "Markazni arxivlash" : "Arxivdan chiqarish";
         document.getElementById('archSubtitle').innerHTML = isArchive
-            ? "Markaz <strong>Arxiv</strong> holatiga o'tadi. Istalgan vaqt qayta faollashtirish mumkin."
-            : "Markaz <strong>Faol</strong> holatiga qaytariladi va yana foydalanishga tayyor bo'ladi.";
+            ? "Markaz <strong>Arxiv</strong> holatiga o'tadi."
+            : "Markaz <strong>Faol</strong> holatiga qaytariladi.";
         document.getElementById('archConfirmText').innerHTML = isArchive
             ? "<i class='bi bi-archive-fill'></i> Ha, arxivlash"
             : "<i class='bi bi-arrow-counterclockwise'></i> Ha, qayta faollashtirish";
         document.getElementById('archConfirm').className = 'arch-btn-confirm';
         document.getElementById('archOverlay').classList.add('show');
     }
-
     function closeArchiveModal() {
         document.getElementById('archOverlay').classList.remove('show');
         _archId = _archAction = null;
     }
-
     document.getElementById('archCancel').addEventListener('click', closeArchiveModal);
     document.getElementById('archOverlay').addEventListener('click', (e) => {
         if (e.target === document.getElementById('archOverlay')) closeArchiveModal();
     });
-
     document.getElementById('archConfirm').addEventListener('click', async function () {
         if (!_archId) return;
         const btn = this;
         btn.className = 'arch-btn-confirm loading';
-        btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .6s linear infinite"></span> Yuklanmoqda...';
+        btn.innerHTML = '<span class="sa-spinner"></span> Yuklanmoqda...';
         const fd = new FormData();
         fd.append('action', _archAction);
         try {
             const r = await fetch(`/platform/api/centers/${_archId}/archive/`, {
-                method: 'POST', body: fd,
-                headers: { 'X-CSRFToken': getCsrf() }
+                method: 'POST', body: fd, headers: { 'X-CSRFToken': getCsrf() }
             });
             const d = await r.json();
             if (d.success) { closeArchiveModal(); location.reload(); }
-            else {
-                alert("Xatolik: " + d.error);
-                btn.className = 'arch-btn-confirm';
-                btn.innerHTML = document.getElementById('archConfirmText')?.outerHTML || 'Tasdiqlash';
-            }
-        } catch (e) {
-            alert("Server xatosi");
-            btn.className = 'arch-btn-confirm';
-        }
+            else { alert("Xatolik: " + d.error); btn.className = 'arch-btn-confirm'; }
+        } catch (e) { alert("Server xatosi"); btn.className = 'arch-btn-confirm'; }
     });
-
     function toggleArchiveCenter(id, action) {
         if (currentActiveDropdown) closeDropdown(currentActiveDropdown);
         openArchiveModal(id, action);
     }
 
-    // ── Payments Modal ──────────────────────────
-    let saasChartInstance     = null;
-    let saasPlanChartInstance = null;
     const paymentsState = { page: 1, perPage: 10, totalPages: 1 };
+    let saasChartInstance = null, saasPlanChartInstance = null;
 
     function renderPaymentsLoading() {
-        document.getElementById('payTableBody').innerHTML = `
-            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
-            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
-            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
-        `;
+        document.getElementById('payTableBody').innerHTML =
+            '<tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>'.repeat(3);
     }
-
     function updatePayPagination(meta) {
         paymentsState.page       = meta.page        || 1;
         paymentsState.totalPages = meta.total_pages || 1;
@@ -942,24 +715,20 @@
         document.getElementById('payPrevBtn').disabled = !meta.has_previous;
         document.getElementById('payNextBtn').disabled = !meta.has_next;
     }
-
     async function loadPaymentsModalData() {
         document.getElementById('payPerPageSelect').value = String(paymentsState.perPage);
         renderPaymentsLoading();
         try {
             const r = await fetch(`/platform/api/finance/payments/?page=${paymentsState.page}&per_page=${paymentsState.perPage}`);
             const d = await r.json();
-
             if (d.kpi) {
-                document.getElementById('saasTotalRev').textContent  = d.kpi.total_revenue.toLocaleString()     + ' UZS';
+                document.getElementById('saasTotalRev').textContent  = d.kpi.total_revenue.toLocaleString() + ' UZS';
                 document.getElementById('saasMonthRev').textContent  = d.kpi.this_month_revenue.toLocaleString() + ' UZS';
                 document.getElementById('saasSubsCount').textContent = d.kpi.total_subscribers;
             }
             if (d.chart)      renderSaasChart(d.chart);
             if (d.plan_stats) renderPlanChart(d.plan_stats);
-
-            updatePayPagination(d.pagination || { page: 1, total_pages: 1, has_previous: false, has_next: false });
-
+            updatePayPagination(d.pagination || { page:1, total_pages:1, has_previous:false, has_next:false });
             const body = document.getElementById('payTableBody');
             if (d.payments && d.payments.length > 0) {
                 body.innerHTML = '';
@@ -979,34 +748,29 @@
             }
         } catch (e) {
             document.getElementById('payTableBody').innerHTML = `<tr><td colspan="4" class="pay-empty" style="color:#ef4444;">Server bilan aloqa xatosi...</td></tr>`;
-            updatePayPagination({ page: paymentsState.page, total_pages: paymentsState.totalPages, has_previous: paymentsState.page > 1, has_next: false });
+            updatePayPagination({ page:paymentsState.page, total_pages:paymentsState.totalPages, has_previous:paymentsState.page>1, has_next:false });
         }
     }
-
     async function openPaymentsModal() {
         document.getElementById('payOverlay').classList.add('show');
         paymentsState.page = 1;
         await loadPaymentsModalData();
     }
-
     function closePaymentsModal() {
         document.getElementById('payOverlay').classList.remove('show');
     }
-
     function changePaymentsPerPage(value) {
         const parsed = parseInt(value, 10);
-        paymentsState.perPage = [10, 20, 50].includes(parsed) ? parsed : 10;
+        paymentsState.perPage = [10,20,50].includes(parsed) ? parsed : 10;
         paymentsState.page = 1;
         loadPaymentsModalData();
     }
-
     function goPaymentsPage(delta) {
         const target = paymentsState.page + delta;
         if (target < 1 || target > paymentsState.totalPages) return;
         paymentsState.page = target;
         loadPaymentsModalData();
     }
-
     document.addEventListener('DOMContentLoaded', () => {
         const payOverlay = document.getElementById('payOverlay');
         if (payOverlay) payOverlay.addEventListener('click', (e) => { if (e.target === payOverlay) closePaymentsModal(); });
@@ -1026,10 +790,9 @@
             grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
             tooltip: { theme: 'dark', y: { formatter: (val) => val.toLocaleString() + " UZS" } }
         };
-        if (saasChartInstance) { saasChartInstance.updateOptions(options); }
+        if (saasChartInstance) saasChartInstance.updateOptions(options);
         else { saasChartInstance = new ApexCharts(document.querySelector("#saasRevenueChart"), options); saasChartInstance.render(); }
     }
-
     function renderPlanChart(planStats) {
         if (!planStats || !planStats.length) return;
         const options = {
@@ -1042,9 +805,9 @@
             colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
             stroke: { show: true, colors: ['#0d1526'], width: 3 },
             legend: { position: 'right', offsetY: 20, labels: { colors: '#94a3b8' } },
-            tooltip: (window.ChaqmoqDonutTooltip ? { theme: 'dark', fillSeriesColor: false, custom: (args) => window.ChaqmoqDonutTooltip.apexCustom(args) } : { theme: 'dark' })
+            tooltip: { theme: 'dark' }
         };
-        if (saasPlanChartInstance) { saasPlanChartInstance.updateOptions(options); }
+        if (saasPlanChartInstance) saasPlanChartInstance.updateOptions(options);
         else { saasPlanChartInstance = new ApexCharts(document.querySelector("#saasPlanChart"), options); saasPlanChartInstance.render(); }
     }
 </script>
