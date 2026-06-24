@@ -252,11 +252,7 @@ function toggleRemainingGroups(link) {
                                         <i class="fa-solid fa-clock"></i> Kechiktirilgan
                                     </span>
                                     {% endif %}
-                                    {% if row.has_unenrolled_debt %}
-                                    <span class="pill-badge pill-badge--unenrolled" style="align-self:flex-start;">
-                                        <i class="fa-solid fa-user-xmark"></i> Chiqarilgan
-                                    </span>
-                                    {% endif %}
+                                    {% comment %}Chiqarilgan belgisi endi har bir guruh kartasida ko'rinadi{% endcomment %}
                                     {% if row.student.telefon1 %}
                                     <span class="cell-stack__meta">
                                         {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
@@ -271,7 +267,7 @@ function toggleRemainingGroups(link) {
                                         {% if forloop.first %}
                                         <div class="group-tag-card">
                                             <div class="group-tag-info">
-                                                <span class="group-tag-name">{{ group_card.group_name }}</span>
+                                                <span class="group-tag-name">{{ group_card.group_name }}{% if group_card.is_unenrolled %} <span style="font-size:10px;font-weight:600;color:#ef4444;background:#fee2e2;padding:1px 5px;border-radius:4px;vertical-align:middle;"><i class="fa-solid fa-user-xmark" style="font-size:9px;"></i> Chiqarilgan</span>{% endif %}</span>
                                                 <span class="group-tag-meta">{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta dars</span>
                                             </div>
                                             <div class="group-tag-status">

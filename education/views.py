@@ -3220,6 +3220,7 @@ def qarzdorlar_home(request):
                 "fee_amount": f,
                 "fee_amount_display": _format_money_exact(f),
                 "start_date": start_date,
+                "is_unenrolled": _e_unenrolled,
             })
         if pattern_value and pattern_value not in row["lesson_pattern_values"]:
             row["lesson_pattern_values"].append(pattern_value)

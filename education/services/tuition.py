@@ -941,15 +941,15 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
         _group = getattr(enrollment, "group", None)
         if _student and _group:
             try:
-                from django.db.models import Q as _Q
                 from education.models import Attendance as _Att
+                # Davomat qilingan barcha darslar (keldi + kelmadi).
+                # Chiqarilgan o'quvchi kelmasa ham, o'sha dars uchun to'laydi.
+                # Yagona istisno: davomat umuman olinmagan bo'lsa → 0 → qarz yo'q.
                 return int(_Att.objects.filter(
                     student=_student,
                     group=_group,
                     date__year=month_start.year,
                     date__month=month_start.month,
-                ).filter(
-                    _Q(present=True) | _Q(forced=True) | _Q(status="present")
                 ).count())
             except Exception:
                 pass
