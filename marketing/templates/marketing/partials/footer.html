@@ -30,7 +30,7 @@
                 <ul>
                     <li><a href="{{ routes.about }}">{{ ui.menu_about|default:"Biz haqimizda" }}</a></li>
                     <li><a href="{{ routes.features }}">{{ ui.menu_features }}</a></li>
-                    <li><a href="{% if active_menu == 'home' %}#pricing-plans{% else %}{{ routes.index }}#pricing-plans{% endif %}">{{ ui.menu_pricing }}</a></li>
+                    <li><a href="{{ routes.pricing }}">{{ ui.menu_pricing }}</a></li>
                     <li><a href="{{ routes.demo }}">{{ ui.menu_demo }}</a></li>
                     <li><a href="{{ routes.resources }}">{{ ui.menu_resources|default:"Resurslar" }}</a></li>
                     <li><a href="{{ routes.vacancies }}">{{ ui.menu_vacancies }}</a></li>

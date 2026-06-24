@@ -493,69 +493,6 @@
     </div>
 </section>
 
-<section class="section" id="pricing-plans" aria-labelledby="pricing-title">
-    <div class="container">
-        <div class="section-header center">
-            <p class="eyebrow">{{ ui.pricing_eyebrow }}</p>
-            <h2 id="pricing-title">{{ ui.pricing_title }}</h2>
-        </div>
-
-        <div class="pricing-preview-grid">
-            {% for plan in pricing_preview %}
-            <article class="pricing-preview-card pricing-preview-card-{{ forloop.counter }} {% if plan.is_recommended %}is-recommended{% endif %} reveal-up">
-                {% if plan.is_recommended %}
-                <div class="recommended-pill">
-                    <i class="bi bi-stars" aria-hidden="true"></i>
-                    <span>{{ plan.badge_text|default:'Eng mashhur' }}</span>
-                </div>
-                {% elif plan.badge_text %}
-                <div class="recommended-pill muted">{{ plan.badge_text }}</div>
-                {% endif %}
-
-                <div class="plan-head">
-                    <span class="plan-icon-badge" aria-hidden="true">
-                        {% if forloop.counter == 1 %}
-                        <i class="bi bi-rocket-takeoff-fill"></i>
-                        {% elif plan.is_recommended %}
-                        <i class="bi bi-gem"></i>
-                        {% else %}
-                        <i class="bi bi-trophy-fill"></i>
-                        {% endif %}
-                    </span>
-                    <div>
-                        <h3>{{ plan.name }}</h3>
-                        <p class="plan-range">{{ plan.student_range }}</p>
-                    </div>
-                </div>
-
-                <div class="plan-price-row">
-                    <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
-                    <span>{{ ui.money_label }} / {{ ui.month_label }}</span>
-                </div>
-                {% if plan.old_price %}
-                <p class="plan-old-price">{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}</p>
-                {% endif %}
-
-                <ul class="plan-features">
-                    {% for feature_text in plan.features|slice:':4' %}
-                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ feature_text }}</span></li>
-                    {% empty %}
-                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_1 }}</span></li>
-                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_2 }}</span></li>
-                    {% endfor %}
-                </ul>
-
-                <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block plan-cta" href="{{ routes.demo }}">
-                    {{ ui.pricing_demo }}
-                    <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
-                </a>
-            </article>
-            {% empty %}
-            <div class="empty-note">{{ ui.pricing_empty }}</div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
 
 <section class="section" aria-labelledby="testimonials-title">
     <div class="container">
@@ -664,7 +601,7 @@
                     <i class="bi bi-camera-video-fill" aria-hidden="true"></i>
                     {{ ui.final_demo }}
                 </a>
-                <a class="btn btn-light on-dark" href="#pricing-plans">
+                <a class="btn btn-light on-dark" href="{{ routes.pricing }}">
                     {{ ui.final_pricing }}
                     <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
                 </a>
