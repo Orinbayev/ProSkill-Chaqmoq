@@ -108,6 +108,18 @@ class SubscriptionPlan(models.Model):
     price_12m = models.PositiveIntegerField(null=True, blank=True, verbose_name="12 oylik narx (jami)")
     
     caption = models.TextField(blank=True, default="", verbose_name="Qo'shimcha ma'lumot")
+    original_price = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Asl narx (kesib tashlangan)",
+        help_text="Landing'da chizib tashlangan narx (0 = ko'rsatilmaydi)",
+    )
+    badge_label = models.CharField(
+        max_length=30,
+        blank=True,
+        default="",
+        verbose_name="Badge matni",
+        help_text="Karta tepasidagi yorliq, masalan: OMMABOP, ENG KUCHLI",
+    )
     features = models.JSONField(blank=True, default=dict, verbose_name="Ruxsatlar (modullar)")
 
     # ✅ Professional M2M Features

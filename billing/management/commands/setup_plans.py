@@ -267,6 +267,8 @@ PLAN_CATALOG = [
         title="Standart",
         tier=10,
         price=400_000,
+        original_price=500_000,
+        badge_label="OMMABOP",
         max_students=200,
         max_branches=1,
         max_groups=0,
@@ -278,7 +280,7 @@ PLAN_CATALOG = [
             "CRM/Lidlar, Moliyaviy Dashboard, O'qituvchi Maoshi, "
             "Xarajatlar va Excel Eksport — asosiy qurollar."
         ),
-        student_range_uz="200 gacha o'quvchi",
+        student_range_uz="0-200 TA",
         features=[
             "leads",
             "finance",
@@ -291,6 +293,8 @@ PLAN_CATALOG = [
         title="Premium",
         tier=20,
         price=600_000,
+        original_price=750_000,
+        badge_label="✦ TAVSIYA",
         max_students=450,
         max_branches=2,
         max_groups=0,
@@ -302,7 +306,7 @@ PLAN_CATALOG = [
             "Standartdagi hamma narsa + Filial, Do'kon, "
             "Imtihon, Sertifikat, SMS va Support O'qituvchi."
         ),
-        student_range_uz="450 gacha o'quvchi",
+        student_range_uz="200-450 TA",
         features=[
             "leads",
             "finance",
@@ -320,19 +324,21 @@ PLAN_CATALOG = [
         code="PRO",
         title="Pro",
         tier=30,
-        price=0,
+        price=900_000,
+        original_price=1_100_000,
+        badge_label="ENG KUCHLI",
         max_students=0,
         max_branches=0,
         max_groups=0,
         max_users=0,
         is_popular=False,
         is_recommended=False,
-        subtitle_uz="Yirik tarmoq markazlar uchun (individual narx)",
+        subtitle_uz="Cheksiz hajmli yirik o'quv markazlar uchun",
         description_uz=(
             "Hamma narsa + Chaqmoq Bonus, HR Dashboard, Analytics — "
             "cheksiz o'quvchilar, cheksiz filiallar."
         ),
-        student_range_uz="Cheksiz o'quvchilar",
+        student_range_uz="CHEKSIZ",
         features=[
             "leads",
             "finance",
@@ -441,6 +447,8 @@ class Command(BaseCommand):
                 "tier":             item["tier"],
                 "price":            item["price"],
                 "monthly_price":    item["price"],
+                "original_price":   item.get("original_price", 0),
+                "badge_label":      item.get("badge_label", ""),
                 "max_students":     item["max_students"],
                 "max_branches":     item["max_branches"],
                 "max_groups":       item["max_groups"],

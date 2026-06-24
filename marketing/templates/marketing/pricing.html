@@ -4,95 +4,209 @@
 {% block title %}Tariflar — ChaqmoqApp{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'marketing/css/pricing-v2.css' %}?v=20260506-pricing-v2-7">
+<link rel="stylesheet" href="{% static 'marketing/css/pricing-pro.css' %}?v=20260624-1">
 {% endblock %}
 
 {% block content %}
-<section class="pricing-v2">
-  <div class="pricing-v2-head">
-    <h1>O'quv markazingizga mos tarifni tanlang</h1>
-    <p class="lead">Aniq narxlar, aniq xususiyatlar — yashirin shartlar yo'q.</p>
+<section class="pricingpro">
+
+  <!-- Header -->
+  <div class="pricingpro__header">
+    <span class="pricingpro__eyebrow">TARIFLAR</span>
+    <h1 class="pricingpro__title">Markazingiz hajmiga mos<br>reja tanlang</h1>
+    <p class="pricingpro__subtitle">Aniq narxlar, aniq imkoniyatlar — yashirin shartlar yo'q.</p>
   </div>
 
-  <div class="pricing-v2-grid">
-    {# 3 ta SubscriptionPlan card — billing.SubscriptionPlan dan #}
-    {% for card in plan_cards %}
-      {% with plan=card.obj %}
-      <article class="pricing-v2-card{% if plan.is_recommended %} is-recommended{% endif %}" data-plan="{{ plan.code }}">
-        {% if plan.is_recommended %}
-          <span class="pricing-v2-badge">Top tavsiya</span>
-        {% endif %}
-        <h2 class="pricing-v2-title">{{ plan.title }}</h2>
-        {% if plan.subtitle_uz %}
-          <p class="pricing-v2-subtitle">{{ plan.subtitle_uz }}</p>
-        {% endif %}
-        <div class="pricing-v2-price">
-          <strong>{{ plan.monthly_price|intcomma }}</strong>
-          <span>so'm / oy</span>
-        </div>
-        {% if plan.student_range_uz %}
-          <p class="pricing-v2-range">{{ plan.student_range_uz }}</p>
-        {% endif %}
+  <!-- Cards grid -->
+  <div class="pricingpro__grid">
 
-        {# Barcha 9 visible feature — bir ro'yxatda, "Batafsil" tugmasi yo'q #}
-        <ul class="pricing-v2-features">
+    {% for card in plan_cards %}
+    {% with plan=card.obj %}
+
+    <article class="pricingpro__card
+      {% if plan.code == 'STANDART' %}pricingpro__card--standart
+      {% elif plan.code == 'PREMIUM' %}pricingpro__card--premium{% if plan.is_recommended %} pricingpro__card--featured{% endif %}
+      {% elif plan.code == 'PRO' %}pricingpro__card--pro
+      {% else %}pricingpro__card--standart{% endif %}">
+
+      <!-- Badge -->
+      {% if plan.badge_label %}
+      <div class="pricingpro__badge">{{ plan.badge_label }}</div>
+      {% endif %}
+
+      <!-- Icon + Name -->
+      <div class="pricingpro__card-top">
+        <div class="pricingpro__icon
+          {% if plan.code == 'STANDART' %}pricingpro__icon--blue
+          {% elif plan.code == 'PREMIUM' %}pricingpro__icon--gold
+          {% elif plan.code == 'PRO' %}pricingpro__icon--purple
+          {% endif %}">
+          {% if plan.code == 'STANDART' %}🚀
+          {% elif plan.code == 'PREMIUM' %}💎
+          {% elif plan.code == 'PRO' %}🏆
+          {% else %}⭐{% endif %}
+        </div>
+        <div class="pricingpro__name-group">
+          <h2 class="pricingpro__name">{{ plan.title }}</h2>
+          {% if plan.student_range_uz %}
+          <span class="pricingpro__range">{{ plan.student_range_uz }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="pricingpro__price-block">
+        <div class="pricingpro__price">
+          <strong>{{ plan.monthly_price|intcomma }}</strong>
+          <span class="pricingpro__unit">SO'M / OY</span>
+        </div>
+        {% if plan.original_price %}
+        <div class="pricingpro__original">{{ plan.original_price|intcomma }} so'm</div>
+        {% endif %}
+      </div>
+
+      <!-- Features -->
+      <ul class="pricingpro__features">
+        {% if plan.code == 'STANDART' %}
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> CRM + Davomat
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> To'lov nazorati
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> Moliyaviy dashboard
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> O'quvchilar: to'liq baza
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> Excel eksport
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--off">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--off">✕</span> Filiallar boshqaruvi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--off">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--off">✕</span> Telegram integratsiya
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--off">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--off">✕</span> Premium analitika
+          </li>
+
+        {% elif plan.code == 'PREMIUM' %}
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> To'liq CRM tizimi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> Telegram integratsiya
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> Demo so'rovlar
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> Marketing: lead boshqaruvi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> Filiallar boshqaruvi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> Imtihon va sertifikat
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--gold">✓</span> SMS xabarnomalar
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--off">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--off">✕</span> Cheksiz foydalanuvchilar
+          </li>
+
+        {% elif plan.code == 'PRO' %}
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Cheksiz foydalanuvchi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Filiallar boshqaruvi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Premium analitika
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Integratsiyalar: kengaytirilgan
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> HR boshqaruvi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Chaqmoq Bonus tizimi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Ustunlik analitikasi
+          </li>
+          <li class="pricingpro__feat pricingpro__feat--on">
+            <span class="pricingpro__feat-icon pricingpro__feat-icon--on pricingpro__feat-icon--purple">✓</span> Shaxsiy texnik yordam
+          </li>
+
+        {% else %}
           {% for group in features_by_category %}
-            <li class="pricing-v2-cat">{{ group.label }}</li>
             {% for feat in group.features %}
               {% if feat.code in card.included_codes %}
-                <li class="pricing-v2-feat is-on">
-                  <span class="pricing-v2-check" aria-hidden="true">✓</span>
-                  <span class="pricing-v2-feat-name">{{ feat.name_uz|default:feat.name }}</span>
-                </li>
-              {% else %}
-                <li class="pricing-v2-feat is-off">
-                  <span class="pricing-v2-cross" aria-hidden="true">✗</span>
-                  <span class="pricing-v2-feat-name">{{ feat.name_uz|default:feat.name }}</span>
-                </li>
+              <li class="pricingpro__feat pricingpro__feat--on">
+                <span class="pricingpro__feat-icon pricingpro__feat-icon--on">✓</span> {{ feat.name_uz|default:feat.name }}
+              </li>
               {% endif %}
             {% endfor %}
           {% endfor %}
-        </ul>
+        {% endif %}
+      </ul>
 
-        <a class="pricing-v2-cta" href="{{ routes.demo }}?plan={{ plan.code }}">
-          Demo so'rash
-        </a>
-      </article>
-      {% endwith %}
+      <!-- CTA -->
+      <a class="pricingpro__cta" href="{{ routes.demo }}?plan={{ plan.code }}">
+        Demo olish <span class="pricingpro__arrow">→</span>
+      </a>
+
+    </article>
+
+    {% endwith %}
     {% endfor %}
 
-    {# 4-chi card: Custom — har doim ko'rinadi #}
-    <article class="pricing-v2-card pricing-v2-card-custom" data-plan="custom">
-      <h2 class="pricing-v2-title">Custom</h2>
-      <p class="pricing-v2-subtitle">Maxsus kombinatsiya, har qanday hajm</p>
-      <div class="pricing-v2-price">
-        <strong>Kelishuv asosida</strong>
+    {% if not plan_cards %}
+    <div class="pricingpro__empty">
+      Tariflar hozircha qo'shilmagan. Admin paneldan sozlang.
+    </div>
+    {% endif %}
+
+  </div><!-- /.pricingpro__grid -->
+
+  <!-- Footer info strip -->
+  <div class="pricingpro__footer-strip">
+    <div class="pricingpro__footer-item">
+      <span class="pricingpro__footer-icon">🔒</span>
+      <div>
+        <strong>Xavfsiz to'lov</strong>
+        <p>Ma'lumotlaringiz himoyalangan</p>
       </div>
-      <ul class="pricing-v2-features">
-        <li class="pricing-v2-cat">Sizning markazingizga xos:</li>
-        <li class="pricing-v2-feat is-on">
-          <span class="pricing-v2-check" aria-hidden="true">✓</span>
-          <span class="pricing-v2-feat-name">Har qanday xususiyatlar kombinatsiyasi</span>
-        </li>
-        <li class="pricing-v2-feat is-on">
-          <span class="pricing-v2-check" aria-hidden="true">✓</span>
-          <span class="pricing-v2-feat-name">Cheksiz o'quvchi va filial</span>
-        </li>
-        <li class="pricing-v2-feat is-on">
-          <span class="pricing-v2-check" aria-hidden="true">✓</span>
-          <span class="pricing-v2-feat-name">Shaxsiy texnik yordam</span>
-        </li>
-        <li class="pricing-v2-feat is-on">
-          <span class="pricing-v2-check" aria-hidden="true">✓</span>
-          <span class="pricing-v2-feat-name">Maxsus integratsiyalar</span>
-        </li>
-      </ul>
-      <a class="pricing-v2-cta pricing-v2-cta-custom"
-         href="https://t.me/de_amirxon"
-         target="_blank" rel="noopener">
-        Bog'lanish
-      </a>
-    </article>
+    </div>
+    <div class="pricingpro__footer-item">
+      <span class="pricingpro__footer-icon">⚡</span>
+      <div>
+        <strong>Tez o'rnatish</strong>
+        <p>24 soat ichida ishga tushuring</p>
+      </div>
+    </div>
+    <div class="pricingpro__footer-item">
+      <span class="pricingpro__footer-icon">🎯</span>
+      <div>
+        <strong>7 kun bepul sinov</strong>
+        <p>Karta ma'lumoti talab etilmaydi</p>
+      </div>
+    </div>
+    <div class="pricingpro__footer-item">
+      <span class="pricingpro__footer-icon">💬</span>
+      <div>
+        <strong>24/7 qo'llab-quvvatlash</strong>
+        <p>Telegram orqali tezkor yordam</p>
+      </div>
+    </div>
   </div>
+
 </section>
 {% endblock %}

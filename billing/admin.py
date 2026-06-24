@@ -108,7 +108,15 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
             "description": "⚠️ Guruhlar va Xodimlar limiti yo'q — cheksiz.",
         }),
         ("Marketing Matnlari", {
-            "fields": ("subtitle_uz", "description_uz", "student_range_uz", "landing_visible", "caption"),
+            "fields": (
+                "subtitle_uz", "description_uz", "student_range_uz",
+                "badge_label", "original_price",
+                "landing_visible", "caption",
+            ),
+            "description": (
+                "🏷️ badge_label — karta tepasidagi yorliq (OMMABOP, ✦ TAVSIYA, ENG KUCHLI). "
+                "💰 original_price — kesib tashlangan asl narx (0 = ko'rsatilmaydi)."
+            ),
         }),
         ("Xususiyatlar (Features)", {
             "fields": ("plan_features",),
