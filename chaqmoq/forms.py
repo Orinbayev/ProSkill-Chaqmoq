@@ -26,3 +26,6 @@ class RuleForm(forms.ModelForm):
             'lightning_penalty': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '-5'}),
             'payment_bonus_lightning': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '5'}),
         }
+
+
+#xckjbvdajkvbasdjkvbdsakjb
