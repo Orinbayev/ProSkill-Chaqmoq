@@ -11,6 +11,7 @@ from pathlib import Path
 
 from aiogram import Router, types
 from aiogram.filters import Command
+from asgiref.sync import sync_to_async
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -45,7 +46,7 @@ async def manual_backup_command(message: types.Message) -> None:
     """
     chat_id = getattr(getattr(message, "chat", None), "id", None)
     user_id = getattr(getattr(message, "from_user", None), "id", None)
-    allowed, reason = is_authorized_telegram_backup_request(chat_id, user_id)
+    allowed, reason = await sync_to_async(is_authorized_telegram_backup_request)(chat_id, user_id)
     if not allowed:
         await message.answer(f"⛔ {reason}")
         logger.warning("Unauthorized /db command: chat_id=%s user_id=%s reason=%s", chat_id, user_id, reason)
