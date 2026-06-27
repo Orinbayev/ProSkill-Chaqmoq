@@ -22,6 +22,14 @@ class Product(SoftDeleteMixin, models.Model):
     # ✅ Tenant isolation
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
 
+    # Bo'lim cheklovi: bo'sh = hammaga ko'rinadi, belgilansa faqat o'sha bo'limdagilarga
+    allowed_categories = models.ManyToManyField(
+        'education.Category',
+        blank=True,
+        related_name='restricted_products',
+        verbose_name="Ko'rinadigan bo'limlar (bo'sh = hammaga)",
+    )
+
     class Meta:
         verbose_name = 'Mahsulot'
         verbose_name_plural = 'Mahsulotlar'

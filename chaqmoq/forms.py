@@ -28,4 +28,4 @@ class RuleForm(forms.ModelForm):
         }
 
 
-#xckjbvdajkvbasdjkvbdsakjb
+#xckjbvdajkvbasdjkvbdsakj

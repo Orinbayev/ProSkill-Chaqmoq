@@ -259,6 +259,35 @@
     background: rgba(255, 255, 255, .1);
   }
 
+  /* ===== BO'LIM CHIP ===== */
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.10);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    user-select: none;
+    transition: .15s ease;
+  }
+  .cat-chip input[type="checkbox"] { accent-color: #38bdf8; width: 16px; height: 16px; }
+  .cat-chip:hover {
+    border-color: rgba(56,189,248,.4);
+    background: rgba(56,189,248,.07);
+    color: #e5e7eb;
+  }
+  .cat-chip--on,
+  .cat-chip:has(input:checked) {
+    border-color: #38bdf8;
+    background: rgba(56,189,248,.12);
+    color: #bae6fd;
+  }
+
   @media (max-width: 600px) {
     .head-title {
       font-size: 20px;
@@ -329,6 +358,41 @@
           <label for="{{ form.izoh.id_for_label }}">Izoh</label>
           {{ form.izoh }}
           {% if form.izoh.errors %}<div class="error-box">{{ form.izoh.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <!-- ===== BO'LIM CHEKLOVI ===== -->
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-filter" style="color:#38bdf8;"></i>
+            Ko'rinadigan bo'limlar
+          </label>
+          <div style="
+            background: rgba(2,6,23,.3);
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 14px;
+            padding: 14px 16px;
+          ">
+            <p style="color:#94a3b8;font-size:13px;font-weight:700;margin:0 0 12px;">
+              Hech biri tanlanmasa — barcha o'quvchilar ko'radi
+            </p>
+            {% if form.allowed_categories.field.queryset.count %}
+              <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                {% for choice in form.allowed_categories %}
+                <label class="cat-chip {% if choice.data.selected %}cat-chip--on{% endif %}">
+                  {{ choice.tag }}
+                  <span>{{ choice.choice_label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p style="color:#ef4444;font-size:13px;font-weight:700;margin:0;">
+                Hali hech qanday bo'lim yaratilmagan
+              </p>
+            {% endif %}
+          </div>
+          {% if form.allowed_categories.errors %}
+            <div class="error-box">{{ form.allowed_categories.errors|striptags }}</div>
+          {% endif %}
         </div>
 
         <div class="upload-box">

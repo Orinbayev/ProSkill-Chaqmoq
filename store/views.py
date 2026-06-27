@@ -36,6 +36,18 @@ def products(request):
     
     items = Product.objects.filter(Q(center=center) | Q(center__isnull=True)).order_by('-yaratilgan')
 
+    # Bo'lim filtri: student faqat o'z bo'limidagi va cheklovsiz mahsulotlarni ko'radi
+    if request.user.role == 'student':
+        from education.models import Enrollment
+        student_cat_ids = list(
+            Enrollment.objects.filter(student=request.user, is_active=True)
+            .values_list('group__category_obj_id', flat=True)
+            .distinct()
+        )
+        items = items.filter(
+            Q(allowed_categories__isnull=True) | Q(allowed_categories__id__in=student_cat_ids)
+        ).distinct()
+
     # 🔹 Faqat manager, director yoki superuser qo‘sha / o‘chira oladi
     can_add = request.user.role in ('manager', 'director') or request.user.is_superuser
 
@@ -238,12 +250,13 @@ def product_create(request):
 
     from .forms import ProductForm, ProductImageForm
 
-    form = ProductForm(request.POST or None)
+    center = require_center(request)
+    form = ProductForm(request.POST or None, center=center)
     if request.method == 'POST' and form.is_valid():
-        center = require_center(request)
         product = form.save(commit=False)
         product.center = center
         product.save()
+        form.save_m2m()
         # Rasmlar yuklash
         files = request.FILES.getlist('rasmlar')
         for file in files:
@@ -272,7 +285,7 @@ def product_edit(request, pk):
 
     center = require_center(request)
     obj = get_object_or_404(Product, pk=pk, center=center)
-    form = ProductForm(request.POST or None, request.FILES or None, instance=obj)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=obj, center=center)
     if request.method == 'POST' and form.is_valid():
         product = form.save()
         

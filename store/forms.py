@@ -21,7 +21,17 @@ User = get_user_model()
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['nom', 'narx_chaqmoq', 'narx_som', 'izoh']
+        fields = ['nom', 'narx_chaqmoq', 'narx_som', 'izoh', 'allowed_categories']
+
+    def __init__(self, *args, center=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from education.models import Category
+        qs = Category.objects.filter(center=center) if center else Category.objects.none()
+        self.fields['allowed_categories'].queryset = qs
+        self.fields['allowed_categories'].required = False
+        self.fields['allowed_categories'].widget = forms.CheckboxSelectMultiple()
+        self.fields['allowed_categories'].label = "Ko'rinadigan bo'limlar"
+        self.fields['allowed_categories'].help_text = "Hech biri tanlanmasa — barcha o'quvchilarga ko'rinadi"
 
 class ProductImageForm(forms.ModelForm):
     class Meta:

@@ -780,10 +780,32 @@
           <div class="p-body">
             <h3 class="p-title">{{ p.nom }}</h3>
 
+            <!-- Bo’lim cheklovi -->
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
+              {% with cats=p.allowed_categories.all %}
+              {% if cats %}
+                {% for cat in cats %}
+                <span style="
+                  display:inline-flex;align-items:center;gap:4px;
+                  padding:3px 9px;border-radius:8px;font-size:11px;font-weight:900;
+                  background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.28);
+                  color:#7dd3fc;
+                ">{{ cat.icon|default:"📂" }} {{ cat.name }}</span>
+                {% endfor %}
+              {% else %}
+                <span style="
+                  padding:3px 9px;border-radius:8px;font-size:11px;font-weight:900;
+                  background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.22);
+                  color:#86efac;
+                ">🌐 Hammaga</span>
+              {% endif %}
+              {% endwith %}
+            </div>
+
             <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
             <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
 
-            <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko‘rish</a>
+            <a class="btn-view" href="{% url ‘store:product_detail’ p.pk %}">Ko’rish</a>
           </div>
 
         </div>
