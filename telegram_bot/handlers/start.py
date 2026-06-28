@@ -91,10 +91,19 @@ async def cmd_start(message: types.Message, state: FSMContext, command: CommandO
             if start_param:
                 await render_deep_link(message, str(message.from_user.id), user_info.get("email"), start_param)
                 await state.update_data(pending_start_param=None)
-    else:
-        # Not linked or error
+    elif status_code == 200 and response.get("status") == "unlinked":
+        # Hech qanday profil bog'lanmagan
         await message.answer(
-            "Assalomu alaykum. Hisobingizni ulash uchun avval telefon raqamingizni yuboring. \nBu orqali siz bitta raqamga ulangan bir nechta profillarni (Ota-ona, O'quvchi) kuzatib borishingiz mumkin.",
+            "Assalomu alaykum. Hisobingizni ulash uchun avval telefon raqamingizni yuboring.\n"
+            "Bu orqali siz bitta raqamga ulangan bir nechta profillarni (Ota-ona, O'quvchi) kuzatib borishingiz mumkin.",
+            reply_markup=get_contact_keyboard()
+        )
+        await state.set_state(LinkAccountState.waiting_for_contact)
+    else:
+        # Server xatolik yoki ulanish muammosi — foydalanuvchiga aniq xabar
+        await message.answer(
+            "⚠️ Server bilan ulanishda muammo. Iltimos, bir oz kutib qayta /start bosing.\n\n"
+            "Agar muammo davom etsa, telefon raqamingizni yuboring:",
             reply_markup=get_contact_keyboard()
         )
         await state.set_state(LinkAccountState.waiting_for_contact)

@@ -39,6 +39,7 @@ from services.api_client import (
     family_issue_credentials_api,
     family_search_child_api,
     family_student_by_name_api,
+    get_user_status_api,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,20 @@ def _restart_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🔄 Qayta urinish", callback_data="family:restart")]]
     )
+
+
+def _already_linked_kb(users: list) -> InlineKeyboardMarkup:
+    rows = []
+    for u in users[:5]:
+        uid = u.get("id")
+        name = u.get("ism") or "—"
+        role_text = "Ota-ona" if u.get("role") == "parent" else "O'quvchi"
+        rows.append([InlineKeyboardButton(
+            text=f"{role_text}: {name}",
+            callback_data=f"family:resume:{uid}",
+        )])
+    rows.append([InlineKeyboardButton(text="➕ Yangi profil ulash", callback_data="family:new_link")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _confirm_kb(target_user_id: int) -> InlineKeyboardMarkup:
@@ -151,6 +166,43 @@ def _try_parse_phone(text: str) -> str | None:
 @router.message(CommandStart())
 async def family_start(message: types.Message, state: FSMContext):
     await state.clear()
+
+    # Foydalanuvchi allaqachon bot bilan bog'langanmi?
+    status_code, response = await get_user_status_api(str(message.from_user.id))
+    if status_code == 200 and response.get("status") == "linked":
+        users = response.get("users") or []
+        family_users = [u for u in users if u.get("role") in ("parent", "student")]
+        if family_users:
+            if len(family_users) == 1:
+                u = family_users[0]
+                role = u.get("role")
+                await state.set_data({
+                    "role": role,
+                    "current_user_id": u.get("id"),
+                    "current_user_email": u.get("email"),
+                    "current_user_role": role,
+                    "current_user_name": u.get("ism"),
+                })
+                name = u.get("ism") or "Foydalanuvchi"
+                await message.answer(
+                    f"👋 <b>Assalomu alaykum, {name}!</b>\n\n"
+                    "Profilingiz faol. Quyidagi menyu orqali foydalaning:",
+                    reply_markup=get_main_menu(role),
+                    parse_mode="HTML",
+                )
+                return
+            # Bir nechta profil — tanlash
+            await state.update_data(linked_family_users=family_users)
+            await message.answer(
+                "👋 <b>Assalomu alaykum!</b>\n\n"
+                f"Sizga tegishli <b>{len(family_users)} ta profil</b> topildi. "
+                "Qaysi profilga kirishni xohlaysiz?",
+                reply_markup=_already_linked_kb(family_users),
+                parse_mode="HTML",
+            )
+            return
+
+    # Bog'lanmagan — standart onboarding
     await message.answer(
         "👋 <b>Assalomu alaykum!</b>\n\n"
         "ChaqmoqApp Oila botiga xush kelibsiz. Bu bot orqali siz "
@@ -164,6 +216,50 @@ async def family_start(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "family:restart")
 async def family_restart(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.answer(
+        "Iltimos, kim ekanligingizni tanlang:",
+        reply_markup=_role_picker_kb(),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("family:resume:"))
+async def family_resume_profile(callback: types.CallbackQuery, state: FSMContext):
+    """Allaqachon bog'langan profildan birini tanlash."""
+    try:
+        user_id = int(callback.data.split(":", 2)[2])
+    except (ValueError, IndexError):
+        await callback.answer("Xato", show_alert=True)
+        return
+    data = await state.get_data()
+    linked_users = data.get("linked_family_users") or []
+    user = next((u for u in linked_users if u.get("id") == user_id), None)
+    if not user:
+        await callback.answer("Profil topilmadi", show_alert=True)
+        return
+    role = user.get("role")
+    await state.set_data({
+        "role": role,
+        "current_user_id": user.get("id"),
+        "current_user_email": user.get("email"),
+        "current_user_role": role,
+        "current_user_name": user.get("ism"),
+    })
+    name = user.get("ism") or "Foydalanuvchi"
+    await callback.message.answer(
+        f"👋 <b>Assalomu alaykum, {name}!</b>\n\n"
+        "Quyidagi menyu orqali foydalaning:",
+        reply_markup=get_main_menu(role),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "family:new_link")
+async def family_new_link(callback: types.CallbackQuery, state: FSMContext):
+    """Yangi profil ulash — standart onboarding ga qaytish."""
     await state.clear()
     await callback.message.answer(
         "Iltimos, kim ekanligingizni tanlang:",
