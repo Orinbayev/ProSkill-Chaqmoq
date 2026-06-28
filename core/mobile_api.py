@@ -3313,7 +3313,7 @@ def mobile_teacher_group_students(request, group_id: int):
     enrollments = (
         Enrollment.objects.filter(group=group, is_active=True)
         .select_related("student")
-        .order_by("student__ism", "student__familiya")
+        .order_by("student__familya", "student__ism")
     )
 
     # O'sha kun davomat ma'lumotlari
