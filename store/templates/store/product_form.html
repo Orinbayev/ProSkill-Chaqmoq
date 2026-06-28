@@ -366,21 +366,18 @@
             <i class="fa-solid fa-filter" style="color:#38bdf8;"></i>
             Ko'rinadigan bo'limlar
           </label>
-          <div style="
-            background: rgba(2,6,23,.3);
-            border: 1px solid rgba(255,255,255,.09);
-            border-radius: 14px;
-            padding: 14px 16px;
-          ">
+          <div style="background:rgba(2,6,23,.3);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:14px 16px;">
             <p style="color:#94a3b8;font-size:13px;font-weight:700;margin:0 0 12px;">
               Hech biri tanlanmasa — barcha o'quvchilar ko'radi
             </p>
-            {% if form.allowed_categories.field.queryset.count %}
+            {% if categories %}
               <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                {% for choice in form.allowed_categories %}
-                <label class="cat-chip {% if choice.data.selected %}cat-chip--on{% endif %}">
-                  {{ choice.tag }}
-                  <span>{{ choice.choice_label }}</span>
+                {% for cat in categories %}
+                <label class="cat-chip {% if cat.pk in selected_cat_ids %}cat-chip--on{% endif %}">
+                  <input type="checkbox" name="allowed_categories" value="{{ cat.pk }}"
+                    {% if cat.pk in selected_cat_ids %}checked{% endif %}
+                    style="accent-color:#38bdf8;width:16px;height:16px;">
+                  <span>{% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name }}</span>
                 </label>
                 {% endfor %}
               </div>
@@ -390,9 +387,6 @@
               </p>
             {% endif %}
           </div>
-          {% if form.allowed_categories.errors %}
-            <div class="error-box">{{ form.allowed_categories.errors|striptags }}</div>
-          {% endif %}
         </div>
 
         {% if form.instance.pk %}

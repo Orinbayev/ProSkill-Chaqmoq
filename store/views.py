@@ -264,7 +264,15 @@ def product_create(request):
         messages.success(request, 'Mahsulot va rasmlar muvaffaqiyatli qo‘shildi!')
         return redirect('store:products')
 
-    return render(request, 'store/product_form.html', {'form': form, 'title': "Mahsulot qo‘shish"})
+    from education.models import Category as _Cat
+    from django.db.models import Q as _Q
+    _cats = list(_Cat.objects.filter(_Q(center=center) | _Q(center__isnull=True)))
+    return render(request, 'store/product_form.html', {
+        'form': form,
+        'title': "Mahsulot qo'shish",
+        'categories': _cats,
+        'selected_cat_ids': [],
+    })
 
 
 @login_required
@@ -287,7 +295,9 @@ def product_edit(request, pk):
     obj = get_object_or_404(Product, pk=pk, center=center)
     form = ProductForm(request.POST or None, request.FILES or None, instance=obj, center=center)
     if request.method == 'POST' and form.is_valid():
-        product = form.save()
+        product = form.save(commit=False)
+        product.save()
+        form.save_m2m()
         
         # ✅ FIX: Rasmlarni tahrirlash paytida ham yuklash
         files = request.FILES.getlist('rasmlar')
@@ -297,10 +307,19 @@ def product_edit(request, pk):
         messages.success(request, 'Mahsulot saqlandi!')
         return redirect('store:products')
 
-    return render(request, 'store/product_form.html', {'form': form, 'title': 'Mahsulotni tahrirlash'})
+    from education.models import Category as _Cat
+    from django.db.models import Q as _Q
+    _cats = list(_Cat.objects.filter(_Q(center=center) | _Q(center__isnull=True)))
+    _selected = list(obj.allowed_categories.values_list('pk', flat=True))
+    return render(request, 'store/product_form.html', {
+        'form': form,
+        'title': 'Mahsulotni tahrirlash',
+        'categories': _cats,
+        'selected_cat_ids': _selected,
+    })
 
 
-# ✅ Mahsulotni o‘chirish
+# ✅ Mahsulotni o'chirish
 @login_required
 @require_feature("store")
 def product_delete(request, pk):
