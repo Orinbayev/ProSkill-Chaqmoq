@@ -3336,7 +3336,7 @@ def mobile_teacher_group_students(request, group_id: int):
         students.append({
             "id": s.id,
             "full_name": s.get_full_name(),
-            "phone": s.phone or "",
+            "phone": s.telefon1 or "",
             "balance": _student_balance(s, center),
             "attendance_status": status,
         })
