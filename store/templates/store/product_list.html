@@ -741,14 +741,14 @@
         <div class="shop-ico">🧾</div>
         <div>
           <h1 class="shop-title">Mahsulotlar</h1>
-          <div class="shop-sub">Akademiya do‘koni mahsulotlarini boshqarish</div>
+          <div class="shop-sub">Akademiya do'koni mahsulotlarini boshqarish</div>
         </div>
       </div>
 
       {% if can_add %}
       <div class="shop-actions">
-        <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Mahsulot qo‘shish</a>
-        <button type="button" id="toggleDelete" class="btn-pill btn-red">🗑 O‘chirish rejimi</button>
+        <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Mahsulot qo'shish</a>
+        <button type="button" id="toggleDelete" class="btn-pill btn-red">🗑 O'chirish rejimi</button>
       </div>
       {% endif %}
     </div>
@@ -780,7 +780,7 @@
           <div class="p-body">
             <h3 class="p-title">{{ p.nom }}</h3>
 
-            <!-- Bo’lim cheklovi -->
+            <!-- Bo'lim cheklovi -->
             <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
               {% with cats=p.allowed_categories.all %}
               {% if cats %}
@@ -805,7 +805,7 @@
             <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
             <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
 
-            <a class="btn-view" href="{% url ‘store:product_detail’ p.pk %}">Ko’rish</a>
+            <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko'rish</a>
           </div>
 
         </div>
@@ -815,7 +815,7 @@
             <div class="empty-icon">🛍️</div>
             <h3 class="empty-title">Do'kon bo'limida hali mahsulot joylanmagan</h3>
             <div class="empty-copy">
-              Mahsulotlar shu sahifada chiqadi. Birinchi mahsulotni qo'shsangiz, bu joy avtomatik ravishda chiroyli katalog ko'rinishiga o'tadi va direktor paneldagi “Mahsulotlar” tugmasi ham to'g'ridan to'g'ri shu do'kon bo'limini ochadi.
+              Mahsulotlar shu sahifada chiqadi. Birinchi mahsulotni qo'shsangiz, bu joy avtomatik ravishda chiroyli katalog ko'rinishiga o'tadi va direktor paneldagi "Mahsulotlar" tugmasi ham to'g'ridan to'g'ri shu do'kon bo'limini ochadi.
             </div>
             <div class="empty-actions">
               {% if can_add %}
@@ -831,9 +831,9 @@
 
       {% if can_add %}
       <div id="deleteActions" class="delete-actions">
-        <div style="font-weight:950; color:#fecaca;">🗑 Tanlangan mahsulotlarni o‘chirasizmi?</div>
+        <div style="font-weight:950; color:#fecaca;">🗑 Tanlangan mahsulotlarni o'chirasizmi?</div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="submit" class="danger-btn">🗑 Tanlanganlarni o‘chirish</button>
+          <button type="submit" class="danger-btn">🗑 Tanlanganlarni o'chirish</button>
           <button type="button" id="cancelDelete" class="ghost-btn">Bekor qilish</button>
         </div>
       </div>
@@ -862,7 +862,7 @@
       if (panel) panel.style.display = mode ? "flex" : "none";
 
       toggleBtn.classList.toggle("active", mode);
-      toggleBtn.textContent = mode ? "❌ O‘chirish rejimidan chiqish" : "🗑 O‘chirish rejimi";
+      toggleBtn.textContent = mode ? "❌ O'chirish rejimidan chiqish" : "🗑 O'chirish rejimi";
     });
 
     cancelBtn?.addEventListener("click", () => {
@@ -870,7 +870,7 @@
       checkboxes.forEach(cb => { cb.checked = false; cb.classList.remove("active"); });
       if (panel) panel.style.display = "none";
       toggleBtn.classList.remove("active");
-      toggleBtn.textContent = "🗑 O‘chirish rejimi";
+      toggleBtn.textContent = "🗑 O'chirish rejimi";
     });
   })();
 </script>

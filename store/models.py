@@ -14,7 +14,7 @@ User = get_user_model()
 class Product(SoftDeleteMixin, models.Model):
     nom = models.CharField(max_length=150)
     narx_chaqmoq = models.PositiveIntegerField(help_text="Mahsulot narxi (chaqmoqda)")
-    narx_som = models.PositiveIntegerField(default=0, help_text="Mahsulot narxi (so‘mda)")
+    narx_som = models.PositiveIntegerField(default=0, help_text="Mahsulot narxi (so'mda)")
     sotilgan_soni = models.PositiveIntegerField(default=0, help_text="Jami sotilgan mahsulotlar soni")
     izoh = models.TextField(blank=True)
     yaratilgan = models.DateTimeField(auto_now_add=True)
@@ -67,7 +67,7 @@ class ProductImage(models.Model):
 
 
 # ===================================
-# 3️⃣ XARID SO‘ROVI
+# 3️⃣ XARID SO'ROVI
 # ===================================
 class PurchaseRequest(models.Model):
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
@@ -86,12 +86,12 @@ class PurchaseRequest(models.Model):
         User,
         on_delete=models.CASCADE,
         limit_choices_to={'role': 'student'},
-        verbose_name='O‘quvchi'
+        verbose_name='O'quvchi'
     )
 
     product = models.ForeignKey(
         Product,
-        on_delete=models.SET_NULL,  # 🔥 Mahsulot o‘chirilsa, bu joy NULL bo‘ladi
+        on_delete=models.SET_NULL,  # 🔥 Mahsulot o'chirilsa, bu joy NULL bo'ladi
         null=True,
         blank=True,
         related_name='purchase_requests',
@@ -120,18 +120,18 @@ class PurchaseRequest(models.Model):
 
     # ======== META ========
     class Meta:
-        verbose_name = 'Xarid so‘rovi'
-        verbose_name_plural = 'Xarid so‘rovlari'
+        verbose_name = 'Xarid so'rovi'
+        verbose_name_plural = 'Xarid so'rovlari'
         ordering = ['-sana']
 
     # ======== STRING REPRESENTATION ========
     def __str__(self):
         student_name = (
             f"{self.student.first_name} {self.student.last_name}"
-            if self.student else "Noma'lum o‘quvchi"
+            if self.student else "Noma'lum o'quvchi"
         )
         product_name = (
-            self.product.nom if self.product else "O‘chirilgan mahsulot"
+            self.product.nom if self.product else "O'chirilgan mahsulot"
         )
         return f"{student_name} → {product_name} ×{self.qty} ({self.get_status_display()})"
 
@@ -268,9 +268,9 @@ class Expense(models.Model):
     category = models.ForeignKey(ExpenseCategory, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Toifa")
     payment_method = models.CharField(
         max_length=20, 
-        choices=[('naqd', 'Naqd'), ('plastik', 'Plastik'), ('otkazma', 'O‘tkazma')],
+        choices=[('naqd', 'Naqd'), ('plastik', 'Plastik'), ('otkazma', 'O'tkazma')],
         default='naqd',
-        verbose_name="To‘lov usuli"
+        verbose_name="To'lov usuli"
     )
     receiver = models.CharField(max_length=150, blank=True, null=True, verbose_name="Qabul qiluvchi")
     worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Hodim")
@@ -504,14 +504,14 @@ class Lead(models.Model):
         User, on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name="converted_leads",
-        verbose_name="O‘quvchi (student)"
+        verbose_name="O'quvchi (student)"
     )
     converted_at = models.DateTimeField(null=True, blank=True)
     converted_by = models.ForeignKey(
         User, on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name="converted_leads_by",
-        verbose_name="Kim o‘tkazdi"
+        verbose_name="Kim o'tkazdi"
     )
     converted_to_student = models.BooleanField(default=False, db_index=True)
     is_confirmed = models.BooleanField(default=False, db_index=True)

@@ -826,7 +826,7 @@
       </section>
 
       <!-- RIGHT -->
-      <section class="card info" aria-label="Mahsulot ma’lumotlari">
+      <section class="card info" aria-label="Mahsulot ma'lumotlari">
         <h2 class="pd-title">
           <span class="pd-name">{{ item.nom }}</span>
           <!-- <span class="pd-badge"></span> -->
@@ -859,7 +859,7 @@
         {% if user.role == 'student' %}
 
           {% if request_status == 'approved' %}
-            <div class="alert ok">✅ So‘rovingiz tasdiqlandi!</div>
+            <div class="alert ok">✅ So'rovingiz tasdiqlandi!</div>
             <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Yana sotib olish</a>
 
           {% elif request_status == 'rejected' %}
@@ -867,7 +867,7 @@
             <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Qayta sinash</a>
 
           {% elif request_status == 'pending' %}
-            <div class="alert info">⏳ So‘rovingiz tekshirilmoqda.</div>
+            <div class="alert info">⏳ So'rovingiz tekshirilmoqda.</div>
 
           {% else %}
             {% if yetarli %}
@@ -876,12 +876,12 @@
                 <button type="submit" class="buy-btn">⚡ Hozir sotib olish</button>
               </form>
             {% else %}
-              <div class="alert bad">❗ Yetarli chaqmoq yo‘q. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})</div>
+              <div class="alert bad">❗ Yetarli chaqmoq yo'q. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})</div>
             {% endif %}
           {% endif %}
 
         {% else %}
-          <div class="alert info">📘 Faqat o‘quvchilar so‘rov yuborishi mumkin.</div>
+          <div class="alert info">📘 Faqat o'quvchilar so'rov yuborishi mumkin.</div>
         {% endif %}
 
         {% if user.is_staff %}
@@ -904,7 +904,7 @@
 
       <div class="tab-panels">
         <div class="panel active" id="tab-desc" role="tabpanel">
-          {{ item.izoh|default:"Bu mahsulot bo‘yicha izoh mavjud emas." }}
+          {{ item.izoh|default:"Bu mahsulot bo'yicha izoh mavjud emas." }}
         </div>
         <!-- <div class="panel" id="tab-tech" role="tabpanel">
           • Darslar: video + materiallar <br>
@@ -923,7 +923,7 @@
             <span class="dot" aria-hidden="true"></span>
             <span>Fikrlar va Muhokama</span>
           </div>
-          <div class="tg-sub">Mahsulot haqida fikr yozing (hamma ko‘radi)</div>
+          <div class="tg-sub">Mahsulot haqida fikr yozing (hamma ko'radi)</div>
         </div>
 
         <div style="color:rgba(148,163,184,.9); font-weight:900; font-size:12px;">
@@ -980,7 +980,7 @@
           {% endfor %}
         {% else %}
           <div style="text-align:center; color:rgba(148,163,184,.85); font-weight:900; padding: 18px;">
-            Hozircha fikrlar yo‘q. Birinchi bo‘lib yozing 🙂
+            Hozircha fikrlar yo'q. Birinchi bo'lib yozing 🙂
           </div>
         {% endif %}
       </div>

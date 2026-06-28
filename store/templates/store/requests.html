@@ -318,14 +318,14 @@
     <div class="toolbar-left">
       <div class="page-icon">⚡</div>
       <div>
-        <h3 class="page-title">Xarid so‘rovlari</h3>
-        <div class="page-sub">So‘rovlarni tezda ko‘rib chiqing va tasdiqlang yoki rad eting</div>
+        <h3 class="page-title">Xarid so'rovlari</h3>
+        <div class="page-sub">So'rovlarni tezda ko'rib chiqing va tasdiqlang yoki rad eting</div>
       </div>
     </div>
 
     <div class="toolbar-right">
       <div class="pill">
-        <span class="dot"></span> {{ items|length }} ta so‘rov
+        <span class="dot"></span> {{ items|length }} ta so'rov
       </div>
     </div>
   </div>
@@ -337,7 +337,7 @@
         <thead>
           <tr>
             <th>Sana</th>
-            <th>O‘quvchi</th>
+            <th>O'quvchi</th>
             <th>Mahsulot</th>
             <th>Qty</th>
             <th>Status</th>
@@ -348,7 +348,7 @@
           {% for r in items %}
           <tr>
             <td data-label="Sana" class="date-mono">{{ r.sana|date:"d.m.Y H:i" }}</td>
-            <td data-label="O‘quvchi" style="color:#fff;">{{ r.student.ism }} {{ r.student.familya }}</td>
+            <td data-label="O'quvchi" style="color:#fff;">{{ r.student.ism }} {{ r.student.familya }}</td>
             <td data-label="Mahsulot">{{ r.product.nom }}</td>
             <td data-label="Qty">{{ r.qty }}</td>
             <td data-label="Status">
@@ -369,7 +369,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="empty-row">So‘rovlar mavjud emas.</td>
+            <td colspan="6" class="empty-row">So'rovlar mavjud emas.</td>
           </tr>
           {% endfor %}
         </tbody>
