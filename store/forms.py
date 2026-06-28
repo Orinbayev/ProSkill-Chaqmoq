@@ -26,7 +26,15 @@ class ProductForm(forms.ModelForm):
     def __init__(self, *args, center=None, **kwargs):
         super().__init__(*args, **kwargs)
         from education.models import Category
-        qs = Category.objects.filter(center=center) if center else Category.objects.none()
+        from accounts.models import Center as CenterModel
+        if center:
+            first_center = CenterModel.objects.order_by('id').first()
+            if first_center and center.id == first_center.id:
+                qs = Category.objects.filter(Q(center=center) | Q(center__isnull=True))
+            else:
+                qs = Category.objects.filter(center=center)
+        else:
+            qs = Category.objects.none()
         self.fields['allowed_categories'].queryset = qs
         self.fields['allowed_categories'].required = False
         self.fields['allowed_categories'].widget = forms.CheckboxSelectMultiple()
