@@ -104,6 +104,18 @@ if is_production_runtime:
 
 CLICK_ALLOWED_IPS = [ip.strip() for ip in os.getenv("CLICK_ALLOWED_IPS", "").split(",") if ip.strip()]
 
+# ==================== SENTRY ====================
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment="production",
+        traces_sample_rate=0.1,   # 10% so'rovlarda performance kuzatiladi
+        send_default_pii=False,   # foydalanuvchi ma'lumotlari yuborilmaydi
+    )
+
 # ==================== DATABASE ====================
 
 # Render provides DATABASE_URL automatically

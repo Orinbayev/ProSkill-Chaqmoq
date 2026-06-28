@@ -15,7 +15,7 @@ from core.tenant import require_center, ensure_obj_center
 from .models import Lead
 from billing.decorators import require_feature
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count
 from datetime import timedelta
 from django.utils.dateparse import parse_date
 
@@ -34,7 +34,13 @@ def products(request):
     from core.tenant import get_request_center
     center = get_request_center(request)
     
-    items = Product.objects.filter(Q(center=center) | Q(center__isnull=True)).order_by('-yaratilgan')
+    items = (
+        Product.objects
+        .filter(Q(center=center) | Q(center__isnull=True))
+        .prefetch_related('allowed_categories', 'rasmlar')
+        .annotate(sales_count=Count('sale', distinct=True))
+        .order_by('-yaratilgan')
+    )
 
     # Bo'lim filtri: student faqat o'z bo'limidagi va cheklovsiz mahsulotlarni ko'radi
     if request.user.role == 'student':
