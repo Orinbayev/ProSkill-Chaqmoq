@@ -2562,20 +2562,53 @@ def mobile_parent_notification_preferences(request):
 def mobile_profile(request):
     if request.user.role == "parent" or request.user.is_superuser:
         return mobile_parent_profile(request)
-    if request.method == "PATCH":
-        return _mobile_json_error(
-            "Bu rol uchun profilni tahrirlash hozircha qo‘llab-quvvatlanmaydi",
-            status=405,
-            code="profile_patch_unsupported",
-        )
+    user = request.user
     center = _request_center(request)
+    if request.method == "PATCH":
+        data = _parse_json_body(request)
+        ism = str(data.get("ism") or "").strip()
+        familya = str(data.get("familya") or "").strip()
+        otchestvo = str(data.get("otchestvo") or "").strip()
+        phone = str(data.get("phone") or "").strip()
+        if ism:
+            user.ism = ism
+        if familya:
+            user.familya = familya
+        if otchestvo is not None:
+            user.otchestvo = otchestvo
+        if phone:
+            user.telefon1 = phone
+        user.save(update_fields=["ism", "familya", "otchestvo", "telefon1"])
+        return JsonResponse({"ok": True, "user": _serialize_user(request, user)})
     return JsonResponse(
         {
             "ok": True,
-            "user": _serialize_user(request, request.user),
+            "user": _serialize_user(request, user),
             "center": _serialize_center(center),
         }
     )
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_profile_avatar(request):
+    """Avatar yuklash/o’chirish — barcha rollar uchun."""
+    user = request.user
+    if request.POST.get("clear") in ("true", "1", "yes"):
+        if user.avatar:
+            user.avatar.delete(save=False)
+            user.avatar = None
+            user.save(update_fields=["avatar"])
+        return JsonResponse({"ok": True, "user": _serialize_user(request, user)})
+    avatar_file = request.FILES.get("avatar")
+    if not avatar_file:
+        return _json_error("avatar fayl talab qilinadi", status=400)
+    if avatar_file.size > 5 * 1024 * 1024:
+        return _json_error("Fayl hajmi 5MB dan oshmasin", status=400)
+    user.avatar = avatar_file
+    user.save(update_fields=["avatar"])
+    return JsonResponse({"ok": True, "user": _serialize_user(request, user)})
 
 
 @csrf_exempt

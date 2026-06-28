@@ -1,6 +1,8 @@
-import 'package:chaqmoq_mobile/models/teacher_models.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
+import 'package:chaqmoq_mobile/models/teacher_models.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 class TeacherService {
   const TeacherService({required this.apiClient});
@@ -54,5 +56,54 @@ class TeacherService {
       },
     );
     return TeacherIncomeModel.fromJson(data);
+  }
+
+  Future<UserModel> updateProfile({
+    String? ism,
+    String? familya,
+    String? phone,
+  }) async {
+    final data = await apiClient.patch(
+      '/api/mobile/profile/',
+      data: {
+        if (ism != null) 'ism': ism,
+        if (familya != null) 'familya': familya,
+        if (phone != null) 'phone': phone,
+      },
+    );
+    return UserModel.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<UserModel> uploadAvatar(XFile image) async {
+    final data = await apiClient.post(
+      '/api/mobile/profile/avatar/',
+      data: FormData.fromMap(<String, dynamic>{
+        'avatar': await MultipartFile.fromFile(image.path, filename: image.name),
+      }),
+    );
+    return UserModel.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<UserModel> removeAvatar() async {
+    final data = await apiClient.post(
+      '/api/mobile/profile/avatar/',
+      data: FormData.fromMap(<String, dynamic>{'clear': 'true'}),
+    );
+    return UserModel.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await apiClient.post(
+      '/api/mobile/auth/change-password/',
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      },
+    );
   }
 }

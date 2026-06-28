@@ -111,9 +111,9 @@ class TeacherProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void forceReloadIncome({int? year, int? month}) {
+  Future<void> forceReloadIncome({int? year, int? month}) async {
     _incomeYear = 0;
     _incomeMonth = 0;
-    loadIncome(year: year, month: month);
+    await loadIncome(year: year, month: month);
   }
 }
