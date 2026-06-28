@@ -57,6 +57,21 @@ def create_teacher_income(sender, instance, created, **kwargs):
     oy_dars_soni = instance.group.oy_dars_soni or 12
     if oy_dars_soni <= 0: oy_dars_soni = 12
 
+    # OY LIMITI: faqat birinchi oy_dars_soni ta darsga to'lov yoziladi.
+    # Misol: oy_dars_soni=12, lekin 13 dars o'tilsa — 13-chi darsga 0 yoziladi.
+    month_paid_ids = list(
+        Attendance.objects.filter(
+            group=instance.group,
+            student=instance.student,
+            date__year=instance.date.year,
+            date__month=instance.date.month,
+            status__in=('present', 'absent_unexcused', 'late'),
+        ).order_by('date', 'id').values_list('id', flat=True)[:oy_dars_soni]
+    )
+    if instance.pk not in month_paid_ids:
+        TeacherIncome.objects.filter(attendance=instance).delete()
+        return
+
     if kurs_narhi > 0 and foiz > 0:
         total_per_lesson = kurs_narhi / oy_dars_soni
         amount = round(total_per_lesson * (foiz / 100))
