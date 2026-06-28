@@ -1,5 +1,6 @@
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from states.link_state import LinkAccountState
 from keyboards.profile_selector import get_profile_selection_keyboard, get_profile_management_keyboard, get_confirmation_keyboard
 from keyboards.contact_button import get_contact_keyboard
@@ -163,6 +164,54 @@ async def execute_unlink_all(callback: types.CallbackQuery, state: FSMContext):
         )
     else:
         await callback.answer(f"❌ Xatolik: {response.get('error')}")
+
+@router.message(F.text == "🚪 Chiqish")
+async def logout_menu(message: types.Message, state: FSMContext):
+    """Qaysi profildan chiqishni tanlash."""
+    status_code, response = await get_user_status_api(str(message.from_user.id))
+    if status_code != 200 or response.get("status") != "linked":
+        await state.clear()
+        await message.answer(
+            "Hisobingiz allaqachon uzilgan. /start bosing.",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
+        return
+
+    users = response.get("users", [])
+    data = await state.get_data()
+    current_email = data.get("current_user_email")
+
+    if len(users) == 1:
+        u = users[0]
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=f"🗑 {u.get('ism')} ({u.get('role_display')}) — uzib tashlash",
+                callback_data=f"prompt_unlink_single:{u.get('email')}"
+            )],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel")],
+        ])
+        await message.answer(
+            "🚪 <b>Profildan chiqish</b>\n\nQuyidagi profilni uzib tashlamoqchimisiz?",
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
+    else:
+        rows = []
+        for u in users:
+            marker = " ✅" if u.get("email") == current_email else ""
+            rows.append([InlineKeyboardButton(
+                text=f"🗑 {u.get('ism')} ({u.get('role_display')}){marker}",
+                callback_data=f"prompt_unlink_single:{u.get('email')}"
+            )])
+        rows.append([InlineKeyboardButton(text="❌ Barcha profillarni uzish", callback_data="confirm_unlink_all")])
+        rows.append([InlineKeyboardButton(text="✖ Bekor qilish", callback_data="cancel")])
+        await message.answer(
+            "🚪 <b>Qaysi profildan chiqmoqchisiz?</b>\n\n"
+            "Faqat bitta profilni uzib tashlaysiz — qolganlar ishlayveradi.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+            parse_mode="HTML"
+        )
+
 
 @router.callback_query(F.data == "cancel")
 async def cancel_callback(callback: types.CallbackQuery):

@@ -5,7 +5,7 @@ def _common_rows():
     return [
         [KeyboardButton(text="👤 Profil"), KeyboardButton(text="📜 Faoliyat tarixi")],
         [KeyboardButton(text="🔐 Xavfsizlik"), KeyboardButton(text="🔄 Profilni almashtirish")],
-        [KeyboardButton(text="ℹ️ Yordam")],
+        [KeyboardButton(text="ℹ️ Yordam"), KeyboardButton(text="🚪 Chiqish")],
     ]
 
 

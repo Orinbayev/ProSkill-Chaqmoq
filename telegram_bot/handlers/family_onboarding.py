@@ -40,6 +40,7 @@ from services.api_client import (
     family_search_child_api,
     family_student_by_name_api,
     get_user_status_api,
+    unlink_account_api,
 )
 
 logger = logging.getLogger(__name__)
@@ -799,3 +800,159 @@ async def family_issue_credentials(message: types.Message, state: FSMContext):
         ]
     )
     await message.answer("\n".join(text_lines), parse_mode="HTML")
+
+
+# ─── "🚪 Chiqish" — bitta profildan yoki hammasidan chiqish ─────────────────
+@router.message(F.text == "🚪 Chiqish")
+async def family_logout_menu(message: types.Message, state: FSMContext):
+    """Qaysi profildan chiqishni tanlash."""
+    status_code, response = await get_user_status_api(str(message.from_user.id))
+    if status_code != 200 or response.get("status") != "linked":
+        await state.clear()
+        await message.answer(
+            "Hisobingiz allaqachon uzilgan. /start bosing.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    users = response.get("users") or []
+    data = await state.get_data()
+    current_email = data.get("current_user_email")
+
+    # Faqat parent/student profillarini ko'rsat (family bot uchun)
+    family_users = [u for u in users if u.get("role") in ("parent", "student")]
+    if not family_users:
+        family_users = users
+
+    if len(family_users) == 1:
+        u = family_users[0]
+        role_text = "Ota-ona" if u.get("role") == "parent" else "O'quvchi"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=f"🗑 {u.get('ism')} ({role_text}) — uzib tashlash",
+                callback_data=f"family:unlink_confirm:{u.get('email')}",
+            )],
+            [InlineKeyboardButton(text="✖ Bekor qilish", callback_data="family:unlink_cancel")],
+        ])
+        await message.answer(
+            "🚪 <b>Profildan chiqish</b>\n\nQuyidagi profilni botdan uzib tashlamoqchimisiz?",
+            reply_markup=kb,
+            parse_mode="HTML",
+        )
+    else:
+        rows = []
+        for u in family_users:
+            role_text = "Ota-ona" if u.get("role") == "parent" else "O'quvchi"
+            marker = " ✅" if u.get("email") == current_email else ""
+            rows.append([InlineKeyboardButton(
+                text=f"🗑 {u.get('ism')} ({role_text}){marker}",
+                callback_data=f"family:unlink_confirm:{u.get('email')}",
+            )])
+        rows.append([InlineKeyboardButton(text="❌ Hammasini uzish", callback_data="family:unlink_all")])
+        rows.append([InlineKeyboardButton(text="✖ Bekor qilish", callback_data="family:unlink_cancel")])
+        await message.answer(
+            "🚪 <b>Qaysi profildan chiqmoqchisiz?</b>\n\n"
+            "Faqat bitta profilni uzasiz — qolgan profillar ishlayveradi.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+            parse_mode="HTML",
+        )
+
+
+@router.callback_query(F.data.startswith("family:unlink_confirm:"))
+async def family_unlink_confirm(callback: types.CallbackQuery):
+    email = callback.data.split(":", 2)[2]
+    await callback.message.edit_text(
+        f"❓ <b>Ishonchingiz komilmi?</b>\n\n<code>{email}</code> profili botdan uziladi.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Ha, uzib tashlash", callback_data=f"family:unlink_do:{email}"),
+                InlineKeyboardButton(text="❌ Yo'q", callback_data="family:unlink_cancel"),
+            ]
+        ]),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("family:unlink_do:"))
+async def family_unlink_do(callback: types.CallbackQuery, state: FSMContext):
+    email = callback.data.split(":", 2)[2]
+    status_code, response = await unlink_account_api(str(callback.from_user.id), email=email)
+
+    if status_code != 200:
+        err = (response or {}).get("error") or "Xatolik yuz berdi."
+        await callback.answer(f"❌ {err}", show_alert=True)
+        return
+
+    await callback.message.edit_text(f"✅ Profil (<code>{email}</code>) muvaffaqiyatli uzildi.", parse_mode="HTML")
+
+    # Qolgan profillarni tekshir
+    sc2, resp2 = await get_user_status_api(str(callback.from_user.id))
+    if sc2 == 200 and resp2.get("status") == "linked":
+        remaining = resp2.get("users") or []
+        family_remaining = [u for u in remaining if u.get("role") in ("parent", "student")]
+        if not family_remaining:
+            family_remaining = remaining
+        if family_remaining:
+            u = family_remaining[0]
+            role = u.get("role")
+            await state.set_data({
+                "role": role,
+                "current_user_id": u.get("id"),
+                "current_user_email": u.get("email"),
+                "current_user_role": role,
+                "current_user_name": u.get("ism"),
+            })
+            await callback.message.answer(
+                f"🔄 Faol profil: <b>{u.get('ism')}</b>\n\nQuyidagi menyu orqali foydalaning:",
+                reply_markup=get_main_menu(role),
+                parse_mode="HTML",
+            )
+            return
+
+    # Hech qanday profil qolmadi
+    await state.clear()
+    await callback.message.answer(
+        "Barcha profillar uzildi. Botga qayta ulash uchun /start bosing.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "family:unlink_all")
+async def family_unlink_all_confirm(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "❓ <b>Barcha profillarni uzib tashlamoqchimisiz?</b>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Ha, hammasini", callback_data="family:unlink_all_do"),
+                InlineKeyboardButton(text="❌ Yo'q", callback_data="family:unlink_cancel"),
+            ]
+        ]),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "family:unlink_all_do")
+async def family_unlink_all_do(callback: types.CallbackQuery, state: FSMContext):
+    status_code, response = await unlink_account_api(str(callback.from_user.id))
+    if status_code == 200:
+        await state.clear()
+        await callback.message.edit_text("✅ Barcha profillar uzildi.")
+        await callback.message.answer(
+            "Botga qayta ulash uchun /start bosing.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+    else:
+        err = (response or {}).get("error") or "Xatolik."
+        await callback.answer(f"❌ {err}", show_alert=True)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "family:unlink_cancel")
+async def family_unlink_cancel(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    role = data.get("current_user_role") or "parent"
+    await callback.message.delete()
+    await callback.answer("Bekor qilindi.")

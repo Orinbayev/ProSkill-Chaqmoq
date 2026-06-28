@@ -24,7 +24,8 @@ def get_main_menu(role: str | None = None):
             KeyboardButton(text="ℹ️ Yordam")
         ],
         [
-            KeyboardButton(text="🔄 Profilni almashtirish")
+            KeyboardButton(text="🔄 Profilni almashtirish"),
+            KeyboardButton(text="🚪 Chiqish")
         ]
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
