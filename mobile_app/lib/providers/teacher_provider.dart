@@ -116,4 +116,44 @@ class TeacherProvider extends ChangeNotifier {
     _incomeMonth = 0;
     await loadIncome(year: year, month: month);
   }
+
+  // ── Chaqmoq Rules ──
+  List<dynamic> _chaqmoqRules = [];
+  List<dynamic> get chaqmoqRules => _chaqmoqRules;
+  bool _rulesLoaded = false;
+
+  Future<List<dynamic>> loadChaqmoqRules() async {
+    if (_rulesLoaded) return _chaqmoqRules;
+    try {
+      _chaqmoqRules = await service.getChaqmoqRules();
+      _rulesLoaded = true;
+    } catch (_) {}
+    return _chaqmoqRules;
+  }
+
+  Future<int> awardChaqmoq({
+    required int studentId,
+    required int ruleId,
+    int? ball,
+  }) async {
+    final newBalance = await service.awardChaqmoq(
+      studentId: studentId,
+      ruleId: ruleId,
+      ball: ball,
+    );
+    // Update student's chaqmoq balance in current attendance data
+    if (attendance != null) {
+      final updated = attendance!.students.map((s) {
+        if (s.id != studentId) return s;
+        return s.copyWith(chaqmoqBalance: newBalance);
+      }).toList();
+      attendance = TeacherAttendanceDay(
+        group: attendance!.group,
+        date: attendance!.date,
+        students: updated,
+      );
+      notifyListeners();
+    }
+    return newBalance;
+  }
 }

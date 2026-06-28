@@ -3338,6 +3338,7 @@ def mobile_teacher_group_students(request, group_id: int):
             "full_name": s.get_full_name(),
             "phone": s.telefon1 or "",
             "balance": _student_balance(s, center),
+            "chaqmoq_balance": Ledger.student_balansi(s.id, center=center),
             "attendance_status": status,
         })
 
@@ -3429,4 +3430,90 @@ def mobile_teacher_income(request):
         "details": salary_data.get("details", []),
         "yearly": yearly,
         "breakdown": expected.get("breakdown", []),
+    })
+
+
+# ─── Teacher: Chaqmoq qoidalar va berish ──────────────────────────────────────
+
+@csrf_exempt
+@require_http_methods(["GET"])
+@mobile_login_required
+def mobile_teacher_chaqmoq_rules(request):
+    """Guruh uchun mavjud chaqmoq qoidalari (teacher ishlatishi mumkin bo'lganlar)."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    from chaqmoq.models import Rule
+    rules = Rule.objects.filter(center=center, can_teacher=True).order_by("tur", "nom")
+    result = []
+    for r in rules:
+        result.append({
+            "id": r.id,
+            "nom": r.nom,
+            "tur": r.tur,
+            "min_baho": r.min_baho,
+            "max_baho": r.max_baho,
+        })
+    return JsonResponse({"ok": True, "rules": result})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_teacher_award_chaqmoq(request):
+    """O'quvchiga chaqmoq berish yoki olish (teacher tomonidan)."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    data = _parse_json_body(request)
+
+    student_id = data.get("student_id")
+    rule_id = data.get("rule_id")
+    ball = data.get("ball")  # optional override within rule range
+
+    if not student_id or not rule_id:
+        return _json_error("student_id va rule_id talab qilinadi", status=400)
+
+    from chaqmoq.models import Rule
+    rule = get_object_or_404(Rule, pk=rule_id, center=center, can_teacher=True)
+    student = get_object_or_404(User, pk=student_id, role="student", center=center)
+
+    # Ball miqdorini hisoblash
+    if ball is not None:
+        try:
+            ball_val = int(ball)
+        except (TypeError, ValueError):
+            return _json_error("Ball noto'g'ri", status=400)
+        # Rule tur asosida sign
+        if rule.tur == Rule.MINUS:
+            ball_val = -abs(ball_val)
+        else:
+            ball_val = abs(ball_val)
+        # Range check
+        if abs(ball_val) < rule.min_baho or abs(ball_val) > rule.max_baho:
+            return _json_error(
+                f"Ball {rule.min_baho}..{rule.max_baho} orasida bo'lishi kerak", status=400
+            )
+    else:
+        # Default: minus → min_baho negative, plus → max_baho positive
+        if rule.tur == Rule.MINUS:
+            ball_val = -abs(rule.min_baho)
+        else:
+            ball_val = abs(rule.max_baho)
+
+    led = Ledger.objects.create(
+        student=student,
+        beruvchi=request.user,
+        rule=rule,
+        ball=ball_val,
+    )
+
+    new_balance = Ledger.student_balansi(student.id, center=center)
+    return JsonResponse({
+        "ok": True,
+        "ball": ball_val,
+        "new_balance": new_balance,
+        "ledger_id": led.id,
     })

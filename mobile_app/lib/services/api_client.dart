@@ -87,8 +87,8 @@ class ApiClient {
       await _dio.get<dynamic>(
         AppConfig.healthPath,
         options: Options(
-          receiveTimeout: const Duration(seconds: 60),
-          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 8),
         ),
       );
     } catch (_) {

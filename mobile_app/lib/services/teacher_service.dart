@@ -106,4 +106,26 @@ class TeacherService {
       },
     );
   }
+
+  Future<List<ChaqmoqRule>> getChaqmoqRules() async {
+    final data = await apiClient.get('/api/mobile/teacher/chaqmoq/rules/');
+    final list = data['rules'] as List? ?? [];
+    return list.map((e) => ChaqmoqRule.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<int> awardChaqmoq({
+    required int studentId,
+    required int ruleId,
+    int? ball,
+  }) async {
+    final data = await apiClient.post(
+      '/api/mobile/teacher/chaqmoq/award/',
+      data: {
+        'student_id': studentId,
+        'rule_id': ruleId,
+        if (ball != null) 'ball': ball,
+      },
+    );
+    return jsonInt(data['new_balance'] ?? 0);
+  }
 }

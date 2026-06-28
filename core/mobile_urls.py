@@ -58,4 +58,6 @@ urlpatterns = [
     path("teacher/groups/<int:group_id>/students/", mobile_api.mobile_teacher_group_students, name="mobile_teacher_group_students"),
     path("teacher/attendance/mark/", mobile_api.mobile_teacher_mark_attendance, name="mobile_teacher_mark_attendance"),
     path("teacher/income/", mobile_api.mobile_teacher_income, name="mobile_teacher_income"),
+    path("teacher/chaqmoq/rules/", mobile_api.mobile_teacher_chaqmoq_rules, name="mobile_teacher_chaqmoq_rules"),
+    path("teacher/chaqmoq/award/", mobile_api.mobile_teacher_award_chaqmoq, name="mobile_teacher_award_chaqmoq"),
 ]

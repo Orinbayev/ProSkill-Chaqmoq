@@ -42,6 +42,7 @@ class TeacherStudentModel {
     required this.fullName,
     this.phone = '',
     this.balance = 0,
+    this.chaqmoqBalance = 0,
     this.attendanceStatus = 'none',
   });
 
@@ -49,6 +50,7 @@ class TeacherStudentModel {
   final String fullName;
   final String phone;
   final int balance;
+  final int chaqmoqBalance;
 
   // 'none' | 'present' | 'absent' | 'excused'
   final String attendanceStatus;
@@ -60,15 +62,43 @@ class TeacherStudentModel {
         fullName: jsonString(j['full_name']),
         phone: jsonString(j['phone']),
         balance: jsonInt(j['balance']),
+        chaqmoqBalance: jsonInt(j['chaqmoq_balance'] ?? 0),
         attendanceStatus: jsonString(j['attendance_status']),
       );
 
-  TeacherStudentModel copyWith({String? attendanceStatus}) => TeacherStudentModel(
+  TeacherStudentModel copyWith({String? attendanceStatus, int? chaqmoqBalance}) => TeacherStudentModel(
         id: id,
         fullName: fullName,
         phone: phone,
         balance: balance,
+        chaqmoqBalance: chaqmoqBalance ?? this.chaqmoqBalance,
         attendanceStatus: attendanceStatus ?? this.attendanceStatus,
+      );
+}
+
+class ChaqmoqRule {
+  const ChaqmoqRule({
+    required this.id,
+    required this.nom,
+    required this.tur,
+    this.minBaho = 1,
+    this.maxBaho = 10,
+  });
+
+  final int id;
+  final String nom;
+  final String tur; // 'plus' | 'minus'
+  final int minBaho;
+  final int maxBaho;
+
+  bool get isPlus => tur == 'plus';
+
+  factory ChaqmoqRule.fromJson(Map<String, dynamic> j) => ChaqmoqRule(
+        id: jsonInt(j['id']),
+        nom: jsonString(j['nom']),
+        tur: jsonString(j['tur']),
+        minBaho: jsonInt(j['min_baho'] ?? 1),
+        maxBaho: jsonInt(j['max_baho'] ?? 10),
       );
 }
 

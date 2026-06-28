@@ -45,7 +45,9 @@ class AuthRepository {
     _apiClient.configure(accessToken: token, slug: slug);
 
     try {
-      final payload = await _apiClient.get(AppConfig.authStatusPath);
+      final payload = await _apiClient
+          .get(AppConfig.authStatusPath)
+          .timeout(const Duration(seconds: 5), onTimeout: () => <String, dynamic>{'authenticated': true});
       final authenticated = payload['authenticated'] == null
           ? true
           : jsonBool(payload['authenticated']);
