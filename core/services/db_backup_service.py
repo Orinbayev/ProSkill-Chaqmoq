@@ -1341,8 +1341,15 @@ def send_database_backups_to_telegram(
 
 
 def backup_and_send_all_centers() -> dict[str, Any]:
-    """Backward-compatible entrypoint for old cron/tests."""
-    return send_database_backups_to_telegram()
+    """
+    Kunlik backup entrypoint.
+
+    Faqat global pg_dump yuboriladi — markaz-markaz JSON snapshot o'tkazib yuboriladi.
+    Sabab: global pg_dump barcha ma'lumotlarni o'z ichiga oladi. Markaz JSON eksporti
+    barcha ma'lumotlarni RAM'ga yuklaydi va 512MB Render Starter planida OOM yoki
+    timeout qiladi, shu sababli Telegram'ga hech narsa yetib bormaydi.
+    """
+    return send_database_backups_to_telegram(include_centers=False)
 
 
 # ────────────────────────────────────────────────────────────────────────────
