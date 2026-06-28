@@ -84,8 +84,8 @@ class LeadForm(forms.ModelForm):
             'assigned_manager': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'next_follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'lost_reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lead yo'qotilish sababi'}),
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masalan: O'quvchi darsga kech kelgan, yoki rad etgan sababi...'}),
+            'lost_reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lead yo‘qotilish sababi'}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Masalan: O‘quvchi darsga kech kelgan, yoki rad etgan sababi...'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -151,7 +151,7 @@ class LeadForm(forms.ModelForm):
 
         follow_up_date = cleaned.get("next_follow_up_date")
         if follow_up_date and follow_up_date < (timezone.localdate() - timedelta(days=365)):
-            self.add_error("next_follow_up_date", "Follow-up sanasi juda eski bo'lishi mumkin emas.")
+            self.add_error("next_follow_up_date", "Follow-up sanasi juda eski bo‘lishi mumkin emas.")
 
         return cleaned
 
@@ -178,7 +178,7 @@ class TrialLessonForm(forms.ModelForm):
                 choices=[("", "—"), ("True", "Keldi"), ("False", "Kelmadi")],
             ),
             "result_status": forms.Select(attrs={"class": "form-select"}),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Trial bo'yicha izoh"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Trial bo‘yicha izoh"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -221,10 +221,10 @@ class TrialLessonForm(forms.ModelForm):
             self.add_error("group", "Tanlangan guruh lead markazi bilan mos emas.")
 
         if teacher and group and teacher.center_id and group.center_id and teacher.center_id != group.center_id:
-            self.add_error("teacher", "Tanlangan o'qituvchi guruh markaziga mos emas.")
+            self.add_error("teacher", "Tanlangan o‘qituvchi guruh markaziga mos emas.")
 
         if result_status == TrialLesson.ResultStatus.ABSENT and attended is True:
-            self.add_error("attended", "Absent natija uchun attended=True bo'lishi mumkin emas.")
+            self.add_error("attended", "Absent natija uchun attended=True bo‘lishi mumkin emas.")
 
         if result_status in (TrialLesson.ResultStatus.ATTENDED, TrialLesson.ResultStatus.CONVERTED) and attended is None:
             cleaned["attended"] = True
@@ -341,7 +341,7 @@ class LeadApiForm(forms.Form):
         if value.startswith("custom:"):
             raw_id = value.split(":", 1)[1].strip()
             if not raw_id.isdigit():
-                raise forms.ValidationError("Tanlangan holat noto'g'ri.")
+                raise forms.ValidationError("Tanlangan holat noto‘g‘ri.")
             from .models import LeadStatus
 
             status = LeadStatus.objects.filter(
