@@ -884,9 +884,9 @@
           <div class="alert info">📘 Faqat o'quvchilar so'rov yuborishi mumkin.</div>
         {% endif %}
 
-        {% if user.is_staff %}
+        {% if user.role == 'manager' or user.role == 'director' or user.is_superuser %}
           <div style="margin-top:12px;">
-            <a href="{% url 'store:product_edit' item.pk %}" class="btn-outline" style="display:inline-block; text-decoration:none;">
+            <a href="{% url 'store:product_edit' item.pk %}" class="btn-outline" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:10px 18px;border-radius:12px;font-weight:900;">
               ✏️ Tahrirlash
             </a>
           </div>

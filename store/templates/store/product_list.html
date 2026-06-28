@@ -443,6 +443,31 @@
     transform: translateY(0px) scale(.99);
   }
 
+  /* edit button */
+  .btn-edit {
+    min-height: 46px;
+    border-radius: 14px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 14px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: #e5e7eb;
+    transition: .15s ease;
+    white-space: nowrap;
+  }
+  .btn-edit:hover {
+    background: rgba(56,189,248,.1);
+    border-color: rgba(56,189,248,.3);
+    color: #7dd3fc;
+  }
+  .btn-edit:active { transform: scale(.98); }
+
   /* delete panel */
   .delete-actions {
     margin-top: 14px;
@@ -805,7 +830,14 @@
             <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
             <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
 
+            {% if can_add %}
+            <div style="display:flex;gap:8px;margin-top:auto;">
+              <a class="btn-view" style="flex:1;width:auto;margin-top:0;" href="{% url 'store:product_detail' p.pk %}">Ko'rish</a>
+              <a class="btn-edit" href="{% url 'store:product_edit' p.pk %}">✏️ Tahrirlash</a>
+            </div>
+            {% else %}
             <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko'rish</a>
+            {% endif %}
           </div>
 
         </div>

@@ -395,9 +395,34 @@
           {% endif %}
         </div>
 
+        {% if form.instance.pk %}
+        <div class="upload-box" style="margin-bottom:18px;">
+          <div class="field" style="margin-bottom:10px;">
+            <label><i class="fa-regular fa-image"></i> Mavjud rasmlar</label>
+          </div>
+          {% with imgs=form.instance.rasmlar.all %}
+          {% if imgs %}
+          <div id="existing-imgs" style="display:flex;flex-wrap:wrap;gap:10px;">
+            {% for img in imgs %}
+            <div id="img-wrap-{{ img.pk }}" style="position:relative;">
+              <img src="{{ img.rasm.url }}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.12);">
+              <button type="button" onclick="deleteImg({{ img.pk }}, this)"
+                style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+                &times;
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p style="color:#9ca3af;font-size:13px;font-weight:700;">Hali rasm yuklanmagan</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+        {% endif %}
+
         <div class="upload-box">
           <div class="field" style="margin-bottom:10px;">
-            <label><i class="fa-regular fa-image"></i> Rasmlar</label>
+            <label><i class="fa-regular fa-image"></i> {% if form.instance.pk %}Yangi rasmlar qo'shish{% else %}Rasmlar{% endif %}</label>
           </div>
 
           <div class="drop-zone" id="drop-area">
@@ -425,6 +450,23 @@
 
   </div>
 </div>
+
+<script>
+  function deleteImg(pk, btn) {
+    if (!confirm("Bu rasmni o'chirasizmi?")) return;
+    const wrap = document.getElementById("img-wrap-" + pk);
+    fetch("{% url 'store:delete_product_image' 0 %}".replace("/0/", "/" + pk + "/"), {
+      method: "POST",
+      headers: {"X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value}
+    }).then(r => r.json()).then(data => {
+      if (data.ok !== false) {
+        wrap && wrap.remove();
+      } else {
+        alert("Xato: " + (data.error || "o'chirib bo'lmadi"));
+      }
+    }).catch(() => alert("Tarmoq xatosi"));
+  }
+</script>
 
 <script>
   (function () {
