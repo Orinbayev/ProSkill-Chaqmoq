@@ -191,9 +191,12 @@ class HistoricalFinanceService:
                     if created_date and created_date > month_end:
                         continue
 
+                # oy_dars_soni limitidan oshmasin: 13-chi dars to'lanmaydi
+                capped_lessons = min(len(days), group_standard)
+
                 financials = teacher_monthly_financials(
                     enrollment,
-                    len(days),
+                    capped_lessons,
                     teacher_percent=getattr(teacher, "oqituvchi_foizi", 0) or None,
                     monthly_lessons_override=group_standard,
                 )
@@ -250,7 +253,8 @@ class HistoricalFinanceService:
                     extra = financials["teacher_salary"] - (
                         base * financials["billable_lessons"]
                     )
-                    for index, day in enumerate(sorted(days)):
+                    # Faqat birinchi capped_lessons ta kun uchun breakdown
+                    for index, day in enumerate(sorted(days)[:capped_lessons]):
                         day_index = day - 1
                         if 0 <= day_index < 31:
                             daily_breakdown[day_index] += base + (1 if index < extra else 0)
