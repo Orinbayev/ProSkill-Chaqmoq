@@ -18,9 +18,12 @@ import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/shell/app_shell.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/student/student_app_shell.dart';
+import 'package:chaqmoq_mobile/screens/teacher/teacher_app_shell.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
+import 'package:chaqmoq_mobile/services/teacher_service.dart';
+import 'package:chaqmoq_mobile/providers/teacher_provider.dart';
 import 'package:chaqmoq_mobile/services/local_notification_service.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
@@ -48,6 +51,7 @@ Future<void> main() async {
     loginService: loginService,
     storageService: storageService,
   );
+  final teacherService = TeacherService(apiClient: apiClient);
   final dashboardService = DashboardService(apiClient);
   final studentsService = StudentsService(apiClient);
   final teachersService = TeachersService(apiClient);
@@ -77,6 +81,7 @@ Future<void> main() async {
       chaqmoqService: chaqmoqService,
       storeService: storeService,
       parentDashboardService: parentDashboardService,
+      teacherService: teacherService,
     ),
   );
 }
@@ -97,6 +102,7 @@ class ChaqmoqApp extends StatelessWidget {
     required this.chaqmoqService,
     required this.storeService,
     required this.parentDashboardService,
+    required this.teacherService,
   });
 
   final AuthProvider authProvider;
@@ -112,6 +118,7 @@ class ChaqmoqApp extends StatelessWidget {
   final ChaqmoqService chaqmoqService;
   final StoreService storeService;
   final ParentDashboardService parentDashboardService;
+  final TeacherService teacherService;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +163,9 @@ class ChaqmoqApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) =>
               ParentDashboardProvider(service: parentDashboardService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TeacherProvider(service: teacherService),
         ),
       ],
       child: Consumer<AppPreferencesProvider>(
@@ -218,6 +228,9 @@ class _AuthGateState extends State<AuthGate> {
       } else if (role == 'student') {
         key = const ValueKey('home-student');
         child = const StudentAppShell();
+      } else if (role == 'teacher') {
+        key = const ValueKey('home-teacher');
+        child = const TeacherAppShell();
       } else {
         key = const ValueKey('home-manager');
         child = const AppShell();

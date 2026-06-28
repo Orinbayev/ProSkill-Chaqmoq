@@ -49,4 +49,10 @@ urlpatterns = [
     ),
     path("store/purchase-requests/", mobile_api.mobile_purchase_requests, name="mobile_purchase_requests"),
     path("store/purchase-requests/create/", mobile_api.mobile_purchase_request_create, name="mobile_purchase_request_create"),
+
+    # Teacher panel
+    path("teacher/groups/", mobile_api.mobile_teacher_groups, name="mobile_teacher_groups"),
+    path("teacher/groups/<int:group_id>/students/", mobile_api.mobile_teacher_group_students, name="mobile_teacher_group_students"),
+    path("teacher/attendance/mark/", mobile_api.mobile_teacher_mark_attendance, name="mobile_teacher_mark_attendance"),
+    path("teacher/income/", mobile_api.mobile_teacher_income, name="mobile_teacher_income"),
 ]

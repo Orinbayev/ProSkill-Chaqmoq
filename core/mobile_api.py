@@ -3220,3 +3220,180 @@ def mobile_student_debt_breakdown(request):
             "items": items,
         }
     )
+
+
+# ─────────────────────────────────────────────
+# TEACHER PANEL — mobile API endpoints
+# ─────────────────────────────────────────────
+
+@require_GET
+@mobile_login_required
+def mobile_teacher_groups(request):
+    """O'qituvchining barcha guruhlarini qaytaradi."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    teacher = request.user
+    if request.user.role in ("director", "manager") and request.GET.get("teacher_id"):
+        teacher = get_object_or_404(User, pk=request.GET.get("teacher_id"), role="teacher", center=center)
+
+    today = timezone.localdate()
+    groups = (
+        Group.objects.filter(center=center, oqituvchi=teacher, is_archived=False)
+        .select_related("category_obj")
+        .order_by("nom")
+    )
+    data = []
+    for g in groups:
+        total_students = Enrollment.objects.filter(group=g, is_active=True).count()
+        attended_today = Attendance.objects.filter(
+            group=g, date=today,
+        ).filter(
+            Q(present=True) | Q(forced=True) | Q(status="present")
+        ).count()
+        data.append({
+            **_serialize_group(g),
+            "student_count": total_students,
+            "attended_today": attended_today,
+        })
+    return JsonResponse({"ok": True, "groups": data})
+
+
+@require_GET
+@mobile_login_required
+def mobile_teacher_group_students(request, group_id: int):
+    """Guruh o'quvchilari va bugungi davomatlari."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    group = get_object_or_404(Group, pk=group_id, center=center)
+
+    # Faqat o'z guruhi
+    if request.user.role == "teacher" and group.oqituvchi_id != request.user.id:
+        return _json_error("Permission denied", status=403, code="permission_denied")
+
+    date_str = request.GET.get("date")
+    att_date = _parse_iso_date(date_str) if date_str else timezone.localdate()
+
+    enrollments = (
+        Enrollment.objects.filter(group=group, is_active=True)
+        .select_related("student")
+        .order_by("student__ism", "student__familiya")
+    )
+
+    # O'sha kun davomat ma'lumotlari
+    att_map = {}
+    for att in Attendance.objects.filter(group=group, date=att_date):
+        att_map[att.student_id] = att
+
+    students = []
+    for enr in enrollments:
+        s = enr.student
+        att = att_map.get(s.id)
+        status = "none"
+        if att:
+            if att.present or att.forced or att.status == "present":
+                status = "present"
+            elif att.status == "absent_excused":
+                status = "excused"
+            else:
+                status = "absent"
+        students.append({
+            "id": s.id,
+            "full_name": s.get_full_name(),
+            "phone": s.phone or "",
+            "balance": _student_balance(s, center),
+            "attendance_status": status,
+        })
+
+    return JsonResponse({
+        "ok": True,
+        "group": _serialize_group(group),
+        "date": att_date.isoformat(),
+        "students": students,
+    })
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_teacher_mark_attendance(request):
+    """Davomat belgilash/o'chirish (toggle)."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    data = _parse_json_body(request)
+    group_id = data.get("group_id")
+    student_id = data.get("student_id")
+    date_str = data.get("date")
+    mark_present = data.get("present")  # True/False yoki None (toggle)
+
+    if not (group_id and student_id):
+        return _json_error("group_id va student_id talab qilinadi", status=400)
+
+    group = get_object_or_404(Group, pk=group_id, center=center)
+    if request.user.role == "teacher" and group.oqituvchi_id != request.user.id:
+        return _json_error("Permission denied", status=403, code="permission_denied")
+
+    att_date = _parse_iso_date(date_str) if date_str else timezone.localdate()
+
+    att, created = Attendance.objects.get_or_create(
+        group_id=group_id,
+        student_id=student_id,
+        date=att_date,
+        defaults={"teacher": request.user, "present": True},
+    )
+    if not created:
+        if mark_present is None:
+            att.present = not att.present
+        else:
+            att.present = bool(mark_present)
+        att.teacher = request.user
+        att.save()
+
+    status = "present" if att.present else "absent"
+    return JsonResponse({"ok": True, "present": att.present, "status": status, "date": att_date.isoformat()})
+
+
+@require_GET
+@mobile_login_required
+def mobile_teacher_income(request):
+    """O'qituvchi oylik daromadi."""
+    permission_error = _role_required(request, ("teacher", "director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    teacher = request.user
+    if request.user.role in ("director", "manager") and request.GET.get("teacher_id"):
+        teacher = get_object_or_404(User, pk=request.GET.get("teacher_id"), role="teacher", center=center)
+
+    today = timezone.localdate()
+    year = int(request.GET.get("year", today.year))
+    month = int(request.GET.get("month", today.month))
+
+    from education.services.historical_finance_service import HistoricalFinanceService
+    salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, year, month, center)
+    expected = calculate_expected_income(teacher=teacher, year=year, month=month, center=center)
+
+    # 12 oylik grafik
+    yearly = HistoricalFinanceService.get_yearly_teacher_salary(teacher, year, center)
+
+    current_max = expected.get("expected_income", 0)
+    current_salary = int(salary_data.get("salary", 0))
+    progress_pct = min(100, round(current_salary / current_max * 100)) if current_max > 0 else 0
+
+    return JsonResponse({
+        "ok": True,
+        "year": year,
+        "month": month,
+        "salary": current_salary,
+        "expected_income": current_max,
+        "progress_pct": progress_pct,
+        "is_locked": salary_data.get("is_locked", False),
+        "details": salary_data.get("details", []),
+        "yearly": yearly,
+        "breakdown": expected.get("breakdown", []),
+    })
