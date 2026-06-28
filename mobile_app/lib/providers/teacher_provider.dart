@@ -34,9 +34,10 @@ class TeacherProvider extends ChangeNotifier {
   int? _attendanceGroupId;
   DateTime? _attendanceDate;
 
-  Future<void> loadAttendance(int groupId, {DateTime? date}) async {
+  Future<void> loadAttendance(int groupId, {DateTime? date, bool force = false}) async {
     final d = date ?? DateTime.now();
-    if (_attendanceGroupId == groupId &&
+    if (!force &&
+        _attendanceGroupId == groupId &&
         _attendanceDate?.day == d.day &&
         _attendanceDate?.month == d.month &&
         _attendanceDate?.year == d.year &&

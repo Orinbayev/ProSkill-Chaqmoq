@@ -28,7 +28,7 @@ class _State extends State<TeacherAttendanceScreen>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _load();
+        _load(force: true);
         context.read<TeacherProvider>().loadChaqmoqRules();
       }
     });
@@ -40,8 +40,8 @@ class _State extends State<TeacherAttendanceScreen>
     super.dispose();
   }
 
-  void _load() {
-    context.read<TeacherProvider>().loadAttendance(widget.group.id, date: _date);
+  void _load({bool force = false}) {
+    context.read<TeacherProvider>().loadAttendance(widget.group.id, date: _date, force: force);
   }
 
   Future<void> _pickDate() async {
@@ -197,7 +197,7 @@ class _AttendanceTab extends StatelessWidget {
   final Color bg;
   final Color borderColor;
   final ValueChanged<bool> onMarkAll;
-  final VoidCallback onReload;
+  final void Function({bool force}) onReload;
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +279,7 @@ class _AttendanceTab extends StatelessWidget {
                   color: Color(0xFF6366F1)));
         }
         if (p.attendanceState == ViewState.error) {
-          return _ErrorView(message: p.attendanceError, onRetry: onReload);
+          return _ErrorView(message: p.attendanceError, onRetry: () => onReload(force: true));
         }
         if (students.isEmpty) {
           return _EmptyView(
@@ -290,7 +290,7 @@ class _AttendanceTab extends StatelessWidget {
         }
         return RefreshIndicator(
           color: const Color(0xFF6366F1),
-          onRefresh: () async => onReload(),
+          onRefresh: () async => onReload(force: true),
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: students.length,

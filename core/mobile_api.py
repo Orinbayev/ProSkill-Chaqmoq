@@ -3374,11 +3374,12 @@ def mobile_teacher_mark_attendance(request):
 
     att_date = _parse_iso_date(date_str) if date_str else timezone.localdate()
 
+    default_present = True if mark_present is None else bool(mark_present)
     att, created = Attendance.objects.get_or_create(
         group_id=group_id,
         student_id=student_id,
         date=att_date,
-        defaults={"teacher": request.user, "present": True},
+        defaults={"teacher": request.user, "present": default_present},
     )
     if not created:
         if mark_present is None:
