@@ -129,7 +129,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.fromLTRB(18, 8, 18, 110),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       children: [
         StudentDashboardHeader(
           unread: unread,

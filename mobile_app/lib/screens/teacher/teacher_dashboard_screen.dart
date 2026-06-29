@@ -1,9 +1,13 @@
+import 'dart:math' as math;
+
+import 'package:chaqmoq_mobile/core/theme/panel_tokens.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/teacher_models.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/teacher_provider.dart';
 import 'package:chaqmoq_mobile/screens/teacher/teacher_attendance_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -42,40 +46,62 @@ class _State extends State<TeacherDashboardScreen> {
     final name = auth.user?.firstName.isNotEmpty == true
         ? auth.user!.firstName
         : (auth.user?.fullName ?? "O'qituvchi");
-    final now = DateTime.now();
-    final months = ['', 'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF5F7FB),
+      backgroundColor: PanelTokens.bg(isDark),
       body: RefreshIndicator(
-        color: const Color(0xFF6366F1),
+        color: PanelTokens.teacherAccent,
         onRefresh: _refresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            _buildAppBar(context, name, isDark),
+            _TeacherHeroBar(name: name, isDark: isDark, onRefresh: _refresh),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _IncomeCard(p: p, month: months[now.month], onTap: widget.onGoIncome),
+                  // ── Salary prediction card ───────────────────────────────
+                  _SalaryPredictionCard(p: p, isDark: isDark, onTap: widget.onGoIncome),
                   const SizedBox(height: 14),
-                  _StatsRow(p: p),
+                  // ── Stats row ────────────────────────────────────────────
+                  _StatsRow(p: p, isDark: isDark),
                   const SizedBox(height: 20),
+                  // ── Yearly mini-chart ────────────────────────────────────
+                  if (p.income?.yearly.isNotEmpty == true) ...[
+                    _MiniYearlyChart(yearly: p.income!.yearly, isDark: isDark),
+                    const SizedBox(height: 20),
+                  ],
+                  // ── Today's groups ───────────────────────────────────────
                   _SectionHeader(
-                    title: "Bugungi guruhlar",
-                    action: p.groups.isNotEmpty ? TextButton(onPressed: widget.onGoGroups, child: const Text("Barchasi")) : null,
+                    title: "Guruhlarim",
+                    icon: Icons.groups_rounded,
+                    action: p.groups.isNotEmpty
+                        ? TextButton.icon(
+                            onPressed: widget.onGoGroups,
+                            icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                            label: const Text("Barchasi"),
+                            style: TextButton.styleFrom(
+                              foregroundColor: PanelTokens.teacherAccent,
+                              textStyle: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          )
+                        : null,
+                    isDark: isDark,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   if (p.groupsState == ViewState.loading)
-                    const _LoadingCard()
+                    _LoadingShimmer(isDark: isDark)
                   else if (p.groupsState == ViewState.error)
-                    _ErrorCard(message: p.groupsError, onRetry: p.loadGroups)
+                    _ErrorCard(message: p.groupsError, onRetry: p.loadGroups, isDark: isDark)
                   else if (p.groups.isEmpty)
-                    _EmptyCard(isDark: isDark)
+                    _EmptyCard(
+                        icon: Icons.groups_outlined,
+                        message: "Hali guruh yo'q",
+                        isDark: isDark)
                   else
                     ...p.groups.map((g) => _GroupCard(group: g, isDark: isDark)),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                 ]),
               ),
             ),
@@ -84,61 +110,527 @@ class _State extends State<TeacherDashboardScreen> {
       ),
     );
   }
+}
 
-  SliverAppBar _buildAppBar(BuildContext context, String name, bool isDark) {
+// ─── Hero App Bar ──────────────────────────────────────────────────────────────
+
+class _TeacherHeroBar extends StatelessWidget {
+  const _TeacherHeroBar(
+      {required this.name, required this.isDark, required this.onRefresh});
+
+  final String name;
+  final bool isDark;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final weekdays = [
+      '', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'
+    ];
+    final months = [
+      '', 'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+    ];
+    final dateStr = '${weekdays[now.weekday]}, ${now.day} ${months[now.month]}';
+
     return SliverAppBar(
-      backgroundColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF5F7FB),
-      expandedHeight: 120,
+      backgroundColor: PanelTokens.bg(isDark),
+      expandedHeight: 130,
       pinned: true,
       elevation: 0,
+      scrolledUnderElevation: 0,
       flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.parallax,
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isDark
-                  ? [const Color(0xFF1E1B4B), const Color(0xFF0B1220)]
-                  : [const Color(0xFFEEF2FF), const Color(0xFFF5F7FB)],
+                  ? [const Color(0xFF1E1B4B), const Color(0xFF0F172A), PanelTokens.darkBg]
+                  : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF), PanelTokens.lightBg],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 58, 20, 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text("Xush kelibsiz 👋",
-                style: TextStyle(color: isDark ? Colors.white60 : Colors.black45, fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 4),
-            Text(name,
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: PanelTokens.teacherAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.school_rounded,
+                      size: 11,
+                      color: PanelTokens.teacherAccent.withValues(alpha: 0.8)),
+                  const SizedBox(width: 4),
+                  Text("O'qituvchi",
+                      style: TextStyle(
+                          color: PanelTokens.teacherAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+              const Spacer(),
+              Text(dateStr,
+                  style: TextStyle(
+                      color: PanelTokens.textMuted(isDark),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500)),
+            ]),
+            const SizedBox(height: 8),
+            Text("Xush kelibsiz, $name 👋",
                 style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800)),
+                    color: PanelTokens.text(isDark),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3)),
           ]),
         ),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white60 : Colors.black45),
-          onPressed: _refresh,
+          icon: Icon(Icons.refresh_rounded,
+              color: PanelTokens.textMuted(isDark), size: 22),
+          onPressed: onRefresh,
         ),
+        const SizedBox(width: 4),
       ],
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.action});
+// ─── Salary Prediction Card ────────────────────────────────────────────────────
 
-  final String title;
-  final Widget? action;
+class _SalaryPredictionCard extends StatelessWidget {
+  const _SalaryPredictionCard(
+      {required this.p, required this.isDark, this.onTap});
+
+  final TeacherProvider p;
+  final bool isDark;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loading = p.incomeState == ViewState.loading;
+    final income = p.income;
+    final salary = income?.salary ?? 0;
+    final expected = income?.expectedIncome ?? 0;
+    final pct = income?.progressPct ?? 0;
+
+    // Prediction
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final daysPassed = math.max(1, now.day);
+    final projected = expected > 0 && salary > 0
+        ? math.min((salary * daysInMonth / daysPassed).round(), expected)
+        : salary;
+
+    final months = [
+      '', 'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+    ];
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: PanelTokens.gradientCard(
+            [const Color(0xFF4F46E5), const Color(0xFF7C3AED)]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Header
+          Row(children: [
+            const Icon(Icons.account_balance_wallet_rounded,
+                color: Colors.white60, size: 15),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text("Bu oy daromad — ${months[now.month]}",
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 14),
+                Text("Batafsil",
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 12),
+
+          // Current salary
+          loading
+              ? const SizedBox(
+                  height: 36,
+                  child: LinearProgressIndicator(
+                      color: Colors.white30, backgroundColor: Colors.white12))
+              : Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text("Hisoblangan",
+                        style:
+                            TextStyle(color: Colors.white54, fontSize: 10)),
+                    const SizedBox(height: 2),
+                    Text(Formatters.currency(salary),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5)),
+                  ]),
+                  const Spacer(),
+                  // Prediction badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(children: [
+                      const Icon(Icons.trending_up_rounded,
+                          color: Color(0xFF86EFAC), size: 16),
+                      const SizedBox(height: 2),
+                      Text(Formatters.currency(projected),
+                          style: const TextStyle(
+                              color: Color(0xFF86EFAC),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)),
+                      const Text("bashorat",
+                          style:
+                              TextStyle(color: Colors.white38, fontSize: 9)),
+                    ]),
+                  ),
+                ]),
+          const SizedBox(height: 14),
+
+          // Progress bar
+          Row(children: [
+            Text("Maksimal: ${Formatters.currency(expected)}",
+                style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            const Spacer(),
+            Text("$pct%",
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 6),
+          Stack(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: LinearProgressIndicator(
+                value: (pct / 100).clamp(0.0, 1.0),
+                backgroundColor: Colors.white24,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    pct >= 100
+                        ? const Color(0xFF34D399)
+                        : Colors.white),
+                minHeight: 8,
+              ),
+            ),
+            // Prediction marker
+            if (expected > 0 && projected > salary)
+              Positioned(
+                left: (projected / expected * 1).clamp(0.0, 0.98) *
+                    (MediaQuery.of(context).size.width - 72),
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF86EFAC),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 6),
+          Row(children: [
+            Container(
+              width: 8, height: 8,
+              decoration: const BoxDecoration(
+                color: Color(0xFF86EFAC), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 4),
+            Text("Oy oxirigacha bashorat: ${Formatters.currency(projected)}",
+                style: const TextStyle(
+                    color: Colors.white60, fontSize: 10)),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─── Stats Row ─────────────────────────────────────────────────────────────────
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.p, required this.isDark});
+
+  final TeacherProvider p;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = p.groups.length;
+    final students = p.groups.fold<int>(0, (s, g) => s + g.studentCount);
+    final today = p.groups.fold<int>(0, (s, g) => s + g.attendedToday);
+    final totalToday = p.groups.fold<int>(0, (s, g) => s + g.studentCount);
+    final attendRate = totalToday > 0 ? (today / totalToday * 100).round() : 0;
+
     return Row(children: [
+      _StatTile(
+        value: '$groups',
+        label: 'Guruh',
+        icon: Icons.groups_rounded,
+        color: PanelTokens.teacherAccent,
+        isDark: isDark,
+      ),
+      const SizedBox(width: 10),
+      _StatTile(
+        value: '$students',
+        label: "O'quvchi",
+        icon: Icons.person_rounded,
+        color: PanelTokens.info,
+        isDark: isDark,
+      ),
+      const SizedBox(width: 10),
+      _StatTile(
+        value: '$attendRate%',
+        label: 'Bugun davomat',
+        icon: Icons.fact_check_rounded,
+        color: PanelTokens.success,
+        isDark: isDark,
+        sub: "$today / $totalToday",
+      ),
+    ]);
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+    this.sub,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+  final String? sub;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: PanelTokens.cardDecoration(isDark),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(value,
+              style: TextStyle(
+                  color: PanelTokens.text(isDark),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  color: PanelTokens.textMuted(isDark),
+                  fontSize: 10),
+              textAlign: TextAlign.center),
+          if (sub != null) ...[
+            const SizedBox(height: 2),
+            Text(sub!,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+// ─── Mini Yearly Chart ─────────────────────────────────────────────────────────
+
+class _MiniYearlyChart extends StatelessWidget {
+  const _MiniYearlyChart({required this.yearly, required this.isDark});
+
+  final List<int> yearly;
+  final bool isDark;
+
+  static const _ms = ['Y', 'F', 'M', 'A', 'M', 'I', 'I', 'A', 'S', 'O', 'N', 'D'];
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final maxVal =
+        yearly.isEmpty ? 1.0 : yearly.reduce(math.max).toDouble();
+    if (maxVal == 0) return const SizedBox.shrink();
+
+    final bars = List.generate(12, (i) {
+      final val = i < yearly.length ? yearly[i].toDouble() : 0.0;
+      final isActive = (i + 1) == now.month;
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: val,
+            width: 14,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  )
+                : LinearGradient(
+                    colors: [
+                      PanelTokens.teacherAccent.withValues(alpha: 0.4),
+                      PanelTokens.teacherAccent.withValues(alpha: 0.2),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+          ),
+        ],
+      );
+    });
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      decoration: PanelTokens.cardDecoration(isDark),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.bar_chart_rounded,
+              size: 16,
+              color: PanelTokens.teacherAccent),
+          const SizedBox(width: 8),
+          Text("Yillik daromad grafigi",
+              style: TextStyle(
+                  color: PanelTokens.text(isDark),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800)),
+        ]),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 100,
+          child: BarChart(
+            BarChartData(
+              maxY: maxVal * 1.2,
+              minY: 0,
+              gridData: FlGridData(
+                show: true,
+                horizontalInterval: maxVal / 3,
+                getDrawingHorizontalLine: (v) => FlLine(
+                  color: PanelTokens.border(isDark),
+                  strokeWidth: 1,
+                ),
+                drawVerticalLine: false,
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    getTitlesWidget: (val, _) {
+                      final i = val.toInt();
+                      if (i < 0 || i >= _ms.length) return const SizedBox();
+                      final isActive = (i + 1) == now.month;
+                      return Text(
+                        _ms[i],
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                          color: isActive
+                              ? PanelTokens.teacherAccent
+                              : PanelTokens.textMuted(isDark),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              barGroups: bars,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => isDark
+                      ? const Color(0xFF1E2A3A)
+                      : const Color(0xFF1E293B),
+                  tooltipRoundedRadius: 8,
+                  getTooltipItem: (group, gi, rod, ri) => BarTooltipItem(
+                    Formatters.currency(rod.toY.round()),
+                    const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─── Section Header ────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(
+      {required this.title, required this.icon, this.action, required this.isDark});
+
+  final String title;
+  final IconData icon;
+  final Widget? action;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Icon(icon, size: 16, color: PanelTokens.teacherAccent),
+      const SizedBox(width: 8),
       Text(title,
           style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-              fontSize: 16,
+              color: PanelTokens.text(isDark),
+              fontSize: PanelTokens.fontSection,
               fontWeight: FontWeight.w800)),
       const Spacer(),
       if (action != null) action!,
@@ -146,127 +638,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _IncomeCard extends StatelessWidget {
-  const _IncomeCard({required this.p, required this.month, this.onTap});
-
-  final TeacherProvider p;
-  final String month;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final salary = p.income?.salary ?? 0;
-    final expected = p.income?.expectedIncome ?? 0;
-    final pct = p.income?.progressPct ?? 0;
-    final loading = p.incomeState == ViewState.loading;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const Icon(Icons.account_balance_wallet_rounded, color: Colors.white70, size: 16),
-            const SizedBox(width: 6),
-            Text("Bu oy daromadim — $month",
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white38, size: 18),
-          ]),
-          const SizedBox(height: 10),
-          loading
-              ? const SizedBox(height: 36, child: Center(child: LinearProgressIndicator(color: Colors.white30, backgroundColor: Colors.white12)))
-              : Text(Formatters.currency(salary),
-                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-          const SizedBox(height: 14),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text("Maksimal: ${Formatters.currency(expected)}",
-                style: const TextStyle(color: Colors.white54, fontSize: 11)),
-            Text("$pct%",
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-          ]),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (pct / 100).clamp(0.0, 1.0),
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  pct >= 100 ? const Color(0xFF34D399) : Colors.white),
-              minHeight: 6,
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.p});
-
-  final TeacherProvider p;
-
-  @override
-  Widget build(BuildContext context) {
-    final groups = p.groups.length;
-    final students = p.groups.fold<int>(0, (s, g) => s + g.studentCount);
-    final today = p.groups.fold<int>(0, (s, g) => s + g.attendedToday);
-    return Row(children: [
-      _Stat(value: '$groups', label: 'Guruh', icon: Icons.groups_rounded, color: const Color(0xFF10B981)),
-      const SizedBox(width: 10),
-      _Stat(value: '$students', label: "O'quvchi", icon: Icons.person_rounded, color: const Color(0xFF3B82F6)),
-      const SizedBox(width: 10),
-      _Stat(value: '$today', label: 'Bugun', icon: Icons.fact_check_rounded, color: const Color(0xFFF59E0B)),
-    ]);
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label, required this.icon, required this.color});
-
-  final String value;
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF162436) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05)),
-        ),
-        child: Column(children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: isDark ? Colors.white38 : Colors.black45, fontSize: 10), textAlign: TextAlign.center),
-        ]),
-      ),
-    );
-  }
-}
+// ─── Group Card ────────────────────────────────────────────────────────────────
 
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.group, required this.isDark});
@@ -276,112 +648,179 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = group.studentCount > 0 ? group.attendedToday / group.studentCount : 0.0;
+    final pct = group.studentCount > 0
+        ? group.attendedToday / group.studentCount
+        : 0.0;
+    final pctColor = pct >= 0.9
+        ? PanelTokens.success
+        : pct >= 0.6
+            ? PanelTokens.warning
+            : PanelTokens.danger;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF162436) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-        leading: Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.groups_rounded, color: Color(0xFF6366F1), size: 22),
-        ),
-        title: Text(group.name,
-            style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A),
-                fontWeight: FontWeight.w700, fontSize: 14)),
-        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SizedBox(height: 4),
-          Text("${group.attendedToday}/${group.studentCount} keldi",
-              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 12)),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: pct,
-              backgroundColor: isDark ? Colors.white12 : Colors.black12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  pct >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF6366F1)),
-              minHeight: 3,
+      decoration: PanelTokens.cardDecoration(isDark),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PanelTokens.cardRadius),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => TeacherAttendanceScreen(group: group))),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            // Icon
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child:
+                  const Icon(Icons.groups_rounded, color: Colors.white, size: 22),
             ),
-          ),
-        ]),
-        trailing: TextButton(
-          onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => TeacherAttendanceScreen(group: group))),
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          ),
-          child: const Text("Davomat",
-              style: TextStyle(color: Color(0xFF818CF8), fontSize: 11, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(group.name,
+                        style: TextStyle(
+                            color: PanelTokens.text(isDark),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800)),
+                    if (group.category.isNotEmpty)
+                      Text(group.category,
+                          style: TextStyle(
+                              color: PanelTokens.textMuted(isDark),
+                              fontSize: 11)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            backgroundColor: PanelTokens.border(isDark),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(pctColor),
+                            minHeight: 5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text("${group.attendedToday}/${group.studentCount}",
+                          style: TextStyle(
+                              color: pctColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800)),
+                    ]),
+                  ]),
+            ),
+            const SizedBox(width: 10),
+            // Davomat button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: PanelTokens.teacherAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.fact_check_rounded,
+                    size: 18, color: PanelTokens.teacherAccent),
+                const SizedBox(height: 2),
+                Text("Davomat",
+                    style: TextStyle(
+                        color: PanelTokens.teacherAccent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ]),
         ),
       ),
     );
   }
 }
 
-class _LoadingCard extends StatelessWidget {
-  const _LoadingCard();
+// ─── Utility Widgets ──────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(color: Color(0xFF6366F1))));
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-      ),
-      child: Column(children: [
-        const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 32),
-        const SizedBox(height: 8),
-        Text(message, style: const TextStyle(color: Colors.red, fontSize: 12), textAlign: TextAlign.center),
-        const SizedBox(height: 10),
-        TextButton(onPressed: onRetry, child: const Text("Qayta urinish")),
-      ]),
-    );
-  }
-}
-
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.isDark});
+class _LoadingShimmer extends StatelessWidget {
+  const _LoadingShimmer({required this.isDark});
 
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      height: 80,
+      decoration: PanelTokens.cardDecoration(isDark),
+      child: const Center(
+          child: CircularProgressIndicator(
+              color: PanelTokens.teacherAccent, strokeWidth: 2)),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard(
+      {required this.message, required this.onRetry, required this.isDark});
+
+  final String message;
+  final VoidCallback onRetry;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF162436) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: PanelTokens.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(PanelTokens.cardRadius),
+        border: Border.all(color: PanelTokens.danger.withValues(alpha: 0.2)),
       ),
-      child: Column(children: [
-        Icon(Icons.groups_outlined, color: isDark ? Colors.white24 : Colors.black26, size: 40),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.wifi_off_rounded, color: PanelTokens.danger, size: 32),
+        const SizedBox(height: 8),
+        Text(message,
+            style: const TextStyle(color: PanelTokens.danger, fontSize: 12),
+            textAlign: TextAlign.center),
         const SizedBox(height: 10),
-        Text("Guruhlar topilmadi",
-            style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 14)),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded, size: 14),
+          label: const Text("Qayta urinish"),
+          style:
+              TextButton.styleFrom(foregroundColor: PanelTokens.teacherAccent),
+        ),
+      ]),
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  const _EmptyCard(
+      {required this.icon, required this.message, required this.isDark});
+
+  final IconData icon;
+  final String message;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: PanelTokens.cardDecoration(isDark),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon,
+            color: PanelTokens.textFaint(isDark), size: 40),
+        const SizedBox(height: 10),
+        Text(message,
+            style: TextStyle(
+                color: PanelTokens.textMuted(isDark), fontSize: 13)),
       ]),
     );
   }

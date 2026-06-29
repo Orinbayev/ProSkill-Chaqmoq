@@ -8,17 +8,17 @@ class ParentUi {
   static const double compactBreakpoint = 390;
   static const double narrowBreakpoint = 350;
 
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(14, 12, 14, 24);
-  static const EdgeInsets cardPadding = EdgeInsets.fromLTRB(14, 14, 14, 14);
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(16, 12, 16, 24);
+  static const EdgeInsets cardPadding = EdgeInsets.fromLTRB(16, 16, 16, 16);
   static const EdgeInsets denseCardPadding = EdgeInsets.fromLTRB(12, 12, 12, 12);
   static const EdgeInsets sheetPadding = EdgeInsets.fromLTRB(16, 12, 16, 16);
-  static const EdgeInsets heroPadding = EdgeInsets.fromLTRB(14, 14, 14, 14);
+  static const EdgeInsets heroPadding = EdgeInsets.fromLTRB(16, 16, 16, 16);
 
-  static const double sectionGap = 14;
+  static const double sectionGap = 16;
   static const double cardGap = 12;
   static const double chipGap = 8;
 
-  static const double cardRadius = 18;
+  static const double cardRadius = 16;
   static const double softRadius = 16;
   static const double sheetRadius = 22;
   static const double chipRadius = 999;

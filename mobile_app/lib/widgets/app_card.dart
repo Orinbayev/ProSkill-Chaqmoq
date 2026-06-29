@@ -26,7 +26,7 @@ class AppPCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(AppRadius.xl);
+    final radius = borderRadius ?? BorderRadius.circular(AppRadius.lg);
     final card = Container(
       decoration: BoxDecoration(
         color: background ?? ParentColors.card,
@@ -74,7 +74,7 @@ class AppGCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = StudentTokens.of(context);
-    final radius = borderRadius ?? BorderRadius.circular(AppRadius.xl);
+    final radius = borderRadius ?? BorderRadius.circular(AppRadius.lg);
     final defaultBg = tokens.isDark
         ? (strong ? tokens.glassStrong : tokens.glass)
         : (strong ? tokens.surfaceElevated : tokens.surface);
