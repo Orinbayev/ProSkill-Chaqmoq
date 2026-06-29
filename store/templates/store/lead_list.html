@@ -4268,7 +4268,7 @@
     dom.leadNoteInput.value = '';
     dom.modalErrors.textContent = '';
     if (dom.historyList) {
-      dom.historyList.innerHTML = '<div class="lead-empty">Tarix yo'q.</div>';
+      dom.historyList.innerHTML = `<div class="lead-empty">Tarix yo'q.</div>`;
     }
     if (dom.historyBadge) {
       dom.historyBadge.textContent = '0 yozuv';
@@ -4350,7 +4350,7 @@
     }
     dom.historyBadge.textContent = `${history.length} yozuv`;
     if (!history.length) {
-      dom.historyList.innerHTML = '<div class="lead-empty">Tarix yo'q.</div>';
+      dom.historyList.innerHTML = `<div class="lead-empty">Tarix yo'q.</div>`;
       return;
     }
     dom.historyList.innerHTML = history.map((item) => `
@@ -4563,7 +4563,7 @@
     };
     dom.subjectNameInput.value = subject?.label || '';
     dom.subjectModalTitle.textContent = subject ? 'Fanni tahrirlash' : 'Yangi fan';
-    dom.subjectModalSubtitle.textContent = subject ? 'Fan nomini yangilang' : 'Leadlar uchun yangi fan qo'shish';
+    dom.subjectModalSubtitle.textContent = subject ? 'Fan nomini yangilang' : "Leadlar uchun yangi fan qo'shish";
     dom.subjectModalErrors.textContent = '';
     dom.subjectModal.classList.add('is-open');
     syncSubjectActionState();
@@ -4588,7 +4588,7 @@
     };
     dom.statusNameInput.value = status?.label || '';
     dom.statusModalTitle.textContent = status ? 'Holatni tahrirlash' : 'Yangi holat';
-    dom.statusModalSubtitle.textContent = status ? 'Holat nomini yangilang' : 'Leadlar uchun yangi holat qo'shish';
+    dom.statusModalSubtitle.textContent = status ? 'Holat nomini yangilang' : "Leadlar uchun yangi holat qo'shish";
     dom.statusModalErrors.textContent = '';
     dom.statusModal.classList.add('is-open');
     syncStatusActionState();
@@ -4612,8 +4612,8 @@
       id: Number(itemId),
     };
     dom.catalogConfirmTitle.textContent = isSubject
-      ? 'Fanni o'chirishni tasdiqlaysizmi?'
-      : 'Holatni o'chirishni tasdiqlaysizmi?';
+      ? "Fanni o'chirishni tasdiqlaysizmi?"
+      : "Holatni o'chirishni tasdiqlaysizmi?";
     dom.catalogConfirmText.textContent = isSubject
       ? 'Bu fan leadlarda ishlatilgan bo'lsa, uni o'chirish o'rniga noaktiv holatga o'tkazish tavsiya qilinadi.'
       : 'Bu holatda leadlar mavjud bo'lsa, holat o'chirilmasin yoki noaktiv qilinsin.';
@@ -4673,7 +4673,7 @@
     dom.leadGroupMinStudentsInput.value = leadGroup?.min_students || 1;
     dom.leadGroupNoteInput.value = leadGroup?.note || '';
     dom.leadGroupModalTitle.textContent = leadGroup ? 'Lead guruhini tahrirlash' : 'Lead guruhi yaratish';
-    dom.leadGroupModalSubtitle.textContent = leadGroup ? 'Bo'lajak guruh parametrlarini yangilang.' : 'Bu guruh hali real dars guruhi emas.';
+    dom.leadGroupModalSubtitle.textContent = leadGroup ? "Bo'lajak guruh parametrlarini yangilang." : 'Bu guruh hali real dars guruhi emas.';
     dom.leadGroupModalErrors.textContent = '';
     dom.leadGroupModal.classList.add('is-open');
     syncLeadGroupEditorState();
@@ -4690,8 +4690,8 @@
   async function openLeadGroupDetailModal(leadGroupId) {
     state.selectedLeadGroupDetail = null;
     dom.leadGroupDetailErrors.textContent = '';
-    dom.leadGroupDetailSubtitle.textContent = 'Guruh ichidagi leadlar va qo'shilish tarixi.';
-    renderLeadGroupDetailPlaceholder('Lead guruhi ma'lumotlari yuklanmoqda...');
+    dom.leadGroupDetailSubtitle.textContent = "Guruh ichidagi leadlar va qo'shilish tarixi.";
+    renderLeadGroupDetailPlaceholder("Lead guruhi ma'lumotlari yuklanmoqda...");
     dom.leadGroupDetailModal.classList.add('is-open');
     syncLeadGroupDetailState();
 
@@ -4718,8 +4718,8 @@
     if (!force && state.pending.leadGroupDetail) return;
     state.selectedLeadGroupDetail = null;
     dom.leadGroupDetailErrors.textContent = '';
-    dom.leadGroupDetailSubtitle.textContent = 'Guruh ichidagi leadlar va qo'shilish tarixi.';
-    renderLeadGroupDetailPlaceholder('Lead guruhi ma'lumotlari yuklanmoqda...');
+    dom.leadGroupDetailSubtitle.textContent = "Guruh ichidagi leadlar va qo'shilish tarixi.";
+    renderLeadGroupDetailPlaceholder("Lead guruhi ma'lumotlari yuklanmoqda...");
     dom.leadGroupDetailModal.classList.remove('is-open');
     syncLeadGroupDetailState();
   }
@@ -4788,12 +4788,12 @@
   }
 
   function applyDepartmentOptions() {
-    fillSelect(dom.leadGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: 'Bo'lim tanlanmagan' });
-    fillSelect(dom.convertGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: 'Bo'lim tanlanmagan' });
+    fillSelect(dom.leadGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: "Bo'lim tanlanmagan" });
+    fillSelect(dom.convertGroupDepartmentInput, departmentOptions, { includeEmpty: true, emptyLabel: "Bo'lim tanlanmagan" });
   }
 
   function applyTeacherOptions() {
-    fillSelect(dom.convertGroupTeacherInput, teacherOptions, { includeEmpty: true, emptyLabel: 'O'qituvchi tanlanmagan' });
+    fillSelect(dom.convertGroupTeacherInput, teacherOptions, { includeEmpty: true, emptyLabel: "O'qituvchi tanlanmagan" });
   }
 
   function applySubjectOptions(subjects, selectedValue = '') {
@@ -4844,7 +4844,7 @@
       applySubjectOptions(data.results || [], data.subject?.value || '');
       closeSubjectModal(true);
       await refreshAllData();
-      notify(isEdit ? 'Fan yangilandi' : 'Fan qo'shildi', 'success');
+      notify(isEdit ? 'Fan yangilandi' : "Fan qo'shildi", 'success');
     } catch (error) {
       dom.subjectModalErrors.textContent = error.message || 'Fanni saqlashda xatolik yuz berdi.';
     } finally {
@@ -4876,7 +4876,7 @@
       applyStatusOptions(data.results || [], data.status?.value || '');
       closeStatusModal(true);
       await refreshAllData();
-      notify(isEdit ? 'Holat yangilandi' : 'Holat qo'shildi', 'success');
+      notify(isEdit ? 'Holat yangilandi' : "Holat qo'shildi", 'success');
     } catch (error) {
       dom.statusModalErrors.textContent = error.message || 'Holatni saqlashda xatolik yuz berdi.';
     } finally {
@@ -4899,16 +4899,16 @@
           'X-CSRFToken': csrfToken,
         },
         body: JSON.stringify({}),
-      }, 'Leadni o'quvchiga aylantirishda xatolik yuz berdi');
+      }, "Leadni o'quvchiga aylantirishda xatolik yuz berdi");
       closeConfirmLeadModal(true);
       if (state.selectedLead?.id === leadId) {
         closeModalShell(true);
       }
       await refreshAllData();
-      notify(data.message || 'Lead o'quvchiga aylantirildi', 'success');
+      notify(data.message || "Lead o'quvchiga aylantirildi", 'success');
     } catch (error) {
-      dom.confirmLeadErrors.textContent = error.message || 'Leadni o'quvchiga aylantirishda xatolik yuz berdi.';
-      dom.modalErrors.textContent = error.message || 'Leadni o'quvchiga aylantirishda xatolik yuz berdi.';
+      dom.confirmLeadErrors.textContent = error.message || "Leadni o'quvchiga aylantirishda xatolik yuz berdi.";
+      dom.modalErrors.textContent = error.message || "Leadni o'quvchiga aylantirishda xatolik yuz berdi.";
     } finally {
       state.pending.confirm = false;
       syncLeadActionState();
@@ -4998,7 +4998,7 @@
       teacher_share: dom.convertGroupTeacherShareInput.value || 0,
     };
     if (!payload.name || !payload.teacher || !payload.start_date || !payload.lesson_time || !payload.lesson_days.length) {
-      dom.leadGroupConvertErrors.textContent = 'Barcha majburiy maydonlarni to'ldiring.';
+      dom.leadGroupConvertErrors.textContent = "Barcha majburiy maydonlarni to'ldiring.";
       return;
     }
 
@@ -5129,8 +5129,8 @@
       : statusDetailUrl(state.catalogDeleteTarget.id);
     const successMessage = isSubject ? 'Fan o'chirildi' : 'Holat o'chirildi';
     const friendlyMessage = isSubject
-      ? 'Fanni o'chirishda xatolik yuz berdi.'
-      : 'Holatni o'chirishda xatolik yuz berdi.';
+      ? "Fanni o'chirishda xatolik yuz berdi."
+      : "Holatni o'chirishda xatolik yuz berdi.";
 
     try {
       state.pending.catalogDelete = true;
