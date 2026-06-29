@@ -1310,10 +1310,12 @@ def calculate_enrollment_debt_snapshots(
 
 def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
     """
-    Agar shu oy uchun to'lov mavjud bo'lsa lekin PaymentAllocation yo'q bo'lsa,
-    avtomatik bog'laydi. Natija: to'liq to'langan bo'lsa qarzdorda chiqmaydi.
+    Agar shu oy uchun to'lov mavjud bo'lsa lekin PaymentAllocation to'liq emas bo'lsa,
+    avtomatik bog'laydi. Bir nechta qisman to'lovlar ham hisobga olinadi.
+    Natija: to'liq to'langan bo'lsa qarzdorda chiqmaydi.
     """
     from django.db.models import Sum as _Sum
+
     existing = int(
         PaymentAllocation.objects.filter(
             tuition_month=tm,
@@ -1324,26 +1326,53 @@ def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
         return  # Allaqachon to'liq yopilgan
 
     remaining = fee - existing
-    linked_ids = set(
-        PaymentAllocation.objects.filter(
-            tuition_month=tm,
-        ).values_list("payment_id", flat=True)
-    )
-    pay = Payment.objects.filter(
-        enrollment=enrollment,
-        is_deleted=False,
-        paid_date__year=month.year,
-        paid_date__month=month.month,
-        summa__gte=remaining,
-    ).exclude(id__in=linked_ids).order_by("-id").first()
 
-    if pay:
+    already_linked_ids = set(
+        PaymentAllocation.objects.filter(tuition_month=tm)
+        .values_list("payment_id", flat=True)
+    )
+
+    # Shu oy uchun barcha bog'lanmagan to'lovlar (miqdoridan qat'i nazar)
+    payments = list(
+        Payment.objects.filter(
+            enrollment=enrollment,
+            is_deleted=False,
+            paid_date__year=month.year,
+            paid_date__month=month.month,
+        ).exclude(id__in=already_linked_ids).order_by("-id")
+    )
+    if not payments:
+        return
+
+    # Har to'lovning BOSHQA TuitionMonth'larga allaqachon ajratilgan summasi
+    pay_ids = [p.id for p in payments]
+    allocated_elsewhere = {
+        row["payment_id"]: int(row["total"] or 0)
+        for row in PaymentAllocation.objects.filter(
+            payment_id__in=pay_ids,
+            payment__is_deleted=False,
+        ).values("payment_id").annotate(total=_Sum("amount"))
+    }
+
+    center = getattr(tm, "center", None) or getattr(enrollment, "center", None)
+
+    for pay in payments:
+        if remaining <= 0:
+            break
+        total_pay = int(pay.summa or 0)
+        used_elsewhere = allocated_elsewhere.get(pay.id, 0)
+        available = max(0, total_pay - used_elsewhere)
+        if available <= 0:
+            continue
+        apply = min(available, remaining)
         try:
-            PaymentAllocation.objects.get_or_create(
+            _, created = PaymentAllocation.objects.get_or_create(
                 payment=pay,
                 tuition_month=tm,
-                defaults={"amount": remaining},
+                defaults={"amount": apply, "center": center},
             )
+            if created:
+                remaining -= apply
         except Exception:
             pass
 

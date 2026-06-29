@@ -3013,7 +3013,7 @@ def qarzdorlar_home(request):
                 is_deleted=False,
             ).values_list("enrollment_id", flat=True)
         )
-        # To'lov bor lekin allocation yo'q/yetarli emas → _etm chaqirilsin
+        # To'lov bor lekin allocation yo'q YOKI yetarli emas → _etm chaqirilsin
         _pay_enr_ids = set(
             _Pay.objects.filter(
                 enrollment_id__in=_active_ids,
@@ -3023,28 +3023,49 @@ def qarzdorlar_home(request):
                 summa__gt=0,
             ).values_list("enrollment_id", flat=True)
         )
-        _alloc_enr_ids = set(
-            _PA.objects.filter(
-                tuition_month__enrollment_id__in=list(_pay_enr_ids),
-                tuition_month__month=_cur_month_for_recalc,
-                tuition_month__is_deleted=False,
-                payment__is_deleted=False,
-            ).values_list("tuition_month__enrollment_id", flat=True)
-        ) if _pay_enr_ids else set()
-        _unlinked_pay_ids = _pay_enr_ids - _alloc_enr_ids
+        # "To'liq bog'langan" = allocation.amount yig'indisi >= TuitionMonth.fee
+        # Qisman bog'langan (allocation < fee) bo'lsa ham _etm chaqirilishi kerak.
+        if _pay_enr_ids:
+            from education.services.tuition import tuition_month_fee_field as _ff
+            _fee_field = _ff()
+            _tm_fee_map = {
+                row["enrollment_id"]: int(row[_fee_field] or 0)
+                for row in _TM.objects.filter(
+                    enrollment_id__in=list(_pay_enr_ids),
+                    month=_cur_month_for_recalc,
+                    is_deleted=False,
+                ).values("enrollment_id", _fee_field)
+            }
+            _alloc_sum_map = {
+                row["tuition_month__enrollment_id"]: int(row["paid"] or 0)
+                for row in _PA.objects.filter(
+                    tuition_month__enrollment_id__in=list(_pay_enr_ids),
+                    tuition_month__month=_cur_month_for_recalc,
+                    tuition_month__is_deleted=False,
+                    payment__is_deleted=False,
+                ).values("tuition_month__enrollment_id")
+                .annotate(paid=_Sum("amount"))
+            }
+            # allocation < fee → hali to'liq bog'lanmagan (qarz ko'rinishi mumkin)
+            _partially_linked_ids = {
+                enr_id
+                for enr_id in _pay_enr_ids
+                if _alloc_sum_map.get(enr_id, 0) < _tm_fee_map.get(enr_id, 1)
+            }
+            _unlinked_pay_ids = _partially_linked_ids
+        else:
+            _unlinked_pay_ids = set()
 
         for e in active_list:
             if not getattr(e, "is_active", False):
                 continue
             if e.id in _existing_tm_enr_ids:
-                # O'quvchiga maxsus narx belgilangan bo'lsa — TM fee ni yangilaymiz.
-                # kurs_narhi guruh narxidan farqli bo'lsa yoki student_payable_amount set bo'lsa.
                 _group_price = int(getattr(getattr(e, "group", None), "kurs_narxi", 0) or 0)
                 _has_custom = (
                     e.student_payable_amount is not None
                     or e.kurs_narhi != _group_price
                 )
-                # To'lov bor lekin allocation yo'q bo'lsa ham _etm chaqiramiz
+                # To'lov bor lekin allocation to'liq emas bo'lsa ham _etm chaqiramiz
                 if not _has_custom and e.id not in _unlinked_pay_ids:
                     continue
             try:
