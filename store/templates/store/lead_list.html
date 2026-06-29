@@ -3083,7 +3083,7 @@
     if (!response.ok) {
       if (!contentType.includes('application/json')) {
         const preview = (await response.text()).slice(0, 220);
-        console.error('[Lead API] JSON bo'lmagan xatolik javobi', { status: response.status, url, preview });
+        console.error("[Lead API] JSON bo'lmagan xatolik javobi", { status: response.status, url, preview });
         throw new Error(friendlyMessage);
       }
       const data = await response.json();
@@ -3156,7 +3156,7 @@
       dom.leadModalConvertButton,
       state.pending.confirm && state.confirmLeadId === state.selectedLead?.id
         ? 'Aylantirilmoqda...'
-        : 'O'quvchiga aylantirish',
+        : "O'quvchiga aylantirish",
     );
     setButtonText(dom.confirmArchiveButton, state.pending.archive ? 'Arxivlanmoqda...' : 'Arxivlash');
   }
@@ -3185,7 +3185,7 @@
     dom.closeCatalogConfirmModal.disabled = isBusy;
     dom.cancelCatalogConfirmButton.disabled = isBusy;
     dom.confirmCatalogDeleteButton.disabled = isBusy || !hasTarget;
-    setButtonText(dom.confirmCatalogDeleteButton, isBusy ? 'O'chirilmoqda...' : 'O'chirish');
+    setButtonText(dom.confirmCatalogDeleteButton, isBusy ? "O'chirilmoqda..." : "O'chirish");
   }
 
   function syncConfirmLeadState() {
@@ -3247,7 +3247,7 @@
       </div>
       <div class="lead-group-detail__summary-item">
         <span class="lead-group-detail__summary-label">Bo'lim</span>
-        <span class="lead-group-detail__summary-value">${escapeHtml(leadGroup.department_name || 'Bo'lim belgilanmagan')}</span>
+        <span class="lead-group-detail__summary-value">${escapeHtml(leadGroup.department_name || "Bo'lim belgilanmagan")}</span>
       </div>
       <div class="lead-group-detail__summary-item">
         <span class="lead-group-detail__summary-label">Holat</span>
@@ -3266,7 +3266,7 @@
 
   function renderLeadGroupDetailMembers(leads) {
     if (!Array.isArray(leads) || !leads.length) {
-      renderLeadGroupDetailPlaceholder('Bu guruhda hali lead yo'q', { preserveSummary: true });
+      renderLeadGroupDetailPlaceholder("Bu guruhda hali lead yo'q", { preserveSummary: true });
       return;
     }
 
@@ -3287,7 +3287,7 @@
         <td>${escapeHtml(lead.manager || 'Biriktirilmagan')}</td>
         <td>${escapeHtml(lead.added_to_group_date_label || '—')}</td>
         <td>${escapeHtml(lead.added_to_group_time_label || '—')}</td>
-        <td><div class="lead-note lead-group-detail__note" title="${escapeHtml(lead.note || 'Izoh yo'q')}">${escapeHtml(lead.note || 'Izoh yo'q')}</div></td>
+        <td><div class="lead-note lead-group-detail__note" title="${escapeHtml(lead.note || "Izoh yo'q")}">${escapeHtml(lead.note || "Izoh yo'q")}</div></td>
       </tr>
     `).join('');
 
@@ -3311,7 +3311,7 @@
           <span>Qo'shilgan: ${escapeHtml(lead.added_to_group_at_label || '—')}</span>
           <span>Lead yaratilgan: ${escapeHtml(lead.created_at_label || '—')}</span>
         </div>
-        <div class="lead-card__note" title="${escapeHtml(lead.note || 'Izoh yo'q')}">${escapeHtml(lead.note || 'Izoh yo'q')}</div>
+        <div class="lead-card__note" title="${escapeHtml(lead.note || "Izoh yo'q")}">${escapeHtml(lead.note || "Izoh yo'q")}</div>
       </article>
     `).join('');
   }
@@ -3442,8 +3442,8 @@
     dom.archiveLeadsPanel.classList.toggle('lead-hidden', !isLeadArchiveView);
     dom.archiveLeadGroupsPanel.classList.toggle('lead-hidden', isLeadArchiveView);
     dom.archiveMeta.textContent = isLeadArchiveView
-      ? 'Arxivlangan leadlar ro'yxati.'
-      : 'Arxivlangan lead guruhlari ro'yxati.';
+      ? "Arxivlangan leadlar ro'yxati."
+      : "Arxivlangan lead guruhlari ro'yxati.";
     dom.archiveViewButtons.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.archiveView === state.archiveView);
     });
@@ -3664,7 +3664,7 @@
       return;
     }
     if (!state.pagination.count) {
-      renderListState(isSearchActive() ? 'Lead topilmadi.' : 'Leadlar hali yo'q.');
+      renderListState(isSearchActive() ? 'Lead topilmadi.' : "Leadlar hali yo'q.");
       return;
     }
 
@@ -3710,7 +3710,7 @@
           ${leadGroupBadgeHtml(lead.lead_group)}
           <span class="lead-badge" data-tone="gray">${escapeHtml(lead.created_at_label)}</span>
         </div>
-        <div class="lead-card__note">${escapeHtml(lead.note_short || 'Izoh yo'q')}</div>
+        <div class="lead-card__note">${escapeHtml(lead.note_short || "Izoh yo'q")}</div>
         <div class="lead-card__foot" style="margin-top:12px;">
           <span class="lead-person__sub">${escapeHtml(lead.manager_name || 'Biriktirilmagan')}</span>
           ${renderLeadActionButtons(lead)}
@@ -3731,7 +3731,7 @@
     const leadGroups = Array.isArray(state.leadGroups) ? state.leadGroups : [];
     dom.leadGroupsMeta.textContent = leadGroups.length
       ? `${leadGroups.length} ta bo'lajak guruh`
-      : 'Lead guruhlari hali yo'q.';
+      : "Lead guruhlari hali yo'q.";
 
     if (!leadGroups.length) {
       dom.leadGroupTableBody.innerHTML = `<tr><td colspan="6"><div class="lead-empty">Lead guruhlari hali yo'q.</div></td></tr>`;
@@ -3748,7 +3748,7 @@
               <button type="button" class="lead-link-btn" data-lead-group-open="${leadGroup.id}" title="${escapeHtml(leadGroup.name)}">
                 <span class="lead-person__name">${escapeHtml(leadGroup.name)}</span>
               </button>
-              <div class="lead-person__sub">${escapeHtml(leadGroup.note || 'Izoh yo'q')}</div>
+              <div class="lead-person__sub">${escapeHtml(leadGroup.note || "Izoh yo'q")}</div>
             </div>
           </div>
         </td>
@@ -3769,7 +3769,7 @@
               <button type="button" class="lead-link-btn" data-lead-group-open="${leadGroup.id}" title="${escapeHtml(leadGroup.name)}">
                 <span class="lead-person__name">${escapeHtml(leadGroup.name)}</span>
               </button>
-              <div class="lead-person__sub">${escapeHtml(leadGroup.department_name || 'Bo'lim belgilanmagan')}</div>
+              <div class="lead-person__sub">${escapeHtml(leadGroup.department_name || "Bo'lim belgilanmagan")}</div>
             </div>
           </div>
           ${statusBadgeHtml(leadGroup.status_label, leadGroupStatusTone(leadGroup.status))}
@@ -3778,7 +3778,7 @@
           <span class="lead-badge" data-tone="gray">${escapeHtml(leadGroup.lead_count_label || `${leadGroup.lead_count || 0} ta`)}</span>
           <span class="lead-badge" data-tone="gray">${escapeHtml(leadGroup.created_at_label || '—')}</span>
         </div>
-        <div class="lead-card__note">${escapeHtml(leadGroup.note || 'Izoh yo'q')}</div>
+        <div class="lead-card__note">${escapeHtml(leadGroup.note || "Izoh yo'q")}</div>
         <div class="lead-card__foot" style="margin-top:12px;">
           <span class="lead-person__sub">Lead guruhi</span>
           ${renderLeadGroupActionButtons(leadGroup)}
@@ -3864,7 +3864,7 @@
             <div class="lead-avatar"><i class="fa-solid fa-layer-group"></i></div>
             <div style="min-width:0;">
               <div class="lead-person__name" title="${escapeHtml(leadGroup.name || '—')}">${escapeHtml(leadGroup.name || '—')}</div>
-              <div class="lead-person__sub">${escapeHtml(leadGroup.note || 'Izoh yo'q')}</div>
+              <div class="lead-person__sub">${escapeHtml(leadGroup.note || "Izoh yo'q")}</div>
             </div>
           </div>
         </td>
@@ -3882,7 +3882,7 @@
             <div class="lead-avatar"><i class="fa-solid fa-layer-group"></i></div>
             <div>
               <div class="lead-person__name" title="${escapeHtml(leadGroup.name || '—')}">${escapeHtml(leadGroup.name || '—')}</div>
-              <div class="lead-person__sub">${escapeHtml(leadGroup.department_name || 'Bo'lim belgilanmagan')}</div>
+              <div class="lead-person__sub">${escapeHtml(leadGroup.department_name || "Bo'lim belgilanmagan")}</div>
             </div>
           </div>
           <span class="lead-badge" data-tone="gray">${escapeHtml(leadGroup.archived_at_label || '—')}</span>
@@ -4034,7 +4034,7 @@
   }
 
   function renderAll() {
-    dom.boardTitle.textContent = state.view === 'kanban' ? 'Lead bosqichlari' : 'Leadlar ro'yxati';
+    dom.boardTitle.textContent = state.view === 'kanban' ? 'Lead bosqichlari' : "Leadlar ro'yxati";
     dom.boardMeta.textContent = state.errorMessage
       ? state.errorMessage
       : isSearchActive()
