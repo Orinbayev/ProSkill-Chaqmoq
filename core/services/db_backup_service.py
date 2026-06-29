@@ -48,6 +48,16 @@ _backup_scheduler: "BackgroundScheduler | None" = None
 CENTER_EXPORT_APPS = {"accounts", "core", "billing", "education", "store", "chaqmoq"}
 CENTER_LOOKUP_MAX_DEPTH = 3
 CENTER_LOOKUP_EXCLUDED_FIELDS = {"deleted_by", "restored_by"}
+
+# Ataylab global modellar: center FK yo'q, lekin CENTER_EXPORT_APPS ichida.
+# Ular global pg_dump orqali zaxiralanadi. Per-center snapshot'ga kirmaydi — bu to'g'ri.
+CENTER_EXPORT_GLOBAL_MODELS: frozenset[str] = frozenset({
+    "accounts.BotSettings",      # global bot sozlamalari (key/value)
+    "core.GlobalGameConfig",     # super-admin: barcha markaz uchun o'yin sozlamalari
+    "billing.PlanFeature",       # tarif feature shablonlari
+    "billing.SubscriptionPlan",  # tarif rejalari (shablon, center-specific emas)
+    "billing.PromoCode",         # global promo kodlar
+})
 BACKUP_SCHEDULE_TZ_FALLBACK = "Asia/Tashkent"
 BACKUP_SEND_TIME_FALLBACK = "18:00"
 BACKUP_SCHEDULER_JOB_ID = "tenant-db-backup-daily-send-telegram"
@@ -438,6 +448,8 @@ def _iter_export_models() -> list[type[models.Model]]:
         if model._meta.app_label not in CENTER_EXPORT_APPS:
             continue
         if model._meta.proxy or model._meta.auto_created:
+            continue
+        if model._meta.label in CENTER_EXPORT_GLOBAL_MODELS:
             continue
         export_models.append(model)
     return export_models
