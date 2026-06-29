@@ -2671,12 +2671,18 @@ def group_month_attendance(request, group_id):
         date__month=month
     )
 
+    # all_objects — is_deleted=True (guruhdan o'chirilgan) enrollment'larni ham oladi.
+    # Shu oy davomati bo'lgan o'chirilgan o'quvchilar ham ko'rinib turadi.
     enrollments = (
-        Enrollment.objects
+        Enrollment.all_objects
         .filter(group=group)
         .annotate(has_att=Exists(has_attendance))
-        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
-        .select_related("student", "group")   # ✅ MUHIM
+        .filter(
+            Q(is_deleted=False, is_active=True)
+            | Q(is_deleted=False, is_active=False, has_att=True)
+            | Q(is_deleted=True, has_att=True)
+        )
+        .select_related("student", "group")
         .order_by("student__ism", "student__familya")
     )
     students = [e.student for e in enrollments]
@@ -2871,12 +2877,13 @@ def qarzdorlar_home(request):
     )
 
     # ─── GURUHDAN CHIQARILGAN, AMMO QARZI BOR ENROLLMENT'LAR ─────────────────
-    # is_active=False lekin joriy PERIOD da TuitionMonth yoki Davomat mavjud → ko'rsatamiz.
-    # period_months ga cheklash: o'tgan oygi chiqarilganlar keyingi oyda ko'rinmaydi.
+    # is_active=False YOKI is_deleted=True (soft-deleted) lekin joriy PERIOD da
+    # TuitionMonth yoki Davomat mavjud → ko'rsatamiz.
+    # all_objects — is_deleted=True (guruhdan o'chirilgan) enrollment'larni ham oladi.
     _inactive_tm_enr_ids = set(
         TuitionMonth.objects
         .filter(
-            enrollment__is_active=False,
+            Q(enrollment__is_active=False) | Q(enrollment__is_deleted=True),
             is_deleted=False,
             month__in=period_months,
             enrollment__student__is_archived=False,
@@ -2886,11 +2893,10 @@ def qarzdorlar_home(request):
         .values_list("enrollment_id", flat=True)
     )
     # Davomat yozilgan lekin TuitionMonth yo'q — bu oyda chiqarilgan bo'lishi mumkin
-    # Attendance da enrollment FK yo'q → student+group orqali Enrollment topamiz
     from django.db.models import Exists, OuterRef as _OuterRef
     _inactive_att_enr_ids = set(
-        Enrollment.objects.filter(
-            is_active=False,
+        Enrollment.all_objects.filter(
+            Q(is_active=False) | Q(is_deleted=True),
             student__is_archived=False,
             group__is_archived=False,
             group__is_deleted=False,
@@ -2907,10 +2913,10 @@ def qarzdorlar_home(request):
     )
     _inactive_enr_ids = _inactive_tm_enr_ids | _inactive_att_enr_ids
     inactive_enrs_qs = (
-        Enrollment.objects
+        Enrollment.all_objects
         .select_related("student", "group", "group__oqituvchi", "group__category_obj")
         .filter(
-            is_active=False,
+            Q(is_active=False) | Q(is_deleted=True),
             id__in=_inactive_enr_ids,
             student__is_archived=False,
             group__is_archived=False,
@@ -3464,10 +3470,14 @@ def group_month_attendance_export(request, group_id):
     )
 
     enrollments = (
-        Enrollment.objects
+        Enrollment.all_objects
         .filter(group=group)
         .annotate(has_att=Exists(has_attendance))
-        .filter(Q(is_active=True) | Q(is_active=False, has_att=True))
+        .filter(
+            Q(is_deleted=False, is_active=True)
+            | Q(is_deleted=False, is_active=False, has_att=True)
+            | Q(is_deleted=True, has_att=True)
+        )
         .select_related("student")
         .order_by("student__ism", "student__familya")
     )
