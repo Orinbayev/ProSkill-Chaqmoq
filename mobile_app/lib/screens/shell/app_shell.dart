@@ -9,6 +9,7 @@ import 'package:chaqmoq_mobile/screens/account/account_screen.dart';
 import 'package:chaqmoq_mobile/screens/dashboard/dashboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/groups/groups_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
+import 'package:chaqmoq_mobile/screens/leads/leads_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
 import 'package:chaqmoq_mobile/screens/teachers/teachers_screen.dart';
 import 'package:chaqmoq_mobile/widgets/role_badge.dart';
@@ -16,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
-enum ShellTab { dashboard, students, teachers, groups, notifications, profile }
+enum ShellTab { dashboard, students, teachers, groups, leads, notifications, profile }
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -60,11 +61,7 @@ class _AppShellState extends State<AppShell> {
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
         _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(
-          ShellTab.notifications,
-          'Xabar',
-          Icons.notifications_rounded,
-        ),
+        _ShellItem(ShellTab.leads, 'Leadlar', Icons.person_add_rounded),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
@@ -93,6 +90,7 @@ class _AppShellState extends State<AppShell> {
       ShellTab.students => const StudentsScreen(),
       ShellTab.teachers => const TeachersScreen(),
       ShellTab.groups => const GroupsScreen(),
+      ShellTab.leads => const LeadsScreen(),
       ShellTab.notifications => const NotificationsScreen(),
       ShellTab.profile => const AccountScreen(),
     };

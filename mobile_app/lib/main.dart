@@ -12,6 +12,7 @@ import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/providers/payments_provider.dart';
 import 'package:chaqmoq_mobile/providers/students_provider.dart';
+import 'package:chaqmoq_mobile/providers/leads_provider.dart';
 import 'package:chaqmoq_mobile/providers/teachers_provider.dart';
 import 'package:chaqmoq_mobile/repositories/auth_repository.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
@@ -22,6 +23,7 @@ import 'package:chaqmoq_mobile/screens/teacher/teacher_app_shell.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
+import 'package:chaqmoq_mobile/services/leads_service.dart';
 import 'package:chaqmoq_mobile/services/teacher_service.dart';
 import 'package:chaqmoq_mobile/providers/teacher_provider.dart';
 import 'package:chaqmoq_mobile/services/local_notification_service.dart';
@@ -62,6 +64,7 @@ Future<void> main() async {
   final chaqmoqService = ChaqmoqService(apiClient);
   final storeService = StoreService(apiClient);
   final parentDashboardService = ParentDashboardService(apiClient);
+  final leadsService = LeadsService(apiClient);
 
   final authProvider = AuthProvider(authRepository: authRepository);
   apiClient.setUnauthorizedHandler(authProvider.handleUnauthorized);
@@ -82,6 +85,7 @@ Future<void> main() async {
       storeService: storeService,
       parentDashboardService: parentDashboardService,
       teacherService: teacherService,
+      leadsService: leadsService,
     ),
   );
 }
@@ -103,6 +107,7 @@ class ChaqmoqApp extends StatelessWidget {
     required this.storeService,
     required this.parentDashboardService,
     required this.teacherService,
+    required this.leadsService,
   });
 
   final AuthProvider authProvider;
@@ -119,6 +124,7 @@ class ChaqmoqApp extends StatelessWidget {
   final StoreService storeService;
   final ParentDashboardService parentDashboardService;
   final TeacherService teacherService;
+  final LeadsService leadsService;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +169,9 @@ class ChaqmoqApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) =>
               ParentDashboardProvider(service: parentDashboardService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => LeadsProvider(service: leadsService),
         ),
         ChangeNotifierProvider(
           create: (_) => TeacherProvider(service: teacherService),
