@@ -4370,14 +4370,14 @@
     state.selectedLead = null;
     state.modalMode = leadId ? 'edit' : 'create';
     dom.modalTitle.textContent = leadId ? 'Lead tafsiloti' : 'Yangi lead';
-    dom.modalSubtitle.textContent = leadId ? 'Lead ma'lumotlarini tahrirlash' : 'Yangi lead qo'shish';
+    dom.modalSubtitle.textContent = leadId ? "Lead ma'lumotlarini tahrirlash" : "Yangi lead qo'shish";
     dom.saveLeadButton.textContent = leadId ? 'Saqlash' : 'Yaratish';
     openModalShell();
 
     if (!leadId) return;
 
     try {
-      const data = await fetchJson(detailUrl(leadId), {}, 'Lead ma'lumotini yuklab bo'lmadi');
+      const data = await fetchJson(detailUrl(leadId), {}, "Lead ma'lumotini yuklab bo'lmadi");
       const lead = data.lead;
       state.selectedLead = lead;
       syncLeadSelectFallbacks();
@@ -4615,8 +4615,8 @@
       ? "Fanni o'chirishni tasdiqlaysizmi?"
       : "Holatni o'chirishni tasdiqlaysizmi?";
     dom.catalogConfirmText.textContent = isSubject
-      ? 'Bu fan leadlarda ishlatilgan bo'lsa, uni o'chirish o'rniga noaktiv holatga o'tkazish tavsiya qilinadi.'
-      : 'Bu holatda leadlar mavjud bo'lsa, holat o'chirilmasin yoki noaktiv qilinsin.';
+      ? "Bu fan leadlarda ishlatilgan bo'lsa, uni o'chirish o'rniga noaktiv holatga o'tkazish tavsiya qilinadi."
+      : "Bu holatda leadlar mavjud bo'lsa, holat o'chirilmasin yoki noaktiv qilinsin.";
     dom.catalogConfirmErrors.textContent = '';
     dom.catalogConfirmModal.classList.add('is-open');
     syncCatalogDeleteState();
@@ -5127,7 +5127,7 @@
     const targetUrl = isSubject
       ? subjectDetailUrl(state.catalogDeleteTarget.id)
       : statusDetailUrl(state.catalogDeleteTarget.id);
-    const successMessage = isSubject ? 'Fan o'chirildi' : 'Holat o'chirildi';
+    const successMessage = isSubject ? "Fan o'chirildi" : "Holat o'chirildi";
     const friendlyMessage = isSubject
       ? "Fanni o'chirishda xatolik yuz berdi."
       : "Holatni o'chirishda xatolik yuz berdi.";
