@@ -4,7 +4,7 @@
 {% block title %}Global Boshqaruv — Chaqmoq{% endblock %}
 
 {% block extra_css %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260624-sa-v3">
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-topnav-premium">
 {% endblock %}
 
 {% block content %}
@@ -12,34 +12,7 @@
 <div class="sa-page">
 
     <!-- ── Quick Nav ── -->
-    <nav class="sa-subnav">
-        <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sa-subnav-item is-active">
-            <i class="bi bi-grid-1x2-fill"></i> Dashboard
-        </a>
-        <a href="{% url 'platform_global:center_create' %}" class="sa-subnav-item">
-            <i class="bi bi-building-add"></i> Yangi Markaz
-        </a>
-        <div class="sa-subnav-sep"></div>
-        <a href="{% url 'platform_global:marketing:dashboard' %}" class="sa-subnav-item">
-            <i class="bi bi-megaphone-fill"></i> Marketing
-        </a>
-        <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="sa-subnav-item">
-            <i class="bi bi-cash-coin"></i> Tariflar
-        </a>
-        <a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="sa-subnav-item">
-            <i class="bi bi-telephone-inbound-fill"></i> Demo So'rovlari
-        </a>
-        <a href="{% url 'platform_global:marketing:feature_list' %}" class="sa-subnav-item">
-            <i class="bi bi-toggles"></i> Xususiyatlar
-        </a>
-        <div class="sa-subnav-sep"></div>
-        <a href="{% url 'platform_global:plans_ui' %}" class="sa-subnav-item">
-            <i class="bi bi-box-seam"></i> Tarif Planlari
-        </a>
-        <a href="{% url 'platform_global:promos_ui' %}" class="sa-subnav-item">
-            <i class="bi bi-ticket-perforated"></i> Promokodlar
-        </a>
-    </nav>
+    {% include "partials/sa_subnav.html" %}
 
     <!-- ── Header ── -->
     <div class="sa-header">

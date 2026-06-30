@@ -1,0 +1,74 @@
+{% with vn=request.resolver_match.view_name %}
+<nav class="sa-topnav" aria-label="SuperAdmin navigatsiya">
+
+  <!-- Brand -->
+  <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sa-tn-brand" title="Global Boshqaruv">
+    <span class="sa-tn-bolt">⚡</span>
+    <div class="sa-tn-brand-text">
+      <span class="sa-tn-title">Platform</span>
+      <span class="sa-tn-badge">SuperAdmin</span>
+    </div>
+  </a>
+
+  <!-- Nav items -->
+  <div class="sa-tn-scroll">
+
+    <!-- Core -->
+    <a href="{% url 'platform_global:superadmin_dashboard' %}"
+       class="sa-tn-item {% if vn == 'platform_global:superadmin_dashboard' %}is-active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+    </a>
+    <a href="{% url 'platform_global:center_create' %}"
+       class="sa-tn-item {% if vn == 'platform_global:center_create' %}is-active{% endif %}">
+      <i class="bi bi-building-add"></i><span>Yangi Markaz</span>
+    </a>
+
+    <div class="sa-tn-sep"></div>
+
+    <!-- Marketing -->
+    <span class="sa-tn-label">Marketing</span>
+    <a href="{% url 'platform_global:marketing:dashboard' %}"
+       class="sa-tn-item {% if vn == 'platform_global:marketing:dashboard' %}is-active{% endif %}">
+      <i class="bi bi-bar-chart-line-fill"></i><span>Analitika</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:demo_lead_list' %}"
+       class="sa-tn-item {% if 'marketing:demo_lead' in vn %}is-active{% endif %}">
+      <i class="bi bi-telephone-inbound-fill"></i><span>Demo So'rovlari</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:pricing_plan_list' %}"
+       class="sa-tn-item {% if 'marketing:pricing_plan' in vn or 'marketing:pricing_feature' in vn %}is-active{% endif %}">
+      <i class="bi bi-cash-coin"></i><span>Tariflar</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:feature_list' %}"
+       class="sa-tn-item {% if 'marketing:feature' in vn or 'marketing:center' in vn %}is-active{% endif %}">
+      <i class="bi bi-toggles"></i><span>Xususiyatlar</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:faq_list' %}"
+       class="sa-tn-item {% if 'marketing:faq' in vn %}is-active{% endif %}">
+      <i class="bi bi-question-circle-fill"></i><span>FAQ</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:testimonial_list' %}"
+       class="sa-tn-item {% if 'marketing:testimonial' in vn %}is-active{% endif %}">
+      <i class="bi bi-chat-quote-fill"></i><span>Testimonial</span>
+    </a>
+    <a href="{% url 'platform_global:marketing:site_settings' %}"
+       class="sa-tn-item {% if 'marketing:site_settings' in vn or 'marketing:site_hero' in vn or 'marketing:partner_logo' in vn or 'marketing:screenshot' in vn or 'marketing:support_card' in vn or 'marketing:vacancy' in vn or 'marketing:static_page' in vn %}is-active{% endif %}">
+      <i class="bi bi-sliders2"></i><span>Sozlamalar</span>
+    </a>
+
+    <div class="sa-tn-sep"></div>
+
+    <!-- Billing -->
+    <span class="sa-tn-label">Billing</span>
+    <a href="{% url 'platform_global:plans_ui' %}"
+       class="sa-tn-item {% if vn == 'platform_global:plans_ui' %}is-active{% endif %}">
+      <i class="bi bi-box-seam"></i><span>Tarif Planlari</span>
+    </a>
+    <a href="{% url 'platform_global:promos_ui' %}"
+       class="sa-tn-item {% if vn == 'platform_global:promos_ui' %}is-active{% endif %}">
+      <i class="bi bi-ticket-perforated-fill"></i><span>Promokodlar</span>
+    </a>
+
+  </div>
+</nav>
+{% endwith %}

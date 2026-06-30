@@ -5,43 +5,14 @@
 
 {% block extra_css %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260530-sa-redesign-1">
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-topnav-premium">
 {% endblock %}
 
 {% block content %}
 <div class="mkt-sa-page">
 
     <!-- ── Superadmin Quick Nav ───────── -->
-    <nav class="sa-subnav">
-        <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sa-subnav-item">
-            <i class="bi bi-grid-1x2-fill"></i> Dashboard
-        </a>
-        <a href="{% url 'platform_global:center_create' %}" class="sa-subnav-item">
-            <i class="bi bi-building-add"></i> Yangi Markaz
-        </a>
-        <div class="sa-subnav-sep"></div>
-        <a href="{% url 'platform_global:marketing:dashboard' %}" class="sa-subnav-item is-active">
-            <i class="bi bi-megaphone-fill"></i> Marketing
-        </a>
-        <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="sa-subnav-item">
-            <i class="bi bi-cash-coin"></i> Tariflar
-        </a>
-        <a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="sa-subnav-item">
-            <i class="bi bi-telephone-inbound-fill"></i> Demo
-        </a>
-        <a href="{% url 'platform_global:marketing:feature_list' %}" class="sa-subnav-item">
-            <i class="bi bi-toggles"></i> Xususiyatlar
-        </a>
-        <a href="{% url 'platform_global:marketing:faq_list' %}" class="sa-subnav-item">
-            <i class="bi bi-question-circle-fill"></i> FAQ
-        </a>
-        <a href="{% url 'platform_global:marketing:testimonial_list' %}" class="sa-subnav-item">
-            <i class="bi bi-chat-quote-fill"></i> Testimoniallar
-        </a>
-        <a href="{% url 'platform_global:marketing:site_settings' %}" class="sa-subnav-item">
-            <i class="bi bi-sliders2"></i> Sozlamalar
-        </a>
-    </nav>
+    {% include "partials/sa_subnav.html" %}
 
     <div class="mkt-sa-header">
         <div class="mkt-sa-header-left">
