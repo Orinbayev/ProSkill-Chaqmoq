@@ -476,13 +476,13 @@ async def cb_test(cb: CallbackQuery):
             "idx": 0, "score": 0, "wrong": [],
             "lesson_date": lesson_date,
         }
-        await _show_question(cb.message, user_id, edit=True)
+        await _show_question(cb.message, user_id)
     except Exception as e:
         log.error("test error: %s", e)
         await cb.message.edit_text("❌ Test yaratishda xatolik. Qayta urinib ko'ring.", reply_markup=kb_back_menu())
 
 
-async def _show_question(msg: Message, user_id: int, edit: bool = False):
+async def _show_question(msg: Message, user_id: int):
     session = _test.get(user_id)
     if not session:
         return
@@ -497,11 +497,8 @@ async def _show_question(msg: Message, user_id: int, edit: bool = False):
         f"❓ <b>Savol {idx+1}/{total}</b>  {_bar(idx+1, total)}\n"
         f"{'─' * 28}\n\n{q['question']}"
     )
-    kb = kb_test_options(q["options"])
-    if edit:
-        await msg.edit_text(text, reply_markup=kb, parse_mode=HTML)
-    else:
-        await msg.answer(text, reply_markup=kb, parse_mode=HTML)
+    # Always send as NEW message so previous questions stay visible in chat
+    await msg.answer(text, reply_markup=kb_test_options(q["options"]), parse_mode=HTML)
 
 
 @router.callback_query(F.data.startswith("eng_ans_"))
@@ -527,18 +524,24 @@ async def cb_answer(cb: CallbackQuery):
         icon, result_line = "❌", f"❌ <b>Noto'g'ri.</b> To'g'ri javob: <b>{q['correct']}</b>"
 
     total = len(session["questions"])
-    await cb.message.edit_text(
+
+    # Remove buttons from the question (keeps question text visible)
+    await cb.message.edit_reply_markup(reply_markup=None)
+
+    # Send result as a NEW message — stays in chat history
+    await cb.message.answer(
         f"{icon} <b>Savol {idx+1}/{total}</b>\n{'─'*28}\n\n"
         f"{result_line}\n\n💡 {q.get('explanation', '')}",
         parse_mode=HTML,
     )
     session["idx"] += 1
-    await asyncio.sleep(1.2)
+    await asyncio.sleep(0.5)
 
+    # Next question or finish — always new messages
     if session["idx"] >= total:
         await _finish_test(cb.message, user_id)
     else:
-        await _show_question(cb.message, user_id, edit=True)
+        await _show_question(cb.message, user_id)
 
 
 async def _finish_test(msg: Message, user_id: int):
@@ -581,7 +584,8 @@ async def _finish_test(msg: Message, user_id: int):
         callback_data=f"eng_goto_{next_lesson_date}",
     )])
     buttons.append([InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")])
-    await msg.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode=HTML)
+    # Send final result as NEW message — stays in chat
+    await msg.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode=HTML)
 
 
 # ── Review ─────────────────────────────────────────────────────────────────────
@@ -620,7 +624,7 @@ async def cb_review(cb: CallbackQuery):
             "idx": 0, "score": 0, "wrong": [],
             "lesson_date": date.today().isoformat(),
         }
-        await _show_question(cb.message, user_id, edit=True)
+        await _show_question(cb.message, user_id)
     except Exception as e:
         log.error("review error: %s", e)
         await cb.message.edit_text("❌ Xatolik. Qayta urinib ko'ring.", reply_markup=kb_back_menu())
