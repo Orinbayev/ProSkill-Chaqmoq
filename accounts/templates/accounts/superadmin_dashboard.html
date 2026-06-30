@@ -4,7 +4,7 @@
 {% block title %}Global Boshqaruv — Chaqmoq{% endblock %}
 
 {% block extra_css %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-topnav-premium">
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-v3">
 {% endblock %}
 
 {% block content %}
@@ -121,42 +121,51 @@
     </div>
 
     <!-- ── Filter Toolbar ── -->
-    <div class="sa-toolbar-wrap">
-        <form method="get" class="sa-toolbar" id="filterForm">
-            <div class="sa-search-wrap">
-                <i class="bi bi-search"></i>
-                <input type="text" name="q" value="{{ search_q }}" placeholder="Markaz nomi, direktor, tel...">
+    <div class="sa-filter-card">
+        <form method="get" id="filterForm">
+            <div class="sa-filter-row">
+                <div class="sa-filter-search">
+                    <i class="bi bi-search sa-filter-search-icon"></i>
+                    <input type="text" name="q" value="{{ search_q }}"
+                           placeholder="Markaz nomi, direktor, telefon..."
+                           class="sa-filter-input">
+                </div>
+                <select name="status" class="sa-filter-select" onchange="this.form.submit()">
+                    <option value="">Status: Barchasi</option>
+                    {% for s_code, s_label in statuses %}
+                    <option value="{{ s_code }}" {% if status_filter == s_code %}selected{% endif %}>{{ s_label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="plan" class="sa-filter-select" onchange="this.form.submit()">
+                    <option value="">Tarif: Barchasi</option>
+                    {% for p_code, p_label in plans %}
+                    <option value="{{ p_code }}" {% if plan_filter == p_code %}selected{% endif %}>{{ p_label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="expiry" class="sa-filter-select" onchange="this.form.submit()">
+                    <option value="">Muddat: Barchasi</option>
+                    <option value="active"        {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
+                    <option value="today"         {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
+                    <option value="expiring_3"    {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda</option>
+                    <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda</option>
+                    <option value="grace"         {% if expiry_filter == 'grace' %}selected{% endif %}>Grace davri</option>
+                    <option value="expired"       {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan</option>
+                </select>
+                <select name="limit" class="sa-filter-select" onchange="this.form.submit()">
+                    <option value="">Limit: Barchasi</option>
+                    <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
+                </select>
+                <div class="sa-filter-actions">
+                    <button type="submit" class="sa-filter-btn-search">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    {% if search_q or status_filter or plan_filter or expiry_filter or limit_filter %}
+                    <a href="?" class="sa-filter-btn-clear" title="Filtrlarni tozalash">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="sa-toolbar-sep"></div>
-            <select name="status" class="sa-select" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Status: Barchasi</option>
-                {% for s_code, s_label in statuses %}
-                <option value="{{ s_code }}" {% if status_filter == s_code %}selected{% endif %}>{{ s_label }}</option>
-                {% endfor %}
-            </select>
-            <select name="plan" class="sa-select" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Tarif: Barchasi</option>
-                {% for p_code, p_label in plans %}
-                <option value="{{ p_code }}" {% if plan_filter == p_code %}selected{% endif %}>{{ p_label }}</option>
-                {% endfor %}
-            </select>
-            <select name="expiry" class="sa-select" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Muddat: Barchasi</option>
-                <option value="active"        {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
-                <option value="today"         {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
-                <option value="expiring_3"    {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda</option>
-                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda</option>
-                <option value="grace"         {% if expiry_filter == 'grace' %}selected{% endif %}>Grace davri</option>
-                <option value="expired"       {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan</option>
-            </select>
-            <select name="limit" class="sa-select" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Limit: Barchasi</option>
-                <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
-            </select>
-            <button type="submit" class="sa-btn-submit"><i class="bi bi-search"></i> Qidirish</button>
-            {% if search_q or status_filter or plan_filter or expiry_filter or limit_filter %}
-            <a href="?" class="sa-btn-ghost"><i class="bi bi-x-circle"></i> Tozalash</a>
-            {% endif %}
         </form>
     </div>
 
