@@ -2,6 +2,7 @@
 {% load static humanize %}
 
 {% block title %}Promokodlar — Chaqmoq{% endblock %}
+{% block body_class %}sa-fullpage{% endblock %}
 
 {% block content %}
 
@@ -502,6 +503,7 @@
 </style>
 
 <div class="sa-page">
+    {% include "partials/sa_subnav.html" %}
 
     <!-- ── Header ─────────────────────────────── -->
     <div class="sa-header">

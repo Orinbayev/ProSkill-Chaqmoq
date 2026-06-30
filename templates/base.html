@@ -482,6 +482,19 @@
       padding-top: 0px;
     }
 
+    /* SuperAdmin full-page mode: hide sidebar, remove its padding */
+    body.sa-fullpage #sidebar,
+    body.sa-fullpage .sidebar-overlay,
+    body.sa-fullpage #sidebarToggleBtn {
+      display: none !important;
+    }
+    body.sa-fullpage.layout-auth .app-shell {
+      padding-left: 0 !important;
+    }
+    body.sa-fullpage .main-content {
+      padding: 0 !important;
+    }
+
     /* Modal compatibility fix: allow clicks on standard elements */
     .modal-open {
       overflow: hidden;

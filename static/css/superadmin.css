@@ -2398,7 +2398,9 @@ body.role-superadmin .content-shell {
 
 /* Page spacing */
 .sa-page {
-  padding-bottom: 40px;
+  padding: 20px 28px 48px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 /* Topnav spacing from page content */
