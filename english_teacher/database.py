@@ -18,6 +18,22 @@ def _conn():
 
 def init_db():
     c = _conn()
+    # Migrate existing DB: add new columns if absent
+    try:
+        c = _conn()
+        for col, defval in [
+            ("topic_uz", "''"), ("topic_en", "''"), ("test_total", "5"),
+        ]:
+            try:
+                c.execute(f"ALTER TABLE daily_lessons ADD COLUMN {col} TEXT DEFAULT {defval}")
+                c.commit()
+            except Exception:
+                pass
+        c.close()
+    except Exception:
+        pass
+
+    c = _conn()
     c.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             user_id       INTEGER PRIMARY KEY,
@@ -50,7 +66,10 @@ def init_db():
             user_id     INTEGER,
             lesson_date TEXT,
             words_json  TEXT,
+            topic_uz    TEXT    DEFAULT '',
+            topic_en    TEXT    DEFAULT '',
             test_score  INTEGER,
+            test_total  INTEGER DEFAULT 5,
             completed   INTEGER DEFAULT 0,
             UNIQUE(user_id, lesson_date),
             FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -123,11 +142,13 @@ def get_today_lesson(user_id: int) -> dict | None:
     return get_lesson_for_date(user_id, date.today().isoformat())
 
 
-def save_lesson_for_date(user_id: int, words: list, lesson_date: str):
+def save_lesson_for_date(user_id: int, words: list, lesson_date: str,
+                         topic_uz: str = "", topic_en: str = ""):
     c = _conn()
     c.execute(
-        "INSERT OR IGNORE INTO daily_lessons (user_id, lesson_date, words_json) VALUES (?,?,?)",
-        (user_id, lesson_date, json.dumps(words, ensure_ascii=False)),
+        "INSERT OR IGNORE INTO daily_lessons"
+        " (user_id, lesson_date, words_json, topic_uz, topic_en) VALUES (?,?,?,?,?)",
+        (user_id, lesson_date, json.dumps(words, ensure_ascii=False), topic_uz, topic_en),
     )
     for w in words:
         c.execute(
@@ -141,8 +162,8 @@ def save_lesson_for_date(user_id: int, words: list, lesson_date: str):
     c.close()
 
 
-def save_lesson(user_id: int, words: list):
-    save_lesson_for_date(user_id, words, date.today().isoformat())
+def save_lesson(user_id: int, words: list, topic_uz: str = "", topic_en: str = ""):
+    save_lesson_for_date(user_id, words, date.today().isoformat(), topic_uz, topic_en)
 
 
 def save_test_result(user_id: int, score: int, wrong_words: list):
@@ -157,12 +178,13 @@ def save_test_result(user_id: int, score: int, wrong_words: list):
     c.close()
 
 
-def save_test_result_for_date(user_id: int, score: int, wrong_words: list, lesson_date: str):
+def save_test_result_for_date(user_id: int, score: int, wrong_words: list,
+                              lesson_date: str, total: int = 5):
     c = _conn()
     c.execute(
-        "UPDATE daily_lessons SET test_score=?, completed=1"
+        "UPDATE daily_lessons SET test_score=?, test_total=?, completed=1"
         " WHERE user_id=? AND lesson_date=?",
-        (score, user_id, lesson_date),
+        (score, total, user_id, lesson_date),
     )
     c.commit()
     c.close()
@@ -277,6 +299,16 @@ def get_all_words_for_export(user_id: int) -> list:
     return [dict(r) for r in rows]
 
 
+def get_completed_lesson_count(user_id: int) -> int:
+    """Number of days where user opened a lesson (for curriculum progress)."""
+    c = _conn()
+    count = c.execute(
+        "SELECT COUNT(DISTINCT lesson_date) FROM daily_lessons WHERE user_id=?", (user_id,)
+    ).fetchone()[0]
+    c.close()
+    return count
+
+
 def get_stats(user_id: int) -> dict:
     c = _conn()
     total = c.execute("SELECT COUNT(*) FROM words WHERE user_id=?", (user_id,)).fetchone()[0]
@@ -284,8 +316,8 @@ def get_stats(user_id: int) -> dict:
         "SELECT COUNT(*) FROM daily_lessons WHERE user_id=? AND completed=1", (user_id,)
     ).fetchone()[0]
     avg = c.execute(
-        "SELECT AVG(test_score*20.0) FROM daily_lessons"
-        " WHERE user_id=? AND test_score IS NOT NULL",
+        "SELECT AVG(test_score * 100.0 / NULLIF(test_total, 0)) FROM daily_lessons"
+        " WHERE user_id=? AND test_score IS NOT NULL AND test_total > 0",
         (user_id,),
     ).fetchone()[0]
     streak = c.execute("SELECT streak FROM users WHERE user_id=?", (user_id,)).fetchone()

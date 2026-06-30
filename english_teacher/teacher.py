@@ -1,4 +1,4 @@
-"""Claude-powered AI teacher for English vocabulary lessons and tests."""
+"""Claude-powered AI teacher — topic-based lessons with 15+ items."""
 import json
 import re
 
@@ -14,7 +14,7 @@ def _get_client():
     return _client
 
 
-def _ask(prompt: str, max_tokens: int = 2500) -> str:
+def _ask(prompt: str, max_tokens: int = 4000) -> str:
     r = _get_client().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=max_tokens,
@@ -28,41 +28,76 @@ def _json(text: str) -> dict:
     return json.loads(m.group() if m else text)
 
 
-def generate_lesson(level: str, learned_words: list) -> dict:
-    avoid = learned_words[-40:] if learned_words else []
-    prompt = f"""Sen ingliz tili o'qituvchisisiz. O'zbek tilida gapiradigan talaba uchun {level} darajasida dars tayyorla.
+def generate_lesson(level: str, topic: dict, learned_words: list) -> dict:
+    """
+    Generate a lesson for a specific curriculum topic.
+    topic = {"name_uz", "name_en", "min_items", "instructions"}
+    Returns: {"intro", "topic_uz", "topic_en", "items": [...]}
+    """
+    min_items = topic.get("min_items", 15)
+    instructions = topic.get("instructions", "")
+    name_en = topic.get("name_en", "")
+    name_uz = topic.get("name_uz", "")
 
-Bu so'zlarni TAKRORLAMA (allaqachon o'rganilgan): {avoid}
+    # Avoid already-learned words (for vocabulary topics)
+    avoid = learned_words[-50:] if learned_words else []
 
-{level} darajasiga mos, kundalik hayotda tez-tez ishlatiladigan 5 ta yangi so'z tanlang.
+    prompt = f"""Sen ingliz tili o'qituvchisisisan. O'zbek tilida gapiradigan boshlang'ich talaba uchun {level} darajasida dars tayyorla.
+
+MAVZU: {name_en} ({name_uz})
+
+Ko'rsatma:
+{instructions}
+
+Avval o'rganilgan so'zlar (takrorlama): {avoid}
+
+Kamida {min_items} ta element ber. Grammatik mavzular uchun qoidalarni ham tushuntir.
 
 Faqat JSON qaytaring:
 {{
-    "intro": "Bugungi darsga energetik motivatsion kirish (o'zbek tilida, 1-2 gap)",
-    "words": [
+    "intro": "Bugungi mavzuga qiziqarli kirish (o'zbek tilida, 1-2 gap, energetik)",
+    "topic_uz": "{name_uz}",
+    "topic_en": "{name_en}",
+    "items": [
         {{
-            "word": "so'z (kichik harf)",
+            "word": "inglizcha so'z yoki ibora (kichik harf)",
             "translation": "o'zbek tarjimasi",
-            "definition": "{level} darajasiga mos inglizcha ta'rif (oddiy va qisqa)",
-            "example": "tabiiy inglizcha misol gap",
-            "memory_tip": "eslab qolish uchun qiziqarli yoki kulgili maslahat (o'zbek tilida)"
+            "definition": "inglizcha ta'rif yoki grammatik qoida (oddiy)",
+            "example": "misol gap (to'liq inglizcha gap)",
+            "memory_tip": "eslab qolish uchun maslahat yoki qoida (o'zbek tilida)",
+            "rule": ""
         }}
     ]
-}}"""
-    return _json(_ask(prompt))
+}}
+
+MUHIM:
+- Artikl mavzusi uchun 'rule' maydoniga nima uchun 'a' yoki 'an' ishlatilishini yoz
+- Grammatik mavzularda 'definition' maydoniga qoidani yoz
+- Barcha {min_items}+ element bo'lsin, hech birini qoldirma
+- Faqat JSON, boshqa matn yo'q"""
+
+    return _json(_ask(prompt, max_tokens=6000))
 
 
-def generate_test(words: list) -> dict:
-    words_str = json.dumps(words, ensure_ascii=False, indent=2)
-    prompt = f"""Quyidagi ingliz so'zlari uchun test yarating:
+def generate_test(items: list, topic_name: str = "") -> dict:
+    """
+    Generate test questions for all items in the lesson.
+    Returns: {"questions": [...]}
+    """
+    items_str = json.dumps(items, ensure_ascii=False, indent=2)
+    count = len(items)
+    topic_hint = f"Mavzu: {topic_name}. " if topic_name else ""
 
-{words_str}
+    prompt = f"""{topic_hint}Quyidagi ingliz tili elementlari uchun {count} ta test savoli yarat:
 
-5 ta savol (har bir so'z uchun 1 ta). Xilma-xil savol turlari ishlating:
+{items_str}
+
+Har element uchun 1 ta savol. Xilma-xil savol turlari:
 - O'zbek tarjimasini inglizchadan tanlash
 - Misol gapdagi bo'sh joyni (___ ) to'ldirish
-- Ta'rifga mos so'zni topish
+- Ta'rifga/qoidaga mos so'zni topish
 - Inglizcha so'zni o'zbekchadan tanlash
+- Grammatik mavzularda: to'g'ri shaklni tanlash
 
 Har birida 4 ta variant. Noto'g'ri variantlar mantiqiy va chalg'ituvchi bo'lsin.
 
@@ -70,7 +105,7 @@ Faqat JSON qaytaring:
 {{
     "questions": [
         {{
-            "word": "test qilinayotgan so'z",
+            "word": "test qilinayotgan element",
             "question": "savol matni",
             "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
             "correct": "A",
@@ -78,23 +113,37 @@ Faqat JSON qaytaring:
         }}
     ]
 }}"""
-    return _json(_ask(prompt))
+    return _json(_ask(prompt, max_tokens=8000))
 
 
 def get_feedback(score: int, total: int, level: str, wrong_words: list) -> str:
     pct = round(score / total * 100)
-    wrong_str = ", ".join(wrong_words) if wrong_words else "yo'q"
+    wrong_str = ", ".join(wrong_words[:5]) if wrong_words else "yo'q"
     prompt = f"""Talaba ingliz tili testini topshirdi: {score}/{total} ({pct}%). Daraja: {level}.
-Xato qilingan so'zlar: {wrong_str}
+Xato qilingan elementlar: {wrong_str}
 
 O'zbek tilida 2-3 gap motivatsion xabar yoz:
-- 100%: ajoyib, maqta!
-- 80-99%: yaxshi, lekin shu so'zlarga e'tibor ber
-- 60-79%: yaxshi harakat, takrorlash kerak
-- <60%: rag'batlantir, bot ertaga yana o'rgatishini ayt
+- 90-100%: zo'r, maqta
+- 70-89%: yaxshi, shu elementlarga e'tibor ber
+- 50-69%: harakat qil, takrorlash kerak
+- <50%: rag'batlantir
 
 Faqat xabar matnini qaytaring."""
-    return _ask(prompt, max_tokens=250).strip()
+    return _ask(prompt, max_tokens=200).strip()
+
+
+def check_sentence(word: str, user_sentence: str) -> dict:
+    """Check if user correctly used the word in a sentence."""
+    prompt = f"""Talaba '{word}' so'zini ishlatib gap yozdi:
+"{user_sentence}"
+
+Tekshir va JSON qaytار:
+{{
+    "correct": true/false,
+    "feedback": "o'zbek tilida qisqa izoh (1-2 gap) — to'g'ri bo'lsa maqta, xato bo'lsa tuzat",
+    "corrected": "agar xato bo'lsa to'g'ri variant, aks holda bo'sh qoldir"
+}}"""
+    return _json(_ask(prompt, max_tokens=300))
 
 
 LEVELS = ["A1", "A2", "B1", "B2"]
