@@ -1,9 +1,7 @@
 """
 English AI Teacher Bot — aiogram 3.x
-Har kuni 5 ta so'z + test + o'tilgan so'zlardan takrorlash.
-
-Ishga tushirish: telegram_bot/bot.py dan english_bot_polling() chaqiriladi.
-Token: ENGLISH_BOT_TOKEN env o'zgaruvchisi.
+Faqat /start buyrug'i; qolgan hamma narsa inline tugmalar bilan.
+Token: ENGLISH_BOT_TOKEN  |  Claude: ANTHROPIC_API_KEY
 """
 import asyncio
 import json
@@ -13,7 +11,7 @@ import random
 
 import pytz
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -30,9 +28,49 @@ router = Router()
 TZ = pytz.timezone("Asia/Tashkent")
 HTML = "HTML"
 
-# in-memory sessions
+# In-memory sessions
 _lesson: dict = {}  # {user_id: {"words": [...], "idx": int}}
 _test: dict = {}    # {user_id: {"questions": [...], "idx": int, "score": int, "wrong": []}}
+
+
+# ── Keyboards ─────────────────────────────────────────────────────────────────
+
+def kb_main_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📖  Bugungi dars", callback_data="eng_lesson")],
+        [
+            InlineKeyboardButton(text="📝  Test", callback_data="eng_test"),
+            InlineKeyboardButton(text="🔁  Takrorlash", callback_data="eng_review"),
+        ],
+        [InlineKeyboardButton(text="📊  Statistikam", callback_data="eng_progress")],
+    ])
+
+
+def kb_back_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")],
+    ])
+
+
+def kb_word(idx: int, total: int) -> InlineKeyboardMarkup:
+    rows = []
+    nav = []
+    if idx > 1:
+        nav.append(InlineKeyboardButton(text="◀️  Oldingi", callback_data="eng_word_prev"))
+    if idx < total:
+        nav.append(InlineKeyboardButton(text="Keyingi  ▶️", callback_data="eng_word_next"))
+    if nav:
+        rows.append(nav)
+    if idx == total:
+        rows.append([InlineKeyboardButton(text="✅  Darsni tugatdim!", callback_data="eng_word_done")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def kb_test_options(options: list) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=opt, callback_data=f"eng_ans_{opt[0]}")]
+        for opt in options
+    ])
 
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
@@ -42,7 +80,21 @@ def _bar(done: int, total: int, n: int = 8) -> str:
     return "█" * filled + "░" * (n - filled)
 
 
-def _word_html(idx: int, total: int, w: dict) -> str:
+def _menu_text(user: dict, stats: dict) -> str:
+    streak = stats["streak"]
+    streak_txt = f"🔥 {streak} kunlik seriya" if streak > 1 else "🌱 Seriyani boshlang"
+    return (
+        f"🎓 <b>Ingliz tili o'qituvchingiz</b>\n"
+        f"{'─' * 28}\n\n"
+        f"🏆  Daraja: <b>{user['level']}</b>\n"
+        f"📚  O'rganilgan so'zlar: <b>{stats['total_words']}</b>\n"
+        f"🎯  O'rtacha ball: <b>{stats['avg_score']}%</b>\n"
+        f"{streak_txt}\n\n"
+        f"<i>Quyidagi tugmalardan birini bosing 👇</i>"
+    )
+
+
+def _word_text(idx: int, total: int, w: dict) -> str:
     return (
         f"📖 <b>So'z {idx}/{total}</b>  {_bar(idx, total)}\n"
         f"{'─' * 28}\n\n"
@@ -54,65 +106,64 @@ def _word_html(idx: int, total: int, w: dict) -> str:
     )
 
 
-def _word_kb(idx: int, total: int) -> InlineKeyboardMarkup:
-    rows = []
-    nav = []
-    if idx > 1:
-        nav.append(InlineKeyboardButton(text="◀️ Oldingi", callback_data="eng_word_prev"))
-    if idx < total:
-        nav.append(InlineKeyboardButton(text="Keyingi ▶️", callback_data="eng_word_next"))
-    if nav:
-        rows.append(nav)
-    if idx == total:
-        rows.append([InlineKeyboardButton(text="✅ Darsni tugatdim!", callback_data="eng_word_done")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def _test_kb(options: list) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=opt, callback_data=f"eng_ans_{opt[0]}")]
-            for opt in options
-        ]
+def _question_text(idx: int, total: int, question: str) -> str:
+    return (
+        f"❓ <b>Savol {idx}/{total}</b>  {_bar(idx, total)}\n"
+        f"{'─' * 28}\n\n"
+        f"{question}"
     )
 
 
-# ── /english_start ────────────────────────────────────────────────────────────
+# ── /start ────────────────────────────────────────────────────────────────────
 
-@router.message(Command("english_start"))
+@router.message(CommandStart())
 async def cmd_start(msg: Message):
-    db.create_user(msg.from_user.id, msg.from_user.username, msg.from_user.first_name)
+    user = msg.from_user
+    db.create_user(user.id, user.username, user.first_name)
+    user_data = db.get_user(user.id)
+    stats = db.get_stats(user.id)
+
     await msg.answer(
-        f"Salom, <b>{msg.from_user.first_name}</b>! 👋\n\n"
-        "Men sizning shaxsiy ingliz tili o'qituvchingizman 🎓\n\n"
-        "<b>Har kuni:</b>\n"
-        "🌅  <b>09:00</b> — 5 ta yangi so'z dars\n"
-        "🌙  <b>21:00</b> — Test eslatmasi\n\n"
-        "<b>Buyruqlar:</b>\n"
-        "/english_lesson     — Bugungi yangi so'zlar\n"
-        "/english_test        — Kunlik test\n"
-        "/english_review     — Xato so'zlarni mashq\n"
-        "/english_progress — Statistikam\n\n"
-        "🚀 Boshlash uchun /english_lesson bosing!",
+        f"Salom, <b>{user.first_name}</b>! 👋\n\n" + _menu_text(user_data, stats),
+        reply_markup=kb_main_menu(),
         parse_mode=HTML,
     )
 
 
-# ── /english_lesson ───────────────────────────────────────────────────────────
+@router.callback_query(F.data == "eng_menu")
+async def cb_menu(cb: CallbackQuery):
+    await cb.answer()
+    user_data = db.get_user(cb.from_user.id)
+    stats = db.get_stats(cb.from_user.id)
+    if not user_data:
+        await cb.message.answer("Iltimos /start bosing.")
+        return
+    await cb.message.edit_text(
+        _menu_text(user_data, stats),
+        reply_markup=kb_main_menu(),
+        parse_mode=HTML,
+    )
 
-@router.message(Command("english_lesson"))
-async def cmd_lesson(msg: Message):
-    user_id = msg.from_user.id
+
+# ── Lesson ────────────────────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "eng_lesson")
+async def cb_lesson(cb: CallbackQuery):
+    await cb.answer()
+    user_id = cb.from_user.id
     existing = db.get_today_lesson(user_id)
 
     if existing:
         words = json.loads(existing["words_json"])
         _lesson[user_id] = {"words": words, "idx": 0}
-        await msg.answer("🔁 Bugungi dars takrorlanmoqda...")
-        await _show_word(msg, user_id)
+        await cb.message.edit_text(
+            _word_text(1, len(words), words[0]),
+            reply_markup=kb_word(1, len(words)),
+            parse_mode=HTML,
+        )
         return
 
-    await msg.answer("⏳ Dars tayyorlanmoqda...")
+    await cb.message.edit_text("⏳ <b>Dars tayyorlanmoqda...</b>", parse_mode=HTML)
     user = db.get_user(user_id)
     level = user["level"] if user else "A1"
     learned = db.get_learned_words(user_id)
@@ -123,26 +174,37 @@ async def cmd_lesson(msg: Message):
         db.save_lesson(user_id, words)
         db.update_streak(user_id)
         _lesson[user_id] = {"words": words, "idx": 0}
-        await msg.answer(
-            f"📚 <b>Bugungi dars — {level} darajasi</b>\n\n✨ {lesson.get('intro', '')}",
+
+        await cb.message.edit_text(
+            f"📚 <b>Bugungi dars — {level} darajasi</b>\n\n"
+            f"✨ {lesson.get('intro', '')}\n\n"
+            f"<i>So'zlarni ko'rish uchun tugmani bosing 👇</i>",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📖  Boshlash", callback_data="eng_word_show")]
+            ]),
             parse_mode=HTML,
         )
-        await asyncio.sleep(0.3)
-        await _show_word(msg, user_id)
     except Exception as e:
         log.error("lesson error: %s", e)
-        await msg.answer("❌ Xatolik yuz berdi. Qayta urinib ko'ring.")
+        await cb.message.edit_text(
+            "❌ Xatolik yuz berdi. Qayta urinib ko'ring.",
+            reply_markup=kb_back_menu(),
+        )
 
 
-async def _show_word(msg: Message, user_id: int):
+@router.callback_query(F.data == "eng_word_show")
+async def cb_word_show(cb: CallbackQuery):
+    await cb.answer()
+    user_id = cb.from_user.id
     session = _lesson.get(user_id)
     if not session:
+        await cb.message.edit_text("Dars topilmadi.", reply_markup=kb_back_menu())
         return
     idx = session["idx"]
     words = session["words"]
-    await msg.answer(
-        _word_html(idx + 1, len(words), words[idx]),
-        reply_markup=_word_kb(idx + 1, len(words)),
+    await cb.message.edit_text(
+        _word_text(idx + 1, len(words), words[idx]),
+        reply_markup=kb_word(idx + 1, len(words)),
         parse_mode=HTML,
     )
 
@@ -153,77 +215,87 @@ async def cb_word_nav(cb: CallbackQuery):
     user_id = cb.from_user.id
     session = _lesson.get(user_id)
     if not session:
-        await cb.answer("Dars topilmadi. /english_lesson bosing.", show_alert=True)
+        await cb.message.edit_text("Dars tugadi yoki topilmadi.", reply_markup=kb_back_menu())
         return
 
-    action = cb.data
     words = session["words"]
-
-    if action == "eng_word_next":
+    if cb.data == "eng_word_next":
         session["idx"] = min(session["idx"] + 1, len(words) - 1)
-    elif action == "eng_word_prev":
+    elif cb.data == "eng_word_prev":
         session["idx"] = max(session["idx"] - 1, 0)
-    elif action == "eng_word_done":
+    elif cb.data == "eng_word_done":
         _lesson.pop(user_id, None)
         stats = db.get_stats(user_id)
         await cb.message.edit_text(
             f"🎉 <b>Dars tugadi!</b>\n\n"
-            f"Bugun 5 ta yangi so'z o'rgandingiz!\n"
+            f"Bugun <b>5 ta</b> yangi so'z o'rgandingiz!\n"
             f"Jami: <b>{stats['total_words']}</b> ta so'z 📚\n\n"
-            f"Test qilib ko'ramizmi? 👉 /english_test",
+            f"Endi o'rgangan so'zlarni sinab ko'ramizmi?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📝  Test boshlash", callback_data="eng_test")],
+                [InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")],
+            ]),
             parse_mode=HTML,
         )
         return
 
     idx = session["idx"]
     await cb.message.edit_text(
-        _word_html(idx + 1, len(words), words[idx]),
-        reply_markup=_word_kb(idx + 1, len(words)),
+        _word_text(idx + 1, len(words), words[idx]),
+        reply_markup=kb_word(idx + 1, len(words)),
         parse_mode=HTML,
     )
 
 
-# ── /english_test ─────────────────────────────────────────────────────────────
+# ── Test ──────────────────────────────────────────────────────────────────────
 
-@router.message(Command("english_test"))
-async def cmd_test(msg: Message):
-    user_id = msg.from_user.id
+@router.callback_query(F.data == "eng_test")
+async def cb_test(cb: CallbackQuery):
+    await cb.answer()
+    user_id = cb.from_user.id
 
     if user_id in _test:
-        await msg.answer("⚠️ Test davom etmoqda. Savollarga javob bering.")
+        await cb.answer("⚠️ Test davom etmoqda!", show_alert=True)
         return
 
     today = db.get_today_lesson(user_id)
     if not today:
-        await msg.answer("❗ Avval bugungi darsni oling: /english_lesson")
+        await cb.message.edit_text(
+            "❗ Avval bugungi darsni oling!",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📖  Darsga o'tish", callback_data="eng_lesson")],
+            ]),
+        )
         return
 
     if today["completed"]:
         s = today["test_score"]
-        await msg.answer(
-            f"✅ Bugungi test topshirilgan!\n\n"
-            f"Natija: <b>{s}/5</b>  ({s * 20}%)\n\n"
-            f"Eski so'zlarni mashq qilish: /english_review",
+        await cb.message.edit_text(
+            f"✅ <b>Bugungi test topshirilgan!</b>\n\n"
+            f"Natija: <b>{s}/5</b>  {_bar(s * 20, 100)}  <b>{s * 20}%</b>\n\n"
+            f"Eski so'zlarni mashq qilishni xohlaysizmi?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔁  Takrorlash", callback_data="eng_review")],
+                [InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")],
+            ]),
             parse_mode=HTML,
         )
         return
 
+    await cb.message.edit_text(
+        "⚡ <b>Test tayyorlanmoqda...</b>\n\nBugungi + eski so'zlardan savollar...",
+        parse_mode=HTML,
+    )
+
     today_words = json.loads(today["words_json"])
     old_pool = [w for w in db.get_learned_words(user_id, limit=80)
                 if w not in {x["word"].lower() for x in today_words}]
-
     test_words = list(today_words)
     if len(old_pool) >= 3:
         sample = random.sample(old_pool, min(2, len(old_pool)))
         old_dicts = db.get_words_by_list(user_id, sample)
         test_words = test_words[:3] + old_dicts[:2]
-
     random.shuffle(test_words)
-
-    await msg.answer(
-        "📝 <b>Test boshlanmoqda...</b>\n⚡ Savollar tayyorlanmoqda...",
-        parse_mode=HTML,
-    )
 
     try:
         result = ai.generate_test(test_words)
@@ -232,30 +304,34 @@ async def cmd_test(msg: Message):
             "idx": 0,
             "score": 0,
             "wrong": [],
+            "msg_id": cb.message.message_id,
         }
-        await _send_question(msg, user_id)
+        await _show_question(cb.message, user_id, edit=True)
     except Exception as e:
         log.error("test error: %s", e)
-        await msg.answer("❌ Test yaratishda xatolik. Qayta urinib ko'ring.")
+        await cb.message.edit_text(
+            "❌ Test yaratishda xatolik. Qayta urinib ko'ring.",
+            reply_markup=kb_back_menu(),
+        )
 
 
-async def _send_question(target, user_id: int):
+async def _show_question(msg: Message, user_id: int, edit: bool = False):
     session = _test.get(user_id)
     if not session:
         return
     idx = session["idx"]
     qs = session["questions"]
     if idx >= len(qs):
-        await _finish_test(target, user_id)
+        await _finish_test(msg, user_id)
         return
     q = qs[idx]
     total = len(qs)
-    text = (
-        f"❓ <b>Savol {idx + 1}/{total}</b>  {_bar(idx + 1, total)}\n"
-        f"{'─' * 28}\n\n{q['question']}"
-    )
-    send = target.answer if isinstance(target, Message) else target.message.answer
-    await send(text, reply_markup=_test_kb(q["options"]), parse_mode=HTML)
+    text = _question_text(idx + 1, total, q["question"])
+    kb = kb_test_options(q["options"])
+    if edit:
+        await msg.edit_text(text, reply_markup=kb, parse_mode=HTML)
+    else:
+        await msg.answer(text, reply_markup=kb, parse_mode=HTML)
 
 
 @router.callback_query(F.data.startswith("eng_ans_"))
@@ -276,23 +352,33 @@ async def cb_answer(cb: CallbackQuery):
 
     if is_ok:
         session["score"] += 1
-        result_line = "✅ <b>To'g'ri!</b>"
+        icon = "✅"
+        result_line = f"✅ <b>To'g'ri!</b>"
     else:
         session["wrong"].append(word)
+        icon = "❌"
         result_line = f"❌ <b>Noto'g'ri.</b> To'g'ri javob: <b>{q['correct']}</b>"
 
-    await cb.message.edit_reply_markup(reply_markup=None)
-    await cb.message.answer(
-        f"{result_line}\n\n💡 {q.get('explanation', '')}",
-        parse_mode=HTML,
+    # Show result in the same message, then after short delay show next question
+    total = len(session["questions"])
+    result_text = (
+        f"{icon} <b>Savol {idx + 1}/{total}</b>\n"
+        f"{'─' * 28}\n\n"
+        f"{result_line}\n\n"
+        f"💡 {q.get('explanation', '')}"
     )
+    await cb.message.edit_text(result_text, parse_mode=HTML)
 
     session["idx"] += 1
-    await asyncio.sleep(0.8)
-    await _send_question(cb, user_id)
+    await asyncio.sleep(1.2)
+
+    if session["idx"] >= total:
+        await _finish_test(cb.message, user_id)
+    else:
+        await _show_question(cb.message, user_id, edit=True)
 
 
-async def _finish_test(target, user_id: int):
+async def _finish_test(msg: Message, user_id: int):
     session = _test.pop(user_id, {})
     score = session.get("score", 0)
     wrong = session.get("wrong", [])
@@ -306,8 +392,10 @@ async def _finish_test(target, user_id: int):
 
     emoji = "🌟" if pct == 100 else "🎯" if pct >= 80 else "💪" if pct >= 60 else "📖"
     text = (
-        f"{emoji} <b>Test yakunlandi!</b>\n\n"
-        f"Natija: <b>{score}/5</b>  {_bar(pct, 100, 10)}  <b>{pct}%</b>\n\n"
+        f"{emoji} <b>Test yakunlandi!</b>\n"
+        f"{'─' * 28}\n\n"
+        f"Natija: <b>{score}/5</b>\n"
+        f"{_bar(pct, 100, 10)}  <b>{pct}%</b>\n\n"
         f"{feedback}"
     )
 
@@ -316,37 +404,47 @@ async def _finish_test(target, user_id: int):
         nxt = ai.next_level(level)
         if nxt:
             db.update_level(user_id, nxt)
-            text += f"\n\n🎉 <b>Tabriklayman! Siz {nxt} darajasiga o'tdingiz!</b>"
+            text += f"\n\n🎉 <b>Tabriklayman! {nxt} darajasiga o'tdingiz!</b>"
 
+    buttons = []
     if wrong:
-        text += "\n\n🔁 Xato so'zlarni mashq: /english_review"
+        buttons.append([InlineKeyboardButton(text="🔁  Xato so'zlarni mashq qil", callback_data="eng_review")])
+    buttons.append([InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")])
 
-    send = target.answer if isinstance(target, Message) else target.message.answer
-    await send(text, parse_mode=HTML)
+    await msg.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode=HTML)
 
 
-# ── /english_review ───────────────────────────────────────────────────────────
+# ── Review ────────────────────────────────────────────────────────────────────
 
-@router.message(Command("english_review"))
-async def cmd_review(msg: Message):
-    user_id = msg.from_user.id
+@router.callback_query(F.data == "eng_review")
+async def cb_review(cb: CallbackQuery):
+    await cb.answer()
+    user_id = cb.from_user.id
+
     if user_id in _test:
-        await msg.answer("⚠️ Avval joriy testni tugatib oling.")
+        await cb.answer("⚠️ Avval joriy testni tugatib oling!", show_alert=True)
         return
 
     words = db.get_words_for_review(user_id, limit=5)
     if not words:
-        await msg.answer(
-            "📭 Hali tekshiriladigan so'zlar yo'q.\n\n"
-            "Avval bir nechta dars o'ting: /english_lesson"
+        await cb.message.edit_text(
+            "📭 <b>Hali tekshiriladigan so'zlar yo'q.</b>\n\n"
+            "Avval bir nechta dars o'ting!",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📖  Darsga o'tish", callback_data="eng_lesson")],
+                [InlineKeyboardButton(text="🏠  Bosh menu", callback_data="eng_menu")],
+            ]),
+            parse_mode=HTML,
         )
         return
 
-    await msg.answer(
+    await cb.message.edit_text(
         f"🔁 <b>Takrorlash sessiyasi</b>\n\n"
-        f"Eng ko'p xato qilingan <b>{len(words)}</b> ta so'z...",
+        f"Eng ko'p xato qilingan <b>{len(words)}</b> ta so'z...\n"
+        f"⚡ Savollar tayyorlanmoqda...",
         parse_mode=HTML,
     )
+
     try:
         result = ai.generate_test(words)
         _test[user_id] = {
@@ -355,20 +453,24 @@ async def cmd_review(msg: Message):
             "score": 0,
             "wrong": [],
         }
-        await _send_question(msg, user_id)
+        await _show_question(cb.message, user_id, edit=True)
     except Exception as e:
         log.error("review error: %s", e)
-        await msg.answer("❌ Xatolik. Qayta urinib ko'ring.")
+        await cb.message.edit_text(
+            "❌ Xatolik. Qayta urinib ko'ring.",
+            reply_markup=kb_back_menu(),
+        )
 
 
-# ── /english_progress ─────────────────────────────────────────────────────────
+# ── Progress ──────────────────────────────────────────────────────────────────
 
-@router.message(Command("english_progress"))
-async def cmd_progress(msg: Message):
-    user_id = msg.from_user.id
+@router.callback_query(F.data == "eng_progress")
+async def cb_progress(cb: CallbackQuery):
+    await cb.answer()
+    user_id = cb.from_user.id
     user = db.get_user(user_id)
     if not user:
-        await msg.answer("Avval /english_start bosing!")
+        await cb.message.edit_text("Iltimos /start bosing.")
         return
 
     stats = db.get_stats(user_id)
@@ -379,20 +481,31 @@ async def cmd_progress(msg: Message):
     streak = stats["streak"]
     streak_txt = f"🔥 {streak} kunlik seriya!" if streak > 1 else "🌱 Seriyani boshlang!"
 
-    await msg.answer(
-        f"📊 <b>Sizning statistikangiz</b>\n{'─' * 28}\n\n"
+    cefr_progress = {
+        "A1": "░░░░░░░░ → A2 → B1 → B2",
+        "A2": "███░░░░░ → B1 → B2",
+        "B1": "█████░░░ → B2",
+        "B2": "████████ Maqsadga erishdingiz! 🎓",
+    }
+
+    await cb.message.edit_text(
+        f"📊 <b>Sizning statistikangiz</b>\n"
+        f"{'─' * 28}\n\n"
         f"🏆  Daraja: <b>{level}</b>\n"
+        f"<code>{cefr_progress.get(level, '')}</code>\n\n"
         f"📚  O'rganilgan so'zlar: <b>{stats['total_words']}</b>\n"
         f"✅  Yakunlangan darslar: <b>{stats['done_lessons']}</b>\n"
-        f"🎯  O'rtacha ball: <b>{stats['avg_score']}%</b>\n"
+        f"🎯  O'rtacha test bali: <b>{stats['avg_score']}%</b>\n"
         f"{streak_txt}\n\n"
-        f"<b>Keyingi darajaga:</b>\n"
-        f"{_bar(pct_lvl, 100, 10)}  {pct_lvl}%  ({stats['total_words']}/{target})",
+        f"<b>Keyingi darajaga progress:</b>\n"
+        f"{_bar(pct_lvl, 100, 10)}  <b>{pct_lvl}%</b>\n"
+        f"({stats['total_words']}/{target} so'z)",
+        reply_markup=kb_back_menu(),
         parse_mode=HTML,
     )
 
 
-# ── Scheduler jobs ────────────────────────────────────────────────────────────
+# ── Scheduled jobs ────────────────────────────────────────────────────────────
 
 async def _morning_job(bot: Bot):
     for user in db.get_all_users():
@@ -409,9 +522,11 @@ async def _morning_job(bot: Bot):
                 chat_id=uid,
                 text=(
                     f"🌅 <b>Xayrli tong!</b>\n\n"
-                    f"✨ {lesson.get('intro', 'Bugungi dars tayyor!')}\n\n"
-                    f"👉 /english_lesson"
+                    f"✨ {lesson.get('intro', 'Bugungi dars tayyor!')}"
                 ),
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="📖  Darsni boshlash", callback_data="eng_lesson")],
+                ]),
                 parse_mode=HTML,
             )
         except Exception as e:
@@ -426,20 +541,20 @@ async def _evening_job(bot: Bot):
             if lesson and not lesson["completed"]:
                 await bot.send_message(
                     chat_id=uid,
-                    text=(
-                        "🌙 <b>Test vaqti!</b>\n\n"
-                        "Bugungi so'zlarni sinab ko'rish: /english_test"
-                    ),
+                    text="🌙 <b>Test vaqti!</b>\n\nBugungi so'zlarni sinab ko'rish vaqti keldi 💪",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="📝  Testni boshlash", callback_data="eng_test")],
+                    ]),
                     parse_mode=HTML,
                 )
         except Exception as e:
             log.error("evening job uid=%s: %s", uid, e)
 
 
-# ── Entry point (called from telegram_bot/bot.py) ────────────────────────────
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 async def english_bot_polling():
-    """Run the English Teacher bot. Imported and called by telegram_bot/bot.py."""
+    """Called from telegram_bot/bot.py — runs as 3rd parallel task."""
     token = os.getenv("ENGLISH_BOT_TOKEN")
     if not token:
         log.info("ENGLISH_BOT_TOKEN topilmadi — English Teacher bot o'chirildi.")
@@ -461,5 +576,5 @@ async def english_bot_polling():
         try:
             await dp.start_polling(bot, handle_signals=False)
         except Exception as err:
-            log.error("English Teacher Bot polling error: %s", err)
+            log.error("English Teacher Bot error: %s", err)
             await asyncio.sleep(10)
