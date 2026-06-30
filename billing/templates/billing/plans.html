@@ -5,7 +5,7 @@
 {% block body_class %}billing-plans-page sa-fullpage{% endblock %}
 
 {% block extra_css %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-v3">
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
 {% endblock %}
 
 {% block content %}
@@ -32,12 +32,9 @@
   /* ═══════════════════════════════════════════
      PAGE WRAPPER
   ═══════════════════════════════════════════ */
-  .sa-subnav-wrap {
-    padding: 24px 0 0;
-  }
   .plans-page {
     min-height: 100vh;
-    padding: 16px 0 60px;
+    padding: 32px 0 60px;
   }
 
   /* ═══════════════════════════════════════════
@@ -883,7 +880,6 @@
   }
 </style>
 
-<div class="sa-subnav-wrap">{% include "partials/sa_subnav.html" %}</div>
 <div class="plans-page">
   <div class="container">
 

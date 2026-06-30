@@ -26,3 +26,4 @@ google-auth-oauthlib>=1.2.0
 djangorestframework
 drf-spectacular
 sentry-sdk[django]
+anthropic>=0.34.0

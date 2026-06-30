@@ -223,33 +223,90 @@
     ================================ -->
     {% if request.user.is_superuser and not request.center %}
 
-    <div class="sidebar-section-label sidebar-title center-name">GLOBAL MANAGEMENT</div>
+    <!-- PLATFORM -->
+    <div class="sidebar-section-label">PLATFORM</div>
 
     <a href="{% url 'platform_global:superadmin_dashboard' %}"
       class="sidebar-item {% if vn == 'platform_global:superadmin_dashboard' %}active{% endif %}"
-      data-title="Global Stats">
-      <span class="si-ico"><i class="fa-solid fa-earth-americas"></i></span>
-      <span class="si-text">Global Panel</span>
+      data-title="Dashboard">
+      <span class="si-ico"><i class="bi bi-grid-1x2-fill"></i></span>
+      <span class="si-text">Dashboard</span>
     </a>
 
+    <a href="{% url 'platform_global:center_create' %}"
+      class="sidebar-item {% if vn == 'platform_global:center_create' %}active{% endif %}"
+      data-title="Yangi Markaz">
+      <span class="si-ico"><i class="bi bi-building-add"></i></span>
+      <span class="si-text">Yangi Markaz</span>
+    </a>
 
+    <a href="{% url 'core:analytics_dashboard' %}"
+      class="sidebar-item {% if 'analytics_dashboard' in vn %}active{% endif %}"
+      data-title="Analitika">
+      <span class="si-ico"><i class="bi bi-bar-chart-line-fill"></i></span>
+      <span class="si-text">Analitika</span>
+    </a>
 
-    <a href="{% url 'platform_global:plans_ui' %}" class="sidebar-item {% if '/plans' in p %}active{% endif %}"
+    <!-- MARKETING -->
+    <div class="sidebar-section-label sb-label-spaced">MARKETING</div>
+
+    <a href="{% url 'platform_global:marketing:demo_lead_list' %}"
+      class="sidebar-item {% if 'marketing:demo_lead' in vn %}active{% endif %}"
+      data-title="Demo So'rovlari">
+      <span class="si-ico"><i class="bi bi-telephone-inbound-fill"></i></span>
+      <span class="si-text">Demo So'rovlari</span>
+    </a>
+
+    <a href="{% url 'platform_global:marketing:pricing_plan_list' %}"
+      class="sidebar-item {% if 'marketing:pricing_plan' in vn or 'marketing:pricing_feature' in vn %}active{% endif %}"
       data-title="Tariflar">
-      <span class="si-ico"><i class="fa-solid fa-box-open"></i></span>
+      <span class="si-ico"><i class="bi bi-cash-coin"></i></span>
       <span class="si-text">Tariflar</span>
     </a>
 
-    <a href="{% url 'platform_global:promos_ui' %}" class="sidebar-item {% if '/promos' in p %}active{% endif %}"
-      data-title="Promokodlar">
-      <span class="si-ico"><i class="fa-solid fa-tags"></i></span>
-      <span class="si-text">Promokodlar</span>
+    <a href="{% url 'platform_global:marketing:feature_list' %}"
+      class="sidebar-item {% if 'marketing:feature' in vn or 'marketing:center' in vn %}active{% endif %}"
+      data-title="Xususiyatlar">
+      <span class="si-ico"><i class="bi bi-toggles"></i></span>
+      <span class="si-text">Xususiyatlar</span>
     </a>
 
-    <a href="{% url 'platform_global:marketing:dashboard' %}"
-      class="sidebar-item {% if '/platform/marketing' in p %}active{% endif %}" data-title="Marketing">
-      <span class="si-ico"><i class="fa-solid fa-bullhorn"></i></span>
-      <span class="si-text">Marketing</span>
+    <a href="{% url 'platform_global:marketing:faq_list' %}"
+      class="sidebar-item {% if 'marketing:faq' in vn %}active{% endif %}"
+      data-title="FAQ">
+      <span class="si-ico"><i class="bi bi-question-circle-fill"></i></span>
+      <span class="si-text">FAQ</span>
+    </a>
+
+    <a href="{% url 'platform_global:marketing:testimonial_list' %}"
+      class="sidebar-item {% if 'marketing:testimonial' in vn %}active{% endif %}"
+      data-title="Testimoniallar">
+      <span class="si-ico"><i class="bi bi-chat-quote-fill"></i></span>
+      <span class="si-text">Testimoniallar</span>
+    </a>
+
+    <a href="{% url 'platform_global:marketing:site_settings' %}"
+      class="sidebar-item {% if 'marketing:site_settings' in vn or 'marketing:site_hero' in vn or 'marketing:partner_logo' in vn or 'marketing:screenshot' in vn or 'marketing:support_card' in vn or 'marketing:vacancy' in vn or 'marketing:static_page' in vn %}active{% endif %}"
+      data-title="Sozlamalar">
+      <span class="si-ico"><i class="bi bi-sliders2"></i></span>
+      <span class="si-text">Sozlamalar</span>
+    </a>
+
+    <!-- BILLING -->
+    <div class="sidebar-section-label sb-label-spaced">BILLING</div>
+
+    <a href="{% url 'platform_global:plans_ui' %}"
+      class="sidebar-item {% if vn == 'platform_global:plans_ui' %}active{% endif %}"
+      data-title="Tarif Planlari">
+      <span class="si-ico"><i class="bi bi-box-seam"></i></span>
+      <span class="si-text">Tarif Planlari</span>
+    </a>
+
+    <a href="{% url 'platform_global:promos_ui' %}"
+      class="sidebar-item {% if vn == 'platform_global:promos_ui' %}active{% endif %}"
+      data-title="Promokodlar">
+      <span class="si-ico"><i class="bi bi-ticket-perforated"></i></span>
+      <span class="si-text">Promokodlar</span>
     </a>
 
     <div class="sidebar-bottom p-0 mt-3 border-top border-secondary pt-2">
@@ -2031,6 +2088,9 @@
     padding: 0 12px;
     margin-top: 4px;
     opacity: 0.8;
+  }
+  .sidebar-section-label.sb-label-spaced {
+    margin-top: 14px;
   }
 
   .sidebar-scroll::before {

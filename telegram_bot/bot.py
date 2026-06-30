@@ -3,8 +3,12 @@ import sys
 import asyncio
 import logging
 
-# Add current directory to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add project root to path so english_teacher package is importable
+_BOT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_BOT_DIR)
+sys.path.append(_BOT_DIR)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
@@ -15,6 +19,12 @@ from handlers import admin_panel, linked_users, broadcast, admins, parents, sett
 from handlers import student, teacher, parent, manager, branch_approval
 from handlers import family_onboarding
 from services.scheduler import setup_scheduler
+
+try:
+    from english_teacher.bot import english_bot_polling
+except Exception as _eng_import_err:
+    english_bot_polling = None
+    logging.error("English Teacher bot o'chirildi (import xatosi): %s", _eng_import_err)
 
 try:
     from backup.backup_service import setup_backup_scheduler, router as backup_router
@@ -141,7 +151,7 @@ async def main():
     print("✅ All Schedulers started.")
 
 
-    # 3. Start polling — main bot va Family bot parallel
+    # 3. Start polling — main bot, Family bot va English Teacher bot parallel
     print("🤖 Bot Polling is starting NOW...")
     logging.info("🤖 Starting Bot Polling loop(s)...")
     tasks = [_main_bot_polling()]
@@ -150,6 +160,11 @@ async def main():
         logging.info("👨‍👩‍👧 Family bot enabled (BOT_TOKEN_FAMILY mavjud)")
     else:
         logging.info("👨‍👩‍👧 Family bot disabled (BOT_TOKEN_FAMILY topilmadi)")
+    if english_bot_polling is not None and os.getenv("ENGLISH_BOT_TOKEN"):
+        tasks.append(english_bot_polling())
+        logging.info("📚 English Teacher bot enabled (ENGLISH_BOT_TOKEN mavjud)")
+    else:
+        logging.info("📚 English Teacher bot disabled (ENGLISH_BOT_TOKEN topilmadi)")
     await asyncio.gather(*tasks, return_exceptions=True)
 
 

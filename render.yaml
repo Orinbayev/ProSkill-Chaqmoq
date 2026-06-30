@@ -84,6 +84,15 @@ services:
       - key: BACKUP_BOT_TOKEN
         sync: false
 
+      # ── English Teacher Bot ────────────────────────────────────────────────
+      # @BotFather dan alohida bot yarating va tokenini kiriting
+      - key: ENGLISH_BOT_TOKEN
+        sync: false
+
+      # Anthropic Claude API (english teacher uchun)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
       - key: TELEGRAM_GROUP_ID
         sync: false
 
