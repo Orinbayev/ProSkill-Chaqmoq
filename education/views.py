@@ -1166,7 +1166,12 @@ def create_payment(request):
 
     if enrollment_id:
         qs = Enrollment.objects.all()
-        if center: qs = qs.filter(center=center)
+        if center:
+            qs = qs.filter(
+                Q(center=center)
+                | Q(center__isnull=True, group__center=center)
+                | Q(center__isnull=True, student__center=center)
+            )
         enrollment = get_object_or_404(qs, id=enrollment_id)
 
         # Double-submit himoyasi: oxirgi 60 sekundda shu enrollment uchun
@@ -1210,7 +1215,16 @@ def create_payment(request):
     elif student_id:
         # ✅ CONSOLIDATED DISTRIBUTION LOGIC
         user_qs = User.objects.filter(role="student")
-        if center: user_qs = user_qs.filter(center=center)
+        if center:
+            _enr_cq = (
+                Q(center=center)
+                | Q(center__isnull=True, group__center=center)
+                | Q(center__isnull=True, student__center=center)
+            )
+            user_qs = user_qs.filter(
+                Q(center=center)
+                | Q(pk__in=Enrollment.objects.filter(_enr_cq).values("student_id"))
+            )
         student = get_object_or_404(user_qs, id=student_id)
         
         # Faol enrollment'lar
@@ -1556,7 +1570,11 @@ def enrollment_edit(request, enrollment_id):
     center = get_active_center(request)
     qs = Enrollment.objects.select_related("student", "group", "group__category_obj", "course")
     if center:
-        qs = qs.filter(center=center)
+        qs = qs.filter(
+            Q(center=center)
+            | Q(center__isnull=True, group__center=center)
+            | Q(center__isnull=True, student__center=center)
+        )
 
     enr = get_object_or_404(qs, id=enrollment_id)
     student_enrollments = list(
@@ -11789,7 +11807,15 @@ def student_monthly_breakdown(request, student_id):
 
     user_qs = User.objects.filter(role="student")
     if center:
-        user_qs = user_qs.filter(center=center)
+        _enr_cq = (
+            Q(center=center)
+            | Q(center__isnull=True, group__center=center)
+            | Q(center__isnull=True, student__center=center)
+        )
+        user_qs = user_qs.filter(
+            Q(center=center)
+            | Q(pk__in=Enrollment.objects.filter(_enr_cq).values("student_id"))
+        )
     student = get_object_or_404(user_qs, id=student_id)
 
     from django.db.models import Q as _Q
