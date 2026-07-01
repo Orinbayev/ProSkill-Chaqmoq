@@ -1567,7 +1567,7 @@ def _first_day_of_month(d: date) -> date:
 @transaction.atomic
 def enrollment_edit(request, enrollment_id):
     center = get_active_center(request)
-    qs = Enrollment.objects.select_related("student", "group", "group__category_obj", "course")
+    qs = Enrollment.all_objects.select_related("student", "group", "group__category_obj", "course")
     if center:
         qs = qs.filter(
             Q(center=center)
@@ -1576,8 +1576,16 @@ def enrollment_edit(request, enrollment_id):
         )
 
     enr = get_object_or_404(qs, id=enrollment_id)
+    # student_enrollments uchun faqat o'chirilmagan (is_deleted=False) aktiv enrollmentlar
+    active_qs = Enrollment.objects.select_related("student", "group", "group__category_obj", "course")
+    if center:
+        active_qs = active_qs.filter(
+            Q(center=center)
+            | Q(center__isnull=True, group__center=center)
+            | Q(center__isnull=True, student__center=center)
+        )
     student_enrollments = list(
-        qs.filter(
+        active_qs.filter(
             student=enr.student,
             is_active=True,
             student__is_archived=False,
