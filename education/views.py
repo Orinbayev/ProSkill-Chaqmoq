@@ -11803,7 +11803,9 @@ def delete_student_month(request, student_id):
                     alloc.is_deleted = True
                     alloc.save(update_fields=["is_deleted"])
             tm.is_deleted = True
-            tm.save(update_fields=["is_deleted"])
+            tm.deleted_reason = "manual_cleared"
+            tm.deleted_at = timezone.now()
+            tm.save(update_fields=["is_deleted", "deleted_reason", "deleted_at"])
 
     return JsonResponse({"ok": True})
 

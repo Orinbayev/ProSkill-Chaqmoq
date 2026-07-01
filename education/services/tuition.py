@@ -1641,12 +1641,10 @@ def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) ->
     )
 
     existing_months = list(
-        TuitionMonth.all_objects.filter(enrollment=enrollment, month__gte=start_month).order_by("month")
+        TuitionMonth.objects.filter(enrollment=enrollment, month__gte=start_month).order_by("month")
     )
 
     for tm in existing_months:
-        if tm.is_deleted:
-            tm.restore()
         target_fee = int(
             _prorated_monthly_fee_from_amount(enrollment, tm.month, effective_amount) or 0
         )
