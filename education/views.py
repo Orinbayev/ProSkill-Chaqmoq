@@ -1609,6 +1609,18 @@ def enrollment_edit(request, enrollment_id):
         preview_month = _preview_month_for_start_date(enrollment_start_date(active_enrollment), start_month)
         pricing_preview = tuition_month_preview(active_enrollment, preview_month)
 
+        # Tugash sanasi: saqlangan last_lesson_date ni ishlatamiz.
+        # Agar u bu oyning ichida bo'lsa — preview'ni ham shunga moslaymiz,
+        # shunda forma ochilganda dars soni va to'lov to'g'ri ko'rinadi.
+        _billing_month_start = month_first_day(pricing_preview["month"])
+        _billing_month_end = month_last_day(pricing_preview["month"])
+        _saved_end = getattr(active_enrollment, "last_lesson_date", None)
+        if _saved_end and _billing_month_start <= _saved_end < _billing_month_end:
+            pricing_preview = _apply_period_end_to_preview(pricing_preview, _saved_end)
+            _period_end_date = _saved_end
+        else:
+            _period_end_date = _billing_month_end
+
         # Joriy oy to'langan/to'lanmagan holatini tekshiramiz
         _month_paid = int(get_month_paid(active_enrollment, preview_month) or 0)
         _fee = int(pricing_preview.get("fee_amount", 0) or 0)
@@ -1704,7 +1716,7 @@ def enrollment_edit(request, enrollment_id):
             "selected_lesson_pattern": pricing_preview["lesson_pattern"],
             "remaining_lessons_value": remaining_lessons_value,
             "lesson_plan": lesson_plan,
-            "period_end_date": month_last_day(pricing_preview["month"]),
+            "period_end_date": _period_end_date,
             "course_price_display": format_money(active_enrollment.kurs_narhi),
             "enrollment_catalog": enrollment_catalog,
         }
