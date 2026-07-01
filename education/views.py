@@ -541,7 +541,11 @@ def calculate_lessons_api(request):
         if enrollment_id:
             enrollment_qs = Enrollment.objects.select_related("group", "group__category_obj", "student", "course")
             if center:
-                enrollment_qs = enrollment_qs.filter(center=center)
+                enrollment_qs = enrollment_qs.filter(
+                    Q(center=center)
+                    | Q(center__isnull=True, group__center=center)
+                    | Q(center__isnull=True, student__center=center)
+                )
             enrollment = enrollment_qs.filter(id=enrollment_id).first()
             if enrollment is None:
                 return JsonResponse({"success": False, "error": "Enrollment topilmadi."}, status=400)
@@ -654,7 +658,7 @@ def calculate_lessons_api(request):
             teacher_percent=teacher_percent,
             student_payable_amount=student_payable_amount,
         )
-        preview_month = _preview_month_for_start_date(start_date)
+        preview_month = month_first_day(timezone.localdate())
         preview = tuition_month_preview(preview_enrollment, preview_month)
         period_end = _parse_period_end(payload.get("period_end_date") or payload.get("end_date"), preview["month"])
         preview = _apply_period_end_to_preview(preview, period_end)
@@ -1606,10 +1610,12 @@ def enrollment_edit(request, enrollment_id):
         pricing_preview = tuition_month_preview(active_enrollment, preview_month)
 
         # Tugash sanasi: saqlangan last_lesson_date ni ko'rsatamiz.
-        # Agar set bo'lgan bo'lsa — preview'ni ham shunga moslaymiz (joriy oy uchun).
+        # Faqat joriy billing oyi yoki kelajakdagi sana bo'lsa ishlatamiz —
+        # o'tgan oydagi eski noto'g'ri qiymatlar e'tiborga olinmaydi.
+        _billing_month_start = month_first_day(pricing_preview["month"])
         _billing_month_end = month_last_day(pricing_preview["month"])
         _saved_end = getattr(active_enrollment, "last_lesson_date", None)
-        if _saved_end:
+        if _saved_end and _saved_end >= _billing_month_start:
             pricing_preview = _apply_period_end_to_preview(pricing_preview, _saved_end)
             _period_end_date = _saved_end
         else:
