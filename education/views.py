@@ -539,7 +539,7 @@ def calculate_lessons_api(request):
 
         enrollment = None
         if enrollment_id:
-            enrollment_qs = Enrollment.objects.select_related("group", "group__category_obj", "student", "course")
+            enrollment_qs = Enrollment.all_objects.select_related("group", "group__category_obj", "student", "course")
             if center:
                 enrollment_qs = enrollment_qs.filter(
                     Q(center=center)
@@ -2084,7 +2084,7 @@ def enrollment_delete(request, enrollment_id: int):
 
     # from core.tenant import get_request_center
     center = get_active_center(request)
-    qs = Enrollment.objects.select_related("student", "group")
+    qs = Enrollment.all_objects.select_related("student", "group")
     if center:
         qs = qs.filter(
             Q(center=center)
