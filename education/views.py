@@ -11636,7 +11636,7 @@ def edit_student_month_debt(request, student_id):
         enrollment__in=enrollments_for_student,
         month=month_date,
         is_deleted=False,
-    ).prefetch_related(
+    ).select_related("enrollment").prefetch_related(
         Prefetch(
             "allocations",
             queryset=PaymentAllocation.objects.filter(payment__is_deleted=False),
@@ -11735,6 +11735,23 @@ def edit_student_month_debt(request, student_id):
         for i in range(1, len(tms)):
             setattr(tms[i], fee_field, paid_per_tm[i])
             tms[i].save(update_fields=[fee_field])
+
+        # Inactive enrollment uchun new_debt=0: _etm qayta hisoblashining oldini
+        # olish uchun TuitionMonth ni manual_cleared bilan soft-delete qilamiz.
+        # Aks holda keyingi sahifa yuklanishida _etm davomat asosida fee ni
+        # qayta tiklaydi (chiqarilgan o'quvchi uchun noto'g'ri).
+        if new_debt == 0 and total_paid_now == 0:
+            for tm in tms:
+                _enr = tm.enrollment
+                _is_inactive = (
+                    not getattr(_enr, "is_active", True)
+                    or getattr(_enr, "is_deleted", False)
+                )
+                if _is_inactive:
+                    tm.is_deleted = True
+                    tm.deleted_reason = "manual_cleared"
+                    tm.deleted_at = timezone.now()
+                    tm.save(update_fields=["is_deleted", "deleted_reason", "deleted_at"])
 
     # DB dan haqiqiy qiymatni o'qiymiz (Python object qiymatiga ishonmaymiz)
     tms[0].refresh_from_db(fields=[fee_field])
