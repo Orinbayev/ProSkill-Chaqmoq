@@ -2078,7 +2078,11 @@ def enrollment_delete(request, enrollment_id: int):
     center = get_active_center(request)
     qs = Enrollment.objects.select_related("student", "group")
     if center:
-        qs = qs.filter(center=center)
+        qs = qs.filter(
+            Q(center=center)
+            | Q(center__isnull=True, group__center=center)
+            | Q(center__isnull=True, student__center=center)
+        )
 
     enr = get_object_or_404(qs, id=enrollment_id)
     next_url = request.GET.get("next") or request.POST.get("next") or "education:tolovlar_home"
@@ -2175,7 +2179,19 @@ def enrollment_delete(request, enrollment_id: int):
                     f"{student_name} ({group_name}) guruhda qoldi.",
                 )
         else:
-            enr.delete(deleted_by=request.user)
+            with transaction.atomic():
+                TuitionMonth.objects.filter(
+                    enrollment=enr, is_deleted=False
+                ).update(
+                    is_deleted=True,
+                    deleted_at=timezone.now(),
+                    deleted_by=request.user,
+                    deleted_reason="manual_cleared",
+                )
+                PaymentAllocation.objects.filter(
+                    tuition_month__enrollment=enr, is_deleted=False
+                ).update(is_deleted=True, deleted_at=timezone.now(), deleted_by=request.user)
+                enr.delete(deleted_by=request.user)
             messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o'chirildi.")
         return redirect(next_url)
 
