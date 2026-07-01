@@ -395,17 +395,14 @@ def _apply_period_end_to_preview(preview: dict, period_end: date | None) -> dict
     if not period_end:
         return preview
     adjusted = dict(preview)
-    month_start = month_first_day(preview["month"])
-    month_end = month_last_day(month_start)
-    effective_period_end = min(max(period_end, month_start), month_end)
     lesson_dates = [
         lesson_date
         for lesson_date in preview.get("lesson_dates", [])
-        if lesson_date <= effective_period_end
+        if lesson_date <= period_end
     ]
     adjusted.update(
         {
-            "period_end_date": effective_period_end,
+            "period_end_date": period_end,
             "lesson_dates": lesson_dates,
             "lesson_date_labels": [lesson_date.strftime("%d.%m.%Y") for lesson_date in lesson_dates],
             "lesson_count": len(lesson_dates),
@@ -446,9 +443,7 @@ def _parse_period_end(value, fallback_month: date) -> date:
     parsed = parse_date((value or "").strip()) if value not in (None, "") else None
     if parsed is None:
         return month_last_day(fallback_month)
-    month_start = month_first_day(fallback_month)
-    month_end = month_last_day(month_start)
-    return min(max(parsed, month_start), month_end)
+    return parsed
 
 
 def _build_tuition_preview_enrollment(
@@ -1606,16 +1601,15 @@ def enrollment_edit(request, enrollment_id):
         return enrollment_map.get(candidate_id) or enr
 
     def _build_edit_context(active_enrollment, *, teacher_share_only_checked: bool):
-        preview_month = _preview_month_for_start_date(enrollment_start_date(active_enrollment), start_month)
+        # preview_month: URL'dagi ?month= yoki joriy oy (enrollment boshlanish oyiga bog'liq emas)
+        preview_month = start_month
         pricing_preview = tuition_month_preview(active_enrollment, preview_month)
 
-        # Tugash sanasi: saqlangan last_lesson_date ni ishlatamiz.
-        # Agar u bu oyning ichida bo'lsa — preview'ni ham shunga moslaymiz,
-        # shunda forma ochilganda dars soni va to'lov to'g'ri ko'rinadi.
-        _billing_month_start = month_first_day(pricing_preview["month"])
+        # Tugash sanasi: saqlangan last_lesson_date ni ko'rsatamiz.
+        # Agar set bo'lgan bo'lsa — preview'ni ham shunga moslaymiz (joriy oy uchun).
         _billing_month_end = month_last_day(pricing_preview["month"])
         _saved_end = getattr(active_enrollment, "last_lesson_date", None)
-        if _saved_end and _billing_month_start <= _saved_end < _billing_month_end:
+        if _saved_end:
             pricing_preview = _apply_period_end_to_preview(pricing_preview, _saved_end)
             _period_end_date = _saved_end
         else:
@@ -1803,7 +1797,7 @@ def enrollment_edit(request, enrollment_id):
         )
         preview = tuition_month_preview(
             preview_enrollment,
-            _preview_month_for_start_date(joined_at, start_month),
+            start_month,
         )
         period_end = _parse_period_end(
             request.GET.get("period_end_date") or request.GET.get("end_date"),
@@ -1949,7 +1943,7 @@ def enrollment_edit(request, enrollment_id):
         )
         preview = tuition_month_preview(
             preview_enrollment,
-            _preview_month_for_start_date(active_enrollment.joined_at, start_month),
+            start_month,
         )
         period_end = _parse_period_end(
             request.POST.get("period_end_date") or request.POST.get("end_date"),
@@ -1973,7 +1967,9 @@ def enrollment_edit(request, enrollment_id):
             from_date=timezone.localdate(),
             group=selected_group,
         )
-        active_enrollment.last_lesson_date = lesson_plan["last_lesson_date"]
+        # period_end ni to'g'ridan-to'g'ri saqlaymiz (lesson_plan oxirgi sanasi emas,
+        # chunki period_end kelajak oyda bo'lishi mumkin)
+        active_enrollment.last_lesson_date = period_end
 
         try:
             active_enrollment.full_clean()
