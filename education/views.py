@@ -11815,6 +11815,19 @@ def edit_student_month_debt(request, student_id):
             setattr(tms[i], fee_field, paid_per_tm[i])
             tms[i].save(update_fields=[fee_field])
 
+        # Foydalanuvchi qo'lda o'rnatgan fee ni _etm (ensure_tuition_month) qayta
+        # yozib tashlaydi (schedule asosida hisoblaydi) — shu to'g'ri yozuvni
+        # himoyalamiz: deleted_reason = "user_edit" => _etm bu TMni o'tkazib yuboradi.
+        _protect_ids = set()
+        for tm in tms:
+            _cur_reason = getattr(tm, "deleted_reason", None) or ""
+            if _cur_reason not in ("manual_cleared",) and not _cur_reason.startswith(
+                ("cleanup_", "move_future_", "reset_", "user_edit")
+            ):
+                tm.deleted_reason = "user_edit"
+                tm.save(update_fields=["deleted_reason"])
+                _protect_ids.add(tm.id)
+
         # Inactive enrollment uchun new_debt=0: _etm qayta hisoblashining oldini
         # olish uchun TuitionMonth ni manual_cleared bilan soft-delete qilamiz.
         # Aks holda keyingi sahifa yuklanishida _etm davomat asosida fee ni

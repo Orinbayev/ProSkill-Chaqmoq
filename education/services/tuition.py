@@ -1437,6 +1437,7 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
         or _protected_reason.startswith("cleanup_")
         or _protected_reason.startswith("move_future_")
         or _protected_reason.startswith("reset_")
+        or _protected_reason.startswith("user_edit")
     )
 
     if not created and tm.is_deleted:
