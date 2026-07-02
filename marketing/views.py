@@ -1423,6 +1423,19 @@ def privacy(request, lang_code=None):
     return _render_marketing(request, "marketing/privacy.html", context)
 
 
+def data_deletion(request, lang_code=None):
+    """Google Play Data safety uchun: ma'lumotlarni o'chirish so'rovi sahifasi."""
+    context = _base_context(request, lang_code)
+    context.update({"active_menu": "privacy", "page_title": "Ma'lumotlarni o'chirish"})
+    _set_page_meta(
+        context,
+        f"Ma'lumotlarni o'chirish | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        "ChaqmoqApp ilovasi va platformasidan shaxsiy ma'lumotlarni o'chirtirish tartibi.",
+        breadcrumb_label="Ma'lumotlarni o'chirish",
+    )
+    return _render_marketing(request, "marketing/data_deletion.html", context)
+
+
 def terms(request, lang_code=None):
     context = _base_context(request, lang_code)
     lang = context["current_lang"]

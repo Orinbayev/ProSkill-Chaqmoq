@@ -1,0 +1,67 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}Ma'lumotlarni o'chirish | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>Ma'lumotlarni o'chirish so'rovi / Data Deletion Request</h1>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container legal-shell reveal-up">
+        <h2>O'zbekcha</h2>
+        <p><strong>ChaqmoqApp</strong> ilovasi va platformasidan shaxsiy ma'lumotlaringizni
+        o'chirtirish uchun quyidagi qadamlarni bajaring:</p>
+        <ol>
+            <li>Quyidagi manzilga elektron xat yuboring: <strong>pragrammeruzz@gmail.com</strong></li>
+            <li>Xat mavzusiga <strong>"Ma'lumotlarni o'chirish"</strong> deb yozing</li>
+            <li>Xatda ilovada ro'yxatdan o'tgan <strong>email manzilingiz yoki telefon raqamingizni</strong> ko'rsating</li>
+        </ol>
+        <p>Yoki o'zingiz tahsil olayotgan / farzandingiz o'qiyotgan o'quv markaziga bevosita murojaat
+        qilishingiz mumkin — markaz administratori hisobingizni o'chirib beradi.</p>
+
+        <h3>Qanday ma'lumotlar o'chiriladi</h3>
+        <ul>
+            <li>Ism-familiya, email manzil, telefon raqam(lar)</li>
+            <li>Hisob (akkaunt) va unga bog'liq profil ma'lumotlari</li>
+            <li>Davomat va o'quv faoliyati tarixi</li>
+        </ul>
+
+        <h3>Qanday ma'lumotlar saqlanib qolishi mumkin</h3>
+        <ul>
+            <li>Moliyaviy hujjatlar (to'lov yozuvlari) — qonunchilik talablari bo'yicha
+            buxgalteriya hisobi uchun 3 yilgacha saqlanishi mumkin, shundan so'ng o'chiriladi</li>
+        </ul>
+        <p>So'rovingiz <strong>30 kun ichida</strong> ko'rib chiqiladi va bajariladi.</p>
+
+        <hr>
+
+        <h2>English</h2>
+        <p>To request deletion of your personal data from the <strong>ChaqmoqApp</strong> app
+        and platform, follow these steps:</p>
+        <ol>
+            <li>Send an email to: <strong>pragrammeruzz@gmail.com</strong></li>
+            <li>Use the subject line <strong>"Data Deletion Request"</strong></li>
+            <li>Include the <strong>email address or phone number</strong> registered in the app</li>
+        </ol>
+        <p>Alternatively, you may contact your education center directly — the center
+        administrator can delete your account.</p>
+
+        <h3>Data that will be deleted</h3>
+        <ul>
+            <li>Full name, email address, phone number(s)</li>
+            <li>Account and related profile data</li>
+            <li>Attendance and learning activity history</li>
+        </ul>
+
+        <h3>Data that may be retained</h3>
+        <ul>
+            <li>Financial records (payment history) may be retained for up to 3 years
+            for accounting and legal compliance, after which they are deleted</li>
+        </ul>
+        <p>Requests are processed within <strong>30 days</strong>.</p>
+    </div>
+</section>
+{% endblock %}
