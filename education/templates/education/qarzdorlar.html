@@ -748,6 +748,19 @@ tr.row-deferred {
 }
 .breakdown-delete-btn:hover { border-color: #ef4444; background: rgba(239,68,68,0.10); }
 
+/* ── To'lovlarni bekor qilish tugmasi ── */
+.breakdown-reset-btn {
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(245,158,11,0.4);
+    background: transparent;
+    color: #f59e0b;
+    cursor: pointer;
+    font-size: 11px;
+    transition: border-color .15s, background .15s;
+}
+.breakdown-reset-btn:hover { border-color: #f59e0b; background: rgba(245,158,11,0.10); }
+
 /* ── Kelajak oy o'chirish confirm modal ── */
 #deleteMonthModal .modal-dialog { max-width: 400px; }
 #deleteMonthModal .modal-content { border-radius: 20px; border: 1px solid rgba(239,68,68,0.25); overflow: hidden; }
@@ -1009,6 +1022,34 @@ tr.row-deferred {
                 <button type="button" class="pv2-btn-save" id="efSaveBtn" disabled>
                     <i class="fa-solid fa-spinner fa-spin pv2-spinner"></i>
                     <span class="pv2-btn-text">Saqlash</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- To'lovlarni bekor qilish confirm modali -->
+<div class="modal fade glass-modal" id="resetMonthModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:20px;border:1px solid rgba(245,158,11,0.3);overflow:hidden;">
+            <div class="dm-header">
+                <i class="fa-solid fa-rotate-left dm-header__icon" style="color:#f59e0b;"></i>
+                <h5 class="dm-header__title">To'lovlarni bekor qilish</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="dm-body">
+                <div class="dm-month-label" id="rmMonthLabel">—</div>
+                <div class="dm-warning">
+                    Bu oydagi <strong id="rmPaidAmount">—</strong> to'lov <strong>bekor qilinadi</strong>.<br>
+                    Oy <strong>to'liq qarz</strong> holatiga qaytadi.<br>
+                    Bekor qilingan to'lov To'lovlar bo'limidan ham o'chiriladi/kamayadi.
+                </div>
+            </div>
+            <div class="dm-footer">
+                <button type="button" class="pv2-btn-cancel" data-bs-dismiss="modal">Bekor qilish</button>
+                <button type="button" class="dm-btn-delete" id="rmConfirmBtn" style="background:#f59e0b;border-color:#f59e0b;">
+                    <i class="fa-solid fa-spinner fa-spin pv2-spinner"></i>
+                    <span class="pv2-btn-text">Ha, qarzga qaytarish</span>
                 </button>
             </div>
         </div>
@@ -1638,13 +1679,23 @@ tr.row-deferred {
                                 <i class="fa-solid fa-trash"></i>
                            </button>`
                         : '';
+                    const resetBtn = m.paid > 0 && m.tm_id
+                        ? `<button type="button" class="breakdown-reset-btn js-reset-month-payments"
+                                title="To'lovlarni bekor qilish — oy to'liq qarzga qaytadi"
+                                data-student-id="${studentId}"
+                                data-month="${m.month}"
+                                data-month-label="${m.month_label}"
+                                data-paid="${m.paid}">
+                                <i class="fa-solid fa-rotate-left"></i>
+                           </button>`
+                        : '';
                     html += `<tr data-tm-month="${m.month}" data-student-id="${studentId}">
                         <td>${m.month_label}${isFuture ? ' <span style="font-size:10px;color:var(--m-text-muted);">(kelajak)</span>' : ''}</td>
                         <td>${formatUzMoney(m.fee)}</td>
                         <td>${formatUzMoney(m.paid)}</td>
                         <td class="${m.debt > 0 ? 'breakdown-debt-red' : 'breakdown-debt-green'}">${formatUzMoney(m.debt)}</td>
                         <td><span class="${statusCls}">${statusLabel}</span></td>
-                        <td class="breakdown-actions-cell">${editBtn}${payBtn}${deleteBtn}</td>
+                        <td class="breakdown-actions-cell">${editBtn}${payBtn}${resetBtn}${deleteBtn}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
@@ -2091,6 +2142,84 @@ tr.row-deferred {
                     .catch(() => {
                         dmConfirmBtn.disabled = false;
                         dmConfirmBtn.classList.remove('loading');
+                        alert('Server xatosi.');
+                    });
+                });
+            }
+
+            // ── To'lovlarni bekor qilish (oy to'liq qarzga qaytadi) ──
+            let rmState = { studentId: null, month: null };
+            const resetMonthModalEl = document.getElementById('resetMonthModal');
+            const rmConfirmBtn = document.getElementById('rmConfirmBtn');
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.js-reset-month-payments');
+                if (!btn) return;
+
+                rmState.studentId = btn.getAttribute('data-student-id');
+                rmState.month     = btn.getAttribute('data-month');
+                const paid        = parseInt(btn.getAttribute('data-paid') || 0, 10) || 0;
+
+                document.getElementById('rmMonthLabel').textContent = btn.getAttribute('data-month-label');
+                document.getElementById('rmPaidAmount').textContent = formatUzMoney(paid);
+
+                if (rmConfirmBtn) {
+                    rmConfirmBtn.disabled = false;
+                    rmConfirmBtn.classList.remove('loading');
+                }
+
+                bootstrap.Modal.getOrCreateInstance(resetMonthModalEl).show();
+            });
+
+            if (rmConfirmBtn) {
+                rmConfirmBtn.addEventListener('click', function () {
+                    if (!rmState.studentId || !rmState.month) return;
+                    rmConfirmBtn.disabled = true;
+                    rmConfirmBtn.classList.add('loading');
+
+                    const fd = new FormData();
+                    fd.append('month', rmState.month);
+                    fd.append('csrfmiddlewaretoken', getCsrfToken());
+
+                    fetch(buildTenantPath(`/talim/api/student/${rmState.studentId}/month-reset-payments/`), {
+                        method: 'POST',
+                        body: fd,
+                    })
+                    .then(r => r.json())
+                    .then(result => {
+                        rmConfirmBtn.disabled = false;
+                        rmConfirmBtn.classList.remove('loading');
+
+                        if (result.ok) {
+                            bootstrap.Modal.getInstance(resetMonthModalEl).hide();
+                            const sid = rmState.studentId;
+                            delete breakdownCache[sid];
+
+                            fetch(buildTenantPath(`/talim/api/student/${sid}/monthly-breakdown/`))
+                                .then(r => r.json())
+                                .then(nd => {
+                                    breakdownCache[sid] = nd;
+                                    const brow = document.getElementById(`breakdown-${sid}`);
+                                    if (brow) {
+                                        brow.removeAttribute('hidden');
+                                        renderBreakdown(sid, nd);
+                                    }
+                                    const mainRow = document.querySelector(`tr[data-student-id="${sid}"][data-main-row]`);
+                                    if (mainRow) {
+                                        const debtCell = mainRow.querySelector('.js-debt-cell');
+                                        if (debtCell) {
+                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
+                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                        }
+                                    }
+                                });
+                        } else {
+                            alert(result.error || 'Xatolik yuz berdi.');
+                        }
+                    })
+                    .catch(() => {
+                        rmConfirmBtn.disabled = false;
+                        rmConfirmBtn.classList.remove('loading');
                         alert('Server xatosi.');
                     });
                 });

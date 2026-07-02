@@ -182,6 +182,8 @@ urlpatterns += [
     path("api/student/<int:student_id>/month-debt/", views.edit_student_month_debt, name="edit_student_month_debt"),
     # Kelajak oylik yozuvni o'chirish
     path("api/student/<int:student_id>/month-delete/", views.delete_student_month, name="delete_student_month"),
+    # Oylik to'lovlarni bekor qilish — oy to'liq qarzga qaytadi
+    path("api/student/<int:student_id>/month-reset-payments/", views.reset_student_month_payments, name="reset_student_month_payments"),
     # TASK 5: Oylik breakdown AJAX
     path("api/student/<int:student_id>/monthly-breakdown/", views.student_monthly_breakdown, name="student_monthly_breakdown"),
     # Kurs shablonlari

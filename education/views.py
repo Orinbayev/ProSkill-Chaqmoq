@@ -11975,6 +11975,97 @@ def delete_student_month(request, student_id):
 
 
 # ============================================================
+# Oylik to'lovlarni bekor qilish — oy to'liq qarzga qaytadi
+# ============================================================
+
+@require_POST
+@login_required
+def reset_student_month_payments(request, student_id):
+    """
+    O'quvchining bitta oyi uchun barcha to'lov allocatsiyalarini bekor qiladi —
+    oy TO'LIQ QARZ holatiga qaytadi (credit_balance ga o'tkazilmaydi!).
+    Bekor qilingan qism To'lovlar bo'limida ham kamayadi/o'chadi.
+    POST: month="2026-06"
+    """
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    center = get_active_center(request)
+    month_str = (request.POST.get("month") or "").strip()
+
+    try:
+        y, m_num = int(month_str[:4]), int(month_str[5:7])
+        month_date = date(y, m_num, 1)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri oy formati."}, status=400)
+
+    from django.db.models import Q as _Q5
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+    student = get_object_or_404(user_qs, id=student_id)
+
+    tms_qs = TuitionMonth.objects.filter(
+        enrollment__student=student,
+        month=month_date,
+        is_deleted=False,
+    ).prefetch_related(
+        Prefetch(
+            "allocations",
+            queryset=PaymentAllocation.objects.filter(is_deleted=False, payment__is_deleted=False),
+            to_attr="active_allocations",
+        )
+    )
+    if center:
+        tms_qs = tms_qs.filter(
+            _Q5(center=center)
+            | _Q5(enrollment__center=center)
+            | _Q5(enrollment__group__center=center)
+        )
+
+    tms = list(tms_qs)
+    if not tms:
+        return JsonResponse({"ok": False, "error": "Bu oy uchun yozuv topilmadi."}, status=404)
+
+    total_freed = 0
+    with transaction.atomic():
+        affected_pay_ids: set = set()
+        for tm in tms:
+            for alloc in tm.active_allocations:
+                affected_pay_ids.add(alloc.payment_id)
+                total_freed += int(alloc.amount or 0)
+                alloc.is_deleted = True
+                alloc.save(update_fields=["is_deleted"])
+
+        # To'lovlar bo'limini sinxronlash: allocation qolmagan payment
+        # o'chiriladi, qisman qolgani kamaytiriladi.
+        for pay_id in affected_pay_ids:
+            remaining_alloc = (
+                PaymentAllocation.objects
+                .filter(payment_id=pay_id, is_deleted=False)
+                .aggregate(s=Sum("amount"))["s"] or 0
+            )
+            pay_obj = Payment.all_objects.filter(pk=pay_id, is_deleted=False).first()
+            if pay_obj is None:
+                continue
+            if remaining_alloc == 0:
+                pay_obj.is_deleted = True
+                pay_obj.save(update_fields=["is_deleted"])
+            elif remaining_alloc < int(pay_obj.summa or 0):
+                pay_obj.summa = remaining_alloc
+                old_cash = int(pay_obj.cash_amount or 0)
+                if old_cash > remaining_alloc:
+                    pay_obj.cash_amount = remaining_alloc
+                pay_obj.save(update_fields=["summa", "cash_amount"])
+
+    if total_freed == 0:
+        return JsonResponse({"ok": False, "error": "Bu oyda bekor qilinadigan to'lov yo'q."}, status=400)
+
+    total_debt = get_student_total_debt(student, center)
+    return JsonResponse({"ok": True, "freed": total_freed, "total_debt": total_debt})
+
+
+# ============================================================
 # TASK 5: O'quvchi oylik breakdown (AJAX endpoint)
 # ============================================================
 
