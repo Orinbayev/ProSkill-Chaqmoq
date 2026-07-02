@@ -1327,8 +1327,11 @@ def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
 
     remaining = fee - existing
 
+    # all_objects: soft-delete qilingan allocation ham hisobga olinadi —
+    # foydalanuvchi shu oy uchun ATAYLAB bekor qilgan to'lovni qayta
+    # bog'lamaslik kerak (aks holda bekor qilish hech qachon saqlanmaydi).
     already_linked_ids = set(
-        PaymentAllocation.objects.filter(tuition_month=tm)
+        PaymentAllocation.all_objects.filter(tuition_month=tm)
         .values_list("payment_id", flat=True)
     )
 

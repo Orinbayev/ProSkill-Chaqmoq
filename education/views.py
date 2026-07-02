@@ -12079,6 +12079,27 @@ def reset_student_month_payments(request, student_id):
             # bekor qilingan pul avtomatik to'lov sifatida qayta yoziladi.
             Enrollment.objects.filter(pk=tm.enrollment_id).update(credit_balance=0)
 
+        # YETIM to'lovlarni ham o'chiramiz: shu oy sanasi bilan yozilgan,
+        # hech qanday aktiv allocation'i qolmagan paymentlar. Ular turgani
+        # bilan _auto_link_payment_to_tm har sahifa yuklanishida ularni shu
+        # oyga qayta bog'lab, "avtomatik to'lov" sifatida tiriltiraveradi.
+        _enr_ids = [tm.enrollment_id for tm in tms]
+        _orphan_pays = Payment.objects.filter(
+            enrollment_id__in=_enr_ids,
+            is_deleted=False,
+            paid_date__year=month_date.year,
+            paid_date__month=month_date.month,
+        )
+        for _op in _orphan_pays:
+            _live_alloc = (
+                PaymentAllocation.objects
+                .filter(payment=_op, is_deleted=False)
+                .aggregate(s=Sum("amount"))["s"] or 0
+            )
+            if _live_alloc == 0 and int(_op.summa or 0) > 0:
+                _op.is_deleted = True
+                _op.save(update_fields=["is_deleted"])
+
     total_debt = get_student_total_debt(student, center)
     return JsonResponse({"ok": True, "freed": total_freed, "total_debt": total_debt})
 
