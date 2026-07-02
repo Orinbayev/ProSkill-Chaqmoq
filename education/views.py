@@ -3167,6 +3167,74 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
+    # ── AKTIV O'QUVCHILAR: O'TGAN OYLAR UCHUN LAZY RECALCULATION ───────────────
+    # Muammo: aktiv enrollment jadval asosida (schedule) fee yozilgan lekin
+    # haqiqiy davomat olinmagan → davomat=0 bo'lsa fee=0 qilish kerak.
+    # Batch query: 2 query per past month (TM + attendance count).
+    _past_months = [m for m in period_months if m < _cur_month_for_recalc]
+    if _past_months and _active_ids:
+        from education.services.tuition import tuition_month_fee_field as _tff
+        from django.db.models import Q as _Q2, Count as _Cnt
+        _fee_fld = _tff()
+        _active_enr_map = {e.id: e for e in active_list if getattr(e, "is_active", False)}
+
+        for _pm in _past_months:
+            try:
+                # Davomat 0 bo'lsa ham fee>0 bo'lgan TM larni topamiz
+                _past_tms = list(
+                    TuitionMonth.objects.filter(
+                        enrollment_id__in=list(_active_enr_map.keys()),
+                        month=_pm,
+                        is_deleted=False,
+                    ).exclude(
+                        deleted_reason__in=["manual_cleared"]
+                    ).filter(**{f"{_fee_fld}__gt": 0})
+                )
+                if not _past_tms:
+                    continue
+
+                # Batch: (student_id, group_id) → billable davomat soni
+                _pm_end = month_last_day(_pm)
+                _sg_pairs = [
+                    (_active_enr_map[tm.enrollment_id].student_id,
+                     _active_enr_map[tm.enrollment_id].group_id)
+                    for tm in _past_tms
+                    if tm.enrollment_id in _active_enr_map
+                ]
+                if not _sg_pairs:
+                    continue
+
+                _student_ids = list({p[0] for p in _sg_pairs})
+                _group_ids = list({p[1] for p in _sg_pairs})
+                _att_map = {
+                    (r["student_id"], r["group_id"]): r["cnt"]
+                    for r in Attendance.objects.filter(
+                        student_id__in=_student_ids,
+                        group_id__in=_group_ids,
+                        date__gte=_pm,
+                        date__lte=_pm_end,
+                    ).filter(
+                        _Q2(status__in=("present", "absent_unexcused", "late"))
+                        | _Q2(present=True)
+                        | _Q2(forced=True)
+                    ).values("student_id", "group_id").annotate(cnt=_Cnt("id"))
+                }
+
+                # Davomat=0 → fee=0 (batch)
+                _zero_ids = [
+                    tm.id
+                    for tm in _past_tms
+                    if tm.enrollment_id in _active_enr_map
+                    and _att_map.get((
+                        _active_enr_map[tm.enrollment_id].student_id,
+                        _active_enr_map[tm.enrollment_id].group_id,
+                    ), 0) == 0
+                ]
+                if _zero_ids:
+                    TuitionMonth.objects.filter(id__in=_zero_ids).update(**{_fee_fld: 0})
+            except Exception:
+                pass
+
     debt_snapshots = calculate_enrollment_debt_snapshots(
         enrollment_list, period_months
     )

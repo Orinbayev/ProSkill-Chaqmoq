@@ -173,43 +173,90 @@ def handle_rate_change(sender, instance, update_fields=None, **kwargs):
 
 @receiver(post_save, sender=Attendance, dispatch_uid="recalc_inactive_tuition_on_att_save")
 @receiver(post_delete, sender=Attendance, dispatch_uid="recalc_inactive_tuition_on_att_delete")
-def recalc_inactive_enrollment_tuition(sender, instance, **kwargs):
+def recalc_enrollment_tuition_on_att_change(sender, instance, **kwargs):
     """
-    Davomat qo'shilganda, o'zgartirilganda yoki o'chirilganda — chiqarilgan
-    (inactive) enrollment uchun TuitionMonth fee ni qayta hisoblaydi.
+    Davomat qo'shilganda, o'zgartirilganda yoki o'chirilganda TuitionMonth
+    fee ni qayta hisoblaydi.
 
-    Aktiv enrollment uchun fee schedule asosida hisoblanadi (davomat ta'sir
-    qilmaydi). Inactive enrollment uchun esa haqiqiy davomat soni asosida
-    hisoblanadi — shuning uchun davomat o'zgarsa, qarz ham o'zgarishi kerak.
+    Inactive enrollment (chiqarilgan): har qanday oy uchun ensure_tuition_month
+    → tuition_month_lesson_count davomat asosida hisoblaydi.
+
+    Active enrollment + O'TGAN oy: TuitionMonth.fee_amount ni attendance_based_fee
+    bilan yangilaymiz — davomat 0 bo'lsa fee 0 ga tushadi.
+
+    Active enrollment + JORIY oy: tegilmasin — schedule asosida billing to'g'ri.
     """
     try:
         from .models import FinancialMonth
+        from django.utils import timezone
+
         center = getattr(instance, "center", None) or (
             instance.group.center if instance.group else None
         )
-        if center and instance.date:
+        att_date = instance.date
+        if center and att_date:
             if FinancialMonth.objects.filter(
                 center=center,
-                year=instance.date.year,
-                month=instance.date.month,
+                year=att_date.year,
+                month=att_date.month,
                 is_closed=True,
             ).exists():
                 return  # Yopilgan oy — tegilmasin
 
-        enrollment = (
+        from education.services.tuition import ensure_tuition_month, month_first_day
+        att_month = month_first_day(att_date)
+        current_month = timezone.localdate().replace(day=1)
+
+        # Avval inactive enrollment ni tekshiramiz
+        inactive_enr = (
+            Enrollment.all_objects
+            .select_related("group", "student", "group__center", "course")
+            .filter(student=instance.student, group=instance.group)
+            .filter(Q(is_active=False) | Q(is_deleted=True))
+            .first()
+        )
+        if inactive_enr is not None:
+            ensure_tuition_month(inactive_enr, att_month)
+            return
+
+        # Active enrollment + o'tgan oy: attendance_based_fee bilan yangilaymiz
+        if att_month >= current_month:
+            return  # Joriy yoki kelajak oy — tegilmasin
+
+        active_enr = (
             Enrollment.all_objects
             .select_related("group", "student", "group__center", "course")
             .filter(
                 student=instance.student,
                 group=instance.group,
+                is_active=True,
+                is_deleted=False,
             )
-            .filter(Q(is_active=False) | Q(is_deleted=True))
             .first()
         )
-        if enrollment is None:
+        if active_enr is None:
             return
 
-        from education.services.tuition import ensure_tuition_month, month_first_day
-        ensure_tuition_month(enrollment, month_first_day(instance.date))
+        from .models import TuitionMonth as _TM
+        from education.services.tuition import attendance_based_fee, tuition_month_fee_field
+
+        tm = _TM.objects.filter(
+            enrollment=active_enr, month=att_month, is_deleted=False
+        ).first()
+        if tm is None:
+            return  # TuitionMonth yo'q — hech narsa qilmaymiz
+
+        _protected_reason = getattr(tm, "deleted_reason", None) or ""
+        if (
+            _protected_reason == "manual_cleared"
+            or _protected_reason.startswith(("cleanup_", "move_future_", "reset_"))
+        ):
+            return  # Himoyalangan — tegilmasin
+
+        fee_field = tuition_month_fee_field()
+        new_fee = attendance_based_fee(active_enr, att_month)
+        if int(getattr(tm, fee_field, 0) or 0) != new_fee:
+            setattr(tm, fee_field, new_fee)
+            tm.save(update_fields=[fee_field])
     except Exception:
         pass
