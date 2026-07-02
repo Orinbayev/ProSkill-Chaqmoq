@@ -4143,6 +4143,7 @@ def _get_payment_dashboard_data(request):
     chart_qs = _apply_shared_payment_filters(chart_qs)
 
     pay_qs = pay_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
+    chart_qs = chart_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
 
     chart_anchor_date = selected_to or today
     chart_months = _last_12_ending(chart_anchor_date)
@@ -4217,7 +4218,10 @@ def _get_payment_dashboard_data(request):
 
     chart_labels = [_human_month_label(b) for b in chart_months]
     chart_data = [_chart_value_map.get(b, 0) for b in chart_months]
-    chart_kicker = "Oxirgi 12 oy"
+    if selected_from and selected_to and (selected_from != chart_months[0] or selected_to != chart_months[-1].replace(day=1)):
+        chart_kicker = f"{selected_from.strftime('%d.%m.%Y')} – {selected_to.strftime('%d.%m.%Y')}"
+    else:
+        chart_kicker = "Oxirgi 12 oy"
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
 
     # Diagramma statistikasi: oynaga tushgan to'lovlar (allocation oyi
