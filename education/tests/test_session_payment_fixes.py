@@ -447,6 +447,87 @@ class SessionPaymentFixesTests(TestCase):
             600_000,
         )
 
+    # ── 9. Oylar yig'indisi = umumiy daromad (conservation) ─────────────
+    def test_month_filters_sum_equals_total_income(self):
+        """
+        Har xil holatdagi to'lovlar: bog'langan, bo'lingan, bog'lanishi
+        bekor qilingan. Oy filtrlari yig'indisi umumiy daromadga TENG
+        bo'lishi shart — hech bir so'm ikki marta yoki nol marta sanalmasin.
+        """
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+        cur_tm = ensure_tuition_month(self.enrollment, self.cur_month)
+        today = timezone.localdate()
+
+        # A: o'tgan oyga to'liq bog'langan (joriy oyda to'langan)
+        pay_a = Payment.objects.create(
+            center=self.center, enrollment=self.enrollment,
+            student=self.student, group=self.group,
+            summa=300_000, cash_amount=300_000, paid_date=today,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_a,
+            tuition_month=prev_tm, amount=300_000,
+        )
+        # B: bo'lingan (o'tgan oy 100k + joriy oy 150k)
+        pay_b = Payment.objects.create(
+            center=self.center, enrollment=self.enrollment,
+            student=self.student, group=self.group,
+            summa=250_000, cash_amount=250_000, paid_date=today,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_b,
+            tuition_month=prev_tm, amount=100_000,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_b,
+            tuition_month=cur_tm, amount=150_000,
+        )
+        # C: allocation'i BEKOR QILINGAN (reset) — foydalanuvchi ko'rgan
+        # regressiya: bu to'lov hech bir oyda ko'rinmay yo'qolib qolardi.
+        pay_c = Payment.objects.create(
+            center=self.center, enrollment=self.enrollment,
+            student=self.student, group=self.group,
+            summa=200_000, cash_amount=200_000, paid_date=today,
+        )
+        _dead = PaymentAllocation.objects.create(
+            center=self.center, payment=pay_c,
+            tuition_month=cur_tm, amount=200_000,
+        )
+        _dead.is_deleted = True
+        _dead.save(update_fields=["is_deleted"])
+
+        total = 300_000 + 250_000 + 200_000
+
+        tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
+        r_prev = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
+        r_cur = self.client.get(tolovlar_url, {"pay_month": str(self.cur_month.month)})
+
+        prev_income = int(r_prev.context["filtered_income"])
+        cur_income = int(r_cur.context["filtered_income"])
+
+        # O'tgan oy: A 300k + B ning 100k = 400k
+        self.assertEqual(prev_income, 400_000)
+        # Joriy oy: B ning 150k + C qoldiq 200k (paid_date bo'yicha) = 350k
+        self.assertEqual(
+            cur_income, 350_000,
+            "Bekor qilingan allocation'li to'lov paid_date oyida chiqishi kerak",
+        )
+        # Conservation: yig'indi = umumiy
+        self.assertEqual(prev_income + cur_income, total)
+
+        # Diagramma ham xuddi shu raqamlarni ko'rsatadi (filtr = ustun).
+        # Oy filtri tanlanganda diagramma yanvar–dekabr oynasida bo'ladi:
+        # ustun indeksi = oy - 1
+        chart_data = r_cur.context["chart_data"]
+        self.assertEqual(
+            chart_data[self.prev_month.month - 1], prev_income,
+            "O'tgan oy ustuni = o'tgan oy filtri",
+        )
+        self.assertEqual(
+            chart_data[self.cur_month.month - 1], cur_income,
+            "Joriy oy ustuni = joriy oy filtri",
+        )
+
     # ── 5. Reset yetim to'lovlarni ham o'chiradi ─────────────────────────
     def test_reset_deletes_orphan_payments_of_that_month(self):
         tm = ensure_tuition_month(self.enrollment, self.cur_month)

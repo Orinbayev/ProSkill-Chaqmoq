@@ -4122,13 +4122,6 @@ def _get_payment_dashboard_data(request):
         if sel_type_filter:
             qs = qs.filter(payment_type=sel_type_filter)
 
-        if sel_month_first:
-            # paid_date oyi bo'yicha filterlash — diagramma ham shu mantiqni ishlatadi.
-            # Bu "Iyun" filtrida iyunda to'langan barcha to'lovlarni ko'rsatadi.
-            qs = qs.filter(
-                paid_date__month=int(sel_month),
-                paid_date__year=cur_year,
-            )
         return qs
 
     pay_qs = _apply_shared_payment_filters(pay_qs)
@@ -4143,44 +4136,130 @@ def _get_payment_dashboard_data(request):
     chart_start = chart_months[0]
     chart_end = _add_months(chart_months[-1], 1) - timedelta(days=1)
 
-    payment_ids = pay_qs.values_list("id", flat=True)
+    # ═══ YAGONA QOIDA: har bir so'm ROPPA-ROSA BITTA oyga tegishli ═══
+    # - To'lovning oyga BOG'LANGAN qismi (live allocation) → o'sha oyda
+    #   (iyunda berilgan may puli → MAY da)
+    # - BOG'LANMAGAN qoldi'g'i (summa - live alloc): allocation'lari reset
+    #   bilan bekor qilingan yoki umuman yaratilmagan pullar → paid_date oyida
+    # Natija: oylar yig'indisi = umumiy daromad; filtr = diagramma ustuni.
 
-    # filtered_income: to'liq summa, diagramma bilan bir xil mantiq.
-    # "To'lov oyi" filtri paid_date asosida ishlaydi → double-count yo'q.
-    filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
+    # "To'lov oyi" filtri: shu oyga bog'langan YOKI shu oyda to'lanib
+    # bog'lanmagan qoldig'i bor to'lovlar
+    if sel_month_first:
+        _base_ids = list(pay_qs.values_list("id", flat=True))
+        _alloc_match_ids = set(
+            PaymentAllocation.objects.filter(
+                is_deleted=False,
+                payment_id__in=_base_ids,
+                tuition_month__month=sel_month_first,
+            ).values_list("payment_id", flat=True)
+        )
+        _paid_in_month = list(
+            pay_qs.filter(
+                paid_date__month=int(sel_month), paid_date__year=cur_year
+            ).values_list("id", "summa")
+        )
+        _pim_ids = [pid for pid, _ in _paid_in_month]
+        _live_totals_pim = {
+            r["payment_id"]: int(r["s"] or 0)
+            for r in PaymentAllocation.objects.filter(
+                is_deleted=False, payment_id__in=_pim_ids
+            ).values("payment_id").annotate(s=Sum("amount"))
+        }
+        _rem_ids = {
+            pid for pid, summa in _paid_in_month
+            if int(summa or 0) > _live_totals_pim.get(pid, 0)
+        }
+        pay_qs = pay_qs.filter(id__in=list(_alloc_match_ids | _rem_ids))
+
+    payment_ids = list(pay_qs.values_list("id", flat=True))
+
+    # ── "Filter bo'yicha" summa ──
+    # Oy filtri tanlanganda: har paymentdan faqat SHU OYNING ulushi
+    # (shu oyga bog'langan qism + shu oyda to'langan bog'lanmagan qoldiq).
+    # Oy tanlanmaganda: to'liq summa.
+    _month_part_by_pay = {}
+    if sel_month_first:
+        for _r in (
+            PaymentAllocation.objects.filter(
+                is_deleted=False,
+                payment_id__in=payment_ids,
+                tuition_month__month=sel_month_first,
+            ).values("payment_id").annotate(s=Sum("amount"))
+        ):
+            _month_part_by_pay[_r["payment_id"]] = int(_r["s"] or 0)
+        _live_totals_all = {
+            r["payment_id"]: int(r["s"] or 0)
+            for r in PaymentAllocation.objects.filter(
+                is_deleted=False, payment_id__in=payment_ids
+            ).values("payment_id").annotate(s=Sum("amount"))
+        }
+        for _pid, _summa, _pd in Payment.objects.filter(
+            id__in=payment_ids
+        ).values_list("id", "summa", "paid_date"):
+            _rem = int(_summa or 0) - _live_totals_all.get(_pid, 0)
+            if (
+                _rem > 0 and _pd
+                and _pd.month == int(sel_month) and _pd.year == cur_year
+            ):
+                _month_part_by_pay[_pid] = _month_part_by_pay.get(_pid, 0) + _rem
+        filtered_income = sum(_month_part_by_pay.values())
+    else:
+        filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── Diagramma: paid_date oyi bo'yicha to'liq summa (oxirgi 12 oy) ──
-    # "Filter bo'yicha" ham payment.summa ni ishlatadi — bir xil mantiq.
-    # chart_qs ga sana filtri qo'yilmagan: doim 12 oylik tarix ko'rinadi.
+    # ── Diagramma: yagona qoida bo'yicha (oxirgi 12 oy, oy filtrisiz) ──
+    # Har ustun = o'sha oyga bog'langan pullar + o'sha oyda to'langan
+    # bog'lanmagan qoldiqlar. Oy filtri tanlanganda "Filter bo'yicha"
+    # summa aynan o'sha oy ustuniga teng bo'ladi.
+    _chart_pay_rows = list(chart_qs.values_list("id", "summa", "paid_date"))
+    _chart_pay_ids = [r[0] for r in _chart_pay_rows]
+    _chart_live_totals = {
+        r["payment_id"]: int(r["s"] or 0)
+        for r in PaymentAllocation.objects.filter(
+            is_deleted=False, payment_id__in=_chart_pay_ids
+        ).values("payment_id").annotate(s=Sum("amount"))
+    }
     _chart_value_map = {}
-    _chart_date_rows = (
-        chart_qs
-        .filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
-        .annotate(bucket=TruncMonth("paid_date"))
-        .values("bucket")
-        .annotate(total=Sum("summa"))
-    )
-    for _r in _chart_date_rows:
-        _b = _r["bucket"]
+    _chart_contrib_ids = set()
+    # (a) bog'langan qismlar — allocation oyi bo'yicha
+    for _r in (
+        PaymentAllocation.objects.filter(
+            is_deleted=False,
+            payment_id__in=_chart_pay_ids,
+            tuition_month__month__gte=chart_start,
+            tuition_month__month__lte=chart_end,
+        ).values("tuition_month__month").annotate(s=Sum("amount"))
+    ):
+        _b = _r["tuition_month__month"]
         if hasattr(_b, "date"):
             _b = _b.date()
         _b = _b.replace(day=1)
-        _chart_value_map[_b] = int(_r["total"] or 0)
+        _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["s"] or 0)
+    _chart_contrib_ids.update(
+        PaymentAllocation.objects.filter(
+            is_deleted=False,
+            payment_id__in=_chart_pay_ids,
+            tuition_month__month__gte=chart_start,
+            tuition_month__month__lte=chart_end,
+        ).values_list("payment_id", flat=True)
+    )
+    # (b) bog'lanmagan qoldiqlar — paid_date oyi bo'yicha
+    for _pid, _summa, _pd in _chart_pay_rows:
+        _rem = int(_summa or 0) - _chart_live_totals.get(_pid, 0)
+        if _rem > 0 and _pd:
+            _b = _pd.replace(day=1)
+            if chart_start <= _b <= chart_end:
+                _chart_value_map[_b] = _chart_value_map.get(_b, 0) + _rem
+                _chart_contrib_ids.add(_pid)
 
     chart_labels = [_human_month_label(b) for b in chart_months]
     chart_data = [_chart_value_map.get(b, 0) for b in chart_months]
-    if selected_from and selected_to and (selected_from != chart_months[0] or selected_to != chart_months[-1].replace(day=1)):
-        chart_kicker = f"{selected_from.strftime('%d.%m.%Y')} – {selected_to.strftime('%d.%m.%Y')}"
-    else:
-        chart_kicker = "Oxirgi 12 oy"
+    chart_kicker = "Oxirgi 12 oy"
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
 
-    # Diagramma statistikasi: chart oralig'idagi to'lovlar soni va noyob to'lovchilar
-    chart_payment_ids = list(
-        chart_qs.filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
-        .values_list("id", flat=True)
-    )
+    # Diagramma statistikasi: hissa qo'shgan to'lovlar
+    chart_payment_ids = list(_chart_contrib_ids)
     chart_payment_record_count = len(chart_payment_ids)
     chart_unique_payers_count = (
         Payment.objects.filter(id__in=chart_payment_ids)
@@ -4215,7 +4294,11 @@ def _get_payment_dashboard_data(request):
             }
             grouped_rows[student_id] = row
 
-        row["total_sum"] += int(payment.summa or 0)
+        if sel_month_first:
+            # Oy filtri: paymentning faqat SHU OYNING ulushi
+            row["total_sum"] += _month_part_by_pay.get(payment.id, 0)
+        else:
+            row["total_sum"] += int(payment.summa or 0)
         row["payment_count"] += 1
 
         if payment.created_by:
