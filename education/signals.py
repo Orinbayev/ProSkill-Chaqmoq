@@ -1,4 +1,5 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
+from django.db.models import Q
 from django.dispatch import receiver
 from .models import Attendance, TeacherIncome, Enrollment, Group
 
@@ -168,3 +169,47 @@ def handle_rate_change(sender, instance, update_fields=None, **kwargs):
     # NOTE: Enrollment yaratilganda avtomatik TuitionMonth YARATILMAYDI.
     # Yangi qo'shilgan o'quvchi KEYINGI oydan boshlab qarzli hisoblanadi.
     # Qarzdorlar sahifasi (qarzdorlar_home) lazily yaratadi va ensure qiladi.
+
+
+@receiver(post_save, sender=Attendance, dispatch_uid="recalc_inactive_tuition_on_att_save")
+@receiver(post_delete, sender=Attendance, dispatch_uid="recalc_inactive_tuition_on_att_delete")
+def recalc_inactive_enrollment_tuition(sender, instance, **kwargs):
+    """
+    Davomat qo'shilganda, o'zgartirilganda yoki o'chirilganda — chiqarilgan
+    (inactive) enrollment uchun TuitionMonth fee ni qayta hisoblaydi.
+
+    Aktiv enrollment uchun fee schedule asosida hisoblanadi (davomat ta'sir
+    qilmaydi). Inactive enrollment uchun esa haqiqiy davomat soni asosida
+    hisoblanadi — shuning uchun davomat o'zgarsa, qarz ham o'zgarishi kerak.
+    """
+    try:
+        from .models import FinancialMonth
+        center = getattr(instance, "center", None) or (
+            instance.group.center if instance.group else None
+        )
+        if center and instance.date:
+            if FinancialMonth.objects.filter(
+                center=center,
+                year=instance.date.year,
+                month=instance.date.month,
+                is_closed=True,
+            ).exists():
+                return  # Yopilgan oy — tegilmasin
+
+        enrollment = (
+            Enrollment.all_objects
+            .select_related("group", "student", "group__center", "course")
+            .filter(
+                student=instance.student,
+                group=instance.group,
+            )
+            .filter(Q(is_active=False) | Q(is_deleted=True))
+            .first()
+        )
+        if enrollment is None:
+            return
+
+        from education.services.tuition import ensure_tuition_month, month_first_day
+        ensure_tuition_month(enrollment, month_first_day(instance.date))
+    except Exception:
+        pass
