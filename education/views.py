@@ -4095,6 +4095,11 @@ def _get_payment_dashboard_data(request):
     )
     cur_year = selected_to.year
 
+    # Oy filtri tanlanganda: shu oyning 1-sanasi (allocation month bilan solishtirish uchun)
+    sel_month_first = None
+    if sel_month and sel_month.isdigit():
+        sel_month_first = date(cur_year, int(sel_month), 1)
+
     def _apply_shared_payment_filters(qs):
         if q:
             qs = qs.filter(
@@ -4117,15 +4122,14 @@ def _get_payment_dashboard_data(request):
         if sel_type_filter:
             qs = qs.filter(payment_type=sel_type_filter)
 
-        if sel_month and sel_month.isdigit():
+        if sel_month_first:
             # QAYSI OY UCHUN to'langani bo'yicha filterlash (allocation oyi).
             # Iyun qarzini iyulda to'lasa ham — "Iyun" filtrida chiqadi.
             # Allocation'siz to'lovlar uchun fallback: paid_date oyi.
-            _m_first = date(cur_year, int(sel_month), 1)
             qs = qs.filter(
                 Q(
                     allocations__is_deleted=False,
-                    allocations__tuition_month__month=_m_first,
+                    allocations__tuition_month__month=sel_month_first,
                 )
                 | Q(
                     allocations__isnull=True,
@@ -4146,7 +4150,31 @@ def _get_payment_dashboard_data(request):
     chart_end = _add_months(chart_months[-1], 1) - timedelta(days=1)
 
     payment_ids = pay_qs.values_list("id", flat=True)
-    filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
+
+    # Oy filtri tanlanganda: har paymentdan FAQAT shu oyga yozilgan qismi
+    # sanaladi. Aks holda bo'lingan to'lov (may+iyun) har ikkala oy filtrida
+    # TO'LIQ summasi bilan chiqib, oylar yig'indisi umumiy daromaddan
+    # oshib ketadi (double counting).
+    _month_part_by_pay = {}
+    if sel_month_first:
+        for _r in (
+            PaymentAllocation.objects.filter(
+                is_deleted=False,
+                payment_id__in=payment_ids,
+                tuition_month__month=sel_month_first,
+            )
+            .values("payment_id")
+            .annotate(s=Sum("amount"))
+        ):
+            _month_part_by_pay[_r["payment_id"]] = int(_r["s"] or 0)
+        _alloc_part = sum(_month_part_by_pay.values())
+        _noalloc_part = (
+            Payment.objects.filter(id__in=payment_ids, allocations__isnull=True)
+            .aggregate(s=Sum("summa"))["s"] or 0
+        )
+        filtered_income = int(_alloc_part) + int(_noalloc_part)
+    else:
+        filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
     # ── Diagramma: QAYSI OY UCHUN to'langani bo'yicha (allocation oyi) ──
@@ -4238,7 +4266,12 @@ def _get_payment_dashboard_data(request):
             }
             grouped_rows[student_id] = row
 
-        row["total_sum"] += int(payment.summa or 0)
+        if sel_month_first:
+            # Oy filtri: paymentning faqat SHU OYGA yozilgan qismi
+            # (allocation'siz to'lovlar uchun to'liq summa)
+            row["total_sum"] += _month_part_by_pay.get(payment.id, int(payment.summa or 0))
+        else:
+            row["total_sum"] += int(payment.summa or 0)
         row["payment_count"] += 1
 
         if payment.created_by:

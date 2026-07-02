@@ -397,6 +397,56 @@ class SessionPaymentFixesTests(TestCase):
             "Joriy oy ustunida bu pul bo'lmasligi kerak",
         )
 
+    # ── 8. Bo'lingan to'lov har oy filtrida faqat O'Z QISMINI ko'rsatadi ─
+    def test_split_payment_counted_once_per_month_filter(self):
+        """
+        Eski (strict fix'dan oldingi) bo'lingan to'lov: 600k = may 400k + iyun
+        200k. May filtrida 400k, iyun filtrida 200k chiqishi kerak — TO'LIQ
+        600k emas. Aks holda oylar yig'indisi umumiy daromaddan oshib ketadi.
+        """
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+        cur_tm = ensure_tuition_month(self.enrollment, self.cur_month)
+
+        pay = Payment.objects.create(
+            center=self.center, enrollment=self.enrollment,
+            student=self.student, group=self.group,
+            summa=600_000, cash_amount=600_000,
+            paid_date=timezone.localdate(),
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay,
+            tuition_month=prev_tm, amount=400_000,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay,
+            tuition_month=cur_tm, amount=200_000,
+        )
+
+        tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
+
+        r_prev = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
+        self.assertEqual(
+            int(r_prev.context["filtered_income"]), 400_000,
+            "O'tgan oy filtrida faqat o'sha oyga yozilgan 400k chiqishi kerak",
+        )
+        row_prev = r_prev.context["page_rows"][0]
+        self.assertEqual(
+            int(row_prev["total_sum"]), 400_000,
+            "Jadval qatorida ham faqat o'sha oy qismi ko'rinishi kerak",
+        )
+
+        r_cur = self.client.get(tolovlar_url, {"pay_month": str(self.cur_month.month)})
+        self.assertEqual(
+            int(r_cur.context["filtered_income"]), 200_000,
+            "Joriy oy filtrida faqat 200k chiqishi kerak",
+        )
+
+        # Oylar yig'indisi = to'lovning to'liq summasi (double counting yo'q)
+        self.assertEqual(
+            int(r_prev.context["filtered_income"]) + int(r_cur.context["filtered_income"]),
+            600_000,
+        )
+
     # ── 5. Reset yetim to'lovlarni ham o'chiradi ─────────────────────────
     def test_reset_deletes_orphan_payments_of_that_month(self):
         tm = ensure_tuition_month(self.enrollment, self.cur_month)
