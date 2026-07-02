@@ -12058,8 +12058,26 @@ def reset_student_month_payments(request, student_id):
                     pay_obj.cash_amount = remaining_alloc
                 pay_obj.save(update_fields=["summa", "cash_amount"])
 
-    if total_freed == 0:
-        return JsonResponse({"ok": False, "error": "Bu oyda bekor qilinadigan to'lov yo'q."}, status=400)
+        # Fee ni HAQIQIY kurs narxiga qaytaramiz — foydalanuvchi qo'lda
+        # o'zgartirib chalkashtirgan (shishirilgan) qiymat emas.
+        from education.services.tuition import prorated_monthly_fee as _pmf
+        fee_field = tuition_month_fee_field()
+        for tm in tms:
+            normal_fee = int(_pmf(tm.enrollment, month_date) or 0)
+            _upd = []
+            if int(getattr(tm, fee_field, 0) or 0) != normal_fee:
+                setattr(tm, fee_field, normal_fee)
+                _upd.append(fee_field)
+            # user_edit himoyasini olib tashlaymiz — endi normal hisob ishlaydi
+            if (getattr(tm, "deleted_reason", None) or "").startswith("user_edit"):
+                tm.deleted_reason = ""
+                _upd.append("deleted_reason")
+            if _upd:
+                tm.save(update_fields=_upd)
+
+            # Credit balansni 0 qilamiz — aks holda keyingi oy yaratilganda
+            # bekor qilingan pul avtomatik to'lov sifatida qayta yoziladi.
+            Enrollment.objects.filter(pk=tm.enrollment_id).update(credit_balance=0)
 
     total_debt = get_student_total_debt(student, center)
     return JsonResponse({"ok": True, "freed": total_freed, "total_debt": total_debt})
