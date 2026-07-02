@@ -1308,11 +1308,15 @@ def calculate_enrollment_debt_snapshots(
 
     return snapshots
 
-def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
+def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date, exclude_payment_id=None) -> None:
     """
     Agar shu oy uchun to'lov mavjud bo'lsa lekin PaymentAllocation to'liq emas bo'lsa,
     avtomatik bog'laydi. Bir nechta qisman to'lovlar ham hisobga olinadi.
     Natija: to'liq to'langan bo'lsa qarzdorda chiqmaydi.
+
+    exclude_payment_id: hozir _allocate_amount_forward tomonidan taqsimlanayotgan
+    payment — uni bu yerda bog'lash MUMKIN EMAS, aks holda pul ikki marta
+    hisoblanadi (auto-link + asosiy taqsimlagich → keyingi oyga overflow).
     """
     from django.db.models import Sum as _Sum
 
@@ -1336,14 +1340,15 @@ def _auto_link_payment_to_tm(enrollment, tm, fee: int, month: date) -> None:
     )
 
     # Shu oy uchun barcha bog'lanmagan to'lovlar (miqdoridan qat'i nazar)
-    payments = list(
-        Payment.objects.filter(
-            enrollment=enrollment,
-            is_deleted=False,
-            paid_date__year=month.year,
-            paid_date__month=month.month,
-        ).exclude(id__in=already_linked_ids).order_by("-id")
-    )
+    _pay_qs = Payment.objects.filter(
+        enrollment=enrollment,
+        is_deleted=False,
+        paid_date__year=month.year,
+        paid_date__month=month.month,
+    ).exclude(id__in=already_linked_ids)
+    if exclude_payment_id is not None:
+        _pay_qs = _pay_qs.exclude(id=exclude_payment_id)
+    payments = list(_pay_qs.order_by("-id"))
     if not payments:
         return
 
@@ -1411,11 +1416,13 @@ def _auto_create_zero_payment(enrollment, month: date) -> None:
         pass
 
 
-def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
+def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
     Fee = prorated_monthly_fee (qisman oyni hisobga oladi, cheat-proof).
     Fee 0 bo‘lib qolsa va prorated > 0 bo‘lsa -> qayta yozadi.
+    _exclude_payment_id: _auto_link ga o'tkaziladi — hozir taqsimlanayotgan
+    payment ikki marta hisoblanmasligi uchun.
     """
     month = month_first_day(month)
     fee = int(prorated_monthly_fee(enrollment, month) or 0)
@@ -1512,7 +1519,7 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     # To'lov bor lekin PaymentAllocation yo'q bo'lsa — avtomatik bog'laymiz.
     # Shunday bo'lsa qarzdorlarda qarz chiqmaydi.
     if fee > 0:
-        _auto_link_payment_to_tm(enrollment, tm, fee, month)
+        _auto_link_payment_to_tm(enrollment, tm, fee, month, exclude_payment_id=_exclude_payment_id)
 
     return tm
 
@@ -1754,7 +1761,9 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
     remaining = amount
 
     # start_month TuitionMonth'i mavjudligi kafolatlanadi.
-    ensure_tuition_month(enrollment, cur)
+    # MUHIM: exclude_payment_id — bu payment allaqachon yaratilgan, _auto_link
+    # uni o'zi bog'lab qo'ysa pul ikki marta hisoblanadi.
+    ensure_tuition_month(enrollment, cur, _exclude_payment_id=getattr(payment, "id", None))
 
     months_qs = (
         TuitionMonth.objects
@@ -1804,7 +1813,7 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
         for _ in range(_FUTURE_OVERFLOW_MONTH_LIMIT):
             if remaining <= 0:
                 break
-            tm = ensure_tuition_month(enrollment, next_month)
+            tm = ensure_tuition_month(enrollment, next_month, _exclude_payment_id=getattr(payment, "id", None))
             _allocate_to_tm(tm)
             next_month = add_month(next_month, 1)
 
