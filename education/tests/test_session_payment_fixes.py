@@ -496,7 +496,24 @@ class SessionPaymentFixesTests(TestCase):
         _dead.is_deleted = True
         _dead.save(update_fields=["is_deleted"])
 
-        total = 300_000 + 250_000 + 200_000
+        # D: ESKI BUZILGAN yozuv — ikki marta taqsimlangan (alloc jami 400k >
+        # summa 200k). Foydalanuvchining "oylar yig'indisi umumiydan katta"
+        # muammosining sababi. Eng eski oy ulushi olinadi, ortiqcha kesiladi.
+        pay_d = Payment.objects.create(
+            center=self.center, enrollment=self.enrollment,
+            student=self.student, group=self.group,
+            summa=200_000, cash_amount=200_000, paid_date=today,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_d,
+            tuition_month=prev_tm, amount=200_000,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_d,
+            tuition_month=cur_tm, amount=200_000,
+        )
+
+        total = 300_000 + 250_000 + 200_000 + 200_000
 
         tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
         r_prev = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
@@ -505,12 +522,15 @@ class SessionPaymentFixesTests(TestCase):
         prev_income = int(r_prev.context["filtered_income"])
         cur_income = int(r_cur.context["filtered_income"])
 
-        # O'tgan oy: A 300k + B ning 100k = 400k
-        self.assertEqual(prev_income, 400_000)
-        # Joriy oy: B ning 150k + C qoldiq 200k (paid_date bo'yicha) = 350k
+        # O'tgan oy: A 300k + B ning 100k + D ning 200k (kesilgan) = 600k
+        self.assertEqual(prev_income, 600_000)
+        # Joriy oy: B ning 150k + C qoldiq 200k = 350k.
+        # D ning joriy oydagi "sharpa" 200k allocationi SANALMAYDI
+        # (summa allaqachon tugagan) — aks holda yig'indi oshib ketadi.
         self.assertEqual(
             cur_income, 350_000,
-            "Bekor qilingan allocation'li to'lov paid_date oyida chiqishi kerak",
+            "Buzilgan (ikki marta taqsimlangan) to'lovning ortiqcha "
+            "allocationi sanalmasligi kerak",
         )
         # Conservation: yig'indi = umumiy
         self.assertEqual(prev_income + cur_income, total)
