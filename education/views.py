@@ -4178,43 +4178,62 @@ def _get_payment_dashboard_data(request):
         filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── Diagramma: QAYSI OY UCHUN to'langani bo'yicha (allocation oyi) ──
-    # Iyun oyida may uchun to'langan pul — MAY ustunida ko'rinadi.
-    # Allocation'siz (eski/bog'lanmagan) to'lovlar uchun fallback: paid_date.
-    _chart_alloc_rows = (
-        PaymentAllocation.objects.filter(
-            is_deleted=False,
-            payment__in=chart_qs.values("id"),
-            tuition_month__month__gte=chart_start,
-            tuition_month__month__lte=chart_end,
-        )
-        .values("tuition_month__month")
-        .annotate(total=Sum("amount"))
-    )
-    _chart_noalloc_qs = chart_qs.filter(
-        allocations__isnull=True,
-        paid_date__gte=chart_start,
-        paid_date__lte=chart_end,
-    )
-    _chart_noalloc_rows = (
-        _chart_noalloc_qs
-        .annotate(bucket=TruncMonth("paid_date"))
-        .values("bucket")
-        .annotate(total=Sum("summa"))
-    )
+    # ── Diagramma: to'lov sanasi (paid_date) oyi bo'yicha, to'liq summa ──
+    # filtered_income ham payment.summa ishlatadi (pay_month filtri yo'q bo'lsa).
+    # Shuning uchun diagramma va "Filter bo'yicha" bir xil mantiqni ishlatadi.
     _chart_value_map = {}
-    for _r in _chart_alloc_rows:
-        _b = _r["tuition_month__month"]
-        if hasattr(_b, "date"):
-            _b = _b.date()
-        _b = _b.replace(day=1)
-        _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
-    for _r in _chart_noalloc_rows:
-        _b = _r["bucket"]
-        if hasattr(_b, "date"):
-            _b = _b.date()
-        _b = _b.replace(day=1)
-        _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
+    if not sel_month_first:
+        # Oddiy holat: to'lov qilingan oy bo'yicha to'liq summani guruhlash.
+        # filtered_income = SUM(payment.summa) → diagramma ham shunday.
+        _chart_date_rows = (
+            chart_qs
+            .filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
+            .annotate(bucket=TruncMonth("paid_date"))
+            .values("bucket")
+            .annotate(total=Sum("summa"))
+        )
+        for _r in _chart_date_rows:
+            _b = _r["bucket"]
+            if hasattr(_b, "date"):
+                _b = _b.date()
+            _b = _b.replace(day=1)
+            _chart_value_map[_b] = int(_r["total"] or 0)
+    else:
+        # pay_month filtri bor: allocation oyi bo'yicha guruhlash.
+        # filtered_income ham allocation summani ishlatadi → mos keladi.
+        _chart_alloc_rows = (
+            PaymentAllocation.objects.filter(
+                is_deleted=False,
+                payment__in=chart_qs.values("id"),
+                tuition_month__month__gte=chart_start,
+                tuition_month__month__lte=chart_end,
+            )
+            .values("tuition_month__month")
+            .annotate(total=Sum("amount"))
+        )
+        _chart_noalloc_qs = chart_qs.filter(
+            allocations__isnull=True,
+            paid_date__gte=chart_start,
+            paid_date__lte=chart_end,
+        )
+        _chart_noalloc_rows = (
+            _chart_noalloc_qs
+            .annotate(bucket=TruncMonth("paid_date"))
+            .values("bucket")
+            .annotate(total=Sum("summa"))
+        )
+        for _r in _chart_alloc_rows:
+            _b = _r["tuition_month__month"]
+            if hasattr(_b, "date"):
+                _b = _b.date()
+            _b = _b.replace(day=1)
+            _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
+        for _r in _chart_noalloc_rows:
+            _b = _r["bucket"]
+            if hasattr(_b, "date"):
+                _b = _b.date()
+            _b = _b.replace(day=1)
+            _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
 
     chart_labels = [_human_month_label(b) for b in chart_months]
     chart_data = [_chart_value_map.get(b, 0) for b in chart_months]
