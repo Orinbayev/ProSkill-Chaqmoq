@@ -4243,18 +4243,11 @@ def _get_payment_dashboard_data(request):
         chart_kicker = "Oxirgi 12 oy"
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
 
-    # Diagramma statistikasi: oynaga tushgan to'lovlar (allocation oyi
-    # bo'yicha, allocation'sizlar paid_date bo'yicha)
-    _chart_alloc_pay_ids = set(
-        PaymentAllocation.objects.filter(
-            is_deleted=False,
-            payment__in=chart_qs.values("id"),
-            tuition_month__month__gte=chart_start,
-            tuition_month__month__lte=chart_end,
-        ).values_list("payment_id", flat=True)
+    # Diagramma statistikasi: chart oralig'idagi to'lovlar soni va noyob to'lovchilar
+    chart_payment_ids = list(
+        chart_qs.filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
+        .values_list("id", flat=True)
     )
-    _chart_noalloc_pay_ids = set(_chart_noalloc_qs.values_list("id", flat=True))
-    chart_payment_ids = list(_chart_alloc_pay_ids | _chart_noalloc_pay_ids)
     chart_payment_record_count = len(chart_payment_ids)
     chart_unique_payers_count = (
         Payment.objects.filter(id__in=chart_payment_ids)
