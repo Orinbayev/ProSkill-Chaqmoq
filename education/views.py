@@ -12058,20 +12058,40 @@ def reset_student_month_payments(request, student_id):
                     pay_obj.cash_amount = remaining_alloc
                 pay_obj.save(update_fields=["summa", "cash_amount"])
 
-        # Fee ni HAQIQIY kurs narxiga qaytaramiz — foydalanuvchi qo'lda
-        # o'zgartirib chalkashtirgan (shishirilgan) qiymat emas.
-        from education.services.tuition import prorated_monthly_fee as _pmf
+        # Fee ni to'g'ri qiymatga qaytaramiz. ANIQ QOIDA:
+        #   O'TGAN oy  → haqiqiy davomat asosida (nechta darsga kelgan bo'lsa
+        #                shuncha × dars narxi). Davomat 0 bo'lsa qarz ham 0.
+        #   JORIY oy   → to'liq oylik narx (jadval asosida).
+        from education.services.tuition import (
+            prorated_monthly_fee as _pmf,
+            attendance_based_fee as _abf,
+        )
         fee_field = tuition_month_fee_field()
+        _cur_month_first = timezone.localdate().replace(day=1)
+        _is_past_month = month_date < _cur_month_first
         for tm in tms:
-            normal_fee = int(_pmf(tm.enrollment, month_date) or 0)
+            if _is_past_month:
+                normal_fee = int(_abf(tm.enrollment, month_date) or 0)
+            else:
+                normal_fee = int(_pmf(tm.enrollment, month_date) or 0)
             _upd = []
             if int(getattr(tm, fee_field, 0) or 0) != normal_fee:
                 setattr(tm, fee_field, normal_fee)
                 _upd.append(fee_field)
-            # user_edit himoyasini olib tashlaymiz — endi normal hisob ishlaydi
-            if (getattr(tm, "deleted_reason", None) or "").startswith("user_edit"):
-                tm.deleted_reason = ""
-                _upd.append("deleted_reason")
+            if _is_past_month:
+                # O'tgan oy davomat asosidagi qiymatini _etm (jadval asosida
+                # hisoblaydi) qayta yozib tashlamasin — user_edit bilan
+                # himoyalaymiz. Davomat o'zgarsa signal baribir yangilaydi.
+                if not (getattr(tm, "deleted_reason", None) or ""):
+                    tm.deleted_reason = "user_edit"
+                    _upd.append("deleted_reason")
+            else:
+                # Joriy oy: himoya kerak emas — _etm ham xuddi shu to'liq
+                # narxni hisoblaydi. Eski user_edit qolib ketgan bo'lsa olib
+                # tashlaymiz.
+                if (getattr(tm, "deleted_reason", None) or "").startswith("user_edit"):
+                    tm.deleted_reason = ""
+                    _upd.append("deleted_reason")
             if _upd:
                 tm.save(update_fields=_upd)
 

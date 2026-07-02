@@ -214,6 +214,82 @@ class SessionPaymentFixesTests(TestCase):
             "O'chirilgandan keyin kelajak oy to'lanmagan bo'lishi kerak",
         )
 
+    # ── 5a. O'tgan oy reset: qarz = davomat asosida ──────────────────────
+    def test_reset_past_month_uses_attendance_based_fee(self):
+        from education.models import Attendance
+        from education.services.tuition import attendance_based_fee
+
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+
+        # O'tgan oyda 4 ta darsga kelgan
+        for day in (3, 5, 10, 12):
+            Attendance.objects.create(
+                center=self.center, group=self.group,
+                student=self.student, teacher=self.teacher,
+                date=self.prev_month.replace(day=day),
+                status="present", present=True,
+            )
+
+        # To'lov qilingan, keyin reset bosiladi
+        create_payment_and_allocate(
+            enrollment=self.enrollment,
+            created_by=self.director,
+            cash_amount=100_000,
+            card_amount_som=0,
+            start_month=self.prev_month,
+            paid_at=datetime.combine(timezone.localdate(), datetime.min.time()),
+        )
+        resp = self.client.post(
+            self._url("reset_student_month_payments"),
+            {"month": self._month_str(self.prev_month)},
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["ok"])
+
+        expected = attendance_based_fee(self.enrollment, self.prev_month)
+        self.assertGreater(expected, 0, "4 ta davomat uchun qarz > 0 bo'lishi kerak")
+
+        prev_tm.refresh_from_db()
+        self.assertEqual(
+            int(getattr(prev_tm, self.fee_field)), expected,
+            "O'tgan oy qarzi davomat asosida bo'lishi kerak "
+            "(nechta dars → shuncha qarz), jadval asosida emas",
+        )
+        self.assertEqual(_paid(prev_tm), 0)
+
+        # _etm bu qiymatni qayta yozmasligi kerak (user_edit himoyasi)
+        ensure_tuition_month(self.enrollment, self.prev_month)
+        prev_tm.refresh_from_db()
+        self.assertEqual(
+            int(getattr(prev_tm, self.fee_field)), expected,
+            "_etm o'tgan oy davomat-asosidagi qarzini qayta yozmasligi kerak",
+        )
+
+    # ── 5b. Joriy oy reset: qarz = to'liq oylik narx ─────────────────────
+    def test_reset_current_month_uses_full_fee(self):
+        tm = ensure_tuition_month(self.enrollment, self.cur_month)
+        full_fee = int(getattr(tm, self.fee_field))
+        self.assertGreater(full_fee, 0)
+
+        create_payment_and_allocate(
+            enrollment=self.enrollment,
+            created_by=self.director,
+            cash_amount=full_fee,
+            card_amount_som=0,
+            start_month=self.cur_month,
+            paid_at=datetime.combine(timezone.localdate(), datetime.min.time()),
+        )
+        self.client.post(
+            self._url("reset_student_month_payments"),
+            {"month": self._month_str(self.cur_month)},
+        )
+        tm.refresh_from_db()
+        self.assertEqual(
+            int(getattr(tm, self.fee_field)), full_fee,
+            "Joriy oy reset dan keyin to'liq oylik narx bo'lishi kerak",
+        )
+        self.assertEqual(_paid(tm), 0)
+
     # ── 5. Reset yetim to'lovlarni ham o'chiradi ─────────────────────────
     def test_reset_deletes_orphan_payments_of_that_month(self):
         tm = ensure_tuition_month(self.enrollment, self.cur_month)
