@@ -3170,9 +3170,14 @@ def qarzdorlar_home(request):
     # ── BARCHA O'QUVCHILAR: O'TGAN OYLAR UCHUN LAZY RECALCULATION ──────────────
     # Muammo: fee jadval/transfer asosida yozilgan, lekin haqiqiy davomat
     # olinmagan → davomat=0 bo'lsa fee=0 qilish kerak.
-    # Aktiv va inactive enrollmentlar uchun ham ishlaydi.
-    # Batch: 2 query per past month (TM + attendance count).
-    _past_months = [m for m in period_months if m < _cur_month_for_recalc]
+    # MUHIM: Filter oralig'idan TASHQARI oylar ham (oxirgi 3 oy) tekshiriladi —
+    # default (joriy oy) filtrda ham eski noto'g'ri data tuzatilsin.
+    _past_months_set = {m for m in period_months if m < _cur_month_for_recalc}
+    _back = _cur_month_for_recalc
+    for _ in range(3):
+        _back = (_back - timedelta(days=1)).replace(day=1)
+        _past_months_set.add(_back)
+    _past_months = sorted(_past_months_set)
     if _past_months and enrollment_list:
         from education.services.tuition import tuition_month_fee_field as _tff
         from django.db.models import Count as _Cnt
