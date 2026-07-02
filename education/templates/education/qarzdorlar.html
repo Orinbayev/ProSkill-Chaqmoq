@@ -1318,14 +1318,28 @@ tr.row-deferred {
 
             function pv2UpdateMethodInputs() {
                 const mode = pv2GetMode();
+                const debt = pv2State.debtRaw;
 
                 // Single panel
                 const cashW = document.getElementById('pv2SingleCashWrap');
                 const cardW = document.getElementById('pv2SingleCardWrap');
+                const cashEl = document.getElementById('pv2SingleCash');
+                const cardEl = document.getElementById('pv2SingleCard');
                 if (cashW && cardW) {
-                    if (mode === 'cash')  { cashW.classList.remove('pv2-hidden'); cardW.classList.add('pv2-hidden'); document.getElementById('pv2SingleCard').value = ''; }
-                    else if (mode === 'card') { cashW.classList.add('pv2-hidden'); cardW.classList.remove('pv2-hidden'); document.getElementById('pv2SingleCash').value = ''; }
-                    else { cashW.classList.remove('pv2-hidden'); cardW.classList.remove('pv2-hidden'); }
+                    if (mode === 'cash') {
+                        cashW.classList.remove('pv2-hidden'); cardW.classList.add('pv2-hidden');
+                        cardEl.value = '';
+                        if (debt > 0) cashEl.value = debt;
+                    } else if (mode === 'card') {
+                        cashW.classList.add('pv2-hidden'); cardW.classList.remove('pv2-hidden');
+                        cashEl.value = '';
+                        if (debt > 0) cardEl.value = debt;
+                    } else {
+                        // aralash: ikkalasini ko'rsat, naqtga qarzni yoz (karta — qo'lda)
+                        cashW.classList.remove('pv2-hidden'); cardW.classList.remove('pv2-hidden');
+                        cardEl.value = '';
+                        if (debt > 0) cashEl.value = debt;
+                    }
                 }
 
                 pv2Validate();
