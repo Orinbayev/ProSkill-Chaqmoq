@@ -290,6 +290,55 @@ class SessionPaymentFixesTests(TestCase):
         )
         self.assertEqual(_paid(tm), 0)
 
+    # ── 6. O'tgan oy qarzi yangi oyda to'lansa — o'tgan oyga yoziladi ────
+    def test_prev_month_debt_paid_now_shows_under_prev_month_filter(self):
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+        prev_fee = int(getattr(prev_tm, self.fee_field))
+        self.assertGreater(prev_fee, 0)
+
+        # Iyun qarzini iyulda to'laymiz — month_for_payment=iyun
+        # (create_payment view'dagi kabi start_month=o'tgan oy)
+        create_payment_and_allocate(
+            enrollment=self.enrollment,
+            created_by=self.director,
+            cash_amount=prev_fee,
+            card_amount_som=0,
+            start_month=self.prev_month,
+            paid_at=datetime.combine(timezone.localdate(), datetime.min.time()),
+        )
+        prev_tm.refresh_from_db()
+        self.assertEqual(
+            _paid(prev_tm), prev_fee,
+            "To'lov O'TGAN oyga yozilishi kerak (month_for_payment)",
+        )
+        # Joriy oyga hech narsa yozilmagan
+        cur_tm_qs = TuitionMonth.objects.filter(
+            enrollment=self.enrollment, month=self.cur_month
+        ).first()
+        if cur_tm_qs:
+            self.assertEqual(
+                _paid(cur_tm_qs), 0,
+                "Joriy oyga allocation tushmasligi kerak",
+            )
+
+        # To'lovlar bo'limi: o'tgan oy filtrida KO'RINADI
+        tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
+        resp = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
+        self.assertEqual(resp.status_code, 200)
+        pay_ids = [p.id for p in resp.context["filtered_payments"]]
+        self.assertEqual(
+            len(pay_ids), 1,
+            "O'tgan oy filtrida iyulda to'langan iyun to'lovi ko'rinishi kerak",
+        )
+
+        # Joriy oy filtrida KO'RINMAYDI (bu to'lov iyul uchun emas)
+        resp2 = self.client.get(tolovlar_url, {"pay_month": str(self.cur_month.month)})
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(
+            len(resp2.context["filtered_payments"]), 0,
+            "Joriy oy filtrida o'tgan oy uchun to'lov ko'rinmasligi kerak",
+        )
+
     # ── 5. Reset yetim to'lovlarni ham o'chiradi ─────────────────────────
     def test_reset_deletes_orphan_payments_of_that_month(self):
         tm = ensure_tuition_month(self.enrollment, self.cur_month)

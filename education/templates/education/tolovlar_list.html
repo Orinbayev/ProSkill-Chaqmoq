@@ -1068,26 +1068,20 @@
         document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById("tlFilterForm");
             if (form) {
-                // "To'lov oyi" tanlaganda sanalarni avtomatik to'ldirish
+                // "To'lov oyi" — QAYSI OY UCHUN to'langani bo'yicha filtr
+                // (allocation oyi, backend'da). Sanalarni majburlab
+                // to'ldirmaymiz: iyun qarzi iyulda to'langan bo'lsa ham
+                // "Iyun" filtrida ko'rinishi kerak.
                 const payMonthSelect = form.querySelector("select[name='pay_month']");
                 const dateFromInput = form.querySelector("input[name='date_from']");
                 const dateToInput = form.querySelector("input[name='date_to']");
 
                 if (payMonthSelect && dateFromInput && dateToInput) {
                     payMonthSelect.addEventListener("change", function () {
-                        const monthVal = parseInt(this.value, 10);
-                        if (monthVal >= 1 && monthVal <= 12) {
-                            const year = new Date().getFullYear();
-                            const mm = String(monthVal).padStart(2, "0");
-                            const lastDay = new Date(year, monthVal, 0).getDate();
-                            const lastDayStr = String(lastDay).padStart(2, "0");
-                            dateFromInput.value = `${year}-${mm}-01`;
-                            dateToInput.value = `${year}-${mm}-${lastDayStr}`;
-                        } else {
-                            // "Barcha oylar" tanlanganda sanalarni tozalash
-                            dateFromInput.value = "";
-                            dateToInput.value = "";
-                        }
+                        // Oy tanlanganda sana filtrini tozalaymiz — backend
+                        // butun yil oralig'ida allocation oyi bo'yicha qidiradi.
+                        dateFromInput.value = "";
+                        dateToInput.value = "";
                         // form submit qilindi (quyidagi umumiy listener orqali)
                     });
                 }

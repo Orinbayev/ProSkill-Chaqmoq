@@ -4099,11 +4099,21 @@ def _get_payment_dashboard_data(request):
             qs = qs.filter(payment_type=sel_type_filter)
 
         if sel_month and sel_month.isdigit():
-            # paid_date oyi bo'yicha filterlash (to'lov qilingan sana oyi)
+            # QAYSI OY UCHUN to'langani bo'yicha filterlash (allocation oyi).
+            # Iyun qarzini iyulda to'lasa ham — "Iyun" filtrida chiqadi.
+            # Allocation'siz to'lovlar uchun fallback: paid_date oyi.
+            _m_first = date(cur_year, int(sel_month), 1)
             qs = qs.filter(
-                paid_date__month=int(sel_month),
-                paid_date__year=cur_year,
-            )
+                Q(
+                    allocations__is_deleted=False,
+                    allocations__tuition_month__month=_m_first,
+                )
+                | Q(
+                    allocations__isnull=True,
+                    paid_date__month=int(sel_month),
+                    paid_date__year=cur_year,
+                )
+            ).distinct()
         return qs
 
     pay_qs = _apply_shared_payment_filters(pay_qs)
