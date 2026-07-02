@@ -4123,27 +4123,20 @@ def _get_payment_dashboard_data(request):
             qs = qs.filter(payment_type=sel_type_filter)
 
         if sel_month_first:
-            # QAYSI OY UCHUN to'langani bo'yicha filterlash (allocation oyi).
-            # Iyun qarzini iyulda to'lasa ham — "Iyun" filtrida chiqadi.
-            # Allocation'siz to'lovlar uchun fallback: paid_date oyi.
+            # paid_date oyi bo'yicha filterlash — diagramma ham shu mantiqni ishlatadi.
+            # Bu "Iyun" filtrida iyunda to'langan barcha to'lovlarni ko'rsatadi.
             qs = qs.filter(
-                Q(
-                    allocations__is_deleted=False,
-                    allocations__tuition_month__month=sel_month_first,
-                )
-                | Q(
-                    allocations__isnull=True,
-                    paid_date__month=int(sel_month),
-                    paid_date__year=cur_year,
-                )
-            ).distinct()
+                paid_date__month=int(sel_month),
+                paid_date__year=cur_year,
+            )
         return qs
 
     pay_qs = _apply_shared_payment_filters(pay_qs)
     chart_qs = _apply_shared_payment_filters(chart_qs)
 
+    # Sana filtri FAQAT jadval va "Filter bo'yicha" uchun.
+    # Diagramma doim 12 oylik tarixni ko'rsatadi (chart_qs sana filtrisiz).
     pay_qs = pay_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
-    chart_qs = chart_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
 
     chart_anchor_date = selected_to or today
     chart_months = _last_12_ending(chart_anchor_date)
@@ -4152,88 +4145,28 @@ def _get_payment_dashboard_data(request):
 
     payment_ids = pay_qs.values_list("id", flat=True)
 
-    # Oy filtri tanlanganda: har paymentdan FAQAT shu oyga yozilgan qismi
-    # sanaladi. Aks holda bo'lingan to'lov (may+iyun) har ikkala oy filtrida
-    # TO'LIQ summasi bilan chiqib, oylar yig'indisi umumiy daromaddan
-    # oshib ketadi (double counting).
-    _month_part_by_pay = {}
-    if sel_month_first:
-        for _r in (
-            PaymentAllocation.objects.filter(
-                is_deleted=False,
-                payment_id__in=payment_ids,
-                tuition_month__month=sel_month_first,
-            )
-            .values("payment_id")
-            .annotate(s=Sum("amount"))
-        ):
-            _month_part_by_pay[_r["payment_id"]] = int(_r["s"] or 0)
-        _alloc_part = sum(_month_part_by_pay.values())
-        _noalloc_part = (
-            Payment.objects.filter(id__in=payment_ids, allocations__isnull=True)
-            .aggregate(s=Sum("summa"))["s"] or 0
-        )
-        filtered_income = int(_alloc_part) + int(_noalloc_part)
-    else:
-        filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
+    # filtered_income: to'liq summa, diagramma bilan bir xil mantiq.
+    # "To'lov oyi" filtri paid_date asosida ishlaydi → double-count yo'q.
+    filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── Diagramma: to'lov sanasi (paid_date) oyi bo'yicha, to'liq summa ──
-    # filtered_income ham payment.summa ishlatadi (pay_month filtri yo'q bo'lsa).
-    # Shuning uchun diagramma va "Filter bo'yicha" bir xil mantiqni ishlatadi.
+    # ── Diagramma: paid_date oyi bo'yicha to'liq summa (oxirgi 12 oy) ──
+    # "Filter bo'yicha" ham payment.summa ni ishlatadi — bir xil mantiq.
+    # chart_qs ga sana filtri qo'yilmagan: doim 12 oylik tarix ko'rinadi.
     _chart_value_map = {}
-    if not sel_month_first:
-        # Oddiy holat: to'lov qilingan oy bo'yicha to'liq summani guruhlash.
-        # filtered_income = SUM(payment.summa) → diagramma ham shunday.
-        _chart_date_rows = (
-            chart_qs
-            .filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
-            .annotate(bucket=TruncMonth("paid_date"))
-            .values("bucket")
-            .annotate(total=Sum("summa"))
-        )
-        for _r in _chart_date_rows:
-            _b = _r["bucket"]
-            if hasattr(_b, "date"):
-                _b = _b.date()
-            _b = _b.replace(day=1)
-            _chart_value_map[_b] = int(_r["total"] or 0)
-    else:
-        # pay_month filtri bor: allocation oyi bo'yicha guruhlash.
-        # filtered_income ham allocation summani ishlatadi → mos keladi.
-        _chart_alloc_rows = (
-            PaymentAllocation.objects.filter(
-                is_deleted=False,
-                payment__in=chart_qs.values("id"),
-                tuition_month__month__gte=chart_start,
-                tuition_month__month__lte=chart_end,
-            )
-            .values("tuition_month__month")
-            .annotate(total=Sum("amount"))
-        )
-        _chart_noalloc_qs = chart_qs.filter(
-            allocations__isnull=True,
-            paid_date__gte=chart_start,
-            paid_date__lte=chart_end,
-        )
-        _chart_noalloc_rows = (
-            _chart_noalloc_qs
-            .annotate(bucket=TruncMonth("paid_date"))
-            .values("bucket")
-            .annotate(total=Sum("summa"))
-        )
-        for _r in _chart_alloc_rows:
-            _b = _r["tuition_month__month"]
-            if hasattr(_b, "date"):
-                _b = _b.date()
-            _b = _b.replace(day=1)
-            _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
-        for _r in _chart_noalloc_rows:
-            _b = _r["bucket"]
-            if hasattr(_b, "date"):
-                _b = _b.date()
-            _b = _b.replace(day=1)
-            _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
+    _chart_date_rows = (
+        chart_qs
+        .filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
+        .annotate(bucket=TruncMonth("paid_date"))
+        .values("bucket")
+        .annotate(total=Sum("summa"))
+    )
+    for _r in _chart_date_rows:
+        _b = _r["bucket"]
+        if hasattr(_b, "date"):
+            _b = _b.date()
+        _b = _b.replace(day=1)
+        _chart_value_map[_b] = int(_r["total"] or 0)
 
     chart_labels = [_human_month_label(b) for b in chart_months]
     chart_data = [_chart_value_map.get(b, 0) for b in chart_months]
@@ -4282,12 +4215,7 @@ def _get_payment_dashboard_data(request):
             }
             grouped_rows[student_id] = row
 
-        if sel_month_first:
-            # Oy filtri: paymentning faqat SHU OYGA yozilgan qismi
-            # (allocation'siz to'lovlar uchun to'liq summa)
-            row["total_sum"] += _month_part_by_pay.get(payment.id, int(payment.summa or 0))
-        else:
-            row["total_sum"] += int(payment.summa or 0)
+        row["total_sum"] += int(payment.summa or 0)
         row["payment_count"] += 1
 
         if payment.created_by:
