@@ -339,6 +339,64 @@ class SessionPaymentFixesTests(TestCase):
             "Joriy oy filtrida o'tgan oy uchun to'lov ko'rinmasligi kerak",
         )
 
+    # ── 7. Aniq oy tanlansa — ortiqcha ham SHU OYGA (keyingiga oshmaydi) ─
+    def test_explicit_month_payment_stays_in_that_month_even_with_excess(self):
+        prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
+        prev_fee = int(getattr(prev_tm, self.fee_field))
+        self.assertGreater(prev_fee, 0)
+
+        # O'tgan oy qarzidan 100k KO'P to'laymiz, oyni aniq tanlab
+        pay_total = prev_fee + 100_000
+        url = f"/{self.center.slug}" + reverse("education:create_payment")
+        resp = self.client.post(url, {
+            "enrollment_id": self.enrollment.id,
+            "cash_amount": str(pay_total),
+            "card_amount": "0",
+            "paid_date": timezone.localdate().isoformat(),
+            "month_for_payment": self._month_str(self.prev_month),
+            "next": f"/{self.center.slug}/talim/tolovlar/",
+        })
+        self.assertEqual(resp.status_code, 302)
+
+        # Butun summa O'TGAN OYDA — joriy oyga hech narsa oshmagan
+        prev_tm.refresh_from_db()
+        self.assertEqual(
+            _paid(prev_tm), pay_total,
+            "Tanlangan oyga butun summa yozilishi kerak (ortiqcha bilan birga)",
+        )
+        cur_tm = TuitionMonth.objects.filter(
+            enrollment=self.enrollment, month=self.cur_month
+        ).first()
+        if cur_tm:
+            self.assertEqual(
+                _paid(cur_tm), 0,
+                "Joriy oyga ortiqcha summa OSHMASLIGI kerak",
+            )
+
+        # To'lovlar filtri: faqat o'tgan oyda ko'rinadi
+        tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
+        r_prev = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
+        self.assertEqual(len(r_prev.context["filtered_payments"]), 1)
+        r_cur = self.client.get(tolovlar_url, {"pay_month": str(self.cur_month.month)})
+        self.assertEqual(
+            len(r_cur.context["filtered_payments"]), 0,
+            "Joriy oy filtrida bu to'lov KO'RINMASLIGI kerak",
+        )
+
+        # Diagramma: pul O'TGAN OY ustunida (oxirgi 12 oyning 11-chisi)
+        r_chart = self.client.get(tolovlar_url)
+        chart_data = r_chart.context["chart_data"]
+        self.assertEqual(len(chart_data), 12)
+        self.assertEqual(
+            chart_data[10], pay_total,
+            "Diagrammada pul to'langan oyda emas, QAYSI OY UCHUN "
+            "ekanida ko'rinishi kerak (o'tgan oy ustuni)",
+        )
+        self.assertEqual(
+            chart_data[11], 0,
+            "Joriy oy ustunida bu pul bo'lmasligi kerak",
+        )
+
     # ── 5. Reset yetim to'lovlarni ham o'chiradi ─────────────────────────
     def test_reset_deletes_orphan_payments_of_that_month(self):
         tm = ensure_tuition_month(self.enrollment, self.cur_month)

@@ -171,7 +171,10 @@ class TolovlarPaginationTests(TestCase):
         self.assertEqual(len(response.context["chart_labels"]), 12)
         self.assertEqual(response.context["chart_labels"][0], "May")
         self.assertEqual(response.context["chart_labels"][-1], "Aprel")
-        self.assertEqual(response.context["chart_data"][-1], 1_450_300)
+        # Diagramma QAYSI OY UCHUN to'langani bo'yicha (allocation oyi):
+        # split_payment ning 25 000 so'mi 2026-may uchun yozilgan — u aprel
+        # ustunida EMAS (may oynadan tashqarida). 1 450 300 - 25 000:
+        self.assertEqual(response.context["chart_data"][-1], 1_425_300)
         self.assertTrue(all(value == 0 for value in response.context["chart_data"][:-1]))
         self.assertEqual(response.context["chart_payment_record_count"], 27)
         self.assertEqual(response.context["chart_unique_payers_count"], 25)

@@ -1841,11 +1841,15 @@ def create_payment_and_allocate(
     paid_at=None,
     note: str = "",
     payment_type: Optional[str] = None,
+    strict_month: bool = False,
 ) -> Payment:
     """
     Payment yaratadi va pullarni oylar bo‘yicha taqsimlaydi:
     - start_month berilsa: o‘sha oydan boshlab ketma-ket taqsimlaydi
     - start_month bo‘lmasa: joriy oy (oy boshidan) boshlab
+    - strict_month=True (start_month bilan): BUTUN summa FAQAT shu oyga
+      yoziladi — qarzdan oshsa ham keyingi oyga surilmaydi. Menejer
+      "qaysi oy uchun" ni aniq tanlaganda ishlatiladi.
     """
     cash_amount = int(cash_amount or 0)
     card_amount_som = int(card_amount_som or 0)
@@ -1948,7 +1952,21 @@ def create_payment_and_allocate(
 
     payment = Payment.objects.create(**kwargs)
 
-    _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=total, start_month=start_month)
+    if strict_month and start_month:
+        # Menejer aniq oy tanlagan: butun summa FAQAT shu oyga.
+        # Qarzdan oshsa ham keyingi oyga oshirilmaydi — hisobotlarda
+        # (filtr, diagramma) pul aynan tanlangan oyda ko'rinadi.
+        tm = ensure_tuition_month(
+            enrollment, start_month, _exclude_payment_id=payment.id
+        )
+        PaymentAllocation.objects.create(
+            center=getattr(payment, "center", None) or getattr(enrollment, "center", None),
+            payment=payment,
+            tuition_month=tm,
+            amount=total,
+        )
+    else:
+        _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=total, start_month=start_month)
 
     return payment
 

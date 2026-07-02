@@ -1206,6 +1206,9 @@ def create_payment(request):
                     paid_at=selected_paid_at,
                     note=note,
                     payment_type=infer_payment_type(cash_amount, card_amount),
+                    # Menejer aniq oy tanlagan bo'lsa — butun summa FAQAT shu
+                    # oyga (keyingi oyga oshirilmaydi)
+                    strict_month=bool(month_for_payment),
                 )
             messages.success(request, f"✅ {enrollment.student.get_full_name()} uchun to'lov saqlandi!")
         except Exception as e:
@@ -1377,13 +1380,29 @@ def create_payment(request):
                         None,
                     )
                     if overflow_enr:
-                        overflow_start = month_for_payment or start_month
-                        _allocate_amount_forward(
-                            enrollment=overflow_enr,
-                            payment=main_payment,
-                            amount=remaining_sum,
-                            start_month=overflow_start,
-                        )
+                        if month_for_payment:
+                            # Menejer aniq oy tanlagan: ortiqcha ham SHU OYGA
+                            # yoziladi (keyingi oyga surilmaydi) — hisobotlarda
+                            # pul aynan tanlangan oyda ko'rinadi.
+                            from education.services.tuition import ensure_tuition_month as _etm_strict
+                            _tm_sel = _etm_strict(
+                                overflow_enr, month_for_payment,
+                                _exclude_payment_id=main_payment.id,
+                            )
+                            PaymentAllocation.objects.create(
+                                center=getattr(main_payment, "center", None)
+                                or getattr(overflow_enr, "center", None),
+                                payment=main_payment,
+                                tuition_month=_tm_sel,
+                                amount=remaining_sum,
+                            )
+                        else:
+                            _allocate_amount_forward(
+                                enrollment=overflow_enr,
+                                payment=main_payment,
+                                amount=remaining_sum,
+                                start_month=start_month,
+                            )
             
             messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to'lov saqlandi!")
         except Exception as e:
@@ -4125,21 +4144,70 @@ def _get_payment_dashboard_data(request):
     chart_months = _last_12_ending(chart_anchor_date)
     chart_start = chart_months[0]
     chart_end = _add_months(chart_months[-1], 1) - timedelta(days=1)
-    chart_qs = chart_qs.filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
 
     payment_ids = pay_qs.values_list("id", flat=True)
     filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    chart_payment_ids = chart_qs.values_list("id", flat=True)
-    chart_payment_record_count = Payment.objects.filter(id__in=chart_payment_ids).count()
-    chart_unique_payers_count = Payment.objects.filter(id__in=chart_payment_ids).values("student").distinct().count()
+    # ── Diagramma: QAYSI OY UCHUN to'langani bo'yicha (allocation oyi) ──
+    # Iyun oyida may uchun to'langan pul — MAY ustunida ko'rinadi.
+    # Allocation'siz (eski/bog'lanmagan) to'lovlar uchun fallback: paid_date.
+    _chart_alloc_rows = (
+        PaymentAllocation.objects.filter(
+            is_deleted=False,
+            payment__in=chart_qs.values("id"),
+            tuition_month__month__gte=chart_start,
+            tuition_month__month__lte=chart_end,
+        )
+        .values("tuition_month__month")
+        .annotate(total=Sum("amount"))
+    )
+    _chart_noalloc_qs = chart_qs.filter(
+        allocations__isnull=True,
+        paid_date__gte=chart_start,
+        paid_date__lte=chart_end,
+    )
+    _chart_noalloc_rows = (
+        _chart_noalloc_qs
+        .annotate(bucket=TruncMonth("paid_date"))
+        .values("bucket")
+        .annotate(total=Sum("summa"))
+    )
+    _chart_value_map = {}
+    for _r in _chart_alloc_rows:
+        _b = _r["tuition_month__month"]
+        if hasattr(_b, "date"):
+            _b = _b.date()
+        _b = _b.replace(day=1)
+        _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
+    for _r in _chart_noalloc_rows:
+        _b = _r["bucket"]
+        if hasattr(_b, "date"):
+            _b = _b.date()
+        _b = _b.replace(day=1)
+        _chart_value_map[_b] = _chart_value_map.get(_b, 0) + int(_r["total"] or 0)
 
-    chart_labels, chart_data, chart_kicker, chart_period_label = _build_last_12_month_money_chart_series(
-        chart_qs,
-        date_field="paid_date",
-        amount_field="summa",
-        anchor_date=chart_anchor_date,
+    chart_labels = [_human_month_label(b) for b in chart_months]
+    chart_data = [_chart_value_map.get(b, 0) for b in chart_months]
+    chart_kicker = "Oxirgi 12 oy"
+    chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
+
+    # Diagramma statistikasi: oynaga tushgan to'lovlar (allocation oyi
+    # bo'yicha, allocation'sizlar paid_date bo'yicha)
+    _chart_alloc_pay_ids = set(
+        PaymentAllocation.objects.filter(
+            is_deleted=False,
+            payment__in=chart_qs.values("id"),
+            tuition_month__month__gte=chart_start,
+            tuition_month__month__lte=chart_end,
+        ).values_list("payment_id", flat=True)
+    )
+    _chart_noalloc_pay_ids = set(_chart_noalloc_qs.values_list("id", flat=True))
+    chart_payment_ids = list(_chart_alloc_pay_ids | _chart_noalloc_pay_ids)
+    chart_payment_record_count = len(chart_payment_ids)
+    chart_unique_payers_count = (
+        Payment.objects.filter(id__in=chart_payment_ids)
+        .values("student").distinct().count()
     )
 
     pay_qs = pay_qs.order_by("-paid_date", "-id")
