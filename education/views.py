@@ -11918,19 +11918,58 @@ def delete_student_month(request, student_id):
 
     with transaction.atomic():
         for tm in tms:
-            # Agar to'lov bor bo'lsa — credit_balance ga qaytaramiz
-            refund = sum(int(a.amount or 0) for a in tm.active_allocations)
-            if refund > 0:
-                Enrollment.objects.filter(pk=tm.enrollment_id).update(
-                    credit_balance=F("credit_balance") + refund
-                )
+            has_alloc = bool(tm.active_allocations)
+
+            if has_alloc:
+                # To'lov bor: to'lovni bekor qilamiz.
+                # Agar to'lov faqat shu oyga edi → to'lovni ham o'chiramiz (credit yo'q).
+                # Agar to'lov boshqa oylarga ham tegishli → freed qismni credit_balance ga,
+                # to'lov summasini kamaytiramiz.
+                affected_pay_ids = {alloc.payment_id for alloc in tm.active_allocations}
+                freed = sum(int(a.amount or 0) for a in tm.active_allocations)
                 for alloc in tm.active_allocations:
                     alloc.is_deleted = True
                     alloc.save(update_fields=["is_deleted"])
-            tm.is_deleted = True
-            tm.deleted_reason = "manual_cleared"
-            tm.deleted_at = timezone.now()
-            tm.save(update_fields=["is_deleted", "deleted_reason", "deleted_at"])
+
+                for pay_id in affected_pay_ids:
+                    remaining_alloc = (
+                        PaymentAllocation.objects
+                        .filter(payment_id=pay_id, is_deleted=False)
+                        .aggregate(s=Sum("amount"))["s"] or 0
+                    )
+                    pay_obj = Payment.all_objects.filter(pk=pay_id, is_deleted=False).first()
+                    if pay_obj is None:
+                        continue
+                    if remaining_alloc == 0:
+                        # To'lov butunlay bekor — o'chiramiz, credit yo'q
+                        pay_obj.is_deleted = True
+                        pay_obj.save(update_fields=["is_deleted"])
+                    else:
+                        # Qisman bekor: freed miqdor credit_balance ga
+                        Enrollment.objects.filter(pk=tm.enrollment_id).update(
+                            credit_balance=F("credit_balance") + freed
+                        )
+                        if remaining_alloc < int(pay_obj.summa or 0):
+                            pay_obj.summa = remaining_alloc
+                            old_cash = int(pay_obj.cash_amount or 0)
+                            if old_cash > remaining_alloc:
+                                pay_obj.cash_amount = remaining_alloc
+                            pay_obj.save(update_fields=["summa", "cash_amount"])
+
+                # To'lov bekor qilingani uchun shu oy qayta qarz bo'lishi kerak →
+                # "future_deleted" dan _etm bu TM ni tiklaydi va oy yana to'lanmagan
+                # ko'rinadi. Keyingi to'lov shu oyga ketadi.
+                tm.is_deleted = True
+                tm.deleted_reason = "future_deleted"
+                tm.deleted_at = timezone.now()
+                tm.save(update_fields=["is_deleted", "deleted_reason", "deleted_at"])
+            else:
+                # To'lov yo'q: oy jadvaldan butunlay o'chiriladi (o'quvchi ketmoqda).
+                # "manual_cleared" → _etm bu oyni qayta tiklamaydi.
+                tm.is_deleted = True
+                tm.deleted_reason = "manual_cleared"
+                tm.deleted_at = timezone.now()
+                tm.save(update_fields=["is_deleted", "deleted_reason", "deleted_at"])
 
     return JsonResponse({"ok": True})
 
