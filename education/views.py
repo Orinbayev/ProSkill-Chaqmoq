@@ -4207,20 +4207,23 @@ def _get_payment_dashboard_data(request):
         filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── Diagramma: yagona qoida bo'yicha (oxirgi 12 oy, oy filtrisiz) ──
-    # Har ustun = o'sha oyga bog'langan pullar + o'sha oyda to'langan
-    # bog'lanmagan qoldiqlar. Oy filtri tanlanganda "Filter bo'yicha"
-    # summa aynan o'sha oy ustuniga teng bo'ladi.
+    # ── Diagramma: TO'LOV SANASI (paid_date) bo'yicha (oxirgi 12 oy, oy filtrisiz) ──
+    # Har ustun = o'sha oyda HAQIQATAN kassaga tushgan pul (summa).
+    # Jadval, "Filter bo'yicha" va "Umumiy daromad" bilan bir xil o'lchov:
+    # pul to'langan bo'lsa ustun ko'rinadi, to'lanmagan bo'lsa 0.
+    # (Ilgari "to'lov oyi"/allocation bo'yicha edi — shu sabab oldindan
+    #  to'langan pullar boshqa oy ustunida ko'rinib chalkashlik chiqargan.)
     _chart_pay_rows = list(chart_qs.values_list("id", "summa", "paid_date"))
-    _chart_parts = _payment_month_parts(
-        _chart_pay_rows, _build_alloc_map([r[0] for r in _chart_pay_rows])
-    )
     _chart_value_map = {}
     _chart_contrib_ids = set()
-    for _pid, _d in _chart_parts.items():
-        for _b, _part in _d.items():
-            if _part > 0 and chart_start <= _b <= chart_end:
-                _chart_value_map[_b] = _chart_value_map.get(_b, 0) + _part
+    for _pid, _summa, _pd in _chart_pay_rows:
+        if not _pd:
+            continue
+        _b = _pd.replace(day=1)
+        if chart_start <= _b <= chart_end:
+            _amt = int(_summa or 0)
+            if _amt:
+                _chart_value_map[_b] = _chart_value_map.get(_b, 0) + _amt
                 _chart_contrib_ids.add(_pid)
 
     chart_labels = [_human_month_label(b) for b in chart_months]
