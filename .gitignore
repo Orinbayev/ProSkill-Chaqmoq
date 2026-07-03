@@ -34,3 +34,8 @@ test_output.txt
 test_menu_button.html
 backup_before_reset*.json
 click_murojaat.txt
+
+# Android signing — MAXFIY
+mobile_app/android/key.properties
+mobile_app/android/*.jks
+mobile_app/android/*.keystore
