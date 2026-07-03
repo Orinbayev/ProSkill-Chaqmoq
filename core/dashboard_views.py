@@ -2338,67 +2338,18 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         xavfli_students = []
 
-    # ── Qarzdorlar (ko'rsatilgan sanadagi kümülatif qarzlar) ──────────
+    # ── Qarzdorlar — Qarzdorlar bo'limi bilan AYNAN bir xil hisob ──────────
+    # YAGONA MANBA: center_month_debt_summary. education/views.py dagi
+    # qarzdorlar_home ham AYNAN shu funksiyani ishlatadi => ikkala raqam
+    # 100% teng bo'ladi (kamaysa kamayadi, ko'paysa ko'payadi).
+    # d_to oyi uchun "hozirgi qarz" ko'rsatiladi (default = joriy oy).
     total_debt = 0
     total_debtors = 0
     try:
-        from education.services.tuition import calculate_enrollment_debt_snapshots, month_first_day, preload_enrollment_history_starts
-        
-        from education.models import TuitionMonth
-        
-        # 1. Enrollments list (active non-deferred + inactive with potential debt)
-        # Dashboard va Qarzdorlar bo'limi 100% mos kelishi uchun filtrlarni bir xil qilamiz.
-        _active_base = Enrollment.objects.filter(
-            group__center=center,
-            group__is_archived=False,
-            group__is_deleted=False,
-            is_active=True,
-            student__is_archived=False,
-            is_deferred=False,
+        from education.services.tuition import (
+            center_month_debt_summary as _cmds, month_first_day as _mfd,
         )
-        if branch:
-            _active_base = _active_base.filter(group__branch=branch)
-            
-        # Inactive: faqat TuitionMonth yozuvi mavjud bo'lganlarni olamiz (education/views.py dagi kabi)
-        _inactive_tm_filter = {
-            "enrollment__group__center": center,
-            "enrollment__group__is_archived": False,
-            "enrollment__group__is_deleted": False,
-            "enrollment__is_active": False,
-            "is_deleted": False,
-            "enrollment__student__is_archived": False,
-        }
-        if branch:
-            _inactive_tm_filter["enrollment__group__branch"] = branch
-            
-        _inactive_enr_ids = TuitionMonth.objects.filter(
-            **_inactive_tm_filter
-        ).values_list("enrollment_id", flat=True).distinct()
-        
-        _inactive_base = Enrollment.objects.filter(id__in=_inactive_enr_ids)
-
-        _target_enrs = list(_active_base) + list(_inactive_base)
-
-        if _target_enrs:
-             from education.services.tuition import preload_group_schedules
-             preload_enrollment_history_starts(_target_enrs)
-             preload_group_schedules({e.group_id for e in _target_enrs if e.group_id})
-             # Bizga target_date (d_to) dagi kümülatif qarz kerak
-             snaps = calculate_enrollment_debt_snapshots(
-                 _target_enrs,
-                 [month_first_day(d_to)],
-                 cumulative_up_to=d_to
-             )
-             
-             _enr_to_student = {e.id: e.student_id for e in _target_enrs}
-             debtor_student_ids = set()
-             for enr_id, snap in snaps.items():
-                 d = int(snap.get("net_cumulative_debt", 0) or 0)
-                 if d > 0:
-                     total_debt += d
-                     debtor_student_ids.add(_enr_to_student.get(enr_id))
-             total_debtors = len(debtor_student_ids)
-
+        total_debt, total_debtors = _cmds(center, [_mfd(d_to)], branch=branch)
     except Exception:
         total_debt = 0
         total_debtors = 0

@@ -103,6 +103,63 @@ def month_range_starts(start_date: date, end_date: date) -> list[date]:
     return months
 
 
+def center_month_debt_summary(center, months, branch=None):
+    """
+    Markazning tanlangan oy(lar) uchun jami qarzi va qarzdorlar sonini
+    hisoblaydi. Qarzdorlar bo'limi va Director dashboard AYNAN bir xil raqam
+    ko'rsatishi uchun YAGONA manba shu funksiya bo'lishi kerak.
+
+    Formula (qarzdorlar bo'limidagi total_center_debt bilan bir xil):
+      har TuitionMonth uchun  qarz = max(0, fee - to'langan)
+      jami = barcha shu qarzlar yig'indisi
+      qarzdorlar_soni = qarzi > 0 bo'lgan noyob o'quvchilar
+
+    Returns: (jami_qarz: int, qarzdorlar_soni: int)
+    """
+    from collections import defaultdict
+    from django.db.models import Q as _Q, Sum as _Sum
+    from education.models import TuitionMonth as _TM, PaymentAllocation as _PA
+
+    ff = tuition_month_fee_field()
+    tm_q = (
+        _TM.objects.filter(
+            enrollment__group__center=center,
+            month__in=list(months),
+            is_deleted=False,
+        ).filter(
+            _Q(enrollment__is_active=True, enrollment__is_deferred=False,
+               enrollment__student__is_archived=False)
+            | _Q(enrollment__is_active=False,
+                 enrollment__student__is_archived=False)
+        )
+    )
+    if branch:
+        tm_q = tm_q.filter(enrollment__group__branch=branch)
+
+    tm_rows = list(tm_q.values("id", "enrollment__student_id", ff))
+    if not tm_rows:
+        return 0, 0
+
+    tm_ids = [r["id"] for r in tm_rows]
+    paid_map = {
+        r["tuition_month_id"]: int(r["paid"] or 0)
+        for r in _PA.objects.filter(
+            tuition_month_id__in=tm_ids,
+            tuition_month__is_deleted=False,
+            payment__is_deleted=False,
+        ).values("tuition_month_id").annotate(paid=_Sum("amount"))
+    }
+
+    total = 0
+    per_student = defaultdict(int)
+    for r in tm_rows:
+        d = max(0, int(r[ff] or 0) - paid_map.get(r["id"], 0))
+        if d > 0:
+            total += d
+            per_student[r["enrollment__student_id"]] += d
+    return total, len(per_student)
+
+
 def parse_month_str(s: str) -> Optional[date]:
     """
     'YYYY-MM' yoki 'YYYY-MM-DD' -> date(YYYY,MM,1)

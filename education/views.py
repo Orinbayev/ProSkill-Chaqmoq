@@ -3257,49 +3257,24 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
+    # cumulative_up_to beriladi => har enrollment uchun "cumulative_debt"
+    # (enrollment boshidan selected_to gacha BARCHA to'lanmagan oylar yig'indisi)
+    # hisoblanadi. QARZ ustunini shu bilan ko'rsatamiz — breakdown "Jami qarz"
+    # bilan bir xil bo'lishi uchun (faqat tanlangan oy emas).
     debt_snapshots = calculate_enrollment_debt_snapshots(
-        enrollment_list, period_months
+        enrollment_list, period_months, cumulative_up_to=selected_to
     )
 
     # _total_debt_enrs — chart_snapshots (line below) uchun kerak.
     # active non-deferred + inactive enrollments (search/group filtersiz).
     _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
 
-    # ─── JAMI QARZ SUMMASI (barcha 12 oy bo'yicha) ───────────────────────────
-    # 2 ta DB query bilan hisoblaymiz (avval 2 full enrollment fetch +
-    # calculate_enrollment_debt_snapshots edi — yuzlab query).
-    total_center_debt = 0
+    # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
+    # YAGONA MANBA: center_month_debt_summary — Director dashboard ham AYNAN shu
+    # funksiyani ishlatadi, shuning uchun ikkala raqam 100% bir xil bo'ladi.
     try:
-        from education.models import TuitionMonth as _TM2, PaymentAllocation as _PA
-        from education.services.tuition import tuition_month_fee_field as _fee_f
-        from django.db.models import Sum as _Sum
-        _ff = _fee_f()
-        _tm_rows = list(
-            _TM2.objects.filter(
-                enrollment__group__center=center,
-                month__in=period_months,
-                is_deleted=False,
-            ).filter(
-                _Q(enrollment__is_active=True, enrollment__is_deferred=False,
-                   enrollment__student__is_archived=False)
-                | _Q(enrollment__is_active=False,
-                     enrollment__student__is_archived=False)
-            ).values("id", _ff)
-        )
-        if _tm_rows:
-            _tm_ids2 = [r["id"] for r in _tm_rows]
-            _paid_map2 = {
-                r["tuition_month_id"]: int(r["paid"] or 0)
-                for r in _PA.objects.filter(
-                    tuition_month_id__in=_tm_ids2,
-                    tuition_month__is_deleted=False,
-                    payment__is_deleted=False,
-                ).values("tuition_month_id").annotate(paid=_Sum("amount"))
-            }
-            total_center_debt = sum(
-                max(0, int(r[_ff] or 0) - _paid_map2.get(r["id"], 0))
-                for r in _tm_rows
-            )
+        from education.services.tuition import center_month_debt_summary as _cmds
+        total_center_debt, _ = _cmds(center, period_months)
     except Exception:
         total_center_debt = 0
 
@@ -3309,7 +3284,9 @@ def qarzdorlar_home(request):
     for e in enrollment_list:
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
-        debt = int(snapshot.get("debt", 0) or 0)
+        # QARZ = kumulativ (barcha to'lanmagan oylar), breakdown "Jami qarz" bilan
+        # bir xil. cumulative_debt yo'q bo'lsa (eski holat) — period debt.
+        debt = int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
         _e_unenrolled = getattr(e, "_is_unenrolled", False)
         if _e_unenrolled and debt <= 0:
             continue
@@ -3319,7 +3296,9 @@ def qarzdorlar_home(request):
         # Hisob-kitob denominatori har doim 12 (tuition.py da belgilangan).
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
         enr_credit = int(snapshot.get("credit_balance", 0) or 0)
-        prev_unpaid = int(snapshot.get("previous_unpaid", 0) or 0)
+        # debt endi kumulativ (o'tgan oylarni ham o'z ichiga oladi) — "O'tgan"
+        # satrini alohida ko'rsatmaymiz, aks holda ikki marta sanaladi.
+        prev_unpaid = 0
         start_date = enrollment_start_date(e)
         pattern_value = enrollment_lesson_pattern(e)
         pattern_label = lesson_pattern_label(pattern_value)
