@@ -269,6 +269,51 @@ def _billable_attendance_q() -> Q:
     )
 
 
+_LAST_BILLABLE_UNSET = object()
+
+
+def enrollment_last_billable_date(enrollment: Enrollment) -> Optional[date]:
+    """
+    Chiqarilgan (is_active=False) o'quvchi uchun hisob-kitobga kiradigan
+    OXIRGI sana. Bundan keyingi darslar/davomat qarzga qo'shilmasligi kerak.
+
+    Manba tartibi:
+      1) enrollment.last_lesson_date  (remove_student buni qo'yadi)
+      2) StudentGroupHistory.end_date (eng oxirgi yopilgan yozuv)
+    Faol o'quvchi (is_active=True) uchun None — cheklov yo'q.
+
+    Natija enrollment obyektida memoizatsiya qilinadi (N+1 oldini olish uchun).
+    """
+    if getattr(enrollment, "is_active", True):
+        return None
+
+    cached = getattr(enrollment, "__resolved_last_billable_date__", _LAST_BILLABLE_UNSET)
+    if cached is not _LAST_BILLABLE_UNSET:
+        return cached
+
+    result = getattr(enrollment, "last_lesson_date", None)
+    if not result:
+        student = getattr(enrollment, "student", None)
+        group = getattr(enrollment, "group", None)
+        if student and group:
+            try:
+                history = (
+                    StudentGroupHistory.objects
+                    .filter(student=student, group=group, end_date__isnull=False)
+                    .order_by("-end_date")
+                    .first()
+                )
+                result = history.end_date if history else None
+            except Exception:
+                result = None
+
+    try:
+        enrollment.__resolved_last_billable_date__ = result
+    except Exception:
+        pass
+    return result
+
+
 # =========================
 #  PRORATED FEE CALCULATIONS
 # =========================
@@ -671,6 +716,15 @@ def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
     month_start = month_first_day(month)
     month_end = month_last_day(month_start)
 
+    # Chiqarilgan o'quvchi: chiqarilgan sanasidan (last_lesson_date) keyingi
+    # davomatlar hisobga olinmaydi — aks holda guruhga qolgan davomat yozuvlari
+    # tufayli chiqarilgandan keyingi oy uchun ham qarz paydo bo'ladi.
+    last_billable = enrollment_last_billable_date(enrollment)
+    if last_billable is not None:
+        if last_billable < month_start:
+            return 0
+        month_end = min(month_end, last_billable)
+
     return (
         Attendance.objects.filter(
             group=enrollment.group,
@@ -945,11 +999,21 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
                 # Davomat qilingan barcha darslar (keldi + kelmadi).
                 # Chiqarilgan o'quvchi kelmasa ham, o'sha dars uchun to'laydi.
                 # Yagona istisno: davomat umuman olinmagan bo'lsa → 0 → qarz yo'q.
+                #
+                # MUHIM: chiqarilgan sanasidan (last_lesson_date) keyingi
+                # davomatlar sanalmaydi. Aks holda guruhga qolgan keyingi oy
+                # davomat yozuvlari chiqarilgan o'quvchiga yolg'on qarz yozadi.
+                _att_end = month_end
+                _last_billable = enrollment_last_billable_date(enrollment)
+                if _last_billable is not None:
+                    if _last_billable < month_start:
+                        return 0
+                    _att_end = min(_att_end, _last_billable)
                 return int(_Att.objects.filter(
                     student=_student,
                     group=_group,
-                    date__year=month_start.year,
-                    date__month=month_start.month,
+                    date__gte=month_start,
+                    date__lte=_att_end,
                 ).count())
             except Exception:
                 pass
