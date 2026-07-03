@@ -272,19 +272,35 @@ def _billable_attendance_q() -> Q:
 _LAST_BILLABLE_UNSET = object()
 
 
+def enrollment_is_removed(enrollment: Enrollment) -> bool:
+    """
+    O'quvchi guruhdan CHIQARILGANmi?
+
+    Ikki xil chiqarish yo'li bor:
+      - EnrollmentService.remove_student → is_active=False (+ last_lesson_date)
+      - enr.delete() (soft-delete, "guruhdan o'chirish") → is_deleted=True
+        (is_active=True qolishi mumkin, last_lesson_date qo'yilmaydi)
+    Ikkalasi ham qarzdorlar sahifasida "Chiqarilgan" deb ko'rsatiladi, shuning
+    uchun hisob-kitob mantig'i ham ikkalasini bir xil ko'rishi kerak.
+    """
+    if not getattr(enrollment, "is_active", True):
+        return True
+    return bool(getattr(enrollment, "is_deleted", False))
+
+
 def enrollment_last_billable_date(enrollment: Enrollment) -> Optional[date]:
     """
-    Chiqarilgan (is_active=False) o'quvchi uchun hisob-kitobga kiradigan
-    OXIRGI sana. Bundan keyingi darslar/davomat qarzga qo'shilmasligi kerak.
+    Chiqarilgan o'quvchi uchun hisob-kitobga kiradigan OXIRGI sana.
+    Bundan keyingi darslar/davomat qarzga qo'shilmasligi kerak.
 
     Manba tartibi:
       1) enrollment.last_lesson_date  (remove_student buni qo'yadi)
       2) StudentGroupHistory.end_date (eng oxirgi yopilgan yozuv)
-    Faol o'quvchi (is_active=True) uchun None — cheklov yo'q.
+    Chiqarilmagan (faol) o'quvchi uchun None — cheklov yo'q.
 
     Natija enrollment obyektida memoizatsiya qilinadi (N+1 oldini olish uchun).
     """
-    if getattr(enrollment, "is_active", True):
+    if not enrollment_is_removed(enrollment):
         return None
 
     cached = getattr(enrollment, "__resolved_last_billable_date__", _LAST_BILLABLE_UNSET)
@@ -988,9 +1004,10 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
     if start_date > month_end:
         return 0
 
-    # Chiqarilgan (inactive) o'quvchi: haqiqiy davomat asosida hisoblaymiz.
+    # Chiqarilgan o'quvchi (is_active=False YOKI is_deleted=True): jadval bo'yicha
+    # emas, HAQIQIY davomat asosida hisoblaymiz.
     # Davomat 0 bo'lsa → qarz yo'q; > 0 bo'lsa → haqiqiy dars soni qaytadi.
-    if not getattr(enrollment, "is_active", True):
+    if enrollment_is_removed(enrollment):
         _student = getattr(enrollment, "student", None)
         _group = getattr(enrollment, "group", None)
         if _student and _group:

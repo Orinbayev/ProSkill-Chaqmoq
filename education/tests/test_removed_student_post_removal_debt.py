@@ -111,6 +111,41 @@ class RemovedStudentPostRemovalDebtTests(TestCase):
         self.assertEqual(prorated_monthly_fee(self.enr, july), 0,
                          "Chiqarilgandan keyingi oy uchun qarz yozilmasligi kerak")
 
+    def test_soft_deleted_enrollment_no_attendance_has_zero_debt(self):
+        """
+        `enr.delete()` (guruhdan o'chirish) → is_deleted=True, lekin is_active=True
+        va last_lesson_date=None. Iyulda davomat yo'q → jadval bo'yicha 13 dars
+        yozilmasligi, qarz 0 bo'lishi kerak.
+        """
+        g = Group.objects.create(
+            center=self.center, nom="IELTS G-DEL", oqituvchi=self.teacher,
+            kurs_narxi=350_000, oqituvchi_foiz=50, oy_dars_soni=12,
+        )
+        student2 = User.objects.create_user(
+            email="s2@removal.test", password="x", role="student",
+            center=self.center, ism="Del", familya="Student",
+        )
+        enr = Enrollment.objects.create(
+            center=self.center, student=student2, group=g,
+            is_active=True, joined_at=date(2026, 5, 1),
+        )
+        StudentGroupHistory.objects.create(
+            student=student2, group=g, center=self.center,
+            start_date=date(2026, 5, 1), kurs_narxi=350_000, oqituvchi_foiz=50,
+        )
+        # Guruhdan o'chirish: soft-delete (is_active TEGILMAYDI, last_lesson_date YO'Q)
+        enr.delete(deleted_by=self.director)
+        enr = Enrollment.all_objects.get(pk=enr.pk)
+        self.assertTrue(enr.is_deleted)
+        self.assertTrue(enr.is_active)          # is_active o'zgармaydi
+        self.assertIsNone(enr.last_lesson_date)
+
+        july = date(2026, 7, 1)
+        self.assertEqual(tuition_month_lesson_count(enr, july), 0,
+                         "Soft-delete + davomat yo'q → 0 dars (jadval bo'yicha 13 emas)")
+        self.assertEqual(prorated_monthly_fee(enr, july), 0,
+                         "Soft-delete + davomat yo'q → 0 qarz")
+
     def test_removal_month_counts_only_up_to_last_lesson_date(self):
         # Iyun: last_lesson_date=30 → oydagi barcha davomat sanaladi
         for day in (2, 6, 10, 16, 22, 30):
