@@ -1164,7 +1164,10 @@ def create_payment(request):
     center = get_active_center(request)
 
     if enrollment_id:
-        qs = Enrollment.objects.all()
+        # all_objects — guruhdan CHIQARILGAN (is_deleted=True) enrollment uchun ham
+        # to'lov qabul qilinsin. Aks holda chiqarilgan o'quvchining o'qigan oyi qarzi
+        # (mas. iyun) ko'rinadi-yu, to'lash uchun bosilganda 404 chiqardi.
+        qs = Enrollment.all_objects.all()
         if center:
             qs = qs.filter(
                 Q(center=center)
@@ -1235,13 +1238,15 @@ def create_payment(request):
             group__is_archived=False, group__is_deleted=False,
         ).order_by('id')
 
-        # Guruhdan chiqarilgan (is_active=False) lekin to'lanmagan TuitionMonth bor
-        # enrollment'lar ham to'lovga qo'shiladi — ularning qarzi ham yig'ilishi kerak.
+        # Guruhdan CHIQARILGAN lekin to'lanmagan TuitionMonth bor enrollment'lar
+        # ham to'lovga qo'shiladi. Chiqarish ikki xil: is_active=False YOKI
+        # is_deleted=True (soft-delete). Ikkalasini ham qamraymiz, aks holda
+        # soft-delete qilingan o'quvchining o'qigan oyi qarzini to'lab bo'lmaydi.
         inactive_with_debt_ids = list(
             TuitionMonth.objects
             .filter(
+                Q(enrollment__is_active=False) | Q(enrollment__is_deleted=True),
                 enrollment__student=student,
-                enrollment__is_active=False,
                 enrollment__group__is_archived=False,
                 enrollment__group__is_deleted=False,
                 is_deleted=False,
@@ -1249,7 +1254,7 @@ def create_payment(request):
             .values_list("enrollment_id", flat=True)
             .distinct()
         )
-        inactive_enrollments = Enrollment.objects.filter(
+        inactive_enrollments = Enrollment.all_objects.filter(
             id__in=inactive_with_debt_ids,
             group__is_archived=False,
             group__is_deleted=False,
@@ -1260,7 +1265,7 @@ def create_payment(request):
             list(active_enrollments.values_list('id', flat=True)) +
             list(inactive_enrollments.values_list('id', flat=True))
         ))
-        enrollments = Enrollment.objects.filter(id__in=all_enr_ids).order_by('id')
+        enrollments = Enrollment.all_objects.filter(id__in=all_enr_ids).order_by('id')
 
         if not enrollments.exists():
             messages.error(request, "O'quvchida faol kurslar topilmadi.")
@@ -12313,7 +12318,7 @@ def student_monthly_breakdown(request, student_id):
         )
         user_qs = user_qs.filter(
             Q(center=center)
-            | Q(pk__in=Enrollment.objects.filter(_enr_cq).values("student_id"))
+            | Q(pk__in=Enrollment.all_objects.filter(_enr_cq).values("student_id"))
         )
     student = get_object_or_404(user_qs, id=student_id)
 
@@ -12323,7 +12328,11 @@ def student_monthly_breakdown(request, student_id):
         | _Q(center__isnull=True, group__center=center)
         | _Q(center__isnull=True, student__center=center)
     )
-    enrollments = Enrollment.objects.filter(student=student).select_related("group")
+    # MUHIM: all_objects — guruhdan CHIQARILGAN (is_deleted=True) enrollment'lar
+    # ham kiritiladi. Aks holda chiqarilgan o'quvchining o'qigan oyi (mas. iyun)
+    # qarzi to'lov oynasida (oylik breakdown) umuman ko'rinmaydi va to'lov
+    # qilib bo'lmaydi — qarz esa qarzdorlar ro'yxatida turadi.
+    enrollments = Enrollment.all_objects.filter(student=student).select_related("group")
     if center:
         enrollments = enrollments.filter(_center_q_mb)
 
