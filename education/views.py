@@ -3261,10 +3261,14 @@ def qarzdorlar_home(request):
         enrollment_list, period_months
     )
 
-    # ── JAMI QARZ (QARZ ustuni) — breakdown "Jami qarz" bilan AYNAN bir xil ──
-    # Har enrollment uchun BARCHA non-deleted TuitionMonth'lar bo'yicha
-    # max(0, fee - paid). Kelajak oy (paid==0) hisobga olinmaydi — student
-    # breakdown (student_monthly_breakdown) bilan bir xil qoida.
+    # ── JAMI QARZ (QARZ ustuni) — TANLANGAN OY(LAR) bo'yicha ─────────────────
+    # Har enrollment uchun faqat period_months (filterda tanlangan oy oralig'i)
+    # ichidagi TuitionMonth'lar bo'yicha max(0, fee - paid).
+    # MUHIM: month__in=period_months bo'lmasa QARZ ustuni BARCHA oylarni
+    # yig'ib, oy filtri ishlamay qoladi (iyun tanlansa ham iyul qarzdorlari
+    # ko'rinadi). Bu chart, yuqoridagi "Jami qarz" (center_month_debt_summary)
+    # va per-enrollment snapshot bilan bir xil period doirasi.
+    # Kelajak oy (paid==0) hisobga olinmaydi — student breakdown bilan bir xil.
     from django.db.models import Sum as _SumTot
     from education.services.tuition import tuition_month_fee_field as _fee_f_tot
     _fee_field_tot = _fee_f_tot()
@@ -3272,7 +3276,11 @@ def qarzdorlar_home(request):
     _enr_ids_debt = [e.id for e in enrollment_list]
     _tm_fee_rows = list(
         TuitionMonth.objects
-        .filter(enrollment_id__in=_enr_ids_debt, is_deleted=False)
+        .filter(
+            enrollment_id__in=_enr_ids_debt,
+            is_deleted=False,
+            month__in=period_months,
+        )
         .values_list("id", "enrollment_id", "month", _fee_field_tot)
     )
     _tm_paid_map = {}
