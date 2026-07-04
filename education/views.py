@@ -3257,13 +3257,58 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
-    # cumulative_up_to beriladi => har enrollment uchun "cumulative_debt"
-    # (enrollment boshidan selected_to gacha BARCHA to'lanmagan oylar yig'indisi)
-    # hisoblanadi. QARZ ustunini shu bilan ko'rsatamiz — breakdown "Jami qarz"
-    # bilan bir xil bo'lishi uchun (faqat tanlangan oy emas).
     debt_snapshots = calculate_enrollment_debt_snapshots(
-        enrollment_list, period_months, cumulative_up_to=selected_to
+        enrollment_list, period_months
     )
+
+    # ── JAMI QARZ (QARZ ustuni) — breakdown "Jami qarz" bilan AYNAN bir xil ──
+    # Har enrollment uchun BARCHA non-deleted TuitionMonth'lar bo'yicha
+    # max(0, fee - paid). Kelajak oy (paid==0) hisobga olinmaydi — student
+    # breakdown (student_monthly_breakdown) bilan bir xil qoida.
+    from django.db.models import Sum as _SumTot
+    from education.services.tuition import tuition_month_fee_field as _fee_f_tot
+    _fee_field_tot = _fee_f_tot()
+    _cur_mk_debt = today.strftime("%Y-%m")
+    _enr_ids_debt = [e.id for e in enrollment_list]
+    _tm_fee_rows = list(
+        TuitionMonth.objects
+        .filter(enrollment_id__in=_enr_ids_debt, is_deleted=False)
+        .values_list("id", "enrollment_id", "month", _fee_field_tot)
+    )
+    _tm_paid_map = {}
+    if _tm_fee_rows:
+        for _r in (
+            PaymentAllocation.objects
+            .filter(
+                tuition_month_id__in=[x[0] for x in _tm_fee_rows],
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False,
+            )
+            .values("tuition_month_id")
+            .annotate(paid=_SumTot("amount"))
+        ):
+            _tm_paid_map[_r["tuition_month_id"]] = int(_r["paid"] or 0)
+    # Per-enrollment qarz (guruh kartalari uchun).
+    enr_total_debt = {}
+    # Per-STUDENT qarz — breakdown kabi bir oydagi barcha guruhlarni birlashtiradi
+    # (bir guruhdagi ortiqcha to'lov boshqa guruh qarzini yopadi). QARZ ustuni shu.
+    _enr_to_sid = {e.id: e.student_id for e in enrollment_list}
+    _stu_month_fee = {}
+    _stu_month_paid = {}
+    for _tmid, _enrid, _mon, _fee in _tm_fee_rows:
+        _paid = _tm_paid_map.get(_tmid, 0)
+        if _mon.strftime("%Y-%m") > _cur_mk_debt and _paid == 0:
+            continue  # kelajak oy, to'lov yo'q — breakdown ham ko'rsatmaydi
+        enr_total_debt[_enrid] = enr_total_debt.get(_enrid, 0) + max(0, int(_fee or 0) - _paid)
+        _sid = _enr_to_sid.get(_enrid)
+        if _sid is not None:
+            _k = (_sid, _mon)
+            _stu_month_fee[_k] = _stu_month_fee.get(_k, 0) + int(_fee or 0)
+            _stu_month_paid[_k] = _stu_month_paid.get(_k, 0) + _paid
+    student_total_debt = {}
+    for (_sid, _mon), _fee in _stu_month_fee.items():
+        _paid = _stu_month_paid.get((_sid, _mon), 0)
+        student_total_debt[_sid] = student_total_debt.get(_sid, 0) + max(0, _fee - _paid)
 
     # _total_debt_enrs — chart_snapshots (line below) uchun kerak.
     # active non-deferred + inactive enrollments (search/group filtersiz).
@@ -3284,9 +3329,9 @@ def qarzdorlar_home(request):
     for e in enrollment_list:
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
-        # QARZ = kumulativ (barcha to'lanmagan oylar), breakdown "Jami qarz" bilan
-        # bir xil. cumulative_debt yo'q bo'lsa (eski holat) — period debt.
-        debt = int(snapshot.get("cumulative_debt", snapshot.get("debt", 0)) or 0)
+        # QARZ = o'quvchining BARCHA to'lanmagan oylari yig'indisi (breakdown
+        # "Jami qarz" bilan aynan bir xil), faqat tanlangan oy emas.
+        debt = int(enr_total_debt.get(e.id, snapshot.get("debt", 0)) or 0)
         _e_unenrolled = getattr(e, "_is_unenrolled", False)
         if _e_unenrolled and debt <= 0:
             continue
@@ -3396,6 +3441,11 @@ def qarzdorlar_home(request):
 
     # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
+        # QARZ ustuni = o'quvchining JAMI qarzi (breakdown "Jami qarz" bilan bir xil).
+        # Per-enrollment yig'indi emas — bir oydagi guruhlar birlashtirilgan.
+        _sid_row = getattr(r.get("student"), "id", None)
+        if _sid_row is not None and _sid_row in student_total_debt:
+            r["debt"] = int(student_total_debt[_sid_row])
         if r["primary_debt_enrollment"] is not None:
             r["enrollment"] = r["primary_debt_enrollment"]
             r["group"] = r["primary_debt_enrollment"].group
