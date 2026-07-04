@@ -339,11 +339,20 @@ class SessionPaymentFixesTests(TestCase):
             "Joriy oy filtrida o'tgan oy uchun to'lov ko'rinmasligi kerak",
         )
 
-    # ── 7. Aniq oy tanlansa — ortiqcha ham SHU OYGA (keyingiga oshmaydi) ─
-    def test_explicit_month_payment_stays_in_that_month_even_with_excess(self):
+    # ── 7. Aniq oy tanlansa — ortiqcha KEYINGI oyga o'tadi (carry-forward) ─
+    def test_explicit_month_payment_excess_carries_to_next_month(self):
+        """
+        Founder talabi (2026-07): menejer aniq oy tanlab, o'sha oy qarzidan
+        KO'P to'lasa — tanlangan oy qarzi TO'LIQ yopiladi, ORTIQCHA summa
+        keyingi oy(lar) to'loviga hisoblanadi (oldingi oylarga tegilmaydi).
+        Hisobot allocation asosida: har oy filtri o'z ulushini ko'rsatadi,
+        yig'indi jami to'lovga teng (double-count yo'q).
+        """
         prev_tm = ensure_tuition_month(self.enrollment, self.prev_month)
         prev_fee = int(getattr(prev_tm, self.fee_field))
         self.assertGreater(prev_fee, 0)
+        cur_tm0 = ensure_tuition_month(self.enrollment, self.cur_month)
+        self.assertGreaterEqual(int(getattr(cur_tm0, self.fee_field)), 100_000)
 
         # O'tgan oy qarzidan 100k KO'P to'laymiz, oyni aniq tanlab
         pay_total = prev_fee + 100_000
@@ -358,43 +367,31 @@ class SessionPaymentFixesTests(TestCase):
         })
         self.assertEqual(resp.status_code, 302)
 
-        # Butun summa O'TGAN OYDA — joriy oyga hech narsa oshmagan
+        # O'tgan oy faqat QARZICHA yopiladi, ortig'i JORIY oyga o'tadi
         prev_tm.refresh_from_db()
         self.assertEqual(
-            _paid(prev_tm), pay_total,
-            "Tanlangan oyga butun summa yozilishi kerak (ortiqcha bilan birga)",
+            _paid(prev_tm), prev_fee,
+            "Tanlangan oyga faqat o'z qarzicha yozilishi kerak",
         )
         cur_tm = TuitionMonth.objects.filter(
             enrollment=self.enrollment, month=self.cur_month
         ).first()
-        if cur_tm:
-            self.assertEqual(
-                _paid(cur_tm), 0,
-                "Joriy oyga ortiqcha summa OSHMASLIGI kerak",
-            )
+        self.assertIsNotNone(cur_tm)
+        self.assertEqual(
+            _paid(cur_tm), 100_000,
+            "Ortiqcha 100k keyingi (joriy) oyga o'tishi kerak",
+        )
 
-        # To'lovlar filtri: faqat o'tgan oyda ko'rinadi
+        # Hisobot: har oy filtri O'Z ulushini ko'rsatadi
         tolovlar_url = f"/{self.center.slug}/talim/tolovlar/"
         r_prev = self.client.get(tolovlar_url, {"pay_month": str(self.prev_month.month)})
-        self.assertEqual(len(r_prev.context["filtered_payments"]), 1)
         r_cur = self.client.get(tolovlar_url, {"pay_month": str(self.cur_month.month)})
+        self.assertEqual(int(r_prev.context["filtered_income"]), prev_fee)
+        self.assertEqual(int(r_cur.context["filtered_income"]), 100_000)
+        # Oylar yig'indisi = to'liq to'lov (double counting yo'q)
         self.assertEqual(
-            len(r_cur.context["filtered_payments"]), 0,
-            "Joriy oy filtrida bu to'lov KO'RINMASLIGI kerak",
-        )
-
-        # Diagramma: pul O'TGAN OY ustunida (oxirgi 12 oyning 11-chisi)
-        r_chart = self.client.get(tolovlar_url)
-        chart_data = r_chart.context["chart_data"]
-        self.assertEqual(len(chart_data), 12)
-        self.assertEqual(
-            chart_data[10], pay_total,
-            "Diagrammada pul to'langan oyda emas, QAYSI OY UCHUN "
-            "ekanida ko'rinishi kerak (o'tgan oy ustuni)",
-        )
-        self.assertEqual(
-            chart_data[11], 0,
-            "Joriy oy ustunida bu pul bo'lmasligi kerak",
+            int(r_prev.context["filtered_income"]) + int(r_cur.context["filtered_income"]),
+            pay_total,
         )
 
     # ── 8. Bo'lingan to'lov har oy filtrida faqat O'Z QISMINI ko'rsatadi ─

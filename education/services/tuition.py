@@ -2091,17 +2091,16 @@ def create_payment_and_allocate(
     payment = Payment.objects.create(**kwargs)
 
     if strict_month and start_month:
-        # Menejer aniq oy tanlagan: butun summa FAQAT shu oyga.
-        # Qarzdan oshsa ham keyingi oyga oshirilmaydi — hisobotlarda
-        # (filtr, diagramma) pul aynan tanlangan oyda ko'rinadi.
-        tm = ensure_tuition_month(
-            enrollment, start_month, _exclude_payment_id=payment.id
-        )
-        PaymentAllocation.objects.create(
-            center=getattr(payment, "center", None) or getattr(enrollment, "center", None),
-            payment=payment,
-            tuition_month=tm,
-            amount=total,
+        # Menejer aniq oy tanlagan: allocation AYNAN shu oydan boshlanadi —
+        # oldingi to'lanmagan oylarga tegmaydi (auto-detect'dan farqi shu).
+        # LEKIN oydagi qarzdan ORTIQCHA summa keyingi oy(lar)ga o'tadi:
+        #   iyun qarzi 250k, o'quvchi 300k to'lasa → iyun 250k yopiladi,
+        #   ortiqcha 50k keyingi oy (iyul) to'loviga hisoblanadi.
+        # Bu _allocate_amount_forward orqali: har oyga faqat qarzicha yoziladi,
+        # ortig'i oldinga suriladi (kerak bo'lsa keyingi oy TuitionMonth yaratiladi,
+        # 12 oydan oshsa credit_balance ga).
+        _allocate_amount_forward(
+            enrollment=enrollment, payment=payment, amount=total, start_month=start_month
         )
     else:
         _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=total, start_month=start_month)
