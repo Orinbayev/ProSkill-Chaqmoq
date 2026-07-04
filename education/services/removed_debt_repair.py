@@ -27,7 +27,8 @@ from education.models import (
 )
 from education.services.tuition import (
     tuition_month_fee_field, enrollment_last_billable_date,
-    enrollment_is_removed, month_first_day,
+    enrollment_is_removed, month_first_day, reconcile_tuition_month,
+    _billable_attendance_q,
 )
 
 FF = tuition_month_fee_field()
@@ -147,3 +148,75 @@ def apply_proposal(p: Proposal) -> str:
         return f"ZEROED phantom {p.source_month:%Y-%m} (fee {p.source_fee})"
 
     return f"SKIP ({p.action})"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DAVOMATGA QARAB TIKLASH (asosiy yechim — davomat YOZILGAN bo'lsa)
+# ─────────────────────────────────────────────────────────────────────────────
+# Chiqarilgan o'quvchi guruhda o'qib (davomat qilingan) chiqarilgan bo'lsa, uning
+# qarzi HAQIQIY davomat oyiga (mas. iyun) tegishli. Lekin ko'p holatda o'sha oy
+# uchun TuitionMonth umuman yaratilmagan yoki qarz noto'g'ri oyga (iyul) yozilib
+# qolgan → to'lov modalida to'g'ri oy ko'rinmaydi.
+#
+# reconcile_removed_enrollment: har davomat bo'lgan oy uchun TuitionMonth'ni
+# haqiqiy davomatga qarab yaratadi/yangilaydi; davomatsiz (fantom) fee>0 paid=0
+# oylarni soft-delete qiladi. Shunda to'g'ri oy(lar) to'lov modalida chiqadi.
+
+
+def _billable_attendance_months(enr: Enrollment) -> list[date]:
+    """O'quvchining shu guruhdagi davomat bo'lgan oylari (last_billable'gacha)."""
+    qs = Attendance.objects.filter(
+        student=enr.student, group=enr.group,
+    ).filter(_billable_attendance_q())
+    lb = enrollment_last_billable_date(enr)
+    if lb is not None:
+        qs = qs.filter(date__lte=lb)
+    months = {month_first_day(d) for d in qs.values_list("date", flat=True)}
+    return sorted(months)
+
+
+@transaction.atomic
+def reconcile_removed_enrollment(enr: Enrollment, apply: bool = False) -> dict:
+    """Bitta chiqarilgan enrollment'ni davomatga qarab tiklaydi.
+
+    Qaytaradi: {'reconciled': [(oy, fee)], 'phantoms': [(oy, fee)], 'skipped_paid': [...]}
+    apply=False bo'lsa — hech narsa yozmaydi (rollback).
+    """
+    report = {"reconciled": [], "phantoms": [], "skipped_paid": []}
+    if not enrollment_is_removed(enr):
+        return report
+
+    bmonths = _billable_attendance_months(enr)
+    bset = set(bmonths)
+
+    # 1) Davomat bo'lgan oylar → TuitionMonth reconcile (haqiqiy fee).
+    for m in bmonths:
+        if apply:
+            tm = reconcile_tuition_month(enr, m)
+            fee = int(getattr(tm, FF, 0) or 0)
+        else:
+            # dry-run: nima bo'lishini hisoblaymiz (yozmaymiz)
+            from education.services.tuition import attendance_based_fee as _abf
+            fee = int(_abf(enr, m) or 0)
+        report["reconciled"].append((m, fee))
+
+    # 2) Davomatsiz (fantom) fee>0, paid=0 oylar → soft-delete.
+    stored = TuitionMonth.objects.filter(
+        enrollment=enr, is_deleted=False, **{f"{FF}__gt": 0},
+    ).order_by("month")
+    for tm in stored:
+        m = month_first_day(tm.month)
+        if m in bset:
+            continue  # haqiqiy oy — tegmaymiz
+        fee = int(getattr(tm, FF, 0) or 0)
+        paid = _paid_for(tm)
+        if paid > 0:
+            report["skipped_paid"].append((m, fee, paid))
+            continue
+        report["phantoms"].append((m, fee))
+        if apply:
+            tm.delete(reason="cleanup_phantom_no_attendance")
+
+    if not apply:
+        transaction.set_rollback(True)
+    return report
