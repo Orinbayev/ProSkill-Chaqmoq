@@ -11881,7 +11881,10 @@ def edit_student_month_debt(request, student_id):
         | _Q2(center__isnull=True, group__center=center)
         | _Q2(center__isnull=True, student__center=center)
     )
-    enrollments_for_student = Enrollment.objects.filter(student=student)
+    # all_objects — guruhdan CHIQARILGAN (is_deleted=True) enrollment oyini ham
+    # tahrirlash mumkin bo'lsin (breakdown all_objects bilan izchil). Aks holda
+    # chiqarilgan o'quvchi oyini qalamcha bilan saqlab bo'lmasdi ("yozuv topilmadi").
+    enrollments_for_student = Enrollment.all_objects.filter(student=student)
     if center:
         enrollments_for_student = enrollments_for_student.filter(_center_q_edit)
 
