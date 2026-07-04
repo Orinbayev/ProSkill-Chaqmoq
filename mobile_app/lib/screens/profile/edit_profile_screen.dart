@@ -35,6 +35,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _removeAvatar = false;
   bool _saving = false;
 
+  // O'quvchi o'z ism/familyasini o'zgartira olmaydi — faqat markaz o'zgartiradi.
+  bool get _isStudent => widget.initialUser.role == 'student';
+
   @override
   void initState() {
     super.initState();
@@ -285,14 +288,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _firstNameController,
+                                  readOnly: _isStudent,
+                                  enabled: !_isStudent,
                                   style: ProfileUiTextStyles.of(context).input,
                                   cursorColor: ProfileUiColors.of(context).primary,
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
-                                  decoration: profileInputDecoration(context, 
+                                  decoration: profileInputDecoration(context,
                                     label: 'Ism',
                                     hintText: 'Ismingiz',
-                                    icon: Icons.person_outline_rounded,
+                                    icon: _isStudent
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.person_outline_rounded,
                                   ),
                                   validator: (String? value) {
                                     if ((value ?? '').trim().isEmpty) {
@@ -304,14 +311,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _lastNameController,
+                                  readOnly: _isStudent,
+                                  enabled: !_isStudent,
                                   style: ProfileUiTextStyles.of(context).input,
                                   cursorColor: ProfileUiColors.of(context).primary,
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
-                                  decoration: profileInputDecoration(context, 
+                                  decoration: profileInputDecoration(context,
                                     label: 'Familiya',
                                     hintText: 'Familiyangiz',
-                                    icon: Icons.badge_outlined,
+                                    icon: _isStudent
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.badge_outlined,
                                   ),
                                   validator: (String? value) {
                                     if ((value ?? '').trim().isEmpty) {
@@ -320,6 +331,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return null;
                                   },
                                 ),
+                                if (_isStudent) ...<Widget>[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Ism va familiyani faqat o\'quv markaz o\'zgartira oladi.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: ProfileUiColors.of(context).secondaryText,
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _phoneController,

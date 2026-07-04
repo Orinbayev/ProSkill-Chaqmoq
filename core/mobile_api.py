@@ -2570,15 +2570,24 @@ def mobile_profile(request):
         familya = str(data.get("familya") or "").strip()
         otchestvo = str(data.get("otchestvo") or "").strip()
         phone = str(data.get("phone") or "").strip()
-        if ism:
+        # O'quvchi O'ZI ism/familya/otasining ismini o'zgartira OLMAYDI —
+        # bu ma'lumotlarni faqat o'quv markaz (admin) o'zgartiradi.
+        is_student = getattr(user, "role", None) == "student"
+        _updated = []
+        if ism and not is_student:
             user.ism = ism
-        if familya:
+            _updated.append("ism")
+        if familya and not is_student:
             user.familya = familya
-        if otchestvo is not None:
+            _updated.append("familya")
+        if otchestvo and not is_student:
             user.otchestvo = otchestvo
+            _updated.append("otchestvo")
         if phone:
             user.telefon1 = phone
-        user.save(update_fields=["ism", "familya", "otchestvo", "telefon1"])
+            _updated.append("telefon1")
+        if _updated:
+            user.save(update_fields=_updated)
         return JsonResponse({"ok": True, "user": _serialize_user(request, user)})
     return JsonResponse(
         {
