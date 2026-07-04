@@ -3148,9 +3148,16 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
-    # Chiqarilgan (inactive) o'quvchilar: davomat bor lekin TuitionMonth yo'q → yaratamiz
-    # Davomat soni × bir dars narxi = bu oy uchun to'lov miqdori
-    if inactive_list and _cur_month_for_recalc in period_months:
+    # Chiqarilgan (inactive) o'quvchilar — JORIY OY reconcile'i.
+    # MUHIM: reconcile (mavjud TM fee'sini haqiqiy davomatga qarab yangilash)
+    # HAR DOIM ishlaydi — filterda qaysi oy tanlanganidan qat'i nazar. Sababi:
+    # o'quvchi guruhdan chiqarilgach joriy oy uchun qolib ketgan fee>0 TuitionMonth
+    # "fantom qarz" bo'lib qoladi. Foydalanuvchi o'tgan oyni (mas. iyun) filterlasa,
+    # joriy oy (iyul) reconcile qilinmay qolar edi → breakdown modalda va boshqa
+    # oy filtrlarida fantom 250 000 so'm chiqardi. Davomat 0 → fee=0 → qarzdan chiqadi.
+    # Yangi TM YARATISH esa faqat joriy oy ko'rilayotganda (perf uchun), aks holda
+    # o'tgan oyni ko'rayotganda keraksiz joriy-oy yozuvi yaratmaymiz.
+    if inactive_list:
         from education.services.tuition import (
             attendance_based_fee as _abf,
             billable_attendance_count as _bac,
@@ -3163,6 +3170,7 @@ def qarzdorlar_home(request):
                 is_deleted=False,
             ).values_list("enrollment_id", flat=True)
         )
+        _may_create_current = _cur_month_for_recalc in period_months
         for _ie in inactive_list:
             if _ie.id in _existing_inactive_tm_ids:
                 # Inactive o'quvchi: haqiqiy davomat asosida TM fee ni yangilaylik.
@@ -3171,6 +3179,8 @@ def qarzdorlar_home(request):
                     _etm(_ie, _cur_month_for_recalc)
                 except Exception:
                     pass
+                continue
+            if not _may_create_current:
                 continue
             try:
                 _att = _bac(_ie, _cur_month_for_recalc)
