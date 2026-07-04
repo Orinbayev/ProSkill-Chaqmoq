@@ -3213,6 +3213,17 @@ def qarzdorlar_home(request):
         _fee_fld = _tff()
         _all_enr_map = {e.id: e for e in enrollment_list}
 
+        # Himoyalangan reason'lar: ensure_tuition_month bilan bir xil to'plam.
+        # Bularni auto-recalc 0 ga TUSHIRMASLIGI kerak — aks holda qo'lda
+        # kiritilgan / to'g'ri oyga ko'chirilgan qarz (davomat yozilmagan bo'lsa)
+        # keyingi sahifa ochilganda yana o'chib ketardi.
+        _protected_recalc_q = (
+            _Q(deleted_reason="manual_cleared")
+            | _Q(deleted_reason__startswith="cleanup_")
+            | _Q(deleted_reason__startswith="move_future_")
+            | _Q(deleted_reason__startswith="reset_")
+            | _Q(deleted_reason__startswith="user_edit")
+        )
         for _pm in _past_months:
             try:
                 # Fee>0 bo'lgan va himoyalanmagan TM larni topamiz (aktiv+inactive)
@@ -3222,7 +3233,7 @@ def qarzdorlar_home(request):
                         month=_pm,
                         is_deleted=False,
                     ).exclude(
-                        deleted_reason__in=["manual_cleared"]
+                        _protected_recalc_q
                     ).filter(**{f"{_fee_fld}__gt": 0})
                 )
                 if not _past_tms:
