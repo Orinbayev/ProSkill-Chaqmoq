@@ -2018,9 +2018,9 @@ def mobile_director_student_detail(request, student_id):
     except Exception:
         total_debt = 0
 
-    enrollment = (
+    enrollments = list(
         Enrollment.objects.filter(student=student, is_active=True, group__center=center)
-        .select_related("group").first()
+        .select_related("group")
     )
     payments = (
         Payment.objects.filter(center=center, student=student)
@@ -2031,9 +2031,19 @@ def mobile_director_student_detail(request, student_id):
         "ok": True,
         "id": student.id,
         "full_name": _full_name(student),
-        "group": getattr(getattr(enrollment, "group", None), "nom", "") or "",
+        "group": getattr(getattr(enrollments[0] if enrollments else None, "group", None), "nom", "") or "",
         "phone": getattr(student, "phone_number", "") or "",
         "total_debt": total_debt,
+        "enrollments": [
+            {
+                "enrollment_id": e.id,
+                "group_id": e.group_id,
+                "group": getattr(e.group, "nom", "") or "",
+                "monthly_price": int(e.monthly_price or e.kurs_narhi or 0),
+                "teacher_percent": int(e.oqituvchi_foiz or 0),
+            }
+            for e in enrollments
+        ],
         "payments": [
             {
                 "amount": int(p.summa or 0),
