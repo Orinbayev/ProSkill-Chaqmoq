@@ -19,6 +19,7 @@ urlpatterns = [
     path("progress/", mobile_api.mobile_progress, name="mobile_progress"),
     path("profile/", mobile_api.mobile_profile, name="mobile_profile"),
     path("director/home/", mobile_api.mobile_director_home, name="mobile_director_home"),
+    path("director/report/", mobile_api.mobile_director_report, name="mobile_director_report"),
     path("director/students/", mobile_api.mobile_director_students, name="mobile_director_students"),
     path("director/students/<int:student_id>/", mobile_api.mobile_director_student_detail, name="mobile_director_student_detail"),
     path("director/students/<int:student_id>/add-group/", mobile_api.mobile_director_student_add_group, name="mobile_director_student_add_group"),

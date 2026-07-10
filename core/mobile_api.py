@@ -1928,6 +1928,125 @@ def mobile_director_home(request):
     return JsonResponse(payload)
 
 
+def _month_bounds(month_start):
+    """Oy boshi -> (oy boshi, oy oxiri). Joriy oy bo'lsa oxiri = bugun."""
+    import calendar as _cal
+    today = timezone.localdate()
+    last_day = _cal.monthrange(month_start.year, month_start.month)[1]
+    d_to = month_start.replace(day=last_day)
+    if month_start.year == today.year and month_start.month == today.month:
+        d_to = today
+    return month_start, d_to
+
+
+@require_GET
+@mobile_login_required
+def mobile_director_report(request):
+    """Tanlangan oy kesimida moliyaviy hisobot (daromad, foyda, maosh, xarajat)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+
+    # ?month=YYYY-MM (default = joriy oy)
+    from datetime import date
+    today = timezone.localdate()
+    raw = (request.GET.get("month") or "").strip()
+    try:
+        year, mon = raw.split("-")
+        month_start = date(int(year), int(mon), 1)
+    except (ValueError, AttributeError):
+        month_start = today.replace(day=1)
+
+    d_from, d_to = _month_bounds(month_start)
+
+    revenue = int(Payment.objects.filter(center=center, paid_date__range=(d_from, d_to)).aggregate(s=Sum("summa"))["s"] or 0)
+
+    try:
+        from store.models import Expense
+        expenses_total = int(Expense.objects.filter(center=center, sana__date__range=(d_from, d_to)).aggregate(s=Sum("summa"))["s"] or 0)
+        expenses_rows = list(
+            Expense.objects.filter(center=center, sana__date__range=(d_from, d_to))
+            .select_related("category").order_by("-sana")[:50]
+        )
+    except Exception:
+        expenses_total = 0
+        expenses_rows = []
+
+    try:
+        from education.models import TeacherIncome
+        teacher_salary = int(TeacherIncome.objects.filter(center=center, attendance__date__range=(d_from, d_to)).aggregate(s=Sum("amount"))["s"] or 0)
+        salary_rows = list(
+            TeacherIncome.objects.filter(center=center, attendance__date__range=(d_from, d_to))
+            .values("teacher__ism", "teacher__familya").annotate(total=Sum("amount")).order_by("-total")
+        )
+    except Exception:
+        teacher_salary = 0
+        salary_rows = []
+
+    net_profit = revenue - expenses_total - teacher_salary
+
+    # So'nggi 6 oy (tanlangan oyда tugaydigan) — daromad vs xarajat
+    trend = []
+    chart_start = _add_months(month_start, -5)
+    m = chart_start
+    for _ in range(6):
+        mf, mt = _month_bounds(m)
+        inc = int(Payment.objects.filter(center=center, paid_date__range=(mf, mt)).aggregate(s=Sum("summa"))["s"] or 0)
+        try:
+            from store.models import Expense as _Exp
+            exp = int(_Exp.objects.filter(center=center, sana__date__range=(mf, mt)).aggregate(s=Sum("summa"))["s"] or 0)
+        except Exception:
+            exp = 0
+        trend.append({"label": _month_label_uz(m), "income": inc, "expense": exp})
+        m = _add_months(m, 1)
+
+    # Qabul qilingan to'lovlar (oy bo'yicha)
+    pay_rows = (
+        Payment.objects.filter(center=center, paid_date__range=(d_from, d_to))
+        .select_related("student", "group").order_by("-paid_date", "-paid_time", "-id")[:40]
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "month": month_start.strftime("%Y-%m"),
+        "month_label": _month_label_uz_full(month_start),
+        "revenue": revenue,
+        "net_profit": net_profit,
+        "expenses": expenses_total,
+        "teacher_salary": teacher_salary,
+        "teacher_salaries": [
+            {
+                "full_name": f"{r['teacher__ism'] or ''} {r['teacher__familya'] or ''}".strip() or "O'qituvchi",
+                "amount": int(r["total"] or 0),
+            }
+            for r in salary_rows if int(r["total"] or 0) > 0
+        ],
+        "expenses_list": [
+            {
+                "title": e.izoh or (getattr(e.category, "nom", "") or "Xarajat"),
+                "amount": int(e.summa or 0),
+                "date": e.sana.date().isoformat() if e.sana else "",
+            }
+            for e in expenses_rows
+        ],
+        "income_vs_expense": trend,
+        "payments": [
+            {
+                "full_name": _full_name(p.student) if p.student_id else "Noma'lum",
+                "group": getattr(p.group, "nom", "") or "",
+                "amount": int(p.summa or 0),
+                "method": "naqd" if int(p.cash_amount or 0) >= int(getattr(p, "card_amount", 0) or 0) else "karta",
+                "time": p.paid_time.strftime("%H:%M") if p.paid_time else "",
+                "date": p.paid_date.isoformat() if p.paid_date else "",
+            }
+            for p in pay_rows
+        ],
+    })
+
+
 @require_GET
 @mobile_login_required
 def mobile_director_students(request):
