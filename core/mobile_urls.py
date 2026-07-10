@@ -18,6 +18,7 @@ urlpatterns = [
     path("payments/", mobile_api.mobile_payments, name="mobile_payments"),
     path("progress/", mobile_api.mobile_progress, name="mobile_progress"),
     path("profile/", mobile_api.mobile_profile, name="mobile_profile"),
+    path("director/home/", mobile_api.mobile_director_home, name="mobile_director_home"),
     path("teacher/home/", mobile_api.mobile_teacher_home, name="mobile_teacher_home"),
     path("student/home/", mobile_api.mobile_student_home, name="mobile_student_home"),
     path("parent/home/", mobile_api.mobile_parent_home, name="mobile_parent_home"),

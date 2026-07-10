@@ -1805,6 +1805,61 @@ def mobile_role_home(request):
 
 @require_GET
 @mobile_login_required
+def mobile_director_home(request):
+    """Director paneli uchun to'liq ko'rsatkichlar — Bearer token bilan.
+
+    Web `/api/boshqaruv/` (`@login_required`, sessiya) mobil ilova uchun
+    ishlamaydi, shuning uchun bu endpoint AYNAN o'sha `_boshqaruv_payload`ni
+    qayta ishlatadi va qo'shimcha top-qarzdorlar ro'yxatini qaytaradi.
+    """
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error(
+            "Siz hech qaysi markazga biriktirilmagansiz.",
+            status=403,
+            code="center_required",
+        )
+
+    from core.dashboard_views import _boshqaruv_payload, _parse_dates
+    from core.services.center_ai_context import get_top_debtors_monthly_breakdown
+
+    d_from, d_to = _parse_dates(request)
+    try:
+        payload = _boshqaruv_payload(center, d_from, d_to)
+    except Exception:
+        logger.exception("mobile_director_home boshqaruv payload error center=%s", getattr(center, "id", None))
+        return _mobile_json_error(
+            "Ma'lumotni hisoblashda xatolik.",
+            status=500,
+            code="overview_error",
+        )
+
+    try:
+        raw_debtors = get_top_debtors_monthly_breakdown(center, top_n=30)
+    except Exception:
+        logger.exception("mobile_director_home debtors error center=%s", getattr(center, "id", None))
+        raw_debtors = []
+
+    payload["debtors"] = [
+        {
+            "full_name": item.get("full_name", ""),
+            "total_debt": int(item.get("total_debt", 0) or 0),
+            "months": item.get("months", []),
+        }
+        for item in raw_debtors
+    ]
+    payload["ok"] = True
+    payload["center_name"] = getattr(center, "name", "")
+    payload["director_name"] = _full_name(request.user)
+    return JsonResponse(payload)
+
+
+@require_GET
+@mobile_login_required
 def mobile_teacher_home(request):
     permission_error = _role_required(request, ("teacher", "director", "manager"))
     if permission_error:
