@@ -1852,10 +1852,168 @@ def mobile_director_home(request):
         }
         for item in raw_debtors
     ]
+
+    # ── So'nggi to'lovlar (alohida ro'yxat) ──
+    pay_rows = (
+        Payment.objects.filter(center=center, paid_date__range=(d_from, d_to))
+        .select_related("student", "group")
+        .order_by("-paid_date", "-paid_time", "-id")[:25]
+    )
+    payload["payments"] = [
+        {
+            "full_name": _full_name(p.student) if p.student_id else "Noma'lum",
+            "group": getattr(p.group, "nom", "") or "",
+            "amount": int(p.summa or 0),
+            "method": "naqd" if int(p.cash_amount or 0) >= int(getattr(p, "card_amount", 0) or 0) else "karta",
+            "date": p.paid_date.isoformat() if p.paid_date else "",
+            "time": p.paid_time.strftime("%H:%M") if p.paid_time else "",
+        }
+        for p in pay_rows
+    ]
+
+    # ── O'qituvchi maoshlari (davr, o'qituvchi bo'yicha) ──
+    try:
+        from education.models import TeacherIncome
+        ti_rows = (
+            TeacherIncome.objects.filter(center=center, attendance__date__range=(d_from, d_to))
+            .values("teacher__ism", "teacher__familya")
+            .annotate(total=Sum("amount"))
+            .order_by("-total")
+        )
+        payload["teacher_salaries"] = [
+            {
+                "full_name": f"{r['teacher__ism'] or ''} {r['teacher__familya'] or ''}".strip() or "O'qituvchi",
+                "amount": int(r["total"] or 0),
+            }
+            for r in ti_rows if int(r["total"] or 0) > 0
+        ]
+    except Exception:
+        payload["teacher_salaries"] = []
+
+    # ── Xarajatlar (davr) ──
+    try:
+        from store.models import Expense
+        exp_rows = (
+            Expense.objects.filter(center=center, sana__date__range=(d_from, d_to))
+            .select_related("category")
+            .order_by("-sana")[:30]
+        )
+        payload["expenses"] = [
+            {
+                "title": e.izoh or (getattr(e.category, "nom", "") or "Xarajat"),
+                "category": getattr(e.category, "nom", "") or "",
+                "amount": int(e.summa or 0),
+                "date": e.sana.date().isoformat() if e.sana else "",
+            }
+            for e in exp_rows
+        ]
+    except Exception:
+        payload["expenses"] = []
+
     payload["ok"] = True
     payload["center_name"] = getattr(center, "name", "")
     payload["director_name"] = _full_name(request.user)
     return JsonResponse(payload)
+
+
+@require_GET
+@mobile_login_required
+def mobile_director_students(request):
+    """Director uchun o'quvchilar ro'yxati + qidiruv (?q=)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+
+    query = (request.GET.get("q") or "").strip()
+    students_qs = User.objects.filter(center=center, role="student", is_archived=False)
+    if query:
+        students_qs = students_qs.filter(
+            Q(ism__icontains=query) | Q(familya__icontains=query) | Q(phone_number__icontains=query)
+        )
+    students = list(students_qs.order_by("ism", "familya")[:150])
+    ids = [s.id for s in students]
+
+    try:
+        from core.services.center_ai_context import _student_debt_snapshot
+        debt_map, _ = _student_debt_snapshot(center, ids)
+    except Exception:
+        debt_map = {}
+
+    group_map = {}
+    for enrollment in (
+        Enrollment.objects.filter(student_id__in=ids, is_active=True, group__center=center)
+        .select_related("group")
+    ):
+        group_map.setdefault(enrollment.student_id, getattr(enrollment.group, "nom", "") or "")
+
+    return JsonResponse({
+        "ok": True,
+        "count": len(students),
+        "students": [
+            {
+                "id": s.id,
+                "full_name": _full_name(s),
+                "group": group_map.get(s.id, ""),
+                "phone": getattr(s, "phone_number", "") or "",
+                "balance": -int(debt_map.get(s.id, 0) or 0),
+            }
+            for s in students
+        ],
+    })
+
+
+@require_GET
+@mobile_login_required
+def mobile_director_student_detail(request, student_id):
+    """Director uchun bitta o'quvchi tafsiloti (qarz + so'nggi to'lovlar)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+
+    try:
+        student = User.objects.get(id=student_id, center=center, role="student")
+    except User.DoesNotExist:
+        return _mobile_json_error("O'quvchi topilmadi", status=404, code="student_not_found")
+
+    try:
+        from core.services.center_ai_context import _student_debt_snapshot
+        debt_map, _ = _student_debt_snapshot(center, [student.id])
+        total_debt = int(debt_map.get(student.id, 0) or 0)
+    except Exception:
+        total_debt = 0
+
+    enrollment = (
+        Enrollment.objects.filter(student=student, is_active=True, group__center=center)
+        .select_related("group").first()
+    )
+    payments = (
+        Payment.objects.filter(center=center, student=student)
+        .select_related("group").order_by("-paid_date", "-paid_time", "-id")[:10]
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "id": student.id,
+        "full_name": _full_name(student),
+        "group": getattr(getattr(enrollment, "group", None), "nom", "") or "",
+        "phone": getattr(student, "phone_number", "") or "",
+        "total_debt": total_debt,
+        "payments": [
+            {
+                "amount": int(p.summa or 0),
+                "method": "naqd" if int(p.cash_amount or 0) >= int(getattr(p, "card_amount", 0) or 0) else "karta",
+                "date": p.paid_date.isoformat() if p.paid_date else "",
+                "time": p.paid_time.strftime("%H:%M") if p.paid_time else "",
+            }
+            for p in payments
+        ],
+    })
 
 
 @require_GET
