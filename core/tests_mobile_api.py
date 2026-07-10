@@ -367,7 +367,10 @@ class MobileAPITests(TestCase):
             payload["available_centers"],
         )
 
-    def test_mobile_login_rejects_user_outside_requested_center(self):
+    def test_mobile_login_falls_back_to_users_own_center_on_slug_mismatch(self):
+        # Mobil ilova compile-time default slug yuboradi ("proskill"), lekin
+        # o'quvchi boshqa markazda ("proskill-center"). Bunda login to'silmasligi,
+        # aksincha foydalanuvchining O'Z markaziga bog'lanishi shart.
         other_center = Center.objects.create(
             name="Other Mobile Center",
             slug="other-mobile-center",
@@ -390,9 +393,11 @@ class MobileAPITests(TestCase):
             ),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(payload["code"], "center_mismatch")
+        self.assertTrue(payload["success"])
+        # So'ralgan markaz ("self.center") emas, foydalanuvchining o'z markazi qaytadi.
+        self.assertEqual(payload["center"]["slug"], other_center.slug)
 
     def test_parent_dashboard_returns_real_child_stats(self):
         self.client.force_login(self.parent)

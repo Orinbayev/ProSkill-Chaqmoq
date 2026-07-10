@@ -397,28 +397,38 @@ def _resolve_login_user(request, data: dict):
         )
 
     user_center = getattr(authenticated_user, "center", None)
-    if center and not _user_has_center_access(authenticated_user, center):
-        logger.info(
-            "mobile_login outcome=center_mismatch identifier=%s user_id=%s requested_center=%s actual_center=%s",
-            masked_identifier or "-",
-            authenticated_user.id,
-            getattr(center, "slug", None) or "-",
-            getattr(user_center, "slug", None) or "-",
-        )
-        _mobile_debug(
-            "login_center_mismatch",
-            login=identifier,
-            user_id=authenticated_user.id,
-            user_center=getattr(user_center, "slug", None),
-            requested_center=getattr(center, "slug", None),
-        )
-        return None, None, _mobile_json_error(
-            "Bu foydalanuvchi ushbu markazga tegishli emas",
-            status=403,
-            code="center_mismatch",
-        )
+    # Mobil ilova markaz slug'ini compile-time'da (CENTER_SLUG) olib chiqadi,
+    # shuning uchun login payload'idagi slug faqat maslahat — u ko'pincha
+    # foydalanuvchining haqiqiy markazidan farq qiladi (mas. ilova "proskill"
+    # yuboradi, o'quvchi esa "proskill-center"da). Bu farq uchun login'ni
+    # HECH QACHON to'smaymiz: sessiyani foydalanuvchi haqiqatan tegishli
+    # bo'lgan markazga bog'laymiz. So'ralgan markaz faqat foydalanuvchi unga
+    # kirish huquqiga ega bo'lsa (ko'p markazli direktor yoki superuser)
+    # hurmat qilinadi; aks holda foydalanuvchining o'z markaziga qaytamiz.
+    if center is not None and _user_has_center_access(authenticated_user, center):
+        resolved_center = center
+    else:
+        if (
+            center is not None
+            and user_center is not None
+            and getattr(center, "id", None) != getattr(user_center, "id", None)
+        ):
+            logger.info(
+                "mobile_login outcome=center_fallback identifier=%s user_id=%s requested_center=%s actual_center=%s",
+                masked_identifier or "-",
+                authenticated_user.id,
+                getattr(center, "slug", None) or "-",
+                getattr(user_center, "slug", None) or "-",
+            )
+            _mobile_debug(
+                "login_center_fallback",
+                login=identifier,
+                user_id=authenticated_user.id,
+                user_center=getattr(user_center, "slug", None),
+                requested_center=getattr(center, "slug", None),
+            )
+        resolved_center = user_center
 
-    resolved_center = center or user_center
     if resolved_center is not None:
         _bind_request_center(request, resolved_center)
 
