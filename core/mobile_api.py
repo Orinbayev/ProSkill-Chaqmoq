@@ -2022,6 +2022,10 @@ def mobile_director_student_detail(request, student_id):
         Enrollment.objects.filter(student=student, is_active=True, group__center=center)
         .select_related("group")
     )
+    try:
+        from education.services.tuition import effective_student_payable_amount as _eff_price
+    except Exception:
+        _eff_price = None
     payments = (
         Payment.objects.filter(center=center, student=student)
         .select_related("group").order_by("-paid_date", "-paid_time", "-id")[:10]
@@ -2039,7 +2043,9 @@ def mobile_director_student_detail(request, student_id):
                 "enrollment_id": e.id,
                 "group_id": e.group_id,
                 "group": getattr(e.group, "nom", "") or "",
-                "monthly_price": int(e.monthly_price or e.kurs_narhi or 0),
+                "monthly_price": int(
+                    (_eff_price(e) if _eff_price else 0) or e.monthly_price or e.kurs_narhi or 0
+                ),
                 "teacher_percent": int(e.oqituvchi_foiz or 0),
             }
             for e in enrollments
@@ -2054,6 +2060,172 @@ def mobile_director_student_detail(request, student_id):
             for p in payments
         ],
     })
+
+
+def _director_can_add(request, center) -> bool:
+    user = request.user
+    if user.is_superuser or getattr(user, "role", "") == "director":
+        return True
+    if getattr(user, "role", "") == "manager":
+        return bool(getattr(center, "manager_can_add_student", False))
+    return False
+
+
+def _director_can_remove(request, center) -> bool:
+    user = request.user
+    if user.is_superuser or getattr(user, "role", "") == "director":
+        return True
+    if getattr(user, "role", "") == "manager":
+        return bool(getattr(center, "manager_can_remove_student", False))
+    return False
+
+
+@require_GET
+@mobile_login_required
+def mobile_director_groups(request):
+    """Markazdagi guruhlar ro'yxati (o'quvchini qo'shish uchun)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+    query = (request.GET.get("q") or "").strip()
+    groups_qs = Group.objects.filter(center=center, is_archived=False)
+    if query:
+        groups_qs = groups_qs.filter(nom__icontains=query)
+    groups = groups_qs.order_by("nom")[:200]
+    return JsonResponse({
+        "ok": True,
+        "groups": [
+            {
+                "id": g.id,
+                "name": g.nom,
+                "price": int(getattr(g, "kurs_narxi", 0) or 0),
+                "teacher_percent": int(getattr(g, "oqituvchi_foiz", 0) or 0),
+            }
+            for g in groups
+        ],
+    })
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_director_student_add_group(request, student_id):
+    """O'quvchini guruhga qo'shish (EnrollmentService orqali — qarz-xavfsiz)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+    if not _director_can_add(request, center):
+        return _mobile_json_error("Sizda o'quvchi qo'shish huquqi yo'q", status=403, code="permission_denied")
+
+    data = _request_payload(request)
+    group_id = data.get("group_id")
+    price_raw = data.get("price")
+    try:
+        student = User.objects.get(id=student_id, center=center, role="student")
+        group = Group.objects.get(id=int(group_id), center=center)
+    except (User.DoesNotExist, Group.DoesNotExist, ValueError, TypeError):
+        return _mobile_json_error("O'quvchi yoki guruh topilmadi", status=404, code="not_found")
+
+    if Enrollment.objects.filter(student=student, group=group, is_active=True).exists():
+        return _mobile_json_error("O'quvchi allaqachon bu guruhda", status=409, code="already_enrolled")
+
+    price = None
+    if price_raw not in (None, ""):
+        try:
+            price = max(0, int(price_raw))
+        except (ValueError, TypeError):
+            price = None
+
+    try:
+        from education.services.enrollment_service import EnrollmentService
+        EnrollmentService.enroll_student(student, group, kurs_narxi=price, student_payable_amount=price)
+    except Exception:
+        logger.exception("mobile add_group error student=%s group=%s", student_id, group_id)
+        return _mobile_json_error("Guruhga qo'shishда xatolik", status=500, code="enroll_error")
+
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_director_student_remove_group(request, student_id):
+    """O'quvchini guruhdan chiqarish (EnrollmentService orqali)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+    if not _director_can_remove(request, center):
+        return _mobile_json_error("Sizda o'quvchini chiqarish huquqi yo'q", status=403, code="permission_denied")
+
+    data = _request_payload(request)
+    group_id = data.get("group_id")
+    try:
+        student = User.objects.get(id=student_id, center=center, role="student")
+        group = Group.objects.get(id=int(group_id), center=center)
+    except (User.DoesNotExist, Group.DoesNotExist, ValueError, TypeError):
+        return _mobile_json_error("O'quvchi yoki guruh topilmadi", status=404, code="not_found")
+
+    try:
+        from education.services.enrollment_service import EnrollmentService
+        EnrollmentService.remove_student(student, group)
+    except Exception:
+        logger.exception("mobile remove_group error student=%s group=%s", student_id, group_id)
+        return _mobile_json_error("Guruhdan chiqarishда xatolik", status=500, code="remove_error")
+
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_director_student_set_price(request, student_id):
+    """O'quvchining bitta guruhidagi kurs narxini o'zgartirish."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+    if not _director_can_add(request, center):
+        return _mobile_json_error("Sizda narx o'zgartirish huquqi yo'q", status=403, code="permission_denied")
+
+    data = _request_payload(request)
+    enrollment_id = data.get("enrollment_id")
+    price_raw = data.get("price")
+    try:
+        price = max(0, int(price_raw))
+    except (ValueError, TypeError):
+        return _mobile_json_error("Narx noto'g'ri", status=400, code="invalid_price")
+
+    try:
+        enrollment = Enrollment.objects.select_related("group").get(
+            id=int(enrollment_id), student_id=student_id, group__center=center, is_active=True
+        )
+    except (Enrollment.DoesNotExist, ValueError, TypeError):
+        return _mobile_json_error("Guruh yozuvi topilmadi", status=404, code="enrollment_not_found")
+
+    try:
+        enrollment.student_payable_amount = price
+        # kurs_narhi/monthly_price ni ham yangilaymiz (ko'rsatish izchilligi uchun)
+        enrollment.kurs_narhi = price
+        enrollment.monthly_price = price
+        enrollment.save(update_fields=["student_payable_amount", "kurs_narhi", "monthly_price"])
+        from education.services.tuition import ensure_tuition_month, month_first_day
+        ensure_tuition_month(enrollment, month_first_day(timezone.localdate()))
+    except Exception:
+        logger.exception("mobile set_price error enrollment=%s", enrollment_id)
+        return _mobile_json_error("Narxni saqlashда xatolik", status=500, code="price_error")
+
+    return JsonResponse({"ok": True, "price": price})
 
 
 @require_GET
