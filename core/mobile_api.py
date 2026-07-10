@@ -1846,6 +1846,7 @@ def mobile_director_home(request):
 
     payload["debtors"] = [
         {
+            "id": int(item.get("id", 0) or 0),
             "full_name": item.get("full_name", ""),
             "total_debt": int(item.get("total_debt", 0) or 0),
             "months": item.get("months", []),
@@ -2345,6 +2346,95 @@ def mobile_director_student_set_price(request, student_id):
         return _mobile_json_error("Narxni saqlashда xatolik", status=500, code="price_error")
 
     return JsonResponse({"ok": True, "price": price})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_director_student_pay(request, student_id):
+    """O'quvchi uchun to'lov qabul qilish (create_payment_and_allocate — qarz-xavfsiz)."""
+    permission_error = _role_required(request, ("director", "manager"))
+    if permission_error:
+        return permission_error
+    center = _request_center(request)
+    if center is None:
+        return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
+
+    data = _request_payload(request)
+    enrollment_id = data.get("enrollment_id")
+    method = str(data.get("method") or "").strip()
+    month_raw = str(data.get("month") or "").strip()
+    try:
+        amount = int(data.get("amount") or 0)
+    except (ValueError, TypeError):
+        amount = 0
+    if amount <= 0:
+        return _mobile_json_error("To'lov summasi noto'g'ri", status=400, code="invalid_amount")
+
+    # Enrollment (chiqarilgan o'quvchining o'tgan oy qarzi uchun ham all_objects)
+    try:
+        enrollment = Enrollment.all_objects.select_related("group").get(
+            id=int(enrollment_id), student_id=int(student_id), group__center=center
+        )
+    except (Enrollment.DoesNotExist, ValueError, TypeError):
+        return _mobile_json_error("Guruh yozuvi topilmadi", status=404, code="enrollment_not_found")
+
+    # Naqd/karta bo'linishi: NAQD => naqd, boshqasi => karta
+    is_cash = method.strip().upper() in ("", "NAQD", "NAQT", "CASH")
+    cash_amount = amount if is_cash else 0
+    card_amount = 0 if is_cash else amount
+
+    # Qaysi oy uchun (ixtiyoriy)
+    start_month = None
+    if month_raw:
+        try:
+            from datetime import date as _date
+            y, mm = month_raw.split("-")
+            start_month = _date(int(y), int(mm), 1)
+        except (ValueError, AttributeError):
+            start_month = None
+
+    try:
+        from education.services.tuition import (
+            create_payment_and_allocate,
+            ensure_all_tuition_months_since_start,
+        )
+        from django.db import transaction
+        # Ikki marta bosishдан himoya (oxirgi 5 soniyada aynan shu to'lov)
+        recent_dup = Payment.objects.filter(
+            enrollment=enrollment,
+            summa=amount,
+            paid_date=timezone.localdate(),
+            created_at__gte=timezone.now() - timezone.timedelta(seconds=5),
+        ).exists()
+        if recent_dup:
+            return JsonResponse({"ok": True, "duplicate": True})
+
+        with transaction.atomic():
+            ensure_all_tuition_months_since_start(enrollment, start_month or timezone.localdate().replace(day=1))
+            create_payment_and_allocate(
+                enrollment=enrollment,
+                cash_amount=cash_amount,
+                card_amount_som=card_amount,
+                created_by=request.user,
+                start_month=start_month,
+                note=(method[:120] if method else ""),
+            )
+    except ValueError as exc:
+        return _mobile_json_error(str(exc), status=400, code="payment_rejected")
+    except Exception:
+        logger.exception("mobile pay error student=%s enrollment=%s", student_id, enrollment_id)
+        return _mobile_json_error("To'lovни saqlashда xatolik", status=500, code="payment_error")
+
+    # Yangi qarz
+    try:
+        from core.services.center_ai_context import _student_debt_snapshot
+        debt_map, _ = _student_debt_snapshot(center, [int(student_id)])
+        new_debt = int(debt_map.get(int(student_id), 0) or 0)
+    except Exception:
+        new_debt = None
+
+    return JsonResponse({"ok": True, "total_debt": new_debt})
 
 
 @require_GET

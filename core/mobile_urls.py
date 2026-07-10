@@ -25,6 +25,7 @@ urlpatterns = [
     path("director/students/<int:student_id>/add-group/", mobile_api.mobile_director_student_add_group, name="mobile_director_student_add_group"),
     path("director/students/<int:student_id>/remove-group/", mobile_api.mobile_director_student_remove_group, name="mobile_director_student_remove_group"),
     path("director/students/<int:student_id>/set-price/", mobile_api.mobile_director_student_set_price, name="mobile_director_student_set_price"),
+    path("director/students/<int:student_id>/pay/", mobile_api.mobile_director_student_pay, name="mobile_director_student_pay"),
     path("director/groups/", mobile_api.mobile_director_groups, name="mobile_director_groups"),
     path("teacher/home/", mobile_api.mobile_teacher_home, name="mobile_teacher_home"),
     path("student/home/", mobile_api.mobile_student_home, name="mobile_student_home"),

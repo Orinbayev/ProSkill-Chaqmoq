@@ -1243,6 +1243,7 @@ def get_top_debtors_monthly_breakdown(center: Center, *, as_of: date | None = No
             continue
         months_sorted = sorted(student_months[sid].items())
         result.append({
+            "id": sid,
             "full_name": _full_name(users[sid]),
             "total_debt": debt_map[sid],
             "months": [{"month": m, "debt": d} for m, d in months_sorted],
