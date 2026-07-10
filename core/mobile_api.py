@@ -1910,6 +1910,18 @@ def mobile_director_home(request):
     except Exception:
         payload["expenses"] = []
 
+    # ── To'lov usullari (markazда yoqilganlari) ──
+    try:
+        from store.models import PaymentMethod
+        methods = list(
+            PaymentMethod.objects.filter(center=center, is_active=True)
+            .order_by("-is_active", "nom")
+            .values_list("nom", flat=True)
+        )
+    except Exception:
+        methods = []
+    payload["payment_methods"] = methods
+
     payload["ok"] = True
     payload["center_name"] = getattr(center, "name", "")
     payload["director_name"] = _full_name(request.user)
@@ -1928,14 +1940,26 @@ def mobile_director_students(request):
         return _mobile_json_error("Markaz topilmadi", status=403, code="center_required")
 
     query = (request.GET.get("q") or "").strip()
+    page = max(int(request.GET.get("page") or 1), 1)
+    per_page = min(max(int(request.GET.get("per_page") or 20), 1), 50)
+
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
     if query:
         students_qs = students_qs.filter(
             Q(ism__icontains=query) | Q(familya__icontains=query) | Q(phone_number__icontains=query)
         )
-    students = list(students_qs.order_by("ism", "familya")[:150])
+    students_qs = students_qs.order_by("ism", "familya", "id")
+
+    from django.core.paginator import EmptyPage, Paginator
+    paginator = Paginator(students_qs, per_page)
+    try:
+        page_obj = paginator.page(page)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages or 1)
+    students = list(page_obj.object_list)
     ids = [s.id for s in students]
 
+    # Qarz snapshot — faqat joriy sahifa uchun (arzon).
     try:
         from core.services.center_ai_context import _student_debt_snapshot
         debt_map, _ = _student_debt_snapshot(center, ids)
@@ -1951,7 +1975,13 @@ def mobile_director_students(request):
 
     return JsonResponse({
         "ok": True,
-        "count": len(students),
+        "count": paginator.count,
+        "pagination": {
+            "page": page_obj.number,
+            "pages": paginator.num_pages,
+            "total": paginator.count,
+            "has_next": page_obj.has_next(),
+        },
         "students": [
             {
                 "id": s.id,
