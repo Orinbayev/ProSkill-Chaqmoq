@@ -302,6 +302,13 @@
       <span class="si-text">Tarif Planlari</span>
     </a>
 
+    <a href="{% url 'platform_global:superadmin_plans' %}"
+      class="sidebar-item {% if vn == 'platform_global:superadmin_plans' %}active{% endif %}"
+      data-title="Tarif Matritsasi">
+      <span class="si-ico"><i class="bi bi-grid-3x3-gap-fill"></i></span>
+      <span class="si-text">Tarif Matritsasi</span>
+    </a>
+
     <a href="{% url 'platform_global:promos_ui' %}"
       class="sidebar-item {% if vn == 'platform_global:promos_ui' %}active{% endif %}"
       data-title="Promokodlar">
