@@ -17,6 +17,9 @@ import 'package:chaqmoq_mobile/providers/teachers_provider.dart';
 import 'package:chaqmoq_mobile/repositories/auth_repository.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/shell/app_shell.dart';
+import 'package:chaqmoq_mobile/screens/director/data/director_provider.dart';
+import 'package:chaqmoq_mobile/screens/director/data/director_repository.dart';
+import 'package:chaqmoq_mobile/screens/director/director_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/student/student_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/teacher/teacher_app_shell.dart';
@@ -71,6 +74,7 @@ Future<void> main() async {
 
   runApp(
     ChaqmoqApp(
+      apiClient: apiClient,
       storageService: storageService,
       localNotificationService: localNotificationService,
       authProvider: authProvider,
@@ -93,6 +97,7 @@ Future<void> main() async {
 class ChaqmoqApp extends StatelessWidget {
   const ChaqmoqApp({
     super.key,
+    required this.apiClient,
     required this.authProvider,
     required this.storageService,
     required this.localNotificationService,
@@ -110,6 +115,7 @@ class ChaqmoqApp extends StatelessWidget {
     required this.leadsService,
   });
 
+  final ApiClient apiClient;
   final AuthProvider authProvider;
   final StorageService storageService;
   final LocalNotificationService localNotificationService;
@@ -131,6 +137,7 @@ class ChaqmoqApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<StorageService>.value(value: storageService),
+        Provider<ApiClient>.value(value: apiClient),
         Provider<ParentDashboardService>.value(value: parentDashboardService),
         Provider<DashboardService>.value(value: dashboardService),
         Provider<StoreService>.value(value: storeService),
@@ -240,6 +247,27 @@ class _AuthGateState extends State<AuthGate> {
       } else if (role == 'teacher') {
         key = const ValueKey('home-teacher');
         child = const TeacherAppShell();
+      } else if (role == 'director') {
+        key = const ValueKey('home-director');
+        final user = auth.user!;
+        final apiClient = context.read<ApiClient>();
+        final prefs = context.read<AppPreferencesProvider>();
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        child = ChangeNotifierProvider<DirectorProvider>(
+          create: (_) => DirectorProvider(
+            ApiDirectorRepository(
+              apiClient,
+              centerName: user.center?.name ?? '',
+              directorName: user.fullName,
+            ),
+          ),
+          child: DirectorAppShell(
+            isDark: isDark,
+            onToggleTheme: () => prefs.setThemePreference(
+              isDark ? AppThemePreference.light : AppThemePreference.dark,
+            ),
+          ),
+        );
       } else {
         key = const ValueKey('home-manager');
         child = const AppShell();
