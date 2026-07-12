@@ -79,6 +79,17 @@ async def get_admin_dashboard_api(admin_tg_id: str):
         except Exception as e:
             return 500, {"error": str(e)}
 
+async def get_app_adoption_api(admin_tg_id: str):
+    url = f"{BACKEND_URL}/hisob/login/bot-app-adoption/"
+    params = {"admin_tg_id": admin_tg_id}
+    headers = _get_headers()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, headers=headers)
+            return response.status_code, response.json()
+        except Exception as e:
+            return 500, {"error": str(e)}
+
 async def get_linked_users_api(admin_tg_id: str, role: str = "all", offset: int = 0, limit: int = 20):
     url = f"{BACKEND_URL}/hisob/login/bot-linked-users/"
     params = {"admin_tg_id": admin_tg_id, "role": role, "offset": offset, "limit": limit}

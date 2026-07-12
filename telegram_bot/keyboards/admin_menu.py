@@ -4,6 +4,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 def get_admin_main_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.row(KeyboardButton(text="📊 Statistika"), KeyboardButton(text="👥 Ulangan profillar"))
+    builder.row(KeyboardButton(text="📱 Ilova statistikasi"))
     builder.row(KeyboardButton(text="📢 Reklama yuborish"), KeyboardButton(text="📁 Excel yuklab olish"))
     builder.row(KeyboardButton(text="👨💼 Adminlar"), KeyboardButton(text="👨👩👧 Ota-onalar paneli"))
     builder.row(KeyboardButton(text="⚙️ Sozlamalar"), KeyboardButton(text="🏠 Asosiy menyu"))

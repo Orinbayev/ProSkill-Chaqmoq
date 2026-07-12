@@ -176,9 +176,16 @@ def superadmin_dashboard(request):
     payment_query_params.pop("payments_per_page", None)
     payment_base_query = payment_query_params.urlencode()
 
+    # ── Mobil ilova qamrovi (ChaqmoqApp) ────────────────────────
+    from core.services.app_adoption import center_app_adoption, app_adoption_totals
+    app_adoption_rows = center_app_adoption()
+    app_adoption_summary = app_adoption_totals(app_adoption_rows)
+
     # ── 6. Context ──────────────────────────────────────────────
     context = {
         'centers': centers,
+        'app_adoption_rows': app_adoption_rows,
+        'app_adoption_summary': app_adoption_summary,
         'search_q': search_q,
         'status_filter': status_filter,
         'plan_filter': plan_filter,

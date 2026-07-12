@@ -1,6 +1,6 @@
 from aiogram import Router, F, types, html
 from aiogram.filters import Command
-from services.api_client import get_admin_dashboard_api
+from services.api_client import get_admin_dashboard_api, get_app_adoption_api
 from keyboards.admin_menu import get_admin_main_kb
 
 router = Router()
@@ -45,6 +45,41 @@ async def show_stats(message: types.Message):
     )
     
     await message.answer(text, parse_mode="HTML")
+
+@router.message(F.text == "📱 Ilova statistikasi")
+async def show_app_adoption(message: types.Message):
+    """Mobil ilova (ChaqmoqApp) qamrovi — har markazda nechta o'quvchi ishlatyapti."""
+    status, data = await get_app_adoption_api(str(message.from_user.id))
+    if status != 200 or not data.get("is_admin"):
+        return
+
+    summary = data.get("summary", {})
+    centers = data.get("centers", [])
+
+    lines = [
+        "📱 <b>Mobil ilova qamrovi — ChaqmoqApp</b>\n",
+        f"👥 Ilova foydalanuvchi: <b>{summary.get('app_users', 0)}</b>",
+        f"🟢 Faol (30 kun): <b>{summary.get('active_users', 0)}</b>",
+        f"📊 O'rtacha qamrov: <b>{summary.get('adoption_pct', 0)}%</b>\n",
+        "<b>Markazlar</b> (ko'pdan kamiga):",
+    ]
+
+    medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+    shown = [c for c in centers if c.get("app_users", 0) > 0]
+    if not shown:
+        lines.append("\n<i>Hozircha hech bir markazda ilova foydalanuvchisi yo'q.</i>")
+    for i, c in enumerate(shown[:20], start=1):
+        prefix = medals.get(i, f"{i}.")
+        name = html.quote(str(c.get("name", "—")))
+        active = c.get("active_users", 0)
+        active_txt = f" · {active} faol" if active else ""
+        lines.append(
+            f"{prefix} {name} — <b>{c.get('app_users', 0)}</b>/{c.get('total_students', 0)} "
+            f"({c.get('adoption_pct', 0)}%){active_txt}"
+        )
+
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
 
 @router.message(F.text == "⚙️ Sozlamalar")
 async def admin_settings(message: types.Message):

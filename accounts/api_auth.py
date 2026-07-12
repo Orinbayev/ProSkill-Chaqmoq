@@ -424,6 +424,26 @@ def get_bot_admin_dashboard(request):
     })
 
 @csrf_exempt
+def get_bot_app_adoption(request):
+    """Mobil ilova (ChaqmoqApp) qamrovi — har markazda nechta o'quvchi ilovadan foydalanyapti."""
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"is_admin": False})
+
+    from core.services.app_adoption import center_app_adoption, app_adoption_totals
+    rows = center_app_adoption()
+    return JsonResponse({
+        "is_admin": True,
+        "summary": app_adoption_totals(rows),
+        "centers": rows,
+    })
+
+
+@csrf_exempt
 def get_bot_linked_users(request):
     """List of linked users with filters."""
     auth_error = _require_api_secret(request)
