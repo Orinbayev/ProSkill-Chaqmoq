@@ -37,7 +37,7 @@ class UserSubscriptionServiceTests(TestCase):
             familya="Valiyev",
             center=self.center,
         )
-        self.free_plan = SubscriptionPlan.objects.create(
+        self.free_plan = _mk_plan(
             code="FREE",
             title="Free",
             name="FREE",
@@ -46,7 +46,7 @@ class UserSubscriptionServiceTests(TestCase):
             duration_days=30,
             max_students=999,
         )
-        self.pro_plan = SubscriptionPlan.objects.create(
+        self.pro_plan = _mk_plan(
             code="PRO",
             title="Pro",
             name="PRO",
@@ -87,7 +87,7 @@ class UserSubscriptionServiceTests(TestCase):
         activate_subscription(self.user, self.free_plan)
         self.assertEqual(get_center_student_limit(self.center, actor=self.user), 100)
 
-        pro_center_plan = SubscriptionPlan.objects.create(
+        pro_center_plan = _mk_plan(
             code="CENTER_PRO",
             title="Center Pro",
             name="CENTER_PRO",
@@ -106,7 +106,7 @@ class UserSubscriptionServiceTests(TestCase):
         self.assertEqual(get_center_student_limit(self.center, actor=self.user), 150)
 
     def test_center_level_limit_beats_legacy_owner_subscription_limit(self):
-        legacy_plan = SubscriptionPlan.objects.create(
+        legacy_plan = _mk_plan(
             code="LEGACY_200",
             title="Legacy 200",
             name="LEGACY_200",
@@ -115,7 +115,7 @@ class UserSubscriptionServiceTests(TestCase):
             duration_days=30,
             max_students=200,
         )
-        center_plan = SubscriptionPlan.objects.create(
+        center_plan = _mk_plan(
             code="CENTER_2000",
             title="Center 2000",
             name="CENTER_2000",
@@ -204,7 +204,7 @@ class SubscriptionRequestFlowTests(TestCase):
         self.superadmin.set_password("super-pass-123")
         self.superadmin.save()
 
-        self.plan = SubscriptionPlan.objects.create(
+        self.plan = _mk_plan(
             code="PRO",
             title="PRO",
             name="PRO",
@@ -285,7 +285,7 @@ class ClickPrepareCompleteTests(TestCase):
             familya="Click",
             center=self.center,
         )
-        self.plan = SubscriptionPlan.objects.create(
+        self.plan = _mk_plan(
             code="PRO",
             title="PRO",
             name="PRO",
@@ -902,7 +902,7 @@ class ClickPaymentUrlCreateTests(TestCase):
             familya="URL",
             center=self.center,
         )
-        self.plan = SubscriptionPlan.objects.create(
+        self.plan = _mk_plan(
             code="PRO",
             title="PRO",
             name="PRO",
@@ -1246,7 +1246,7 @@ class SuperadminApplySubscriptionTests(TestCase):
 
     def _create_center_and_plan(self, plan_code="STANDARD", monthly=400_000, tier=10):
         from django.utils import timezone as tz
-        plan = SubscriptionPlan.objects.create(
+        plan = _mk_plan(
             code=plan_code,
             title=plan_code.capitalize(),
             monthly_price=monthly,
@@ -1290,7 +1290,7 @@ class SuperadminApplySubscriptionTests(TestCase):
         from django.utils import timezone as tz
 
         center, old_plan = self._create_center_and_plan("STANDARD")
-        new_plan = SubscriptionPlan.objects.create(
+        new_plan = _mk_plan(
             code="PRO", title="Pro", monthly_price=900_000,
             tier=30, max_students=2000, max_groups=999, max_users=999, active=True,
         )
@@ -1384,3 +1384,14 @@ class SuperadminApplySubscriptionTests(TestCase):
             (latest.expires_at - expires3).total_seconds(), 0, delta=2
         )
         self.assertIn(reverse("billing:payment_cancel"), response.url)
+
+
+def _mk_plan(**kw):
+    """Seed migratsiya (0028) canonical tariflarni oldindan yaratgani uchun
+    testlarda create o'rniga update_or_create — unique 'code' to'qnashuvini oldini oladi."""
+    from billing.models import SubscriptionPlan
+    code = kw.pop("code", None)
+    if code is None:
+        return SubscriptionPlan.objects.create(**kw)
+    obj, _created = SubscriptionPlan.objects.update_or_create(code=code, defaults=kw)
+    return obj

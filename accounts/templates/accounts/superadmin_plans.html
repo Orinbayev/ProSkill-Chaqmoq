@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Tarif matritsasi{% endblock %}
+
+{% block content %}
+<style>
+  .pm-wrap{padding:8px 4px 40px}
+  .pm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+  .pm-title{font-size:1.35rem;font-weight:700;color:var(--pm-fg,#0f172a);display:flex;align-items:center;gap:10px}
+  .pm-title .ic{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:19px}
+  .pm-btn{border:1px solid #d7dce7;background:#fff;color:#0f172a;border-radius:11px;padding:9px 15px;font-weight:600;cursor:pointer;font-size:.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+  .pm-btn:hover{background:#f4f7fc}
+  .pm-btn.primary{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
+  .pm-btn.primary:hover{background:#0284c7}
+
+  /* Tarif kartochkalari */
+  .pm-cards{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+  .pm-card{flex:1 1 190px;min-width:180px;background:#fff;border:1px solid #e8ebf2;border-radius:16px;padding:16px 18px;position:relative}
+  .pm-card.pop{border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b inset}
+  .pm-card h4{margin:0 0 2px;font-size:1.05rem;color:#0f172a}
+  .pm-card .price{font-size:1.3rem;font-weight:800;color:#0ea5e9}
+  .pm-card .price small{font-size:.8rem;color:#94a3b8;font-weight:500}
+  .pm-card .meta{font-size:.8rem;color:#64748b;margin-top:6px}
+  .pm-star{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;font-size:18px;color:#cbd5e1}
+  .pm-star.on{color:#f59e0b}
+  .pm-badge{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:#f59e0b;color:#fff;border-radius:6px;padding:2px 7px;margin-bottom:6px}
+
+  /* Matritsa */
+  .pm-matrix-scroll{overflow-x:auto;border:1px solid #e8ebf2;border-radius:16px;background:#fff}
+  table.pm-matrix{border-collapse:collapse;width:100%;min-width:640px}
+  .pm-matrix th,.pm-matrix td{padding:11px 14px;text-align:center;border-bottom:1px solid #f1f4f9}
+  .pm-matrix thead th{position:sticky;top:0;background:#f8fafc;z-index:2;font-size:.8rem;color:#334155}
+  .pm-matrix th.feat,.pm-matrix td.feat{text-align:left;position:sticky;left:0;background:#fff;z-index:1;min-width:210px}
+  .pm-matrix thead th.feat{background:#f8fafc;z-index:3}
+  .pm-plan-col{font-weight:700;color:#0f172a}
+  .pm-plan-col small{display:block;font-weight:500;color:#94a3b8;font-size:.72rem}
+  .pm-cat-row td{background:#eef2f8;text-align:left;font-weight:700;color:#475569;cursor:pointer;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+  .pm-cat-row td .chev{transition:.2s;display:inline-block}
+  .pm-cat-row.collapsed td .chev{transform:rotate(-90deg)}
+  .pm-feat-name{font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px}
+  .pm-type{font-size:.64rem;font-weight:700;color:#64748b;background:#eef2f8;border-radius:5px;padding:1px 6px}
+  .pm-core-lock{color:#cbd5e1;font-size:16px}
+
+  /* Toggle switch */
+  .pm-sw{position:relative;display:inline-block;width:40px;height:22px}
+  .pm-sw input{display:none}
+  .pm-sw span{position:absolute;inset:0;background:#cbd5e1;border-radius:22px;transition:.2s;cursor:pointer}
+  .pm-sw span::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .pm-sw input:checked+span{background:#0ea5e9}
+  .pm-sw input:checked+span::before{transform:translateX(18px)}
+  .pm-limit{display:inline-flex;align-items:center;gap:5px;margin-top:5px}
+  .pm-limit input{width:64px;border:1px solid #d7dce7;border-radius:7px;padding:4px 6px;text-align:center;font-size:.85rem}
+  .pm-inf{border:1px solid #d7dce7;background:#f8fafc;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.9rem}
+
+  /* Toast */
+  .pm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:10px 18px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:9999}
+  .pm-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Modal */
+  .pm-modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:9998}
+  .pm-modal-bg.show{display:flex}
+  .pm-modal{background:#fff;border-radius:18px;padding:22px;width:min(420px,92vw)}
+  .pm-modal h3{margin:0 0 14px;font-size:1.1rem}
+  .pm-field{margin-bottom:12px}
+  .pm-field label{display:block;font-size:.8rem;color:#475569;margin-bottom:4px;font-weight:600}
+  .pm-field input,.pm-field select{width:100%;border:1px solid #d7dce7;border-radius:10px;padding:9px 11px;font-size:.92rem}
+  .pm-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+
+  @media (prefers-color-scheme:dark){
+    .pm-card,.pm-matrix-scroll,.pm-matrix th.feat,.pm-matrix td.feat,.pm-modal{background:#111827;border-color:#243044}
+    .pm-matrix thead th,.pm-matrix thead th.feat{background:#0b1220;color:#cbd5e1}
+    .pm-matrix th,.pm-matrix td{border-color:#1e293b}
+    .pm-cat-row td{background:#1e293b;color:#cbd5e1}
+    .pm-title,.pm-card h4,.pm-feat-name,.pm-plan-col{color:#e5edf7}
+    .pm-btn{background:#1e293b;color:#e5edf7;border-color:#334155}
+  }
+</style>
+
+<div class="pm-wrap">
+  <div class="pm-head">
+    <div class="pm-title"><span class="ic"><i class="bi bi-grid-3x3-gap-fill"></i></span> Tarif matritsasi</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="pm-btn" href="{% url 'billing:plans' %}" target="_blank"><i class="bi bi-eye"></i> Mijoz ko'zi bilan</a>
+      <button class="pm-btn primary" onclick="pmOpenNewFeature()"><i class="bi bi-plus-lg"></i> Yangi xususiyat</button>
+    </div>
+  </div>
+
+  <!-- Tarif kartochkalari -->
+  <div class="pm-cards">
+    {% for p in plans %}
+    <div class="pm-card {% if p.is_popular %}pop{% endif %}" id="pm-card-{{ p.id }}">
+      <button class="pm-star {% if p.is_popular %}on{% endif %}" title="Ommabop qilish" onclick="pmSetPopular({{ p.id }})">★</button>
+      {% if p.is_popular %}<span class="pm-badge">Eng mashhur</span><br>{% endif %}
+      <h4>{{ p.title }}</h4>
+      <div class="price">{{ p.monthly_price|intcomma }}<small> so'm/oy</small></div>
+      <div class="meta">{{ p.tenant_count }} ta markaz · limit {{ p.max_students|intcomma }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Matritsa jadval -->
+  <div class="pm-matrix-scroll">
+    <table class="pm-matrix">
+      <thead>
+        <tr>
+          <th class="feat">Xususiyat</th>
+          {% for p in plans %}
+          <th class="pm-plan-col">{{ p.title }}<small>{{ p.monthly_price|intcomma }} so'm</small></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in matrix %}
+        <tr class="pm-cat-row" data-cat="{{ group.category }}" onclick="pmToggleCat('{{ group.category }}')">
+          <td colspan="{{ plans|length|add:1 }}"><span class="chev">▾</span> {{ group.label }}</td>
+        </tr>
+        {% for row in group.rows %}
+        <tr class="pm-feat-row cat-{{ group.category }}">
+          <td class="feat">
+            <span class="pm-feat-name">
+              {% if row.icon %}<span>{{ row.icon }}</span>{% endif %}{{ row.name }}
+              <span class="pm-type">{{ row.type }}</span>
+            </span>
+          </td>
+          {% for cell in row.cells %}
+          <td>
+            {% if row.is_core %}
+              <span class="pm-core-lock" title="CORE — doim ochiq"><i class="bi bi-lock-fill"></i></span>
+            {% else %}
+              <label class="pm-sw">
+                <input type="checkbox" {% if cell.enabled %}checked{% endif %}
+                       onchange="pmToggle(this,{{ cell.plan_id }},'{{ row.code }}')">
+                <span></span>
+              </label>
+              {% if row.type == 'LIMIT' or row.type == 'QUOTA' %}
+              <div class="pm-limit">
+                <input type="number" min="0" placeholder="∞" value="{{ cell.limit|default_if_none:'' }}"
+                       onchange="pmLimit(this,{{ cell.plan_id }},'{{ row.code }}')">
+                <button class="pm-inf" title="Cheksiz" onclick="pmInf(this,{{ cell.plan_id }},'{{ row.code }}')">∞</button>
+              </div>
+              {% endif %}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="pm-toast" id="pmToast">✓ Saqlandi</div>
+
+<!-- Yangi xususiyat modali -->
+<div class="pm-modal-bg" id="pmNewFeat">
+  <div class="pm-modal">
+    <h3>Yangi xususiyat</h3>
+    <div class="pm-field"><label>Nomi (UZ)</label><input type="text" id="nfName" placeholder="Masalan: SMS xabarnoma"></div>
+    <div class="pm-field"><label>Kategoriya</label>
+      <select id="nfCat">{% for c,l in categories %}<option value="{{ c }}">{{ l }}</option>{% endfor %}</select>
+    </div>
+    <div class="pm-field"><label>Turi</label>
+      <select id="nfType">{% for t,l in feature_types %}{% if t != 'CORE' %}<option value="{{ t }}">{{ l }}</option>{% endif %}{% endfor %}</select>
+    </div>
+    <div class="pm-modal-actions">
+      <button class="pm-btn" onclick="pmCloseNewFeature()">Bekor</button>
+      <button class="pm-btn primary" onclick="pmCreateFeature()">Yaratish</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PM_CSRF = '{{ csrf_token }}';
+const PM_URLS = {
+  rule: "{% url 'platform_global:api_feature_rule_update' %}",
+  create: "{% url 'platform_global:api_feature_create' %}",
+  popular: "{% url 'platform_global:api_plan_set_popular' %}",
+};
+function pmToast(msg, ok=true){
+  const t=document.getElementById('pmToast');
+  t.textContent=(ok?'✓ ':'⚠ ')+msg; t.style.background=ok?'#0f172a':'#dc2626';
+  t.classList.add('show'); clearTimeout(window._pmt);
+  window._pmt=setTimeout(()=>t.classList.remove('show'),1600);
+}
+async function pmPost(url, body){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':PM_CSRF},body:JSON.stringify(body)});
+  let d={}; try{d=await r.json()}catch(e){}
+  if(!r.ok||d.success===false){pmToast(d.error||'Xatolik',false);return null;}
+  return d;
+}
+async function pmToggle(el, planId, code){
+  const d=await pmPost(PM_URLS.rule,{plan_id:planId,feature_code:code,enabled:el.checked});
+  if(d) pmToast('Saqlandi'); else el.checked=!el.checked;
+}
+async function pmLimit(el, planId, code){
+  const d=await pmPost(PM_URLS.rule,{plan_id:planId,feature_code:code,limit_value:el.value});
+  if(d) pmToast('Limit saqlandi');
+}
+async function pmInf(btn, planId, code){
+  const inp=btn.previousElementSibling; inp.value='';
+  const d=await pmPost(PM_URLS.rule,{plan_id:planId,feature_code:code,limit_value:'∞'});
+  if(d) pmToast('Cheksiz qilindi');
+}
+async function pmSetPopular(planId){
+  const d=await pmPost(PM_URLS.popular,{plan_id:planId});
+  if(d){
+    document.querySelectorAll('.pm-card').forEach(c=>c.classList.remove('pop'));
+    document.querySelectorAll('.pm-star').forEach(s=>s.classList.remove('on'));
+    const card=document.getElementById('pm-card-'+planId);
+    card.classList.add('pop'); card.querySelector('.pm-star').classList.add('on');
+    pmToast('Ommabop belgilandi');
+  }
+}
+function pmToggleCat(cat){
+  const hdr=document.querySelector('.pm-cat-row[data-cat="'+cat+'"]');
+  hdr.classList.toggle('collapsed');
+  const hide=hdr.classList.contains('collapsed');
+  document.querySelectorAll('.pm-feat-row.cat-'+cat).forEach(r=>r.style.display=hide?'none':'');
+}
+function pmOpenNewFeature(){document.getElementById('pmNewFeat').classList.add('show')}
+function pmCloseNewFeature(){document.getElementById('pmNewFeat').classList.remove('show')}
+async function pmCreateFeature(){
+  const name=document.getElementById('nfName').value.trim();
+  if(!name){pmToast('Nom kiriting',false);return;}
+  const d=await pmPost(PM_URLS.create,{name_uz:name,category:document.getElementById('nfCat').value,type:document.getElementById('nfType').value});
+  if(d){pmToast('Yaratildi — sahifa yangilanmoqda');setTimeout(()=>location.reload(),700);}
+}
+</script>
+{% endblock %}

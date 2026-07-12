@@ -198,6 +198,70 @@ def center_has_feature(center, slug: str) -> bool:
     return False
 
 
+def get_center_feature_limit(center, slug: str):
+    """LIMIT/QUOTA feature uchun aktiv tarifdagi limit_value (None = cheksiz).
+
+    `students`/`max_students` uchun mavjud resolve_center_student_limit ishlatiladi.
+    """
+    from billing.models import PlanFeatureRule, CenterSubscription
+    code = _resolve_feature_code(slug)
+    if code in ("students", "student_limit", "max_students"):
+        return resolve_center_student_limit(center).get("limit")
+
+    root = center.get_root_center() if getattr(center, "parent_center_id", None) else center
+    sub = (
+        CenterSubscription.objects.filter(center=root, status="ACTIVE")
+        .select_related("plan")
+        .order_by("-plan__tier")
+        .first()
+    )
+    if not sub:
+        return None
+    rule = PlanFeatureRule.objects.filter(plan=sub.plan, feature__code=code).first()
+    return rule.limit_value if rule else None
+
+
+def get_center_quota_usage(center, slug: str):
+    """QUOTA feature — joriy oy uchun (used_count, limit). limit None = cheksiz."""
+    from billing.models import FeatureUsage, PlanFeature
+    from django.utils import timezone
+    code = _resolve_feature_code(slug)
+    root = center.get_root_center() if getattr(center, "parent_center_id", None) else center
+    feat = PlanFeature.objects.filter(code=code).first()
+    if feat is None:
+        return (0, None)
+    period = timezone.now().strftime("%Y-%m")
+    usage = FeatureUsage.objects.filter(center=root, feature=feat, period=period).first()
+    used = usage.used_count if usage else 0
+    return (used, get_center_feature_limit(center, code))
+
+
+def consume_center_quota(center, slug: str, n: int = 1) -> bool:
+    """QUOTA feature ishlatilganda joriy oy hisobini oshiradi.
+
+    Feature ochiq bo'lmasa yoki limit oshsa `False` qaytaradi (va oshirmaydi).
+    Cheksiz (limit None) bo'lsa doim `True`.
+    """
+    from billing.models import FeatureUsage, PlanFeature
+    from django.db.models import F
+    from django.utils import timezone
+
+    if not center_has_feature(center, slug):
+        return False
+    code = _resolve_feature_code(slug)
+    root = center.get_root_center() if getattr(center, "parent_center_id", None) else center
+    feat = PlanFeature.objects.filter(code=code).first()
+    if feat is None:
+        return False
+    limit = get_center_feature_limit(center, code)
+    period = timezone.now().strftime("%Y-%m")
+    usage, _ = FeatureUsage.objects.get_or_create(center=root, feature=feat, period=period)
+    if limit is not None and (usage.used_count + n) > limit:
+        return False
+    FeatureUsage.objects.filter(pk=usage.pk).update(used_count=F("used_count") + n)
+    return True
+
+
 def can_center_use_feature(center, feature_code):
     return center_has_feature(center, feature_code)
 

@@ -1228,3 +1228,116 @@ def payment_history_api(request):
             "has_next": page_obj.has_next(),
         },
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# TARIF MATRITSASI (data-driven feature boshqaruvi) — faqat superadmin
+# ══════════════════════════════════════════════════════════════════════════
+
+def _rule_enabled_state(plan, feature, rule_map, m2m_codes):
+    """Katak holati: PlanFeatureRule bo'lsa o'sha, aks holda M2M'dan (mavjud reallik)."""
+    r = rule_map.get((plan.id, feature.id))
+    if r is not None:
+        return r.enabled, r.limit_value
+    return (feature.code in m2m_codes.get(plan.id, set())), None
+
+
+@login_required
+@require_http_methods(["POST"])
+def feature_rule_update(request):
+    """Matritsa katagini o'zgartirish: (plan, feature) enabled va/yoki limit_value.
+
+    CORE feature o'zgartirilmaydi. M2M `plan_features` sinxron saqlanadi.
+    """
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    from billing.models import PlanFeatureRule, PlanFeature
+    try:
+        data = json.loads(request.body or "{}")
+        plan = SubscriptionPlan.objects.get(pk=data["plan_id"])
+        feature = PlanFeature.objects.get(code=data["feature_code"])
+    except (KeyError, ValueError, TypeError, SubscriptionPlan.DoesNotExist, PlanFeature.DoesNotExist):
+        return HttpResponseBadRequest("Noto'g'ri so'rov")
+
+    if feature.is_core or feature.type == PlanFeature.FeatureType.CORE:
+        return JsonResponse({"success": False, "error": "CORE feature qulflab/o'chirib bo'lmaydi"}, status=400)
+
+    rule, _ = PlanFeatureRule.objects.get_or_create(plan=plan, feature=feature)
+    if "enabled" in data:
+        rule.enabled = bool(data["enabled"])
+    if "limit_value" in data:
+        lv = data["limit_value"]
+        if lv in (None, "", "∞", "inf", "cheksiz"):
+            rule.limit_value = None
+        else:
+            try:
+                rule.limit_value = max(0, int(lv))
+            except (ValueError, TypeError):
+                return HttpResponseBadRequest("limit_value raqam bo'lishi kerak")
+    rule.save()
+
+    # M2M sinxron — center_has_feature M2M o'qiydi
+    if rule.enabled:
+        plan.plan_features.add(feature)
+    else:
+        plan.plan_features.remove(feature)
+
+    return JsonResponse({
+        "success": True,
+        "enabled": rule.enabled,
+        "limit_value": rule.limit_value,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def feature_create(request):
+    """Yangi PlanFeature yaratish (matritsaga yangi qator)."""
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    from django.utils.text import slugify
+    from billing.models import PlanFeature
+    try:
+        data = json.loads(request.body or "{}")
+    except (ValueError, TypeError):
+        return HttpResponseBadRequest("Noto'g'ri JSON")
+
+    name = (data.get("name_uz") or data.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"success": False, "error": "Nom kiritilishi shart"}, status=400)
+    code = (data.get("code") or slugify(name).replace("-", "_"))[:50]
+    if not code:
+        return JsonResponse({"success": False, "error": "Kod yaratib bo'lmadi"}, status=400)
+    if PlanFeature.objects.filter(code=code).exists():
+        return JsonResponse({"success": False, "error": f"'{code}' kodi allaqachon mavjud"}, status=400)
+
+    category = data.get("category") or PlanFeature.Category.ADVANCED
+    ftype = data.get("type") or PlanFeature.FeatureType.BOOLEAN
+    if ftype == PlanFeature.FeatureType.CORE:
+        # Panel orqali CORE yaratishga yo'l qo'ymaymiz (xavfsizlik)
+        ftype = PlanFeature.FeatureType.BOOLEAN
+    feature = PlanFeature.objects.create(
+        code=code, name=name, name_uz=name,
+        category=category, type=ftype, is_core=False,
+        icon=data.get("icon", ""), is_active=True,
+        order=(PlanFeature.objects.filter(category=category).count() + 1) * 10,
+    )
+    return JsonResponse({"success": True, "code": feature.code, "name": feature.name_uz or feature.name})
+
+
+@login_required
+@require_http_methods(["POST"])
+def plan_set_popular(request):
+    """Bitta tarifni 'ommabop' qilib belgilaydi, qolganlaridan olib tashlaydi."""
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    try:
+        data = json.loads(request.body or "{}")
+        plan_id = int(data["plan_id"])
+    except (KeyError, ValueError, TypeError):
+        return HttpResponseBadRequest("Noto'g'ri so'rov")
+    if not SubscriptionPlan.objects.filter(pk=plan_id).exists():
+        return HttpResponseBadRequest("Tarif topilmadi")
+    SubscriptionPlan.objects.filter(is_popular=True).exclude(pk=plan_id).update(is_popular=False)
+    SubscriptionPlan.objects.filter(pk=plan_id).update(is_popular=True)
+    return JsonResponse({"success": True})

@@ -229,6 +229,21 @@ class Center(SoftDeleteMixin, models.Model):
     def student_limit_source(self):
         return self.get_student_limit_state().get("source")
 
+    # ── Tarif feature yordamchilari (billing/services ustiga yupqa qatlam) ──
+    def has_feature(self, code: str) -> bool:
+        from billing.services import center_has_feature
+        return center_has_feature(self, code)
+
+    def get_limit(self, code: str):
+        """LIMIT/QUOTA feature limiti (None = cheksiz)."""
+        from billing.services import get_center_feature_limit
+        return get_center_feature_limit(self, code)
+
+    def consume_quota(self, code: str, n: int = 1) -> bool:
+        """QUOTA feature ishlatilganini yozadi; oshsa/yopiq bo'lsa False."""
+        from billing.services import consume_center_quota
+        return consume_center_quota(self, code, n)
+
     @property
     def days_left(self):
         """

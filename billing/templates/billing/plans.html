@@ -1440,4 +1440,53 @@
     });
   });
 </script>
+
+{% if feature_comparison %}
+<style>
+  .fc-wrap{max-width:1000px;margin:26px auto 8px;padding:0 14px}
+  .fc-title{text-align:center;font-size:1.25rem;font-weight:700;margin-bottom:16px;color:var(--fc-fg,#0f172a)}
+  .fc-scroll{overflow-x:auto;border:1px solid #e8ebf2;border-radius:16px;background:#fff}
+  table.fc{border-collapse:collapse;width:100%;min-width:560px}
+  .fc th,.fc td{padding:10px 14px;border-bottom:1px solid #f1f4f9;text-align:center;font-size:.9rem}
+  .fc th.f,.fc td.f{text-align:left;position:sticky;left:0;background:#fff;font-weight:600;color:#0f172a;min-width:200px}
+  .fc thead th{background:#f8fafc;color:#334155;font-weight:700}
+  .fc thead th.f{background:#f8fafc}
+  .fc .cat td{background:#eef2f8;text-align:left;font-weight:700;color:#475569;text-transform:uppercase;font-size:.76rem;letter-spacing:.03em}
+  .fc .yes{color:#16a34a;font-size:1.05rem}
+  .fc .no{color:#cbd5e1}
+  @media (prefers-color-scheme:dark){
+    .fc-scroll,.fc td.f,.fc th.f,.fc thead th.f{background:#111827}
+    .fc thead th{background:#0b1220;color:#cbd5e1}
+    .fc .cat td{background:#1e293b;color:#cbd5e1}
+    .fc th,.fc td{border-color:#1e293b}
+    .fc-title,.fc td.f{color:#e5edf7}
+  }
+</style>
+<div class="fc-wrap">
+  <div class="fc-title">Tariflar taqqoslashi</div>
+  <div class="fc-scroll">
+    <table class="fc">
+      <thead>
+        <tr>
+          <th class="f">Xususiyat</th>
+          {% for p in plans %}<th>{{ p.title }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in feature_comparison %}
+        <tr class="cat"><td class="f" colspan="{{ plans|length|add:1 }}">{{ group.label }}</td></tr>
+        {% for f in group.features %}
+        <tr>
+          <td class="f">{{ f.name }}</td>
+          {% for on in f.per_plan %}
+          <td>{% if on %}<span class="yes">✓</span>{% else %}<span class="no">—</span>{% endif %}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -504,3 +504,67 @@ def toggle_center_ui_feature(request, center_pk):
     center.save(update_fields=['features'])
 
     return JsonResponse({'ok': True, 'feature': feature_code, 'enabled': enabled})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def superadmin_plans(request):
+    """Data-driven tarif matritsasi — funksiyalarni tariflar bo'yicha boshqarish."""
+    from billing.models import PlanFeature, SubscriptionPlan, PlanFeatureRule, CenterSubscription
+    from django.db.models import Count
+
+    # Ustunlar: ko'rinadigan (public) tariflar, tier bo'yicha
+    plans = list(
+        SubscriptionPlan.objects.filter(active=True, landing_visible=True).order_by("tier", "monthly_price")
+    )
+    if not plans:  # fallback — hech bo'lmasa hammasi
+        plans = list(SubscriptionPlan.objects.filter(active=True).order_by("tier"))
+
+    # Har tarifdagi aktiv tenant soni
+    tenant_counts = dict(
+        CenterSubscription.objects.filter(status="ACTIVE")
+        .values("plan_id").annotate(n=Count("center_id", distinct=True)).values_list("plan_id", "n")
+    )
+    for p in plans:
+        p.tenant_count = tenant_counts.get(p.id, 0)
+
+    features = list(PlanFeature.objects.filter(is_active=True).order_by("category", "order", "name"))
+
+    # Rule va M2M holatlarini oldindan yuklaymiz (N+1 yo'q)
+    rules = {
+        (r.plan_id, r.feature_id): r
+        for r in PlanFeatureRule.objects.filter(plan__in=plans, feature__in=features)
+    }
+    m2m_codes = {p.id: set(p.plan_features.values_list("code", flat=True)) for p in plans}
+
+    # Kategoriya bo'yicha guruhlab, har feature uchun kataklar
+    cat_labels = dict(PlanFeature.Category.choices)
+    groups = {}  # category -> list of feature-rows
+    for f in features:
+        cells = []
+        for p in plans:
+            r = rules.get((p.id, f.id))
+            if r is not None:
+                enabled, limit = r.enabled, r.limit_value
+            else:
+                enabled, limit = (f.code in m2m_codes.get(p.id, set())), None
+            cells.append({
+                "plan_id": p.id, "enabled": enabled, "limit": limit,
+            })
+        groups.setdefault(f.category, []).append({
+            "code": f.code, "name": f.name_uz or f.name, "icon": f.icon,
+            "type": f.type, "is_core": f.is_core, "cells": cells,
+        })
+
+    matrix = [
+        {"category": cat, "label": cat_labels.get(cat, cat), "rows": rows}
+        for cat, rows in groups.items()
+    ]
+
+    context = {
+        "plans": plans,
+        "matrix": matrix,
+        "categories": PlanFeature.Category.choices,
+        "feature_types": PlanFeature.FeatureType.choices,
+    }
+    return render(request, "accounts/superadmin_plans.html", context)

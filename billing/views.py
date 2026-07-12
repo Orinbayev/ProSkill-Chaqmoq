@@ -86,7 +86,12 @@ def plans(request):
 
     promo = (request.GET.get("promo") or "").strip().upper()
 
-    plans = list(SubscriptionPlan.objects.filter(active=True).order_by("monthly_price"))
+    # Faqat ochiq (public) tariflar — test/ortiqcha tariflar landing_visible=False
+    plans = list(
+        SubscriptionPlan.objects.filter(active=True, landing_visible=True).order_by("monthly_price")
+    )
+    if not plans:  # xavfsizlik fallback — hech bo'lmasa hammasi
+        plans = list(SubscriptionPlan.objects.filter(active=True).order_by("monthly_price"))
 
     # pricing table
     pricing_map = {}
@@ -140,6 +145,22 @@ def plans(request):
             "status_display": "Muvaffaqiyatli",
         })
 
+    # ── Data-driven feature taqqoslash (PlanFeature'dan, qattiq kod emas) ──
+    from billing.models import PlanFeature as _PF
+    _m2m = {p.id: set(p.plan_features.values_list("code", flat=True)) for p in plans}
+    _cat_labels = dict(_PF.Category.choices)
+    _groups = {}
+    for f in _PF.objects.filter(is_active=True).order_by("category", "order", "name"):
+        per_plan = [bool(f.is_core or f.code in _m2m.get(p.id, set())) for p in plans]
+        if not any(per_plan):
+            continue  # hech qaysi ochiq tarifda yo'q — ko'rsatmaymiz
+        _groups.setdefault(f.category, []).append({
+            "name": f.name_uz or f.name, "is_core": f.is_core, "per_plan": per_plan,
+        })
+    feature_comparison = [
+        {"label": _cat_labels.get(c, c), "features": rows} for c, rows in _groups.items()
+    ]
+
     context = {
         "sub": ui,
         "plans": plans,
@@ -149,6 +170,7 @@ def plans(request):
         "duration": duration,
         "promo": promo,
         "pricing": pricing_map,
+        "feature_comparison": feature_comparison,
     }
     return render(request, "billing/plans.html", context)
 

@@ -2,6 +2,7 @@ from django.urls import path, include
 from . import views
 from .views_superadmin import (
     superadmin_dashboard,
+    superadmin_plans,
     center_create,
     center_edit,
     toggle_center_ui_feature,
@@ -16,6 +17,7 @@ app_name = "accounts"
 # --- SaaS Platform URLs (Global) ---
 platform_patterns = [
     path("", superadmin_dashboard, name="superadmin_dashboard"),
+    path("plans/matritsa/", superadmin_plans, name="superadmin_plans"),
     path("centers/", views.center_picker, name="center_picker"),
     path("center-switch/", views.center_switch, name="center_switch"),
     path("center/create/", center_create, name="center_create"),
@@ -45,6 +47,9 @@ platform_patterns = [
         path("create/", api_superadmin.plan_create_api, name="api_plan_create"),
         path("<int:plan_id>/update/", api_superadmin.plan_update_api, name="api_plan_update"),
         path("<int:plan_id>/delete/", api_superadmin.plan_delete_api, name="api_plan_delete"),
+        path("feature-rule/", api_superadmin.feature_rule_update, name="api_feature_rule_update"),
+        path("feature/create/", api_superadmin.feature_create, name="api_feature_create"),
+        path("set-popular/", api_superadmin.plan_set_popular, name="api_plan_set_popular"),
     ])),
 
     

@@ -26,6 +26,12 @@ class PlanFeature(models.Model):
         PARTIAL = "PARTIAL", "Qisman"
         PLANNED = "PLANNED", "Rejada"
 
+    class FeatureType(models.TextChoices):
+        CORE    = "CORE",    "Asosiy (doim ochiq)"   # hech qachon qulflanmaydi
+        BOOLEAN = "BOOLEAN", "Yoq/O'chir"
+        LIMIT   = "LIMIT",   "Limit (raqam)"
+        QUOTA   = "QUOTA",   "Kvota (oyiga)"
+
     code        = models.CharField(max_length=50, unique=True, verbose_name="Kod (unique)")
     name        = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.CharField(max_length=255, blank=True, default="", verbose_name="Qisqa izoh")
@@ -36,6 +42,13 @@ class PlanFeature(models.Model):
         verbose_name="Kategoriya"
     )
     is_core     = models.BooleanField(default=False, verbose_name="Asosiy feature?")
+    type        = models.CharField(
+        max_length=10,
+        choices=FeatureType.choices,
+        default=FeatureType.BOOLEAN,
+        verbose_name="Turi",
+        help_text="CORE = doim ochiq (qulflab bo'lmaydi), BOOLEAN = yoq/o'chir, LIMIT = raqamli chek, QUOTA = oylik kvota",
+    )
     order       = models.PositiveSmallIntegerField(default=0, verbose_name="Tartib")
 
     # === Tarif v2 — Bosqich 1: ko'p tilli & meta maydonlar ===
@@ -158,6 +171,42 @@ class SubscriptionPlan(models.Model):
         super().save(*args, **kwargs)
 
 
+class PlanFeatureRule(models.Model):
+    """Tarif ↔ feature bog'lami: enabled + limit_value (LIMIT/QUOTA uchun).
+
+    Superadmin matritsasi shu jadvalni tahrirlaydi. `enabled=True` bo'lganda
+    mavjud `SubscriptionPlan.plan_features` M2M ham sinxron saqlanadi
+    (backward-compat: `center_has_feature` va `apply_plan_to_center` M2M o'qiydi).
+    `limit_value=None` = cheksiz.
+    """
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, related_name="feature_rules")
+    feature = models.ForeignKey(PlanFeature, on_delete=models.CASCADE, related_name="plan_rules")
+    enabled = models.BooleanField(default=False)
+    limit_value = models.PositiveIntegerField(null=True, blank=True, help_text="None = cheksiz")
+
+    class Meta:
+        unique_together = ("plan", "feature")
+        indexes = [models.Index(fields=["plan", "feature"])]
+
+    def __str__(self):
+        return f"{self.plan.code} · {self.feature.code} = {'on' if self.enabled else 'off'} ({self.limit_value if self.limit_value is not None else '∞'})"
+
+
+class FeatureUsage(models.Model):
+    """QUOTA turidagi feature uchun oylik foydalanish hisobi (masalan AI so'rovlari)."""
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name="feature_usages")
+    feature = models.ForeignKey(PlanFeature, on_delete=models.CASCADE, related_name="usages")
+    period = models.CharField(max_length=7, help_text="YYYY-MM")
+    used_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("center", "feature", "period")
+        indexes = [models.Index(fields=["center", "feature", "period"])]
+
+    def __str__(self):
+        return f"{self.center_id} · {self.feature.code} · {self.period} = {self.used_count}"
+
+
 def default_trial_expires():
     # trial default 7 kun
     return timezone.now() + timezone.timedelta(days=7)
@@ -184,6 +233,11 @@ class CenterSubscription(models.Model):
     remaining_seconds = models.PositiveIntegerField(default=0, help_text="Pauza qilinganda qolgan vaqt (sekund)")
 
     manual_block = models.BooleanField(default=False)
+    is_grandfathered = models.BooleanField(
+        default=False,
+        verbose_name="Grandfathered (eski shartlar himoyalangan)",
+        help_text="Migratsiyadan oldingi mijoz — tarif o'zgarishlari bo'limlarini olib tashlamaydi",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     # Settings orqali sozlanadi: BILLING_GRACE_PERIOD_HOURS, standart 72 soat
