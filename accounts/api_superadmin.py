@@ -1341,3 +1341,21 @@ def plan_set_popular(request):
     SubscriptionPlan.objects.filter(is_popular=True).exclude(pk=plan_id).update(is_popular=False)
     SubscriptionPlan.objects.filter(pk=plan_id).update(is_popular=True)
     return JsonResponse({"success": True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def plan_price_update(request):
+    """Faqat tarif oylik narxini yangilaydi (boshqa maydonlarga TEGMAYDI)."""
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    try:
+        data = json.loads(request.body or "{}")
+        plan = SubscriptionPlan.objects.get(pk=int(data["plan_id"]))
+        price = max(0, int(data["monthly_price"]))
+    except (KeyError, ValueError, TypeError, SubscriptionPlan.DoesNotExist):
+        return HttpResponseBadRequest("Noto'g'ri so'rov")
+    plan.monthly_price = price
+    plan.price = price  # legacy maydon bilan sinxron
+    plan.save(update_fields=["monthly_price", "price"])
+    return JsonResponse({"success": True, "monthly_price": plan.monthly_price})

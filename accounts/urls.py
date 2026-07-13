@@ -50,6 +50,7 @@ platform_patterns = [
         path("feature-rule/", api_superadmin.feature_rule_update, name="api_feature_rule_update"),
         path("feature/create/", api_superadmin.feature_create, name="api_feature_create"),
         path("set-popular/", api_superadmin.plan_set_popular, name="api_plan_set_popular"),
+        path("price/", api_superadmin.plan_price_update, name="api_plan_price_update"),
     ])),
 
     

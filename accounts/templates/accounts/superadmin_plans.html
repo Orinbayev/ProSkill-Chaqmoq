@@ -94,7 +94,12 @@
       <button class="pm-star {% if p.is_popular %}on{% endif %}" title="Ommabop qilish" onclick="pmSetPopular({{ p.id }})">★</button>
       {% if p.is_popular %}<span class="pm-badge">Eng mashhur</span><br>{% endif %}
       <h4>{{ p.title }}</h4>
-      <div class="price">{{ p.monthly_price|intcomma }}<small> so'm/oy</small></div>
+      <div class="price">
+        <input type="number" min="0" step="1000" value="{{ p.monthly_price }}"
+               onchange="pmPrice(this,{{ p.id }})" title="Narxni o'zgartirish"
+               style="width:120px;border:1px solid #d7dce7;border-radius:8px;padding:4px 8px;font-size:1.1rem;font-weight:800;color:#0ea5e9;text-align:right;">
+        <small> so'm/oy</small>
+      </div>
       <div class="meta">{{ p.tenant_count }} ta markaz · limit {{ p.max_students|intcomma }}</div>
     </div>
     {% endfor %}
@@ -179,6 +184,7 @@ const PM_URLS = {
   rule: "{% url 'platform_global:api_feature_rule_update' %}",
   create: "{% url 'platform_global:api_feature_create' %}",
   popular: "{% url 'platform_global:api_plan_set_popular' %}",
+  price: "{% url 'platform_global:api_plan_price_update' %}",
 };
 function pmToast(msg, ok=true){
   const t=document.getElementById('pmToast');
@@ -204,6 +210,10 @@ async function pmInf(btn, planId, code){
   const inp=btn.previousElementSibling; inp.value='';
   const d=await pmPost(PM_URLS.rule,{plan_id:planId,feature_code:code,limit_value:'∞'});
   if(d) pmToast('Cheksiz qilindi');
+}
+async function pmPrice(el, planId){
+  const d=await pmPost(PM_URLS.price,{plan_id:planId,monthly_price:el.value});
+  if(d) pmToast('Narx saqlandi'); else el.focus();
 }
 async function pmSetPopular(planId){
   const d=await pmPost(PM_URLS.popular,{plan_id:planId});
