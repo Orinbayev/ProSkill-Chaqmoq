@@ -2,7 +2,7 @@
 {% load static humanize tz %}
 
 {% block title %}Global Boshqaruv — Chaqmoq{% endblock %}
-{% block body_class %}sa-fullpage{% endblock %}
+{% block body_class %}sa-shell{% endblock %}
 
 {% block extra_css %}{{ block.super }}
 <link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
@@ -24,8 +24,7 @@
             <p class="subtitle">Markazlar, obunalar va daromad nazorati</p>
         </div>
         <div class="sa-header-right">
-            <a href="{% url 'platform_global:superadmin_plans' %}" class="sa-btn"
-               style="border:1px solid #d7dce7;background:#fff;color:#0f172a;padding:8px 14px;border-radius:10px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:7px;">
+            <a href="{% url 'platform_global:superadmin_plans' %}" class="sa-btn sa-btn-secondary">
                 <i class="bi bi-grid-3x3-gap-fill"></i> Tarif Matritsasi
             </a>
             <a href="{% url 'platform_global:center_create' %}" class="sa-btn sa-btn-primary">
@@ -125,34 +124,39 @@
 
     <!-- ── Mobil ilova qamrovi (ChaqmoqApp) ── -->
     <style>
-        .sa-app-card{background:#fff;border:1px solid #e8ebf2;border-radius:18px;padding:22px 22px 8px;margin:8px 0 20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+        .sa-app-card{background:var(--sa-surface);border:1px solid var(--sa-border);border-radius:var(--sa-r-lg);padding:22px 22px 8px;margin:8px 0 20px;box-shadow:var(--sa-shadow-sm)}
         .sa-app-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
-        .sa-app-title{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:700;color:#0f172a}
-        .sa-app-title .sa-app-badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:18px}
+        .sa-app-title{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:700;color:var(--sa-text)}
+        .sa-app-title .sa-app-badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--sa-cyan),var(--sa-indigo));color:#fff;font-size:18px}
+        .sa-app-title small{color:var(--sa-muted);font-weight:500}
         .sa-app-chips{display:flex;flex-wrap:wrap;gap:10px}
-        .sa-app-chip{display:flex;flex-direction:column;padding:8px 14px;border-radius:12px;background:#f6f8fc;border:1px solid #eef1f7;min-width:96px}
-        .sa-app-chip b{font-size:1.25rem;font-weight:700;color:#0f172a;line-height:1.1}
-        .sa-app-chip span{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
-        .sa-app-chip.is-accent b{color:#0ea5e9}
+        .sa-app-chip{display:flex;flex-direction:column;padding:8px 14px;border-radius:12px;background:var(--sa-surface2);border:1px solid var(--sa-border);min-width:96px}
+        .sa-app-chip b{font-size:1.25rem;font-weight:700;color:var(--sa-text);line-height:1.1}
+        .sa-app-chip span{font-size:.72rem;color:var(--sa-muted);text-transform:uppercase;letter-spacing:.03em}
+        .sa-app-chip.is-accent{background:var(--sa-cyan-m);border-color:rgba(6,182,212,0.22)}
+        .sa-app-chip.is-accent b{color:var(--sa-cyan)}
         .sa-app-table{width:100%;border-collapse:collapse}
-        .sa-app-table th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:#94a3b8;font-weight:600;padding:6px 10px;border-bottom:1px solid #eef1f7}
-        .sa-app-table td{padding:11px 10px;border-bottom:1px solid #f3f5f9;font-size:.9rem;color:#0f172a;vertical-align:middle}
+        .sa-app-table th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--sa-muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--sa-border)}
+        .sa-app-table td{padding:11px 10px;border-bottom:1px solid var(--sa-border);font-size:.9rem;color:var(--sa-text2);vertical-align:middle}
+        .sa-app-table tbody tr{transition:var(--sa-t-fast)}
+        .sa-app-table tbody tr:hover td{background:rgba(148,163,184,0.04)}
         .sa-app-table tr:last-child td{border-bottom:0}
-        .sa-app-rank{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:#f1f5f9;color:#475569;font-weight:700;font-size:.8rem}
+        .sa-app-rank{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:rgba(148,163,184,0.1);color:var(--sa-text2);font-weight:700;font-size:.8rem}
         .sa-app-rank.top{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff}
-        .sa-app-name{font-weight:600}
-        .sa-app-bar{position:relative;height:8px;border-radius:6px;background:#eef1f7;overflow:hidden;min-width:90px}
-        .sa-app-bar>i{position:absolute;inset:0 auto 0 0;height:100%;border-radius:6px;background:linear-gradient(90deg,#0ea5e9,#6366f1)}
-        .sa-app-pct{font-weight:700;color:#0ea5e9;font-variant-numeric:tabular-nums}
-        .sa-app-num{font-variant-numeric:tabular-nums}
-        .sa-app-active{display:inline-flex;align-items:center;gap:5px;color:#16a34a;font-weight:600}
-        .sa-app-active .dot{width:7px;height:7px;border-radius:50%;background:#16a34a}
-        .sa-app-empty{text-align:center;color:#94a3b8;padding:26px 0}
+        .sa-app-name{font-weight:600;color:var(--sa-text)}
+        .sa-app-bar{position:relative;height:8px;border-radius:6px;background:rgba(148,163,184,0.12);overflow:hidden;min-width:90px}
+        .sa-app-bar>i{position:absolute;inset:0 auto 0 0;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--sa-cyan),var(--sa-indigo))}
+        .sa-app-pct{font-weight:700;color:var(--sa-indigo-b);font-variant-numeric:tabular-nums}
+        .sa-app-num{font-variant-numeric:tabular-nums;color:var(--sa-text)}
+        .sa-app-active{display:inline-flex;align-items:center;gap:5px;color:var(--sa-green);font-weight:600}
+        .sa-app-active .dot{width:7px;height:7px;border-radius:50%;background:var(--sa-green);box-shadow:0 0 0 3px var(--sa-green-m)}
+        .sa-app-empty{text-align:center;color:var(--sa-muted);padding:26px 0}
+        .sa-app-dash{color:var(--sa-disabled)}
         @media (max-width:640px){.sa-app-table .hide-sm{display:none}}
     </style>
     <div class="sa-app-card">
         <div class="sa-app-head">
-            <div class="sa-app-title"><span class="sa-app-badge"><i class="bi bi-phone"></i></span> Mobil ilova qamrovi <small style="color:#94a3b8;font-weight:500;">· ChaqmoqApp</small></div>
+            <div class="sa-app-title"><span class="sa-app-badge"><i class="bi bi-phone"></i></span> Mobil ilova qamrovi <small>· ChaqmoqApp</small></div>
             <div class="sa-app-chips">
                 <div class="sa-app-chip is-accent"><b>{{ app_adoption_summary.app_users|intcomma }}</b><span>Ilova foydalanuvchi</span></div>
                 <div class="sa-app-chip"><b>{{ app_adoption_summary.active_users|intcomma }}</b><span>Faol (30 kun)</span></div>
@@ -185,7 +189,7 @@
                             <span class="sa-app-pct">{{ c.adoption_pct }}%</span>
                         </div>
                     </td>
-                    <td class="hide-sm">{% if c.active_users %}<span class="sa-app-active"><span class="dot"></span>{{ c.active_users|intcomma }}</span>{% else %}<span style="color:#cbd5e1;">—</span>{% endif %}</td>
+                    <td class="hide-sm">{% if c.active_users %}<span class="sa-app-active"><span class="dot"></span>{{ c.active_users|intcomma }}</span>{% else %}<span class="sa-app-dash">—</span>{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="6" class="sa-app-empty">Hozircha ma'lumot yo'q</td></tr>

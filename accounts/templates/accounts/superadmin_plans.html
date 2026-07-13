@@ -1,89 +1,107 @@
 {% extends 'base.html' %}
-{% load humanize %}
-{% block title %}Tarif matritsasi{% endblock %}
-{% block body_class %}sa-fullpage{% endblock %}
+{% load static humanize %}
+{% block title %}Tarif matritsasi — Chaqmoq{% endblock %}
+{% block body_class %}sa-shell{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
+{% endblock %}
 
 {% block content %}
 <style>
-  .pm-wrap{padding:8px 4px 40px}
-  .pm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
-  .pm-title{font-size:1.35rem;font-weight:700;color:var(--pm-fg,#0f172a);display:flex;align-items:center;gap:10px}
-  .pm-title .ic{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:19px}
-  .pm-btn{border:1px solid #d7dce7;background:#fff;color:#0f172a;border-radius:11px;padding:9px 15px;font-weight:600;cursor:pointer;font-size:.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:.15s}
-  .pm-btn:hover{background:#f4f7fc}
-  .pm-btn.primary{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
-  .pm-btn.primary:hover{background:#0284c7}
+  .pm-wrap{padding:0 0 40px}
 
   /* Tarif kartochkalari */
   .pm-cards{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
-  .pm-card{flex:1 1 190px;min-width:180px;background:#fff;border:1px solid #e8ebf2;border-radius:16px;padding:16px 18px;position:relative}
-  .pm-card.pop{border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b inset}
-  .pm-card h4{margin:0 0 2px;font-size:1.05rem;color:#0f172a}
-  .pm-card .price{font-size:1.3rem;font-weight:800;color:#0ea5e9}
-  .pm-card .price small{font-size:.8rem;color:#94a3b8;font-weight:500}
-  .pm-card .meta{font-size:.8rem;color:#64748b;margin-top:6px}
-  .pm-star{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;font-size:18px;color:#cbd5e1}
-  .pm-star.on{color:#f59e0b}
-  .pm-badge{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:#f59e0b;color:#fff;border-radius:6px;padding:2px 7px;margin-bottom:6px}
+  .pm-card{flex:1 1 190px;min-width:190px;background:var(--sa-surface);border:1px solid var(--sa-border);border-radius:var(--sa-r-lg);padding:18px 18px 16px;position:relative;transition:var(--sa-t-fast)}
+  .pm-card:hover{border-color:var(--sa-border-h);transform:translateY(-1px)}
+  .pm-card.pop{border-color:rgba(245,158,11,0.45);box-shadow:0 0 0 1px rgba(245,158,11,0.2) inset,0 6px 24px rgba(245,158,11,0.08)}
+  .pm-card h4{margin:0 0 6px;font-size:1.05rem;font-weight:700;color:var(--sa-text)}
+  .pm-card .price{display:flex;align-items:center;gap:6px}
+  .pm-card .price small{font-size:.78rem;color:var(--sa-muted);font-weight:500}
+  .pm-price-input{width:118px;background:var(--sa-surface2);border:1px solid var(--sa-border);border-radius:var(--sa-r-xs);padding:6px 9px;font-size:1.05rem;font-weight:800;color:var(--sa-indigo-b);text-align:right;font-variant-numeric:tabular-nums;transition:var(--sa-t-fast)}
+  .pm-price-input:hover{border-color:var(--sa-border-h)}
+  .pm-price-input:focus{outline:none;border-color:var(--sa-border-f);box-shadow:var(--sa-glow-i)}
+  .pm-card .meta{font-size:.78rem;color:var(--sa-muted);margin-top:9px}
+  .pm-star{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--sa-disabled);line-height:1;transition:var(--sa-t-fast)}
+  .pm-star:hover{color:var(--sa-amber)}
+  .pm-star.on{color:var(--sa-amber)}
+  .pm-badge{display:inline-block;font-size:.64rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--sa-amber-g);color:var(--sa-amber);border:1px solid rgba(245,158,11,0.28);border-radius:6px;padding:2px 8px;margin-bottom:8px}
 
   /* Matritsa */
-  .pm-matrix-scroll{overflow-x:auto;border:1px solid #e8ebf2;border-radius:16px;background:#fff}
+  .pm-matrix-scroll{overflow-x:auto;border:1px solid var(--sa-border);border-radius:var(--sa-r-lg);background:var(--sa-surface);box-shadow:var(--sa-shadow-sm)}
   table.pm-matrix{border-collapse:collapse;width:100%;min-width:640px}
-  .pm-matrix th,.pm-matrix td{padding:11px 14px;text-align:center;border-bottom:1px solid #f1f4f9}
-  .pm-matrix thead th{position:sticky;top:0;background:#f8fafc;z-index:2;font-size:.8rem;color:#334155}
-  .pm-matrix th.feat,.pm-matrix td.feat{text-align:left;position:sticky;left:0;background:#fff;z-index:1;min-width:210px}
-  .pm-matrix thead th.feat{background:#f8fafc;z-index:3}
-  .pm-plan-col{font-weight:700;color:#0f172a}
-  .pm-plan-col small{display:block;font-weight:500;color:#94a3b8;font-size:.72rem}
-  .pm-cat-row td{background:#eef2f8;text-align:left;font-weight:700;color:#475569;cursor:pointer;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
-  .pm-cat-row td .chev{transition:.2s;display:inline-block}
+  .pm-matrix th,.pm-matrix td{padding:12px 14px;text-align:center;border-bottom:1px solid var(--sa-border)}
+  .pm-matrix thead th{position:sticky;top:0;background:var(--sa-surface2);z-index:2;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--sa-muted);font-weight:600}
+  .pm-matrix th.feat,.pm-matrix td.feat{text-align:left;position:sticky;left:0;background:var(--sa-surface);z-index:1;min-width:210px}
+  .pm-matrix thead th.feat{background:var(--sa-surface2);z-index:3}
+  .pm-matrix tbody tr:last-child td{border-bottom:0}
+  .pm-plan-col{font-weight:700;color:var(--sa-text);text-transform:none;letter-spacing:0;font-size:.86rem}
+  .pm-plan-col small{display:block;font-weight:500;color:var(--sa-muted);font-size:.72rem;margin-top:2px;text-transform:none;letter-spacing:0}
+  .pm-cat-row td{background:var(--sa-surface3);text-align:left;font-weight:700;color:var(--sa-text2);cursor:pointer;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
+  .pm-cat-row:hover td{background:rgba(148,163,184,0.12)}
+  .pm-cat-row td .chev{transition:var(--sa-t-fast);display:inline-block;color:var(--sa-muted)}
   .pm-cat-row.collapsed td .chev{transform:rotate(-90deg)}
-  .pm-feat-name{font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px}
-  .pm-type{font-size:.64rem;font-weight:700;color:#64748b;background:#eef2f8;border-radius:5px;padding:1px 6px}
-  .pm-core-lock{color:#cbd5e1;font-size:16px}
+  .pm-feat-row:hover td{background:rgba(148,163,184,0.04)}
+  .pm-feat-row:hover td.feat{background:var(--sa-surface2)}
+  .pm-feat-name{font-weight:600;color:var(--sa-text2);display:flex;align-items:center;gap:8px;font-size:.88rem}
+  .pm-type{font-size:.62rem;font-weight:700;letter-spacing:.04em;color:var(--sa-muted);background:rgba(148,163,184,0.1);border:1px solid var(--sa-border);border-radius:5px;padding:2px 6px}
+  .pm-core-lock{color:var(--sa-disabled);font-size:15px}
 
   /* Toggle switch */
   .pm-sw{position:relative;display:inline-block;width:40px;height:22px}
   .pm-sw input{display:none}
-  .pm-sw span{position:absolute;inset:0;background:#cbd5e1;border-radius:22px;transition:.2s;cursor:pointer}
-  .pm-sw span::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
-  .pm-sw input:checked+span{background:#0ea5e9}
+  .pm-sw span{position:absolute;inset:0;background:rgba(148,163,184,0.22);border-radius:22px;transition:var(--sa-t-fast);cursor:pointer}
+  .pm-sw span::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#f8fafc;border-radius:50%;transition:var(--sa-t-fast);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .pm-sw input:checked+span{background:linear-gradient(135deg,var(--sa-cyan),var(--sa-indigo))}
   .pm-sw input:checked+span::before{transform:translateX(18px)}
-  .pm-limit{display:inline-flex;align-items:center;gap:5px;margin-top:5px}
-  .pm-limit input{width:64px;border:1px solid #d7dce7;border-radius:7px;padding:4px 6px;text-align:center;font-size:.85rem}
-  .pm-inf{border:1px solid #d7dce7;background:#f8fafc;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.9rem}
+  .pm-limit{display:inline-flex;align-items:center;gap:5px;margin-top:7px}
+  .pm-limit input{width:64px;background:var(--sa-surface2);border:1px solid var(--sa-border);color:var(--sa-text);border-radius:var(--sa-r-xs);padding:5px 6px;text-align:center;font-size:.84rem}
+  .pm-limit input:focus{outline:none;border-color:var(--sa-border-f);box-shadow:var(--sa-glow-i)}
+  .pm-inf{border:1px solid var(--sa-border);background:var(--sa-surface2);color:var(--sa-text2);border-radius:var(--sa-r-xs);padding:4px 9px;cursor:pointer;font-size:.86rem;line-height:1;transition:var(--sa-t-fast)}
+  .pm-inf:hover{border-color:var(--sa-border-h);color:var(--sa-text)}
 
   /* Toast */
-  .pm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:10px 18px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:9999}
+  .pm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--sa-surface3);border:1px solid var(--sa-border-h);color:var(--sa-text);padding:11px 18px;border-radius:var(--sa-r-md);font-weight:600;font-size:.86rem;opacity:0;pointer-events:none;transition:var(--sa-t-norm);z-index:9999;box-shadow:var(--sa-shadow-md)}
   .pm-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .pm-toast.is-err{background:var(--sa-red-g);border-color:rgba(239,68,68,0.4);color:#fecaca}
 
   /* Modal */
-  .pm-modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:9998}
+  .pm-modal-bg{position:fixed;inset:0;background:var(--sa-overlay);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:9998;padding:20px}
   .pm-modal-bg.show{display:flex}
-  .pm-modal{background:#fff;border-radius:18px;padding:22px;width:min(420px,92vw)}
-  .pm-modal h3{margin:0 0 14px;font-size:1.1rem}
-  .pm-field{margin-bottom:12px}
-  .pm-field label{display:block;font-size:.8rem;color:#475569;margin-bottom:4px;font-weight:600}
-  .pm-field input,.pm-field select{width:100%;border:1px solid #d7dce7;border-radius:10px;padding:9px 11px;font-size:.92rem}
-  .pm-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
-
-  @media (prefers-color-scheme:dark){
-    .pm-card,.pm-matrix-scroll,.pm-matrix th.feat,.pm-matrix td.feat,.pm-modal{background:#111827;border-color:#243044}
-    .pm-matrix thead th,.pm-matrix thead th.feat{background:#0b1220;color:#cbd5e1}
-    .pm-matrix th,.pm-matrix td{border-color:#1e293b}
-    .pm-cat-row td{background:#1e293b;color:#cbd5e1}
-    .pm-title,.pm-card h4,.pm-feat-name,.pm-plan-col{color:#e5edf7}
-    .pm-btn{background:#1e293b;color:#e5edf7;border-color:#334155}
-  }
+  .pm-modal{background:var(--sa-surface);border:1px solid var(--sa-border);box-shadow:var(--sa-shadow-lg);border-radius:var(--sa-r-xl);padding:24px;width:min(420px,92vw)}
+  .pm-modal h3{margin:0 0 16px;font-size:1.08rem;font-weight:700;color:var(--sa-text)}
+  .pm-field{margin-bottom:13px}
+  .pm-field label{display:block;font-size:.76rem;color:var(--sa-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .pm-field input,.pm-field select{width:100%;background:var(--sa-surface2);border:1px solid var(--sa-border);color:var(--sa-text);border-radius:var(--sa-r-sm);padding:10px 12px;font-size:.9rem}
+  .pm-field input:focus,.pm-field select:focus{outline:none;border-color:var(--sa-border-f);box-shadow:var(--sa-glow-i)}
+  .pm-field select option{background:var(--sa-surface2);color:var(--sa-text)}
+  .pm-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
 </style>
 
-<div class="pm-wrap">
-  <div class="pm-head">
-    <div class="pm-title"><span class="ic"><i class="bi bi-grid-3x3-gap-fill"></i></span> Tarif matritsasi</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a class="pm-btn" href="{% url 'platform_global:superadmin_dashboard' %}"><i class="bi bi-arrow-left"></i> Boshqaruvga</a>
-      <a class="pm-btn" href="{% url 'billing:plans' %}" target="_blank"><i class="bi bi-eye"></i> Mijoz ko'zi bilan</a>
-      <button class="pm-btn primary" onclick="pmOpenNewFeature()"><i class="bi bi-plus-lg"></i> Yangi xususiyat</button>
+<div class="sa-page pm-wrap">
+
+  <!-- ── Header ── -->
+  <div class="sa-header">
+    <div class="sa-header-left">
+      <div class="breadcrumb-bar">
+        <span>Superadmin</span><span>/</span>
+        <span class="bc-current">Tarif Matritsasi</span>
+      </div>
+      <h1>Tarif Matritsasi</h1>
+      <p class="subtitle">Tariflar narxi va har bir xususiyat qaysi tarifda ochiqligini boshqaring</p>
+    </div>
+    <div class="sa-header-right">
+      <a class="sa-btn sa-btn-secondary" href="{% url 'platform_global:superadmin_dashboard' %}">
+        <i class="bi bi-arrow-left"></i> Boshqaruvga
+      </a>
+      <a class="sa-btn sa-btn-secondary" href="{% url 'billing:plans' %}" target="_blank">
+        <i class="bi bi-eye"></i> Mijoz ko'zi bilan
+      </a>
+      <button type="button" class="sa-btn sa-btn-primary" onclick="pmOpenNewFeature()">
+        <i class="bi bi-plus-lg"></i> Yangi xususiyat
+      </button>
+      {% include "components/profile_dropdown.html" %}
     </div>
   </div>
 
@@ -91,14 +109,13 @@
   <div class="pm-cards">
     {% for p in plans %}
     <div class="pm-card {% if p.is_popular %}pop{% endif %}" id="pm-card-{{ p.id }}">
-      <button class="pm-star {% if p.is_popular %}on{% endif %}" title="Ommabop qilish" onclick="pmSetPopular({{ p.id }})">★</button>
+      <button type="button" class="pm-star {% if p.is_popular %}on{% endif %}" title="Ommabop qilish" onclick="pmSetPopular({{ p.id }})">★</button>
       {% if p.is_popular %}<span class="pm-badge">Eng mashhur</span><br>{% endif %}
       <h4>{{ p.title }}</h4>
       <div class="price">
-        <input type="number" min="0" step="1000" value="{{ p.monthly_price }}"
-               onchange="pmPrice(this,{{ p.id }})" title="Narxni o'zgartirish"
-               style="width:120px;border:1px solid #d7dce7;border-radius:8px;padding:4px 8px;font-size:1.1rem;font-weight:800;color:#0ea5e9;text-align:right;">
-        <small> so'm/oy</small>
+        <input type="number" min="0" step="1000" value="{{ p.monthly_price }}" class="pm-price-input"
+               onchange="pmPrice(this,{{ p.id }})" title="Narxni o'zgartirish">
+        <small>so'm/oy</small>
       </div>
       <div class="meta">{{ p.tenant_count }} ta markaz · limit {{ p.max_students|intcomma }}</div>
     </div>
@@ -143,7 +160,7 @@
               <div class="pm-limit">
                 <input type="number" min="0" placeholder="∞" value="{{ cell.limit|default_if_none:'' }}"
                        onchange="pmLimit(this,{{ cell.plan_id }},'{{ row.code }}')">
-                <button class="pm-inf" title="Cheksiz" onclick="pmInf(this,{{ cell.plan_id }},'{{ row.code }}')">∞</button>
+                <button type="button" class="pm-inf" title="Cheksiz" onclick="pmInf(this,{{ cell.plan_id }},'{{ row.code }}')">∞</button>
               </div>
               {% endif %}
             {% endif %}
@@ -172,8 +189,10 @@
       <select id="nfType">{% for t,l in feature_types %}{% if t != 'CORE' %}<option value="{{ t }}">{{ l }}</option>{% endif %}{% endfor %}</select>
     </div>
     <div class="pm-modal-actions">
-      <button class="pm-btn" onclick="pmCloseNewFeature()">Bekor</button>
-      <button class="pm-btn primary" onclick="pmCreateFeature()">Yaratish</button>
+      <button type="button" class="sa-btn sa-btn-secondary" onclick="pmCloseNewFeature()">Bekor</button>
+      <button type="button" class="sa-btn sa-btn-primary" onclick="pmCreateFeature()">
+        <i class="bi bi-check-lg"></i> Yaratish
+      </button>
     </div>
   </div>
 </div>
@@ -188,7 +207,8 @@ const PM_URLS = {
 };
 function pmToast(msg, ok=true){
   const t=document.getElementById('pmToast');
-  t.textContent=(ok?'✓ ':'⚠ ')+msg; t.style.background=ok?'#0f172a':'#dc2626';
+  t.textContent=(ok?'✓ ':'⚠ ')+msg;
+  t.classList.toggle('is-err', !ok);
   t.classList.add('show'); clearTimeout(window._pmt);
   window._pmt=setTimeout(()=>t.classList.remove('show'),1600);
 }

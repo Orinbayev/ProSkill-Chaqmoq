@@ -495,6 +495,22 @@
       padding: 0 !important;
     }
 
+    /* SuperAdmin shell: sidebar ko'rinadi, kontent keng */
+    body.sa-shell .main-content {
+      padding: 20px 24px 36px;
+    }
+
+    body.sa-shell .content-shell {
+      max-width: 1640px;
+    }
+
+    @media (max-width: 991.98px) {
+      body.sa-shell .main-content {
+        padding: 14px 12px 28px;
+        padding-top: calc(14px + env(safe-area-inset-top));
+      }
+    }
+
     /* Modal compatibility fix: allow clicks on standard elements */
     .modal-open {
       overflow: hidden;
