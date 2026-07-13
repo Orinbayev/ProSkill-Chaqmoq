@@ -168,3 +168,52 @@ class MatrixApiTests(_CacheSafeTest):
         )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(PlanFeatureRule.objects.get(plan=pro, feature__code="ai_assistant").limit_value, 1000)
+
+
+# ── Obuna muddati tugaganda bloklash testlari ─────────────────────────────
+from django.test import RequestFactory
+from billing.middleware import SubscriptionMiddleware
+
+
+class ExpiryBlockTests(_CacheSafeTest):
+    def _expired_center(self):
+        c = Center.objects.create(name="Exp", slug="exp-center")
+        plan = SubscriptionPlan.objects.get(code="STANDART")
+        CenterSubscription.objects.create(
+            center=c, plan=plan, status="ACTIVE",
+            started_at=timezone.now() - timezone.timedelta(days=40),
+            expires_at=timezone.now() - timezone.timedelta(hours=2),  # 2 soat oldin tugagan (grace ichida)
+        )
+        return c
+
+    def test_grace_gap_now_caught(self):
+        """Kun tugagan, lekin grace ichida — eski shart bloklamasdi, endi bloklaydi."""
+        c = self._expired_center()
+        sub = CenterSubscription.objects.get(center=c)
+        self.assertTrue(sub.is_expired())    # kun tugagan
+        self.assertFalse(sub.is_blocked())   # grace ichida (eski shart bu holni o'tkazib yuborardi)
+
+    def _run_mw(self, role):
+        c = self._expired_center()
+        u = _mk_user(f"exp_{role}")
+        u.role = role
+        u.center = c
+        u.save()
+        rf = RequestFactory()
+        req = rf.get("/hisob/")   # billing bo'lmagan sahifa
+        req.user = u
+        req.center = c
+        return SubscriptionMiddleware(get_response=lambda r: None).process_request(req)
+
+    def test_director_blocked_on_expiry(self):
+        resp = self._run_mw("director")
+        self.assertIsNotNone(resp)                 # redirect qaytdi
+        self.assertIn("/hisob/billing/blocked", resp.url)
+
+    def test_manager_blocked_on_expiry(self):
+        resp = self._run_mw("manager")
+        self.assertIsNotNone(resp)
+        self.assertIn("/hisob/billing/blocked", resp.url)
+
+    def test_student_not_blocked_on_expiry(self):
+        self.assertIsNone(self._run_mw("student"))   # o'quvchi kira oladi

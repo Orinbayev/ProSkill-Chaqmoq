@@ -48,11 +48,15 @@ class SubscriptionMiddleware(MiddlewareMixin):
         # ✅ Check both expiration AND student limit
         user_role = getattr(user, "role", None)
 
+        # Kun tugasa — grace davrini kutmasdan DARROV bloklaymiz (direktor/manager).
+        # (PAUSED holatda is_expired False qaytaradi — u bloklanmaydi.)
+        is_expired = sub and sub.is_expired()
         is_blocked = sub and sub.is_blocked()
         is_over_limit = sub and sub.is_over_student_limit()
-        
-        if is_blocked or is_over_limit:
-            # Faqat admin va manager'larni blocking sahifasiga yo'naltirish
+
+        if is_expired or is_blocked or is_over_limit:
+            # Faqat direktor/manager (va boshqa tenant rollari) bloklanadi.
+            # O'quvchi/ota-ona/o'qituvchi kira oladi — ular to'lovga javobgar emas.
             if user_role not in ("student", "parent", "teacher"):
                 return redirect("billing:blocked")
 
