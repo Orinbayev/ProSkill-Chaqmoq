@@ -217,3 +217,36 @@ class ExpiryBlockTests(_CacheSafeTest):
 
     def test_student_not_blocked_on_expiry(self):
         self.assertIsNone(self._run_mw("student"))   # o'quvchi kira oladi
+
+
+class CenterEditExpirySyncTests(_CacheSafeTest):
+    """center_edit sana o'zgartirilganda ACTIVE obuna DOIM sinxronlanadi
+    (center.plan tarif kodiga mos kelmasa ham) — '12-iyul qo'ydim, 7 kun ko'rsatyapti' bug'i."""
+
+    def test_editing_date_updates_active_subscription(self):
+        c = Center.objects.create(name="EditSync", slug="edit-sync", plan="ESKI_KOD")
+        plan = SubscriptionPlan.objects.get(code="STANDART")
+        # Eski obuna: xato (uzoq) sana — trial now+30 kabi
+        old_sub = CenterSubscription.objects.create(
+            center=c, plan=plan, status="ACTIVE",
+            expires_at=timezone.now() + timezone.timedelta(days=30),
+        )
+        su = _mk_user("edit_su", superuser=True)
+        client = Client()
+        client.force_login(su)
+
+        target = (timezone.now() - timezone.timedelta(days=2)).date()  # 2 kun oldin tugagan
+        resp = client.post(
+            reverse("platform_global:center_edit", args=[c.id]),
+            data={
+                "name": "EditSync", "slug": "edit-sync", "address": "",
+                "plan": "ESKI_KOD",  # aktiv tarif kodiga MOS EMAS
+                "capacity_limit": 200, "expires_at": target.isoformat(),
+                "status": "ACTIVE", "ai_enabled": "",
+            },
+        )
+        self.assertIn(resp.status_code, (200, 302))
+        old_sub.refresh_from_db()
+        # Endi ACTIVE obuna sanasi berilgan MAHALLIY sanaga TENG (kun oxiri)
+        self.assertEqual(timezone.localtime(old_sub.expires_at).date(), target)
+        self.assertTrue(old_sub.is_expired())  # 2 kun oldin tugagan → expired

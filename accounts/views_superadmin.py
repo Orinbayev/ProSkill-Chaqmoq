@@ -354,24 +354,53 @@ def center_edit(request, pk):
         from billing.services import invalidate_center_limit_cache
         invalidate_center_limit_cache(center)
 
-        try:
-            # form Center.plan yoki Center.expires_at o'zgargan bo'lsa
-            # CenterSubscription bilan sinxronlaymiz.
-            # superadmin_apply_subscription — yagona source of truth funksiyasi.
+        # ── Obuna muddatini sinxronlash (YAGONA MANBA) ──────────────────────
+        # MUHIM: dashboard va bloklash CenterSubscription.expires_at ni o'qiydi.
+        # Shuning uchun sana o'zgarganda ACTIVE obunani DOIM yangilaymiz —
+        # center.plan tarif kodiga mos kel-kelmasidan qat'i nazar. Aks holda
+        # "12-iyul qo'ydim, lekin 7 kun ko'rsatyapti" muammosi yuzaga keladi.
+        if center.expires_at:
+            # Sanani MAHALLIY kun oxiriga (23:59:59) normallashtiramiz.
+            # "12-iyul" = 12-iyul TO'LIQ ishlaydi, 13-iyulda bloklanadi.
+            # (Aks holda 00:00 saqlanib, +5 TZ tufayli bir kun kam ko'rinadi.)
+            import datetime as _dt
+            from django.utils import timezone
+            _d = timezone.localtime(center.expires_at).date() if timezone.is_aware(center.expires_at) else center.expires_at.date() if hasattr(center.expires_at, 'date') else center.expires_at
+            _eod = _dt.datetime.combine(_d, _dt.time(23, 59, 59))
+            center.expires_at = timezone.make_aware(_eod, timezone.get_current_timezone())
+            center.save(update_fields=["expires_at"])
+
             from billing.services import superadmin_apply_subscription
             plan_obj = SubscriptionPlan.objects.filter(
                 code=center.plan, active=True
             ).first()
-            if plan_obj and center.expires_at:
-                superadmin_apply_subscription(
-                    center=center,
-                    new_plan=plan_obj,
-                    expires_at=center.expires_at,
-                    actor=request.user,
-                )
-                invalidate_center_limit_cache(center)
-        except Exception:
-            pass  # sync xato bo'lsa asosiy save saqlanadi
+            synced = False
+            if plan_obj:
+                try:
+                    superadmin_apply_subscription(
+                        center=center,
+                        new_plan=plan_obj,
+                        expires_at=center.expires_at,
+                        actor=request.user,
+                    )
+                    synced = True
+                except Exception:
+                    logger.exception("center_edit: apply_subscription failed for center=%s", center.pk)
+            if not synced:
+                # Plan mos kelmadi/xato bo'ldi — hech bo'lmasa ACTIVE obuna sanasini
+                # to'g'ridan-to'g'ri yangilaymiz (bloklash/displey mos bo'lsin).
+                active_sub = CenterSubscription.objects.filter(
+                    center=center, status=CenterSubscription.Status.ACTIVE
+                ).order_by('-expires_at').first()
+                if active_sub is None:
+                    from billing.services import ensure_center_subscription
+                    active_sub = ensure_center_subscription(center)
+                if active_sub is not None:
+                    active_sub.expires_at = center.expires_at
+                    active_sub.manual_block = False
+                    active_sub.status = CenterSubscription.Status.ACTIVE
+                    active_sub.save(update_fields=["expires_at", "manual_block", "status"])
+            invalidate_center_limit_cache(center)
 
         # manual_oy_dars_soni feature override saqlash
         try:
