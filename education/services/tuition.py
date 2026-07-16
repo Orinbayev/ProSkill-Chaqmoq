@@ -114,6 +114,11 @@ def center_month_debt_summary(center, months, branch=None):
       jami = barcha shu qarzlar yig'indisi
       qarzdorlar_soni = qarzi > 0 bo'lgan noyob o'quvchilar
 
+    MUHIM: Qarzdorlar ro'yxati arxivlangan / o'chirilgan guruhlarni ko'rsatmaydi,
+    shuning uchun bu yig'indi ham ularni chiqarib tashlaydi. Aks holda dashboard
+    KPI (bu funksiya) arxiv/yopilgan guruhlardagi qarzni ham sanab, qarzdorlar
+    ro'yxatidagi jamidan yuqori chiqadi.
+
     Returns: (jami_qarz: int, qarzdorlar_soni: int)
     """
     from collections import defaultdict
@@ -124,6 +129,8 @@ def center_month_debt_summary(center, months, branch=None):
     tm_q = (
         _TM.objects.filter(
             enrollment__group__center=center,
+            enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
             month__in=list(months),
             is_deleted=False,
         ).filter(
