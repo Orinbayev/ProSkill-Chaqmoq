@@ -2814,7 +2814,12 @@
 
   function syncLeadManagerFieldState() {
     const hasOnlyOneOption = managerOptions.length <= 1;
-    dom.leadManagerInput.disabled = leadManagerLocked || hasOnlyOneOption || state.pending.save || state.pending.confirm;
+    // Menejerni faqat director/admin (locked emas) va bir nechta menejer bo'lsa o'zgartira oladi.
+    const editable = !leadManagerLocked && !hasOnlyOneOption;
+    dom.leadManagerInput.disabled = !editable || state.pending.save || state.pending.confirm;
+    // Tahrirlash mumkin bo'lsa — haqiqiy select ko'rsatiladi, aks holda faqat o'qishga mo'ljallangan matn.
+    dom.leadManagerInput.style.display = editable ? '' : 'none';
+    dom.leadManagerDisplay.style.display = editable ? 'none' : '';
   }
 
   function formatLeadCount(count, { withLeadWord = false } = {}) {
@@ -5305,6 +5310,7 @@
     if (event.target === dom.leadGroupRevertModal) closeLeadGroupRevertModal();
   });
   dom.saveLeadButton.addEventListener('click', saveLead);
+  dom.leadManagerInput.addEventListener('change', syncLeadManagerDisplay);
   dom.leadModalConvertButton.addEventListener('click', () => {
     if (state.selectedLead?.id) {
       openConfirmLeadModal(state.selectedLead.id);
