@@ -2040,6 +2040,10 @@
               <select id="leadSubjectInput" name="subject" class="lead-select"></select>
             </div>
             <div class="lead-field">
+              <label for="leadSourceInput">Manba</label>
+              <select id="leadSourceInput" name="manba" class="lead-select"></select>
+            </div>
+            <div class="lead-field">
               <label for="leadStatusInput">Holat</label>
               <select id="leadStatusInput" name="status" class="lead-select"></select>
             </div>
@@ -2494,6 +2498,7 @@
 </div>
 
 {{ subject_choices|json_script:"leadSubjectChoices" }}
+{{ source_choices|json_script:"leadSourceChoices" }}
 {{ status_choices|json_script:"leadStatusChoices" }}
 {{ manager_options|json_script:"leadManagerOptions" }}
 {{ lead_group_options|json_script:"leadGroupOptions" }}
@@ -2523,6 +2528,7 @@
   const leadManagerLocked = {{ lead_manager_locked|yesno:"true,false" }};
 
   let subjectChoices = JSON.parse(document.getElementById('leadSubjectChoices').textContent);
+  let sourceChoices = JSON.parse(document.getElementById('leadSourceChoices').textContent);
   let statusChoices = JSON.parse(document.getElementById('leadStatusChoices').textContent);
   const managerOptions = JSON.parse(document.getElementById('leadManagerOptions').textContent);
   let leadGroupOptions = JSON.parse(document.getElementById('leadGroupOptions').textContent);
@@ -2684,6 +2690,7 @@
     leadPhoneInput: document.getElementById('leadPhoneInput'),
     leadParentNameInput: document.getElementById('leadParentNameInput'),
     leadSubjectInput: document.getElementById('leadSubjectInput'),
+    leadSourceInput: document.getElementById('leadSourceInput'),
     leadStatusInput: document.getElementById('leadStatusInput'),
     leadManagerInput: document.getElementById('leadManagerInput'),
     leadManagerDisplay: document.getElementById('leadManagerDisplay'),
@@ -3134,6 +3141,7 @@
     dom.leadNameInput.disabled = isBusy;
     dom.leadPhoneInput.disabled = isBusy;
     dom.leadSubjectInput.disabled = isBusy;
+    dom.leadSourceInput.disabled = isBusy;
     dom.leadStatusInput.disabled = isBusy;
     dom.leadLeadGroupInput.disabled = isBusy;
     dom.leadNoteInput.disabled = isBusy;
@@ -4238,6 +4246,7 @@
       phone: dom.leadPhoneInput.value.trim(),
       parent_name: dom.leadParentNameInput.value.trim(),
       subject: dom.leadSubjectInput.value,
+      manba: dom.leadSourceInput.value || '',
       status: dom.leadStatusInput.value,
       note: dom.leadNoteInput.value.trim(),
       manager: dom.leadManagerInput.value || resolveDefaultManagerId() || '',
@@ -4260,6 +4269,7 @@
     dom.leadPhoneInput.value = '+998'; // Avtomatik +998 bo'lishi
     dom.leadParentNameInput.value = '';
     dom.leadSubjectInput.value = subjectChoices[0]?.value || '';
+    dom.leadSourceInput.value = '';
     dom.leadStatusInput.value = statusChoices[0]?.value || 'new';
     dom.leadManagerInput.value = resolveDefaultManagerId();
     syncLeadManagerDisplay();
@@ -4293,6 +4303,7 @@
         dom.leadLeadGroupInput.value !== '' ||
         dom.leadBilimInput.value.trim() !== '' ||
         dom.leadSubjectInput.value !== defaultSubject ||
+        dom.leadSourceInput.value !== '' ||
         dom.leadStatusInput.value !== defaultStatus ||
         dom.leadManagerInput.value !== defaultManager
       );
@@ -4307,6 +4318,7 @@
         dom.leadLeadGroupInput.value !== String(lead.lead_group?.value || lead.lead_group_id || '') ||
         dom.leadBilimInput.value.trim() !== (lead.bilim_darajasi || '') ||
         dom.leadSubjectInput.value !== String(lead.subject || lead.subject_object?.id || '') ||
+        dom.leadSourceInput.value !== String(lead.manba || '') ||
         dom.leadStatusInput.value !== (lead.status || 'new') ||
         dom.leadManagerInput.value !== String(lead.manager?.id || '')
       );
@@ -4385,6 +4397,7 @@
       dom.leadPhoneInput.value = lead.phone || '';
       dom.leadParentNameInput.value = lead.parent_name || '';
       dom.leadSubjectInput.value = String(lead.subject || lead.subject_object?.id || '');
+      dom.leadSourceInput.value = String(lead.manba || '');
       dom.leadStatusInput.value = lead.status || 'new';
       dom.leadManagerInput.value = String(lead.manager?.id || resolveDefaultManagerId());
       syncLeadManagerDisplay();
@@ -5477,6 +5490,7 @@
   });
 
   fillSelect(dom.leadSubjectInput, subjectChoices, { includeEmpty: false });
+  fillSelect(dom.leadSourceInput, sourceChoices, { includeEmpty: true, emptyLabel: 'Manba tanlanmagan' });
   fillSelect(dom.leadStatusInput, statusChoices, { includeEmpty: false });
   fillSelect(dom.leadManagerInput, managerOptions, { includeEmpty: false });
   dom.leadManagerInput.value = resolveDefaultManagerId();

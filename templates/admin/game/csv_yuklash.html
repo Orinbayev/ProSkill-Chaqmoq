@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="max-width: 720px;">
+  <h1>📥 Savollarni CSV'dan yuklash</h1>
+
+  <p>CSV fayl <b>UTF-8</b> kodlashda va quyidagi ustunlar bilan bo'lishi kerak:</p>
+
+  <p>
+    {% for ustun in ustunlar %}
+      <code style="background:#eef;padding:2px 6px;border-radius:4px;margin-right:4px;">{{ ustun }}</code>
+    {% endfor %}
+  </p>
+
+  <p><code>izoh</code> ustuni ixtiyoriy. <code>tur</code> — <code>tarjima</code>,
+     <code>eshitish</code>, <code>boshliq</code> yoki <code>rasm</code>.</p>
+
+  <p><b>Muhim:</b> <code>kategoriya</code> ustunidagi to'plam admin panelda
+     <b>oldindan yaratilgan</b> bo'lishi kerak, aks holda o'sha qator o'tkazib yuboriladi.</p>
+
+  <h3>Namuna</h3>
+  <pre style="background:#f6f6f6;padding:12px;border-radius:6px;overflow-x:auto;">{{ namuna }}</pre>
+
+  <form method="post" enctype="multipart/form-data" style="margin-top:24px;">
+    {% csrf_token %}
+    <input type="file" name="csv_fayl" accept=".csv" required>
+    <button type="submit" class="default" style="margin-left:12px;">Yuklash</button>
+    <a href="{% url 'admin:game_question_changelist' %}" style="margin-left:12px;">Bekor qilish</a>
+  </form>
+</div>
+{% endblock %}

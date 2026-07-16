@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import Lead, LeadGroup, LeadStatus, TrialLesson, Yonalish
+from .models import Lead, LeadGroup, LeadStatus, Manba, TrialLesson, Yonalish
 from .lead_services import (
     build_dynamic_lead_status_choices,
     get_or_create_custom_lead_status,
@@ -290,6 +290,7 @@ class LeadApiForm(forms.Form):
     parent_name = forms.CharField(max_length=150, required=False)
     bilim_darajasi = forms.CharField(max_length=100, required=False)
     subject = forms.ModelChoiceField(queryset=Yonalish.objects.none(), required=True)
+    manba = forms.ModelChoiceField(queryset=Manba.objects.none(), required=False)
     status = forms.ChoiceField(choices=(), required=False, initial=Lead.PipelineStatus.NEW)
     note = forms.CharField(required=False, widget=forms.Textarea)
     manager = forms.ModelChoiceField(queryset=User.objects.none(), required=False)
@@ -306,6 +307,7 @@ class LeadApiForm(forms.Form):
                     Q(is_active=True) | Q(id=self.instance.yonalish_id)
                 )
             self.fields["subject"].queryset = subject_qs.order_by("nom")
+            self.fields["manba"].queryset = Manba.objects.filter(center=self.center).order_by("nom")
             self.fields["manager"].queryset = User.objects.filter(
                 center=self.center,
                 role="manager",
@@ -317,6 +319,7 @@ class LeadApiForm(forms.Form):
             self.fields["lead_group"].queryset = lead_group_qs.order_by("name", "id")
         else:
             self.fields["subject"].queryset = Yonalish.objects.none()
+            self.fields["manba"].queryset = Manba.objects.none()
             self.fields["manager"].queryset = User.objects.none()
             self.fields["lead_group"].queryset = LeadGroup.objects.none()
 
@@ -369,6 +372,7 @@ class LeadApiForm(forms.Form):
         lead.parent_name = (self.cleaned_data.get("parent_name") or "").strip()
         lead.bilim_darajasi = (self.cleaned_data.get("bilim_darajasi") or "").strip()
         lead.yonalish = self.cleaned_data["subject"]
+        lead.manba = self.cleaned_data.get("manba")
         lead.comment = (self.cleaned_data.get("note") or "").strip()
         lead.lead_group = self.cleaned_data.get("lead_group")
         lead.center = self.center or lead.center

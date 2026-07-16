@@ -35,6 +35,7 @@ from .lead_services import (
     build_dynamic_lead_status_choices,
     confirm_lead,
     convert_lead_to_student_safe,
+    ensure_default_lead_catalog,
     ensure_default_lead_subjects,
     follow_up_queryset,
     get_or_create_pipeline_status,
@@ -260,6 +261,14 @@ def _lead_subject_choices(center):
 
 def _lead_status_choices(center):
     return serialize_lead_status_choices(center)
+
+
+def _lead_source_choices(center):
+    ensure_default_lead_catalog(center)
+    return [
+        {"value": str(source.id), "label": source.nom}
+        for source in Manba.objects.filter(center=center).order_by("nom")
+    ]
 
 
 def _lead_group_payload(center, *, lead_group=None, archived=False, status_code=200):
@@ -641,6 +650,7 @@ def lead_list(request):
 
     context = {
         "subject_choices": _lead_subject_choices(center),
+        "source_choices": _lead_source_choices(center),
         "status_choices": _lead_status_choices(center),
         "manager_options": manager_options,
         "lead_group_options": _lead_group_options(center),

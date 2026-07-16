@@ -86,6 +86,10 @@ urlpatterns = [
     # 🔹 Main Application (Tenant Aware)
     # Middleware strips /<slug>/ prefix and rewrites path_info,
     # so these patterns match both /stat/students/ and /proskill/stat/students/
+    # ⚡ Chaqmoq Game — alohida mobil o'yin ilovasi uchun API.
+    # core.urls ildizga ('') ulangani uchun undan OLDIN turishi shart.
+    path('api/mobile/game/', include('game.mobile_urls')),
+
     path('', include(('core.urls', 'core'), namespace='core')),
     path('hisob/', include(('accounts.urls_tenant', 'accounts'), namespace='accounts')),
     path('hisob/billing/', include(('billing.urls', 'billing'), namespace='billing')),

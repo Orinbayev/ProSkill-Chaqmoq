@@ -140,6 +140,7 @@ def serialize_lead_detail(lead: Lead) -> dict:
     payload.update(
         {
             "note": lead.note or "",
+            "manba": str(lead.manba_id or ""),
             "source": getattr(lead.manba, "nom", "") or "",
             "course": getattr(lead.yonalish, "nom", "") or "",
             "subject_object": serialize_lead_subject(lead.yonalish) if lead.yonalish_id else None,
