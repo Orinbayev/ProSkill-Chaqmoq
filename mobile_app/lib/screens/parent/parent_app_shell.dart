@@ -4,7 +4,6 @@ import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/attendance/attendance_screen.dart'
     as attendance;
-import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_dashboard_screen.dart'
     as dashboard;
 import 'package:chaqmoq_mobile/screens/parent/parent_notifications_screen.dart';
@@ -84,10 +83,10 @@ class _ParentAppShellState extends State<ParentAppShell> {
     context.read<ParentDashboardProvider>().clear();
     await context.read<AuthProvider>().logout();
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+    // AuthGate (ildiz route) reaktiv ravishda logindan keyin bosh sahifaga
+    // o'tkazadi. pushAndRemoveUntil AuthGate'ni yo'q qilib yuborardi — natijada
+    // qayta login qilinganda dasturga kirmasdi (faqat restartda kirardi).
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

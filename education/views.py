@@ -3325,27 +3325,17 @@ def qarzdorlar_home(request):
             .annotate(paid=_SumTot("amount"))
         ):
             _tm_paid_map[_r["tuition_month_id"]] = int(_r["paid"] or 0)
-    # Per-enrollment qarz (guruh kartalari uchun).
+    # Per-enrollment (GURUH bo'yicha) qarz — har guruh alohida sanaladi, netlanmaydi.
+    # QARZ ustuni, "Jami qarz" header va diagramma AYNAN shu usulda hisoblanadi:
+    # bir guruhdagi ortiqcha (avans) to'lov boshqa guruh qarzini YOPMAYDI. Shu tufayli
+    # uch raqam ham bir xil chiqadi (ilgari QARZ ustuni o'quvchi bo'yicha netlanib,
+    # diagrammadan past ko'rsatardi).
     enr_total_debt = {}
-    # Per-STUDENT qarz — breakdown kabi bir oydagi barcha guruhlarni birlashtiradi
-    # (bir guruhdagi ortiqcha to'lov boshqa guruh qarzini yopadi). QARZ ustuni shu.
-    _enr_to_sid = {e.id: e.student_id for e in enrollment_list}
-    _stu_month_fee = {}
-    _stu_month_paid = {}
     for _tmid, _enrid, _mon, _fee in _tm_fee_rows:
         _paid = _tm_paid_map.get(_tmid, 0)
         if _mon.strftime("%Y-%m") > _cur_mk_debt and _paid == 0:
             continue  # kelajak oy, to'lov yo'q — breakdown ham ko'rsatmaydi
         enr_total_debt[_enrid] = enr_total_debt.get(_enrid, 0) + max(0, int(_fee or 0) - _paid)
-        _sid = _enr_to_sid.get(_enrid)
-        if _sid is not None:
-            _k = (_sid, _mon)
-            _stu_month_fee[_k] = _stu_month_fee.get(_k, 0) + int(_fee or 0)
-            _stu_month_paid[_k] = _stu_month_paid.get(_k, 0) + _paid
-    student_total_debt = {}
-    for (_sid, _mon), _fee in _stu_month_fee.items():
-        _paid = _stu_month_paid.get((_sid, _mon), 0)
-        student_total_debt[_sid] = student_total_debt.get(_sid, 0) + max(0, _fee - _paid)
 
     # _total_debt_enrs — chart_snapshots (line below) uchun kerak.
     # active non-deferred + inactive enrollments (search/group filtersiz).
@@ -3478,11 +3468,9 @@ def qarzdorlar_home(request):
 
     # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
-        # QARZ ustuni = o'quvchining JAMI qarzi (breakdown "Jami qarz" bilan bir xil).
-        # Per-enrollment yig'indi emas — bir oydagi guruhlar birlashtirilgan.
-        _sid_row = getattr(r.get("student"), "id", None)
-        if _sid_row is not None and _sid_row in student_total_debt:
-            r["debt"] = int(student_total_debt[_sid_row])
+        # QARZ ustuni = o'quvchining guruhlari bo'yicha qarz yig'indisi (per-enrollment,
+        # netlanmasdan) — diagramma va "Jami qarz" header bilan aynan bir xil.
+        # r["debt"] yuqorida enr_total_debt'dan yig'ilgan; bu yerda qayta yozilmaydi.
         if r["primary_debt_enrollment"] is not None:
             r["enrollment"] = r["primary_debt_enrollment"]
             r["group"] = r["primary_debt_enrollment"].group

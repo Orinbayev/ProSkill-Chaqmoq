@@ -3,7 +3,6 @@ import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
-import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/add_child_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
@@ -256,10 +255,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+    // AuthGate (ildiz route) reaktiv ravishda logindan keyin bosh sahifaga
+    // o'tkazadi. pushAndRemoveUntil AuthGate'ni yo'q qilib yuborardi — natijada
+    // qayta login qilinganda dasturga kirmasdi (faqat restartda kirardi).
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _handleSettingAction(ProfileAction action) async {

@@ -1,7 +1,6 @@
 import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
-import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/about_app_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/edit_profile_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/language_screen.dart';
@@ -267,10 +266,10 @@ class StudentAccountScreen extends StatelessWidget {
     if (!context.mounted) return;
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+    // AuthGate (ildiz route) reaktiv ravishda logindan keyin bosh sahifaga
+    // o'tkazadi. pushAndRemoveUntil AuthGate'ni yo'q qilib yuborardi — natijada
+    // qayta login qilinganda dasturga kirmasdi (faqat restartda kirardi).
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }
 
