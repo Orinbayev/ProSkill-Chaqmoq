@@ -1249,6 +1249,7 @@ def calculate_enrollment_debt_snapshots(
     *,
     virtual_missing_months: Optional[Iterable[date]] = None,
     cumulative_up_to: Optional[date] = None,
+    synthesize_past_virtual: bool = True,
 ) -> dict[int, dict]:
     """
     Read-only qarzdorlik snapshoti.
@@ -1330,6 +1331,11 @@ def calculate_enrollment_debt_snapshots(
             if fee is None:
                 if key in deleted_key_set:
                     # O'chirilgan TuitionMonth — fee=0, virtual hisoblash yo'q
+                    fee = 0
+                elif not synthesize_past_virtual and month < today_month_first:
+                    # Foydalanuvchi qoidasi: o'tgan oyga TuitionMonth yozuvi bo'lmasa,
+                    # avtomatik (virtual) qarz YOZILMAYDI. Qarz faqat haqiqiy yozuv
+                    # (davomat/to'lov orqali) bo'lsagina hisoblanadi.
                     fee = 0
                 elif virtual_month_set is None or month in virtual_month_set:
                     fee = int(prorated_monthly_fee(enrollment, month) or 0)
@@ -1430,8 +1436,12 @@ def calculate_enrollment_debt_snapshots(
                         continue
                     tm_paid = all_cum_paid.get(tm_key, 0)
                     month_debt = max(0, tm_fee - tm_paid)
+                elif not synthesize_past_virtual and cur_m < today_month_first:
+                    # Foydalanuvchi qoidasi: o'tgan oy uchun TuitionMonth yozuvi
+                    # bo'lmasa, kumulativ qarzga VIRTUAL (avtomatik) summa qo'shilmaydi.
+                    month_debt = 0
                 else:
-                    # Virtual oy: prorated hisoblash
+                    # Virtual oy: prorated hisoblash (joriy/kelajak oy uchun)
                     month_debt = int(prorated_monthly_fee(enrollment, cur_m) or 0)
                 cumulative_debt += month_debt
                 cur_m = add_month(cur_m, 1)

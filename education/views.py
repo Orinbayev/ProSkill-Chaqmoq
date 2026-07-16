@@ -345,7 +345,10 @@ def get_student_total_debt(student, center=None) -> int:
     period_months = month_range_starts(selected_from, selected_to)
 
     snapshots = calculate_enrollment_debt_snapshots(
-        all_enrs, period_months, cumulative_up_to=selected_to
+        all_enrs, period_months, cumulative_up_to=selected_to,
+        # O'tgan oyga TuitionMonth yozuvi bo'lmasa avtomatik (virtual) qarz
+        # yozilmaydi — faqat haqiqiy yozuvlar hisoblanadi.
+        synthesize_past_virtual=False,
     )
     total_debt = 0
     for snap in snapshots.values():
@@ -2946,7 +2949,7 @@ def qarzdorlar_home(request):
     )
     active_enrs_qs = (
         Enrollment.objects
-        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center")
         .filter(
             is_active=True,
             student__is_archived=False,
@@ -2994,7 +2997,7 @@ def qarzdorlar_home(request):
     _inactive_enr_ids = _inactive_tm_enr_ids | _inactive_att_enr_ids
     inactive_enrs_qs = (
         Enrollment.all_objects
-        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center")
         .filter(
             Q(is_active=False) | Q(is_deleted=True),
             id__in=_inactive_enr_ids,

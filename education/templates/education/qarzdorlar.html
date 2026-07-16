@@ -115,11 +115,11 @@ function toggleRemainingGroups(link) {
         <div class="debtors-hero__cards">
             <div class="debtors-stat">
                 <span class="debtors-stat__label">Jami qarz</span>
-                <span class="debtors-stat__value">{{ total_debt|intcomma }} so'm</span>
+                <span class="debtors-stat__value" id="statTotalDebt" data-amount="{{ total_debt }}">{{ total_debt|intcomma }} so'm</span>
             </div>
             <div class="debtors-stat">
                 <span class="debtors-stat__label">Filter bo'yicha jami</span>
-                <span class="debtors-stat__value">{{ filtered_debt|intcomma }} so'm</span>
+                <span class="debtors-stat__value" id="statFilteredDebt" data-amount="{{ filtered_debt }}">{{ filtered_debt|intcomma }} so'm</span>
             </div>
         </div>
 
@@ -1114,6 +1114,53 @@ tr.row-deferred {
         function formatUzMoney(value) {
             return formatUzNumber(value) + " so'm";
         }
+        // Joriy filtr (URL) qaysi oylar oralig'ini ko'rsatayotganini aniqlaydi —
+        // serverdagi mantiq bilan bir xil (pay_month / date_from / date_to / default=joriy oy).
+        function currentFilterMonthRange() {
+            const p = new URLSearchParams(window.location.search);
+            const payMonth = p.get('pay_month');
+            const dateFrom = p.get('date_from');
+            const dateTo = p.get('date_to') || p.get('end_date');
+            const today = new Date();
+            let fY, fM, tY, tM;
+            if (payMonth && /^\d+$/.test(payMonth)) {
+                const yr = (dateTo && dateTo.length >= 4) ? parseInt(dateTo.slice(0, 4), 10) : today.getFullYear();
+                fY = tY = yr; fM = tM = parseInt(payMonth, 10);
+            } else if (dateFrom || dateTo) {
+                const f = dateFrom || (dateTo.slice(0, 7) + '-01');
+                const t = dateTo || dateFrom;
+                fY = parseInt(f.slice(0, 4), 10); fM = parseInt(f.slice(5, 7), 10);
+                tY = parseInt(t.slice(0, 4), 10); tM = parseInt(t.slice(5, 7), 10);
+            } else {
+                fY = tY = today.getFullYear(); fM = tM = today.getMonth() + 1;
+            }
+            return { from: fY * 12 + fM, to: tY * 12 + tM };
+        }
+        // Oxirgi tahrirlangan/o'chirilgan oy — top totallar delta gating uchun.
+        let qzMutatedMonth = '';
+        function monthInCurrentFilter(monthKey) {
+            if (!monthKey || monthKey.length < 7) return false;
+            const v = parseInt(monthKey.slice(0, 4), 10) * 12 + parseInt(monthKey.slice(5, 7), 10);
+            const r = currentFilterMonthRange();
+            return v >= r.from && v <= r.to;
+        }
+        // Qarz o'chirilganda/tahrirlanganda yuqoridagi "Jami qarz" va
+        // "Filter bo'yicha jami" kartalarini o'zgargan miqdorga (delta) qarab
+        // darrov yangilaydi — to'liq reload kutmasdan. Faqat o'zgartirilgan oy
+        // joriy filtr oralig'ida bo'lsa qo'llanadi (aks holda totallar noto'g'ri kamayadi).
+        function adjustTopDebtTotals(delta, monthKey) {
+            const d = parseInt(delta || 0, 10) || 0;
+            if (!d) return;
+            if (monthKey && !monthInCurrentFilter(monthKey)) return;
+            ['statTotalDebt', 'statFilteredDebt'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const cur = parseInt(el.getAttribute('data-amount') || '0', 10) || 0;
+                const next = Math.max(0, cur - d);
+                el.setAttribute('data-amount', next);
+                el.textContent = formatUzMoney(next);
+            });
+        }
         function formatUzShort(value) {
             // 1 234 567 -> "1.2 mln", 1 234 567 890 -> "1.2 mlrd"
             const n = Math.abs(Number(value || 0));
@@ -1937,6 +1984,7 @@ tr.row-deferred {
 
                     const fd = new FormData();
                     fd.append('month', efState.month);
+                    qzMutatedMonth = efState.month;
                     fd.append('new_debt', enteredDebt);
                     if (!isNaN(enteredPaid) && enteredPaid < efState.paid) {
                         fd.append('new_paid', enteredPaid);
@@ -2041,8 +2089,13 @@ tr.row-deferred {
                                     if (mainRow) {
                                         const debtCell = mainRow.querySelector('.js-debt-cell');
                                         if (debtCell) {
-                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
-                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                            const oldRowDebt = parseInt(debtCell.getAttribute('data-total-debt') || '0', 10) || 0;
+                                            const newRowDebt = parseInt(nd.total_debt || 0, 10) || 0;
+                                            debtCell.setAttribute('data-total-debt', newRowDebt);
+                                            debtCell.textContent = formatUzMoney(newRowDebt);
+                                            // Yuqoridagi "Jami qarz" va "Filter bo'yicha jami" kartalarini
+                                            // o'zgargan miqdorga (delta) qarab yangilaymiz — reload kutmasdan.
+                                            adjustTopDebtTotals(oldRowDebt - newRowDebt, qzMutatedMonth);
                                         }
                                     }
                                 });
@@ -2102,6 +2155,7 @@ tr.row-deferred {
 
                     const fd = new FormData();
                     fd.append('month', dmState.month);
+                    qzMutatedMonth = dmState.month;
                     fd.append('csrfmiddlewaretoken', getCsrfToken());
 
                     fetch(buildTenantPath(`/talim/api/student/${dmState.studentId}/month-delete/`), {
@@ -2131,8 +2185,13 @@ tr.row-deferred {
                                     if (mainRow) {
                                         const debtCell = mainRow.querySelector('.js-debt-cell');
                                         if (debtCell) {
-                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
-                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                            const oldRowDebt = parseInt(debtCell.getAttribute('data-total-debt') || '0', 10) || 0;
+                                            const newRowDebt = parseInt(nd.total_debt || 0, 10) || 0;
+                                            debtCell.setAttribute('data-total-debt', newRowDebt);
+                                            debtCell.textContent = formatUzMoney(newRowDebt);
+                                            // Yuqoridagi "Jami qarz" va "Filter bo'yicha jami" kartalarini
+                                            // o'zgargan miqdorga (delta) qarab yangilaymiz — reload kutmasdan.
+                                            adjustTopDebtTotals(oldRowDebt - newRowDebt, qzMutatedMonth);
                                         }
                                     }
                                 });
@@ -2180,6 +2239,7 @@ tr.row-deferred {
 
                     const fd = new FormData();
                     fd.append('month', rmState.month);
+                    qzMutatedMonth = rmState.month;
                     fd.append('csrfmiddlewaretoken', getCsrfToken());
 
                     fetch(buildTenantPath(`/talim/api/student/${rmState.studentId}/month-reset-payments/`), {
@@ -2209,8 +2269,13 @@ tr.row-deferred {
                                     if (mainRow) {
                                         const debtCell = mainRow.querySelector('.js-debt-cell');
                                         if (debtCell) {
-                                            debtCell.setAttribute('data-total-debt', nd.total_debt);
-                                            debtCell.textContent = formatUzMoney(nd.total_debt);
+                                            const oldRowDebt = parseInt(debtCell.getAttribute('data-total-debt') || '0', 10) || 0;
+                                            const newRowDebt = parseInt(nd.total_debt || 0, 10) || 0;
+                                            debtCell.setAttribute('data-total-debt', newRowDebt);
+                                            debtCell.textContent = formatUzMoney(newRowDebt);
+                                            // Yuqoridagi "Jami qarz" va "Filter bo'yicha jami" kartalarini
+                                            // o'zgargan miqdorga (delta) qarab yangilaymiz — reload kutmasdan.
+                                            adjustTopDebtTotals(oldRowDebt - newRowDebt, qzMutatedMonth);
                                         }
                                     }
                                 });
