@@ -62,6 +62,18 @@ urlpatterns = [
     path('platform/', include(('accounts.urls', 'accounts'), namespace='platform_global')),
     path("i18n/", include("django.conf.urls.i18n")),
 
+    # 🔹 Localized Marketing Website (/uz/, /ru/, /en/)
+    # ⚠️ MUST precede the legacy slug-prefixed patterns below. Otherwise a URL
+    # like /ru/support/ is captured by the legacy center_slug/page_slug pattern
+    # (center_slug="ru", page_slug="support") and collapsed by the legacy
+    # redirect — which crashes with NoReverseMatch on routes that only exist as
+    # localized pages. Real center slugs are never language codes, so ordering
+    # i18n first is safe.
+    re_path(
+        r'^(?P<lang_code>uz|ru|en)/',
+        include(('marketing.urls_i18n', 'marketing_i18n'), namespace='marketing_i18n'),
+    ),
+
     # 🔹 Legacy slug-prefixed marketing URLs → canonical marketing pages
     re_path(
         r'^(?P<center_slug>[a-z0-9][a-z0-9\-]{0,62})/(?P<lang_code>uz|ru|en)/(?:(?P<page_slug>about|features|pricing|demo|resources|support|vacancies|privacy|terms)/)?$',
@@ -72,12 +84,6 @@ urlpatterns = [
         r'^(?P<center_slug>[a-z0-9][a-z0-9\-]{0,62})/(?P<page_slug>about|features|pricing|demo|resources|support|vacancies|privacy|terms)/$',
         marketing_views.legacy_prefixed_marketing_redirect,
         name='legacy_prefixed_marketing_redirect',
-    ),
-
-    # 🔹 Localized Marketing Website (/uz/, /ru/, /en/)
-    re_path(
-        r'^(?P<lang_code>uz|ru|en)/',
-        include(('marketing.urls_i18n', 'marketing_i18n'), namespace='marketing_i18n'),
     ),
 
     # 🔹 Public Marketing Website

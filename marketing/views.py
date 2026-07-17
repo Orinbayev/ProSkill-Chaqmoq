@@ -965,6 +965,7 @@ def _base_context(request, lang_code=None):
         "about": _route("about", lang, prefixed),
         "features": _route("features", lang, prefixed),
         "resources": _route("resources", lang, prefixed),
+        "support": _route("support", lang, prefixed),
     }
 
     pure_path = _strip_lang_prefix(request.path)
@@ -1565,3 +1566,34 @@ def resources(request, lang_code=None):
         breadcrumb_label=context["ui"]["menu_resources"],
     )
     return _render_marketing(request, "marketing/resources.html", context)
+
+
+def support(request, lang_code=None):
+    context = _base_context(request, lang_code)
+    lang = context["current_lang"]
+    support_cards = [
+        _localize_support(obj, lang)
+        for obj in SupportCard.objects.filter(is_active=True).order_by("order", "id")
+    ]
+    context.update(
+        {
+            "active_menu": "support",
+            "support_cards": support_cards,
+            "support_faqs": [
+                _localize_faq(obj, lang)
+                for obj in FAQ.objects.filter(is_active=True).order_by("order", "id")[:6]
+            ],
+            "support_steps": [
+                {"title": context["ui"]["support_step_1_title"], "text": context["ui"]["support_step_1_text"]},
+                {"title": context["ui"]["support_step_2_title"], "text": context["ui"]["support_step_2_text"]},
+                {"title": context["ui"]["support_step_3_title"], "text": context["ui"]["support_step_3_text"]},
+            ],
+        }
+    )
+    _set_page_meta(
+        context,
+        f"{context['ui']['support_page_title']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["support_page_desc"],
+        breadcrumb_label=context["ui"]["menu_support"],
+    )
+    return _render_marketing(request, "marketing/support.html", context)

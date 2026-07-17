@@ -1,0 +1,77 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}{{ meta_title }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>{{ ui.support_page_title }}</h1>
+        <p>{{ ui.support_page_desc }}</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="support-grid">
+            {% for card in support_cards %}
+            <article class="support-card reveal-up">
+                {% if card.icon %}<div class="support-card-icon"><i class="{{ card.icon }}"></i></div>{% endif %}
+                <h3>{{ card.title }}</h3>
+                <p>{{ card.description }}</p>
+                {% if card.button_url %}<a class="text-link" href="{{ card.button_url }}">{{ card.button_text }} <i class="bi bi-arrow-right"></i></a>{% endif %}
+            </article>
+            {% empty %}
+            <article class="support-card reveal-up">
+                <h3>{{ ui.support_page_title }}</h3>
+                <p>{{ ui.support_page_desc }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-slate">
+    <div class="container support-quick-grid">
+        <article class="support-panel reveal-up">
+            <h2>{{ ui.support_steps_title }}</h2>
+            <p>{{ ui.support_steps_desc }}</p>
+            <div class="support-step-list">
+                {% for step in support_steps %}
+                <div class="support-step-item">
+                    <h3>{{ step.title }}</h3>
+                    <p>{{ step.text }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="support-panel reveal-up">
+            <h2>{{ ui.support_faq_title }}</h2>
+            <div class="support-faq-list">
+                {% for item in support_faqs %}
+                <div class="support-faq-item">
+                    <h3>{{ item.question }}</h3>
+                    <p>{{ item.answer }}</p>
+                </div>
+                {% empty %}
+                <div class="support-faq-item">
+                    <h3>{{ ui.faq_empty_q }}</h3>
+                    <p>{{ ui.faq_empty_a }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container support-cta-block reveal-up">
+        <h2>{{ ui.support_cta_title }}</h2>
+        <p>{{ ui.support_cta_text }}</p>
+        <div class="support-cta-actions">
+            <a class="btn btn-primary" href="{{ routes.demo }}">{{ ui.menu_demo }}</a>
+            <a class="btn btn-light on-dark" href="{{ routes.pricing }}">{{ ui.menu_pricing }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
