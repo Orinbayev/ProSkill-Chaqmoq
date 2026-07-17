@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import Group, GroupSchedule, StaffProfile, TeacherAvailability
 from store.models import LeadGroup, Yonalish
 
@@ -18,6 +19,7 @@ class HrModuleTests(TestCase):
             slug="hr-center",
             features={"leads": True},
         )
+        activate_center(self.center)
         self.other_center = Center.objects.create(
             name="Other Center",
             slug="other-center",

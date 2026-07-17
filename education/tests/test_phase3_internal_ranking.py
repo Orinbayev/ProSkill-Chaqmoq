@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from chaqmoq.models import Ledger
 from education.models import (
     Attendance,
@@ -22,6 +23,7 @@ from education.services.ranking_service import build_group_completion_recommenda
 class PhaseThreeInternalRankingTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Phase3 Center", slug="phase3-center")
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director.phase3@example.com",
             password="password",

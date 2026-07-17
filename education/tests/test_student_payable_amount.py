@@ -35,10 +35,13 @@ from education.services.tuition import (
 )
 from education.views import sync_tuition_fee
 
+from core.test_utils import activate_center
+
 
 class StudentPayableAmountTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Payable Center", slug="payable-center")
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director@payable.test",
             password="testpass123",
@@ -1267,6 +1270,7 @@ class StudentPayableAmountTests(TestCase):
 class QarzdorlarDebtConsistencyTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Debt Logic Center", slug="debt-logic")
+        activate_center(self.center)
         self.manager = User.objects.create_user(
             email="manager@debt-logic.test",
             password="testpass123",

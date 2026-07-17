@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from core.center_features import (
     FEATURE_UI_CERTIFICATES,
     FEATURE_UI_EXAM_SESSIONS,
@@ -27,6 +28,7 @@ from education.models import (
 class PhaseTwoExamWorkflowTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Phase2 Center", slug="phase2-center")
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director.phase2@example.com",
             password="password",

@@ -4,6 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from chaqmoq.models import Ledger
 from core.models import Notification, NotificationPreference
 from education.models import (
@@ -32,6 +33,7 @@ class MobileAPITests(TestCase):
             capacity_limit=100,
             phone="+998901234567",
         )
+        activate_center(self.center)
         self.category = Category.objects.create(center=self.center, name="IT")
 
         self.director = User.objects.create_user(
@@ -718,6 +720,7 @@ class MobileDebtMatchesAdminPanelTests(TestCase):
             capacity_limit=50,
             phone="+998900000000",
         )
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director@anaxon.test",
             password="testpass123",

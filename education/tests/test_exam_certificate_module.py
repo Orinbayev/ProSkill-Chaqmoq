@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import (
     Attendance,
     CenterExamSetting,
@@ -20,6 +21,7 @@ from education.services.group_schedule_service import calculate_estimated_end_da
 class PhaseOneExamFoundationTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Center X", slug="center-x")
+        activate_center(self.center)
         self.teacher = User.objects.create_user(
             email="teacher.phase1@example.com",
             password="password",

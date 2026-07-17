@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import Category, Enrollment, Group, GroupStudent, Student as EducationStudent
 from store.forms import LeadForm
 from store.lead_services import (
@@ -1598,6 +1599,7 @@ class LeadApiTests(TestCase):
 class ExpensePageSmokeTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Expense Center", slug="expense-center")
+        activate_center(self.center)
         self.manager = User.objects.create_user(
             email="manager@expense.test",
             password="Pass12345!",
@@ -1647,6 +1649,7 @@ class ExpensePageSmokeTests(TestCase):
 class ProductStorePageTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Store Center", slug="store-center")
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director@store.test",
             password="Pass12345!",

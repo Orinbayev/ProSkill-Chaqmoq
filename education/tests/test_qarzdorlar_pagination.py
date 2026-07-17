@@ -5,12 +5,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import Enrollment, Group, StudentGroupHistory
 
 
 class QarzdorlarPaginationTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Debt Center", slug="debt-center")
+        activate_center(self.center)
         self.manager = User.objects.create_user(
             email="manager@debt.test",
             password="testpass123",

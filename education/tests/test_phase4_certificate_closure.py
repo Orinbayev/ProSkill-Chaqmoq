@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from core.models import Notification
 from education.models import (
     Attendance,
@@ -25,6 +26,7 @@ from education.services.ranking_service import build_group_completion_recommenda
 class PhaseFourCertificateClosureTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Phase4 Center", slug="phase4-center")
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director.phase4@example.com",
             password="password",
