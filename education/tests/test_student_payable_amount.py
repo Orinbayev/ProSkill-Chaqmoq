@@ -7,6 +7,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from freezegun import freeze_time
+
 from datetime import date, timedelta
 
 from accounts.models import Center, User
@@ -412,6 +414,7 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, "Toq kunlari")
         self.assertContains(response, "Juft kunlari")
 
+    @freeze_time("2026-04-01")
     def test_enrollment_edit_preview_endpoint_respects_selected_pattern_and_returns_lesson_plan(self):
         current_month = date(2026, 4, 1)
         start_date = date(2026, 4, 24)
@@ -581,6 +584,7 @@ class StudentPayableAmountTests(TestCase):
         self.assertIn("error", payload)
         self.assertNotIn("<!doctype", response.content.decode().lower())
 
+    @freeze_time("2026-03-01")
     def test_calculate_lessons_api_preserves_selected_start_date_with_period_end(self):
         start_date = date(2026, 3, 14)
         response = self.client.post(
@@ -1052,6 +1056,7 @@ class StudentPayableAmountTests(TestCase):
         self.assertEqual(round_money_to_thousand(206666), 207000)
         self.assertEqual(format_money(41667), "42 000 so'm")
 
+    @freeze_time("2026-04-01")
     def test_month_preview_is_read_only_and_shows_reconciled_delta(self):
         preview_month = date(2026, 4, 1)
         for weekday in (1, 3, 5):
@@ -1360,6 +1365,7 @@ class QarzdorlarDebtConsistencyTests(TestCase):
         self.assertEqual(len(rows), 1)
         return rows[0]
 
+    @freeze_time("2026-04-15")
     def test_overpayment_on_one_enrollment_does_not_close_another_enrollment_debt(self):
         month = date(2026, 4, 1)
         student = self._student("multi-overpay@debt-logic.test", "MultiOverpay")
