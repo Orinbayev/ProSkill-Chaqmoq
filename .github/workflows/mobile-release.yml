@@ -1,13 +1,18 @@
 name: Mobile Release (Play + App Store)
 
 # Bu workflow `main` branch'ga mobile_app/ ichida o'zgarish push qilinganda
-# avtomatik ishga tushadi va:
-#   - Android AAB build qilib Google Play'ga yuklaydi
-#   - iOS IPA build qilib App Store Connect (TestFlight)'ga yuklaydi
-# Qo'lda ishga tushirish uchun "Run workflow" tugmasi ham bor (workflow_dispatch).
+# avtomatik ishga tushadi.
 #
-# MUHIM: har ikki do'kon ham UPLOAD'dan keyin o'z review'ini o'tkazadi
-# (Google: soatlar; Apple: ~1-3 kun). "Push -> darrov jonli" emas.
+# HOZIRGI HOLAT (do'kon akkauntlari 3-shaxsники, faqat cheklangan ruxsat):
+#   - Android: signed AAB build qilib, YUKLAB OLINADIGAN artifact qiladi.
+#     Siz uni Actions run sahifasidan yuklab olib, Play Console'ga QO'LDA joylaysiz.
+#   - iOS: VAQTINCHA O'CHIRILGAN (imzo kalitlari egadan olingach yoqiladi).
+#
+# TO'LIQ AVTOMATIK'ga o'tish (kelajakda):
+#   - Play service account olingach → Android'ni to'g'ridan-to'g'ri Play'ga yuklashga o'tkazamiz.
+#   - Apple imzo kalitlari olingach → iOS job'dagi "if: false" ni o'chiramiz.
+#
+# Qo'lda ishga tushirish uchun "Run workflow" tugmasi ham bor (workflow_dispatch).
 
 on:
   push:
@@ -74,24 +79,33 @@ jobs:
             --build-name=${{ steps.ver.outputs.name }} \
             --build-number=${{ steps.ver.outputs.number }}
 
-      - name: Google Play'ga yuklash (production)
-        uses: r0adkll/upload-google-play@v1
+      # AAB'ni yuklab olinadigan artifact sifatida saqlaymiz. Play Console
+      # egasi/admin ruxsati (service account) hozircha yo'q, shuning uchun CI
+      # to'g'ridan-to'g'ri Play'ga yuklamaydi — siz bu AAB'ni Actions run
+      # sahifasidan yuklab olib, Play Console'ga QO'LDA joylaysiz (tayyor, imzolangan).
+      #
+      # Egasi service account bergach: bu bosqichni r0adkll/upload-google-play
+      # bilan almashtirib, PLAY_SERVICE_ACCOUNT_JSON secret'ini qo'shsangiz —
+      # to'liq avtomatik yuklashga o'tadi. (Namuna MOBILE_DEPLOY_SETUP.md da.)
+      - name: AAB'ni artifact sifatida saqlash (qo'lda yuklash uchun)
+        uses: actions/upload-artifact@v4
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: uz.chaqmoq.chaqmoq_mobile
-          releaseFiles: mobile_app/build/app/outputs/bundle/release/app-release.aab
-          # Track: 'production' | 'beta' | 'alpha' | 'internal'
-          # Xavfsizroq boshlash uchun 'internal' qo'ying (review'siz, testerlar darrov oladi).
-          track: production
-          status: completed
-          # Release notes (ixtiyoriy): agar whatsnew papkasi bo'lsa qo'shiladi.
-          # changesNotSentForReview: false
+          name: ChaqmoqApp-${{ steps.ver.outputs.name }}-${{ steps.ver.outputs.number }}-aab
+          path: mobile_app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: error
 
   # ────────────────────────────────────────────────────────────────
   #  iOS → APP STORE CONNECT (TestFlight)
   # ────────────────────────────────────────────────────────────────
   ios:
     name: iOS → App Store (TestFlight)
+    # ⏸️ VAQTINCHA O'CHIRILGAN. App Store Connect akkaunt EGASI imzo kalitlarini
+    # (distribution sertifikat + provisioning profil + API kalit) bergach:
+    #   1) quyidagi "if: false" qatorini o'chiring,
+    #   2) MOBILE_DEPLOY_SETUP.md dagi iOS secret'larini qo'shing.
+    # Shundan keyin push'da iOS ham avtomatik TestFlight'ga chiqadi.
+    if: false
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4

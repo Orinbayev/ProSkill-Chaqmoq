@@ -16,10 +16,20 @@ Workflow fayli: `.github/workflows/mobile-release.yml`
 
 ## 0. Nima qilish kerak (qisqacha)
 
-Kod tayyor. Ishga tushishi uchun faqat **GitHub Secrets** qo'shishingiz kerak:
 `GitHub repo → Settings → Secrets and variables → Actions → New repository secret`.
 
-Quyidagi jadvaldagi har bir secret'ni qo'shing.
+### ✅ HOZIR (do'kon akkauntlari egasidan mustaqil) — faqat 4 ta Android secret
+Android CI signed AAB build qilib, **yuklab olinadigan artifact** qiladi (Play'ga
+to'g'ridan-to'g'ri yuklamaydi). Buning uchun faqat keystore secret'lari kerak:
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_PASSWORD`,
+`ANDROID_KEY_ALIAS` (1-bo'lim 1.1). Bu 4 tasi qo'shilsa — Android artifact tayyor
+bo'ladi, siz uni yuklab olib Play'ga qo'lda joylaysiz.
+
+### ⏳ KEYINROQ (do'kon egasi ruxsati kerak)
+- **Play'ga to'liq avtomatik yuklash:** `PLAY_SERVICE_ACCOUNT_JSON` (1.2) — Play Console admin kerak.
+- **iOS (TestFlight):** barcha iOS secret'lari (2-bo'lim) + workflow'dagi iOS `if: false` ni o'chirish — App Store Connect egasi/Admin kerak.
+
+Quyidagi jadvallar har bir secret'ni qanday olishni tushuntiradi.
 
 ---
 
