@@ -32,3 +32,10 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# CI/CD tomonidan generatsiya qilinadigan maxfiy fayllar (commit qilinmasin)
+ExportOptions.plist
+private_keys/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
