@@ -73,6 +73,38 @@ class MockDirectorRepository implements DirectorRepository {
         ('Reklama', 1400000),
       ],
       paymentMethods: const ['NAQD', 'KARTA', 'CLICK', 'PAYME'],
+      attendanceMonitor: const DirectorAttendanceMonitor(
+        scheduled: 3,
+        taken: 1,
+        missing: 1,
+        pending: 1,
+        unscheduled: 1,
+        rows: [
+          DirectorAttendanceRow(
+            groupId: 1, groupName: 'English - 07', teacherName: 'Aziz Karimov',
+            startTime: '10:00', hasTime: true, status: 'missing',
+            present: 0, late: 0, absentExcused: 0, absentUnexcused: 0, absentees: [],
+          ),
+          DirectorAttendanceRow(
+            groupId: 2, groupName: 'CEFR - 02', teacherName: 'Malika Yusupova',
+            startTime: '16:00', hasTime: true, status: 'pending',
+            present: 0, late: 0, absentExcused: 0, absentUnexcused: 0, absentees: [],
+          ),
+          DirectorAttendanceRow(
+            groupId: 3, groupName: 'IT Frontend', teacherName: 'Sardor Aliyev',
+            startTime: '09:00', hasTime: true, status: 'taken',
+            present: 12, late: 1, absentExcused: 1, absentUnexcused: 2,
+            absentees: [
+              DirectorAttendanceAbsentee(name: 'Jasur Islomov', status: 'absent_unexcused', statusLabel: 'Sababsiz (Kelmadi)'),
+              DirectorAttendanceAbsentee(name: 'Diyor Rustamov', status: 'absent_excused', statusLabel: 'Sababli (Kelmadi)'),
+              DirectorAttendanceAbsentee(name: 'Nodir Vohidov', status: 'late', statusLabel: 'Kech qoldi'),
+            ],
+          ),
+        ],
+        unscheduledGroups: [
+          DirectorAttendanceUnscheduled(groupId: 4, groupName: 'Matematika - 05', teacherName: 'Kamola Nematova'),
+        ],
+      ),
     );
   }
 

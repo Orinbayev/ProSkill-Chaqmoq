@@ -199,6 +199,9 @@ class ApiDirectorRepository implements DirectorRepository {
       paymentMethods: [
         for (final m in (payload['payment_methods'] as List? ?? const [])) jsonString(m),
       ],
+      attendanceMonitor: DirectorAttendanceMonitor.fromJson(
+        (payload['attendance_monitor'] as Map?)?.cast<String, dynamic>(),
+      ),
     );
   }
 

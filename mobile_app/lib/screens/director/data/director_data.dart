@@ -71,6 +71,113 @@ class DirectorDebtorMonth {
 }
 
 /// Dashboard + Hisobot uchun barcha ko'rsatkichlar (bitta /api/boshqaruv/ dan).
+// ── Kunlik davomat nazorati ──
+class DirectorAttendanceAbsentee {
+  const DirectorAttendanceAbsentee({required this.name, required this.status, required this.statusLabel});
+  final String name;
+  final String status; // absent_excused / absent_unexcused / late
+  final String statusLabel;
+  factory DirectorAttendanceAbsentee.fromJson(Map<String, dynamic> j) => DirectorAttendanceAbsentee(
+        name: (j['name'] ?? '').toString(),
+        status: (j['status'] ?? '').toString(),
+        statusLabel: (j['status_label'] ?? '').toString(),
+      );
+}
+
+class DirectorAttendanceRow {
+  const DirectorAttendanceRow({
+    required this.groupId,
+    required this.groupName,
+    required this.teacherName,
+    required this.startTime,
+    required this.hasTime,
+    required this.status,
+    required this.present,
+    required this.late,
+    required this.absentExcused,
+    required this.absentUnexcused,
+    required this.absentees,
+  });
+  final int groupId;
+  final String groupName;
+  final String teacherName;
+  final String startTime;
+  final bool hasTime;
+  final String status; // taken / missing / pending
+  final int present, late, absentExcused, absentUnexcused;
+  final List<DirectorAttendanceAbsentee> absentees;
+  factory DirectorAttendanceRow.fromJson(Map<String, dynamic> j) => DirectorAttendanceRow(
+        groupId: int.tryParse('${j['group_id']}') ?? 0,
+        groupName: (j['group_name'] ?? '').toString(),
+        teacherName: (j['teacher_name'] ?? '').toString(),
+        startTime: (j['start_time'] ?? '').toString(),
+        hasTime: j['has_time'] == true,
+        status: (j['status'] ?? 'pending').toString(),
+        present: int.tryParse('${j['present']}') ?? 0,
+        late: int.tryParse('${j['late']}') ?? 0,
+        absentExcused: int.tryParse('${j['absent_excused']}') ?? 0,
+        absentUnexcused: int.tryParse('${j['absent_unexcused']}') ?? 0,
+        absentees: [
+          for (final a in (j['absentees'] as List? ?? const []))
+            if (a is Map) DirectorAttendanceAbsentee.fromJson(a.cast<String, dynamic>()),
+        ],
+      );
+}
+
+class DirectorAttendanceUnscheduled {
+  const DirectorAttendanceUnscheduled({required this.groupId, required this.groupName, required this.teacherName});
+  final int groupId;
+  final String groupName;
+  final String teacherName;
+  factory DirectorAttendanceUnscheduled.fromJson(Map<String, dynamic> j) => DirectorAttendanceUnscheduled(
+        groupId: int.tryParse('${j['group_id']}') ?? 0,
+        groupName: (j['group_name'] ?? '').toString(),
+        teacherName: (j['teacher_name'] ?? '').toString(),
+      );
+}
+
+class DirectorAttendanceMonitor {
+  const DirectorAttendanceMonitor({
+    required this.scheduled,
+    required this.taken,
+    required this.missing,
+    required this.pending,
+    required this.unscheduled,
+    required this.rows,
+    required this.unscheduledGroups,
+  });
+  final int scheduled, taken, missing, pending, unscheduled;
+  final List<DirectorAttendanceRow> rows;
+  final List<DirectorAttendanceUnscheduled> unscheduledGroups;
+
+  bool get isEmpty => rows.isEmpty && unscheduledGroups.isEmpty;
+
+  static const empty = DirectorAttendanceMonitor(
+    scheduled: 0, taken: 0, missing: 0, pending: 0, unscheduled: 0,
+    rows: [], unscheduledGroups: [],
+  );
+
+  factory DirectorAttendanceMonitor.fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    final s = (j['summary'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return DirectorAttendanceMonitor(
+      scheduled: int.tryParse('${s['scheduled']}') ?? 0,
+      taken: int.tryParse('${s['taken']}') ?? 0,
+      missing: int.tryParse('${s['missing']}') ?? 0,
+      pending: int.tryParse('${s['pending']}') ?? 0,
+      unscheduled: int.tryParse('${s['unscheduled']}') ?? 0,
+      rows: [
+        for (final r in (j['rows'] as List? ?? const []))
+          if (r is Map) DirectorAttendanceRow.fromJson(r.cast<String, dynamic>()),
+      ],
+      unscheduledGroups: [
+        for (final u in (j['unscheduled'] as List? ?? const []))
+          if (u is Map) DirectorAttendanceUnscheduled.fromJson(u.cast<String, dynamic>()),
+      ],
+    );
+  }
+}
+
 class DirectorData {
   const DirectorData({
     required this.centerName,
@@ -92,6 +199,7 @@ class DirectorData {
     this.teacherSalaries = const [],
     this.expensesList = const [],
     this.paymentMethods = const [],
+    this.attendanceMonitor = DirectorAttendanceMonitor.empty,
   });
 
   final String centerName;
@@ -122,6 +230,9 @@ class DirectorData {
 
   /// Markazda yoqilgan to'lov usullari (NAQD, CLICK, ...).
   final List<String> paymentMethods;
+
+  /// Kunlik davomat nazorati (o'qituvchi davomat qilmagan guruhlar).
+  final DirectorAttendanceMonitor attendanceMonitor;
 }
 
 /// Oy kesimi bo'yicha moliyaviy hisobot.

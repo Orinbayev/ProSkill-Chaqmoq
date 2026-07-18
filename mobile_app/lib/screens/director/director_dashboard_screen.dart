@@ -9,6 +9,7 @@ import '../../core/design/ds_typography.dart';
 import 'data/director_data.dart';
 import 'data/director_provider.dart';
 import 'director_debtors_screen.dart';
+import 'widgets/director_attendance_card.dart';
 import 'widgets/director_charts.dart';
 import 'widgets/director_header.dart';
 import 'widgets/director_payment_sheet.dart';
@@ -26,7 +27,7 @@ class DirectorDashboardScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(DsSpace.screen, DsSpace.x3, DsSpace.screen, DsSpace.x8),
       children: [
         DirectorHeader(
-          subtitle: '${data.centerName.isEmpty ? 'Markaz' : data.centerName} · Direktor',
+          subtitle: '${data.centerName.isEmpty ? 'Markaz' : data.centerName} · Boshqaruv',
           name: data.directorName.isEmpty ? 'Direktor' : data.directorName,
           onProfileTap: onProfileTap,
           onBellTap: onBellTap,
@@ -65,6 +66,10 @@ class DirectorDashboardScreen extends StatelessWidget {
           debtors: data.totalDebtors,
           onTap: () => _openDebtors(context),
         ),
+        if (!data.attendanceMonitor.isEmpty) ...[
+          const SizedBox(height: DsSpace.section),
+          DirectorAttendanceCard(monitor: data.attendanceMonitor),
+        ],
         const SizedBox(height: DsSpace.section),
         if (data.revenueTrend.isNotEmpty)
           DsCard(

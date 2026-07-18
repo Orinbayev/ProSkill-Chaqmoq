@@ -247,8 +247,10 @@ class _AuthGateState extends State<AuthGate> {
       } else if (role == 'teacher') {
         key = const ValueKey('home-teacher');
         child = const TeacherAppShell();
-      } else if (role == 'director') {
-        key = const ValueKey('home-director');
+      } else if (role == 'director' || role == 'manager') {
+        // Manager ham Director panelini ko'radi (kunlik davomat nazorati +
+        // ko'rsatkichlar). `/api/mobile/director/home/` manager'ga ham ruxsat beradi.
+        key = ValueKey('home-$role');
         final user = auth.user!;
         final apiClient = context.read<ApiClient>();
         final prefs = context.read<AppPreferencesProvider>();
