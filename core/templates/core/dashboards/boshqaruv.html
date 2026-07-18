@@ -2490,8 +2490,14 @@ function renderAttendanceMonitor(data){
     if(unsched.length){
       const SCHED_BASE='{% url "education:group_schedule_manage" 999999 %}';
       const SCHED=(gid)=>SCHED_BASE.replace('999999', gid);
-      uEl.innerHTML='<div class="bq-att-unsched__hd"><i class="fa-solid fa-gear"></i> Jadval belgilanmagan guruhlar ('+unsched.length+') — dars kunlari va vaqtini sozlang:</div>'+
-        unsched.map(u=>`<a class="bq-att-unsched__item" href="${SCHED(u.group_id)}"><span class="bq-att-unsched__nm">${esc(u.group_name)} · ${esc(u.teacher_name)}</span><span class="bq-att-unsched__btn"><i class="fa-solid fa-calendar-plus"></i> Jadval belgilash</span></a>`).join('');
+      uEl.innerHTML=
+        '<button type="button" class="bq-att-unsched__toggle" onclick="this.parentElement.classList.toggle(\'open\')">'+
+          '<span class="bq-att-unsched__toggle-l"><i class="fa-solid fa-gear"></i> '+unsched.length+' guruh jadvalsiz — sozlash uchun bosing</span>'+
+          '<i class="fa-solid fa-chevron-down bq-att-unsched__chev"></i>'+
+        '</button>'+
+        '<div class="bq-att-unsched__body">'+
+        unsched.map(u=>`<a class="bq-att-unsched__item" href="${SCHED(u.group_id)}"><span class="bq-att-unsched__nm">${esc(u.group_name)} · ${esc(u.teacher_name)}</span><span class="bq-att-unsched__btn"><i class="fa-solid fa-calendar-plus"></i> Belgilash</span></a>`).join('')+
+        '</div>';
     } else { uEl.innerHTML=''; }
   }
 }

@@ -17,7 +17,6 @@ class DirectorAttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (monitor.isEmpty) return const SizedBox.shrink();
-    final ds = context.ds;
     return DsCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,22 +36,8 @@ class DirectorAttendanceCard extends StatelessWidget {
             _AttendanceRow(row: r),
           ],
           if (monitor.unscheduledGroups.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Row(children: [
-              Icon(Icons.settings_rounded, size: 15, color: ds.primary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Jadval belgilanmagan (${monitor.unscheduledGroups.length}) — dars kunlarini sozlang',
-                  style: DsType.small(ds.primary),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 8),
-            for (final u in monitor.unscheduledGroups) ...[
-              _UnscheduledRow(group: u, onTap: onUnscheduledTap),
-              const SizedBox(height: 6),
-            ],
+            const SizedBox(height: 12),
+            _UnscheduledExpansion(groups: monitor.unscheduledGroups, onTap: onUnscheduledTap),
           ],
         ],
       ),
@@ -128,6 +113,65 @@ class _AttendanceRow extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Jadvalsiz guruhlar — yig'iladigan (accordion) ro'yxat (sahifa cho'zilmasligi uchun).
+class _UnscheduledExpansion extends StatefulWidget {
+  const _UnscheduledExpansion({required this.groups, this.onTap});
+  final List<DirectorAttendanceUnscheduled> groups;
+  final void Function(DirectorAttendanceUnscheduled group)? onTap;
+  @override
+  State<_UnscheduledExpansion> createState() => _UnscheduledExpansionState();
+}
+
+class _UnscheduledExpansionState extends State<_UnscheduledExpansion> {
+  bool _open = false;
+  @override
+  Widget build(BuildContext context) {
+    final ds = context.ds;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Material(
+          color: ds.primarySoft,
+          borderRadius: DsRadius.all(DsRadius.md),
+          child: InkWell(
+            onTap: () => setState(() => _open = !_open),
+            borderRadius: DsRadius.all(DsRadius.md),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: DsSpace.x3, vertical: 10),
+              child: Row(children: [
+                Icon(Icons.settings_rounded, size: 15, color: ds.primarySoftFg),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${widget.groups.length} guruh jadvalsiz — sozlash uchun bosing',
+                    style: DsType.small(ds.primarySoftFg).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Icon(_open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    size: 18, color: ds.primarySoftFg),
+              ]),
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox(width: double.infinity),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(children: [
+              for (final u in widget.groups) ...[
+                _UnscheduledRow(group: u, onTap: widget.onTap),
+                const SizedBox(height: 6),
+              ],
+            ]),
+          ),
+          crossFadeState: _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
     );
   }
 }
