@@ -2500,7 +2500,10 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "active_students": active_students,
             "new_this_month": new_this_month,
             "revenue": revenue,
-            "net_profit": revenue - expenses - teacher_salary_total,
+            # Sof foyda = daromad − (manager kiritgan xarajatlar). O'qituvchi
+            # maoshi endi alohida ayirilmaydi — u ham xarajat bo'lib, manager
+            # xarajatlar bo'limiga o'zi yozib boradi.
+            "net_profit": revenue - expenses,
             "expenses": expenses,
             "pay_count": pay_count,
             "total_groups": total_groups,
@@ -2515,10 +2518,11 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
             "teacher_salary_total": teacher_salary_total,
             "changes": {
                 "revenue": _pct_change(revenue, prev_rev),
+                "expenses": _pct_change(expenses, prev_expenses_val),
                 "students": _pct_change(new_this_month, prev_students),
                 "net_profit": _pct_change(
-                    revenue - expenses - teacher_salary_total,
-                    prev_rev - prev_expenses_val - prev_teacher_salary,
+                    revenue - expenses,
+                    prev_rev - prev_expenses_val,
                 ),
                 "active_students": _pct_change(active_students, prev_active_students),
                 "teachers": _pct_change(teachers_count, prev_teachers_count),

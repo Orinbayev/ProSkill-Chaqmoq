@@ -71,8 +71,12 @@ LEAD_NAMES = [
 class Command(BaseCommand):
     help = "Savdo demo markazini to'liq ma'lumot bilan tayyorlaydi (idempotent)."
 
+    # ⚠️ Marketing/app band qilgan yo'llar bilan to'qnashmasligi kerak:
+    # demo, about, features, pricing, resources, support, login, platform,
+    # hisob, talim, do'kon, chaqmoq, api, admin, boshqaruv, c ...
     def add_arguments(self, parser):
-        parser.add_argument("--slug", default="demo", help="Demo markaz slug (default: demo)")
+        parser.add_argument("--slug", default="demo-markaz",
+                            help="Demo markaz slug (default: demo-markaz). 'demo' MARKETING sahifasi bilan to'qnashadi!")
 
     def handle(self, *args, **options):
         slug = options["slug"]
@@ -87,7 +91,8 @@ class Command(BaseCommand):
             f"(director d@gmail.com, manager m@gmail.com, teacher t@mail.com — parol == login)\n"
             f"   O'quvchilar: {summary['students']}, guruhlar: {summary['groups']}, "
             f"to'lovlar: {summary['payments']}, qarzdorlar: {summary['debtors']}, "
-            f"leadlar: {summary['leads']}, xaridlar: {summary['purchases']}, arxiv: {summary['archived']}"
+            f"xarajatlar: {summary['expenses']}, leadlar: {summary['leads']}, "
+            f"xaridlar: {summary['purchases']}, arxiv: {summary['archived']}"
         ))
 
 
@@ -97,13 +102,22 @@ def seed(*, slug: str, log=print) -> dict:
     from billing.models import CenterSubscription, SubscriptionPlan
     from education.models import Category, Enrollment, Group
     from education.services.tuition import create_payment_and_allocate, ensure_tuition_month
-    from store.models import Lead, LeadStatus, Manba, Product, PurchaseRequest
+    from store.models import (
+        Expense, ExpenseCategory, Lead, LeadStatus, Manba, Product, PurchaseRequest,
+    )
 
     today = timezone.localdate()
 
-    # ─────────────── 1) Reset (idempotent) ───────────────
-    User.objects.filter(email__in=[e for _, e, _, _ in DEMO_USERS]).delete()
-    Center.objects.filter(slug=slug).delete()  # CASCADE: guruh/enrollment/to'lov/...
+    # ─────────────── 1) Reset (idempotent, HARD delete) ───────────────
+    # User/Center — SoftDeleteMixin: oddiy .delete() faqat is_deleted=True qiladi,
+    # email/slug bazada qolib UNIQUE to'qnashadi. Shuning uchun hard_delete.
+    demo_emails = [e for _, e, _, _ in DEMO_USERS]
+    User.all_objects.filter(email__in=demo_emails).hard_delete()
+    User.all_objects.filter(email__endswith=f"@{slug}.demo.local").hard_delete()
+    old_center = Center.all_objects.filter(slug=slug).first()
+    if old_center:
+        User.all_objects.filter(center=old_center).hard_delete()
+        old_center.hard_delete()  # cascade: guruh/enrollment/to'lov/lead/...
     log(f"• Eski demo tozalandi (slug={slug})")
 
     # ─────────────── 2) Markaz + obuna + featurelar ───────────────
@@ -173,7 +187,7 @@ def seed(*, slug: str, log=print) -> dict:
 
     for idx, (ism, familya) in enumerate(STUDENT_NAMES):
         s = User.objects.create_user(
-            email=f"student{idx+1}@demo.local", password="demo",
+            email=f"student{idx+1}@{slug}.demo.local", password="demo",
             role="student", center=center, ism=ism, familya=familya,
             telefon1=f"+9989012{idx:05d}",
         )
@@ -256,6 +270,31 @@ def seed(*, slug: str, log=print) -> dict:
         purchases += 1
     log(f"• {len(products)} ta mahsulot, {purchases} ta xarid so'rovi")
 
+    # ─────────────── 7b) Xarajatlar (manager kiritган — har oy) ───────────────
+    # store.Expense — dashboard KPI ("Xarajatlar") va store:expenses bo'limi
+    # AYNAN shu modeldan o'qiydi, shu sababdan karta raqami = bo'lim yig'indisi.
+    expense_defs = [
+        ("Ijara", 1_800_000, "Ijara to'lovi"),
+        ("O'qituvchilar", 2_200_000, "O'qituvchilar ish haqi"),
+        ("Kommunal", 450_000, "Kommunal (svet/suv/internet)"),
+        ("Reklama", 550_000, "Instagram / Telegram reklama"),
+        ("Jihoz", 300_000, "Marker, qog'oz, jihoz"),
+    ]
+    exp_cats = {n: ExpenseCategory.objects.get_or_create(center=center, nom=n)[0]
+                for n, _, _ in expense_defs}
+    expense_count = 0
+    for month in month_starts:  # oxirgi 6 oy
+        for name, amount, izoh in expense_defs:
+            day = random.randint(2, 26)
+            Expense.objects.create(
+                center=center, summa=int(amount * random.uniform(0.85, 1.15)),
+                izoh=izoh, category=exp_cats[name],
+                sana=datetime.combine(month.replace(day=day), datetime.min.time()),
+                worker=manager,
+            )
+            expense_count += 1
+    log(f"• {expense_count} ta xarajat yozuvi (6 oy × {len(expense_defs)} kategoriya)")
+
     # ─────────────── 8) Leadlar (turli manba/status) ───────────────
     manbas = [Manba.objects.create(center=center, nom=n) for n in MANBA_DEFS]
     statuses = []
@@ -297,6 +336,7 @@ def seed(*, slug: str, log=print) -> dict:
         "students": len(students), "groups": len(groups),
         "payments": payments, "debtors": len(debtors),
         "leads": leads, "purchases": purchases, "archived": archived,
+        "expenses": expense_count,
     }
 
 

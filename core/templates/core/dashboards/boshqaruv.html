@@ -163,16 +163,16 @@
             <div class="bq-kpi__sub" id="k7s">Jami qarz</div>
           </a>
 
-          <!-- 3. O'qituvchi maoshi -->
-          <div class="bq-kpi bq-kpi--teal">
+          <!-- 3. Xarajatlar (manager kiritgan) -->
+          <a class="bq-kpi bq-kpi--teal" href="{% url 'store:expenses' %}">
             <div class="bq-kpi__head">
-              <div class="bq-kpi__icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+              <div class="bq-kpi__icon"><i class="fa-solid fa-receipt"></i></div>
               <span class="bq-badge bq-badge--flat" id="k8d">—</span>
             </div>
-            <div class="bq-kpi__lbl">O'qituvchi maoshi</div>
+            <div class="bq-kpi__lbl">Xarajatlar</div>
             <div class="bq-kpi__val bq-kpi__val--teal" id="k8v">—</div>
             <div class="bq-kpi__sub" id="k8s">Tanlangan davr</div>
-          </div>
+          </a>
 
           <!-- 4. Sof Foyda — faqat director/superadmin -->
           {% if request.user.role != 'manager' %}
@@ -2432,7 +2432,7 @@ function render(d){
   const _k2s=document.getElementById('k2s');
   const _k2d=document.getElementById('k2d');
   if(_k2v) _k2v.textContent=fmtN(k.net_profit)+' so\'m';
-  if(_k2s) _k2s.textContent='Xarajat: '+fmtN(k.expenses)+' · O\'q.maoshi: '+fmtN(k.teacher_salary_total);
+  if(_k2s) _k2s.textContent='Xarajat: '+fmtN(k.expenses);
   if(_k2d) badge(_k2d, _ch.net_profit);
 
   document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';
@@ -2464,13 +2464,13 @@ function render(d){
   if(_k7s) _k7s.textContent = fmtN(k.total_debtors || 0)+' ta o\'quvchi';
   if(_k7d) badge(_k7d, _ch.total_debt);
 
-  // 8. O'qituvchi maoshi
+  // 8. Xarajatlar (manager kiritgan)
   const _k8v = document.getElementById('k8v');
   const _k8s = document.getElementById('k8s');
   const _k8d = document.getElementById('k8d');
-  if(_k8v) _k8v.textContent = fmtN(k.teacher_salary_total || 0)+' so\'m';
+  if(_k8v) _k8v.textContent = fmtN(k.expenses || 0)+' so\'m';
   if(_k8s) _k8s.textContent = 'Tanlangan davr';
-  if(_k8d) badge(_k8d, _ch.teacher_salary);
+  if(_k8d) badge(_k8d, _ch.expenses);
 
   // Chart 1: Multi-line — Moliyaviy ko'rsatkichlar (3 chiziq)
   const turn = ch.monthly_turnover || [];
