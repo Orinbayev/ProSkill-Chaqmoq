@@ -1,0 +1,307 @@
+"""
+Savdo (sales) demo markazini to'ldiradi: director/manager/teacher loginlari +
+o'quvchilar, guruhlar, to'lovlar, qarzdorlar, grafik ma'lumotlari, do'kon
+mahsulotlari va xaridlar, leadlar hamda arxivlar.
+
+Ishlatish:
+    python manage.py seed_sales_demo            # slug: demo
+    python manage.py seed_sales_demo --slug=demo2
+
+Idempotent: har safar demo markazni to'liq tozalab, yangidan quradi.
+Loginlar (login == parol):
+    director  d@gmail.com  / d@gmail.com
+    manager   m@gmail.com  / m@gmail.com
+    teacher   t@mail.com   / t@mail.com
+"""
+import random
+from datetime import date, datetime, timedelta
+
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.utils import timezone
+
+# Determ. urug' — har safar bir xil demo
+random.seed(2026)
+
+DEMO_USERS = [
+    ("director", "d@gmail.com", "Dilshod", "Direktorov"),
+    ("manager", "m@gmail.com", "Malika", "Menejerova"),
+    ("teacher", "t@mail.com", "Temur", "O'qituvchiyev"),
+]
+
+STUDENT_NAMES = [
+    ("Aziz", "Yusupov"), ("Madina", "Rahimova"), ("Behruz", "Aliyev"),
+    ("Shahzoda", "Normatova"), ("Kamron", "Usmonov"), ("Gulnoza", "Ergasheva"),
+    ("Sherzod", "Jo'rayev"), ("Zilola", "Akbarova"), ("Sardor", "Mamatov"),
+    ("Fotima", "Qobilova"), ("Oybek", "To'xtayev"), ("Nigina", "Sobirova"),
+    ("Asliddin", "Qudratov"), ("Mubina", "Saidova"), ("Javohir", "Niyozov"),
+    ("Lola", "Mahmudova"), ("Samandar", "Qosimov"), ("Dildora", "Abduqodir"),
+    ("Rustam", "Rasulov"), ("Sevara", "Murodova"), ("Mirjalol", "Toshpo'lat"),
+    ("Sarvinoz", "Qahhorova"), ("Umid", "Hakimov"), ("Shirin", "Yodgorova"),
+    ("Jasur", "Ismoilov"), ("Malika", "Yo'ldosheva"), ("Bekzod", "Karimov"),
+    ("Nozima", "Tairova"), ("Diyor", "Islomov"), ("Kamola", "Ne'matova"),
+]
+
+GROUP_DEFS = [
+    ("Ingliz tili — Beginner", "Ingliz tili", 550_000, 40, 12),
+    ("Ingliz tili — Intermediate", "Ingliz tili", 650_000, 45, 12),
+    ("Matematika — Abituriyent", "Matematika", 500_000, 40, 12),
+    ("IT — Frontend", "IT", 700_000, 50, 8),
+]
+
+PRODUCT_DEFS = [
+    ("Chaqmoq ruchka", 50, 15_000),
+    ("Bloknot A5", 80, 25_000),
+    ("Sertifikat ramka", 150, 45_000),
+    ("Chaqmoq futbolka", 300, 90_000),
+    ("Termos idish", 500, 150_000),
+]
+
+MANBA_DEFS = ["Instagram", "Telegram", "Do'stlar tavsiyasi", "Google reklama"]
+LEAD_STATUS_DEFS = [("Yangi", "new"), ("Bog'lanildi", ""), ("Sinov darsi", ""), ("Konvertatsiya", "")]
+LEAD_NAMES = [
+    ("Otabek", "Sattorov", 14), ("Malika", "Yusupova", 16), ("Sardorbek", "Aliyev", 13),
+    ("Nilufar", "Karimova", 17), ("Jahongir", "Umarov", 15), ("Gulasal", "Rustamova", 12),
+    ("Islom", "Nazarov", 18), ("Sabina", "Tosheva", 14), ("Doston", "Ergashev", 16),
+    ("Ruxshona", "Qodirova", 13), ("Amir", "Sobirov", 15), ("Zarina", "Hamidova", 17),
+    ("Bobur", "Xolmatov", 14), ("Sitora", "Ismatova", 16), ("Nodir", "Vohidov", 15),
+]
+
+
+class Command(BaseCommand):
+    help = "Savdo demo markazini to'liq ma'lumot bilan tayyorlaydi (idempotent)."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--slug", default="demo", help="Demo markaz slug (default: demo)")
+
+    def handle(self, *args, **options):
+        slug = options["slug"]
+        try:
+            summary = seed(slug=slug, log=self.stdout.write)
+        except Exception as exc:  # pragma: no cover - CLI qulayligi uchun
+            import traceback
+            self.stderr.write(traceback.format_exc())
+            raise
+        self.stdout.write(self.style.SUCCESS(
+            f"\n✅ Demo tayyor! URL: /{slug}/  "
+            f"(director d@gmail.com, manager m@gmail.com, teacher t@mail.com — parol == login)\n"
+            f"   O'quvchilar: {summary['students']}, guruhlar: {summary['groups']}, "
+            f"to'lovlar: {summary['payments']}, qarzdorlar: {summary['debtors']}, "
+            f"leadlar: {summary['leads']}, xaridlar: {summary['purchases']}, arxiv: {summary['archived']}"
+        ))
+
+
+@transaction.atomic
+def seed(*, slug: str, log=print) -> dict:
+    from accounts.models import Center, User
+    from billing.models import CenterSubscription, SubscriptionPlan
+    from education.models import Category, Enrollment, Group
+    from education.services.tuition import create_payment_and_allocate, ensure_tuition_month
+    from store.models import Lead, LeadStatus, Manba, Product, PurchaseRequest
+
+    today = timezone.localdate()
+
+    # ─────────────── 1) Reset (idempotent) ───────────────
+    User.objects.filter(email__in=[e for _, e, _, _ in DEMO_USERS]).delete()
+    Center.objects.filter(slug=slug).delete()  # CASCADE: guruh/enrollment/to'lov/...
+    log(f"• Eski demo tozalandi (slug={slug})")
+
+    # ─────────────── 2) Markaz + obuna + featurelar ───────────────
+    all_features = [
+        "finance", "imtihon", "hr", "sertifikat", "store", "leads", "analytics", "xarajatlar",
+        "ui_exam_sessions", "ui_failed_students", "ui_certificates", "ui_weekly_schedule",
+    ]
+    center = Center.objects.create(
+        name="Chaqmoq Demo O'quv Markazi",
+        slug=slug,
+        status=Center.STATUS_ACTIVE,
+        features={f: True for f in all_features},
+        max_students=100_000,
+        capacity_limit=100_000,
+    )
+    plan, _ = SubscriptionPlan.objects.update_or_create(
+        code="DEMO_ALL",
+        defaults=dict(title="Demo All", name="DEMO_ALL", tier=99,
+                      max_students=100_000, duration_days=3650),
+    )
+    CenterSubscription.objects.create(
+        center=center, plan=plan,
+        status=CenterSubscription.Status.ACTIVE,
+        expires_at=timezone.now() + timedelta(days=3650),
+    )
+    log(f"• Markaz yaratildi: {center.name} (aktiv obuna + barcha modullar)")
+
+    # ─────────────── 3) Login foydalanuvchilar (login == parol) ───────────────
+    users = {}
+    for role, email, ism, familya in DEMO_USERS:
+        u = User.objects.create_user(
+            email=email, password=email, role=role, center=center,
+            ism=ism, familya=familya, telefon1="+998901112233",
+        )
+        users[role] = u
+    director, manager, teacher = users["director"], users["manager"], users["teacher"]
+    log("• Loginlar: d@gmail.com / m@gmail.com / t@mail.com (parol == login)")
+
+    # ─────────────── 4) Kategoriyalar + guruhlar ───────────────
+    cats = {}
+    for _, cat_name, *_ in GROUP_DEFS:
+        if cat_name not in cats:
+            cats[cat_name], _ = Category.objects.get_or_create(center=center, name=cat_name)
+
+    groups = []
+    for nom, cat_name, narx, foiz, dars in GROUP_DEFS:
+        g = Group.objects.create(
+            center=center, nom=nom, oqituvchi=teacher,
+            kurs_narxi=narx, oqituvchi_foiz=foiz, oy_dars_soni=dars,
+            category_obj=cats[cat_name],
+        )
+        groups.append(g)
+    log(f"• {len(groups)} ta guruh yaratildi")
+
+    # ─────────────── 5) O'quvchilar + enrollmentlar (o'sish uchun sanalar tarqalgan) ───────────────
+    students = []
+    enrollments = []
+    # oldingi 6 oyda qo'shilgan (har oy ko'proq → o'sish grafigi)
+    month_starts = [_month_add(today.replace(day=1), -k) for k in range(5, -1, -1)]  # 6 oy
+    join_plan = [1, 3, 4, 5, 6, 8]  # oyiga qancha yangi o'quvchi (o'sib boruvchi)
+    join_dates = []
+    for m, n in zip(month_starts, join_plan):
+        for _ in range(n):
+            day = random.randint(1, 26)
+            join_dates.append(m.replace(day=min(day, 26)))
+    join_dates = join_dates[:len(STUDENT_NAMES)]
+
+    for idx, (ism, familya) in enumerate(STUDENT_NAMES):
+        s = User.objects.create_user(
+            email=f"student{idx+1}@demo.local", password="demo",
+            role="student", center=center, ism=ism, familya=familya,
+            telefon1=f"+9989012{idx:05d}",
+        )
+        s.birth_date = date(2008 + (idx % 6), (idx % 12) + 1, (idx % 27) + 1)
+        s.gender = getattr(User, "Gender", None) and (User.Gender.MALE if idx % 2 else User.Gender.FEMALE)
+        try:
+            s.save(update_fields=["birth_date", "gender"])
+        except Exception:
+            s.save()
+        students.append(s)
+
+        joined = join_dates[idx] if idx < len(join_dates) else month_starts[-1]
+        grp = groups[idx % len(groups)]
+        # ba'zilarda chegirma (student_payable_amount < kurs narxi)
+        payable = grp.kurs_narxi
+        if idx % 5 == 0:
+            payable = int(grp.kurs_narxi * 0.7)  # chegirmali
+        e = Enrollment.objects.create(
+            center=center, group=grp, student=s,
+            kurs_narhi=grp.kurs_narxi, oqituvchi_foiz=grp.oqituvchi_foiz,
+            student_payable_amount=payable, is_active=True, joined_at=joined,
+        )
+        enrollments.append(e)
+    log(f"• {len(students)} ta o'quvchi enroll qilindi (6 oyga tarqalgan)")
+
+    # ─────────────── 6) Tuition oylar + to'lovlar (paid / partial / qarzdor) ───────────────
+    payments = 0
+    debtors = set()
+    cur_month = today.replace(day=1)
+    for idx, e in enumerate(enrollments):
+        m = e.joined_at.replace(day=1)
+        months = []
+        while m <= cur_month:
+            ensure_tuition_month(e, m)
+            months.append(m)
+            m = _month_add(m, 1)
+
+        scenario = idx % 5  # 0,1,2 = to'lagan; 3 = qisman; 4 = qarzdor
+        for mi, month in enumerate(months):
+            fee = int(e.student_payable_amount or e.kurs_narhi)
+            is_current = (month == cur_month)
+            if scenario <= 2:
+                amount = fee  # to'liq to'lagan
+            elif scenario == 3:
+                amount = fee if not is_current else int(fee * 0.5)  # joriy oy qisman → qarzdor
+            else:
+                amount = 0  # umuman to'lamagan → qarzdor
+            if amount > 0:
+                pay_day = min(random.randint(2, 27), 27)
+                paid_at = datetime.combine(month.replace(day=pay_day), datetime.min.time())
+                try:
+                    create_payment_and_allocate(
+                        enrollment=e, created_by=manager,
+                        cash_amount=amount, card_amount_som=0,
+                        start_month=month, paid_at=paid_at, strict_month=True,
+                        note="Demo to'lov",
+                    )
+                    payments += 1
+                except Exception as exc:
+                    log(f"  ! to'lov o'tkazilmadi (e={e.id} {month}): {exc}")
+            if amount < fee:
+                debtors.add(e.student_id)
+    log(f"• {payments} ta to'lov yozildi, {len(debtors)} ta qarzdor hosil bo'ldi")
+
+    # ─────────────── 7) Do'kon: mahsulotlar + xaridlar ───────────────
+    products = []
+    for nom, narx_chaqmoq, narx_som in PRODUCT_DEFS:
+        p = Product.objects.create(
+            center=center, nom=nom, narx_chaqmoq=narx_chaqmoq, narx_som=narx_som,
+        )
+        products.append(p)
+    purchases = 0
+    for i in range(14):
+        st = students[i % len(students)]
+        pr = products[i % len(products)]
+        req = PurchaseRequest.objects.create(
+            center=center, student=st, product=pr, qty=random.randint(1, 3),
+            status=(PurchaseRequest.APPROVED if i % 3 else PurchaseRequest.PENDING),
+        )
+        purchases += 1
+    log(f"• {len(products)} ta mahsulot, {purchases} ta xarid so'rovi")
+
+    # ─────────────── 8) Leadlar (turli manba/status) ───────────────
+    manbas = [Manba.objects.create(center=center, nom=n) for n in MANBA_DEFS]
+    statuses = []
+    for i, (nom, code) in enumerate(LEAD_STATUS_DEFS):
+        ls = LeadStatus.objects.create(center=center, nom=nom, code=code, order=(i + 1) * 10)
+        statuses.append(ls)
+    leads = 0
+    for i, (ism, familya, yosh) in enumerate(LEAD_NAMES):
+        Lead.objects.create(
+            center=center, ism=ism, familya=familya, yosh=yosh,
+            telefon1=f"+9989033{i:05d}",
+            manba=manbas[i % len(manbas)],
+            status=statuses[i % len(statuses)],
+            assigned_manager=manager, created_by=manager,
+        )
+        leads += 1
+    log(f"• {leads} ta lead yaratildi")
+
+    # ─────────────── 9) Arxiv (ba'zi o'quvchi + guruh) ───────────────
+    archived = 0
+    for s in students[-2:]:  # oxirgi 2 o'quvchini arxivlash
+        try:
+            s.is_archived = True
+            s.save(update_fields=["is_archived"])
+            Enrollment.objects.filter(student=s).update(is_active=False)
+            archived += 1
+        except Exception:
+            pass
+    try:
+        arch_group = groups[-1]
+        arch_group.is_archived = True
+        arch_group.save(update_fields=["is_archived"])
+        archived += 1
+    except Exception:
+        pass
+    log(f"• {archived} ta arxiv (o'quvchi/guruh) belgilandi")
+
+    return {
+        "students": len(students), "groups": len(groups),
+        "payments": payments, "debtors": len(debtors),
+        "leads": leads, "purchases": purchases, "archived": archived,
+    }
+
+
+def _month_add(d: date, months: int) -> date:
+    m = d.month - 1 + months
+    y = d.year + m // 12
+    m = m % 12 + 1
+    return date(y, m, 1)
