@@ -23,15 +23,19 @@ class SuperadminPaymentHistoryApiTests(TestCase):
         self.client.force_login(self.superadmin)
 
         self.center = Center.objects.create(name="Pay Center", slug="pay-center")
-        self.plan = SubscriptionPlan.objects.create(
+        # update_or_create: billing migratsiyalari "PRO" kodli tarifni seed
+        # qilishi mumkin — create() unique 'code' to'qnashuvini keltirib chiqaradi.
+        self.plan, _ = SubscriptionPlan.objects.update_or_create(
             code="PRO",
-            title="PRO",
-            name="PRO",
-            monthly_price=100000,
-            price=100000,
-            duration_days=30,
-            max_students=100,
-            active=True,
+            defaults=dict(
+                title="PRO",
+                name="PRO",
+                monthly_price=100000,
+                price=100000,
+                duration_days=30,
+                max_students=100,
+                active=True,
+            ),
         )
 
     def _create_paid_order(self, paid_at, *, amount=1000):
