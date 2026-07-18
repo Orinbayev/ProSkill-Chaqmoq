@@ -2494,7 +2494,15 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         pay_method_counts = []
         pay_method_amounts = []
 
+    # Kunlik davomat nazorati — o'qituvchi davomat qilmagan guruhlar (manager+director).
+    from education.services.attendance_monitor import get_attendance_monitor
+    try:
+        attendance_monitor = get_attendance_monitor(center)
+    except Exception:
+        attendance_monitor = {"date": "", "summary": {}, "rows": []}
+
     return {
+        "attendance_monitor": attendance_monitor,
         "kpis": {
             "total_students": total_students,
             "active_students": active_students,

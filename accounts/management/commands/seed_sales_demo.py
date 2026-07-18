@@ -14,7 +14,7 @@ Loginlar (login == parol):
     teacher   t@mail.com   / t@mail.com
 """
 import random
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -100,7 +100,7 @@ class Command(BaseCommand):
 def seed(*, slug: str, log=print) -> dict:
     from accounts.models import Center, User
     from billing.models import CenterSubscription, SubscriptionPlan
-    from education.models import Category, Enrollment, Group
+    from education.models import Attendance, Category, Enrollment, Group, GroupSchedule
     from education.services.tuition import create_payment_and_allocate, ensure_tuition_month
     from store.models import (
         Expense, ExpenseCategory, Lead, LeadStatus, Manba, Product, PurchaseRequest,
@@ -212,6 +212,34 @@ def seed(*, slug: str, log=print) -> dict:
         )
         enrollments.append(e)
     log(f"• {len(students)} ta o'quvchi enroll qilindi (6 oyga tarqalgan)")
+
+    # ─────────────── 5b) Jadval + bugungi davomat (davomat nazorati demosi) ───────────────
+    # Har guruh haftaning barcha kunlari darsga ega — bugun doim jadvalda bo'ladi.
+    # Turli soatlar: erta (unutilgan ko'rinsin), kech (kutilmoqda), + biri qilingan.
+    # Vaqtlar HOZIRGA nisbatan: 0=qilingan (o'tган), 1=unutilgan (o'tган+grace),
+    # 2=kutilmoqda (kelajak). Shunda demo istalgan vaqtда 3 holatni ko'rsatadi.
+    _nowm = timezone.localtime().hour * 60 + timezone.localtime().minute
+    def _rel(delta):
+        m = max(1, min(23 * 60 + 58, _nowm + delta))
+        return time(m // 60, m % 60)
+    sched_time = {0: _rel(-30), 1: _rel(-150), 2: _rel(+180), 3: time(9, 0)}
+    for gi, g in enumerate(groups):
+        for wd in range(1, 8):  # Dushanba..Yakshanba (demo har kuni ko'rinsin)
+            GroupSchedule.objects.get_or_create(
+                center=center, group=g, weekday=wd,
+                start_time=sched_time.get(gi, time(9, 0)),
+                defaults={"end_time": time((sched_time.get(gi, time(9, 0)).hour + 1) % 24, 30)},
+            )
+    today = timezone.localdate()
+    # Faqat 1-guruhда bugun davomat qilingan (taken); qolgani missing/pending.
+    g_taken = groups[0]
+    taken_statuses = ["present", "present", "present", "late", "absent_excused", "absent_unexcused"]
+    for e, st in zip(list(Enrollment.objects.filter(group=g_taken, is_active=True))[:6], taken_statuses):
+        Attendance.objects.get_or_create(
+            center=center, group=g_taken, student=e.student, date=today,
+            defaults={"teacher": g_taken.oqituvchi, "status": st, "present": st == "present"},
+        )
+    log("• Jadval + bugungi davomat qo'shildi (nazorat demosi: qilingan/unutilgan/kutilmoqda)")
 
     # ─────────────── 6) Tuition oylar + to'lovlar (paid / partial / qarzdor) ───────────────
     payments = 0

@@ -259,6 +259,21 @@
 
       </div>
 
+      <!-- ═══════════ KUNLIK DAVOMAT NAZORATI ═══════════ -->
+      <section class="bq-att" id="bqAttMonitor" style="display:none;">
+        <div class="bq-att__head">
+          <div class="bq-att__title">
+            <span class="bq-att__ico"><i class="fa-solid fa-clipboard-user"></i></span>
+            <div>
+              <div class="bq-att__title-txt">Kunlik davomat nazorati</div>
+              <div class="bq-att__sub" id="bqAttSub">Bugun jadval bo'yicha darslar</div>
+            </div>
+          </div>
+          <div class="bq-att__chips" id="bqAttChips"></div>
+        </div>
+        <div class="bq-att__list" id="bqAttList"></div>
+      </section>
+
       <!-- ═══════════ CHARTS COLLAPSE TOGGLE ═══════════ -->
       <button class="bq-charts-toggle" id="bqChartsToggle" type="button" aria-expanded="false">
         <div class="bq-charts-toggle__left">
@@ -2415,7 +2430,62 @@ function rerenderChartsForTheme(){
 }
 
 /* ── Render all ── */
+function renderAttendanceMonitor(data){
+  const sec = document.getElementById('bqAttMonitor');
+  if(!sec) return;
+  const rows = (data && data.rows) || [];
+  const sum = (data && data.summary) || {};
+  if(!rows.length){ sec.style.display='none'; return; }
+  sec.style.display='';
+  const mk=(cls,ico,label,val)=>`<span class="bq-att-chip bq-att-chip--${cls}"><i class="fa-solid ${ico}"></i> ${val} ${label}</span>`;
+  const chips=document.getElementById('bqAttChips');
+  if(chips) chips.innerHTML =
+    mk('all','fa-layer-group','guruh', sum.scheduled||0) +
+    mk('ok','fa-circle-check','qilingan', sum.taken||0) +
+    mk('miss','fa-triangle-exclamation','unutilgan', sum.missing||0) +
+    mk('pend','fa-clock','kutilmoqda', sum.pending||0);
+  const statusMeta={
+    missing:{cls:'miss',label:'Davomat qilinmagan!',ico:'fa-triangle-exclamation'},
+    pending:{cls:'pend',label:'Kutilmoqda',ico:'fa-clock'},
+    taken:{cls:'ok',label:'Davomat qilingan',ico:'fa-circle-check'},
+  };
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const list=document.getElementById('bqAttList');
+  if(!list) return;
+  list.innerHTML = rows.map(r=>{
+    const m=statusMeta[r.status]||statusMeta.pending;
+    let detail='';
+    if(r.status==='taken'){
+      detail=`<div class="bq-att-row__stats">
+        <span class="bq-att-stat bq-att-stat--p">${r.present} keldi</span>
+        ${r.late?`<span class="bq-att-stat bq-att-stat--l">${r.late} kech</span>`:''}
+        ${r.absent_excused?`<span class="bq-att-stat bq-att-stat--e">${r.absent_excused} sababli</span>`:''}
+        ${r.absent_unexcused?`<span class="bq-att-stat bq-att-stat--u">${r.absent_unexcused} sababsiz</span>`:''}
+      </div>`;
+      if(r.absentees && r.absentees.length){
+        detail+=`<div class="bq-att-row__abs">`+r.absentees.map(a=>{
+          const t=a.status.indexOf('unexcused')>=0?'u':(a.status==='late'?'l':'e');
+          return `<span class="bq-att-abs bq-att-abs--${t}">${esc(a.name)} · ${esc(a.status_label)}</span>`;
+        }).join('')+`</div>`;
+      }
+    } else {
+      detail=`<div class="bq-att-row__note">${m.label}</div>`;
+    }
+    return `<div class="bq-att-row bq-att-row--${m.cls}">
+      <div class="bq-att-row__main">
+        <div class="bq-att-row__badge"><i class="fa-solid ${m.ico}"></i></div>
+        <div class="bq-att-row__info">
+          <div class="bq-att-row__grp">${esc(r.group_name)}</div>
+          <div class="bq-att-row__meta">${esc(r.teacher_name)} · ${esc(r.start_time)}${r.room?(' · '+esc(r.room)):''}</div>
+        </div>
+      </div>
+      <div class="bq-att-row__detail">${detail}</div>
+    </div>`;
+  }).join('');
+}
+
 function render(d){
+  try{ renderAttendanceMonitor(d.attendance_monitor); }catch(e){ console.warn('att monitor', e); }
   _lastDashboardData = d;
   applyChartDefaults();
   const k=d.kpis, ch=d.charts;
