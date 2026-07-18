@@ -272,6 +272,7 @@
           <div class="bq-att__chips" id="bqAttChips"></div>
         </div>
         <div class="bq-att__list" id="bqAttList"></div>
+        <div class="bq-att__unsched" id="bqAttUnsched"></div>
       </section>
 
       <!-- ═══════════ CHARTS COLLAPSE TOGGLE ═══════════ -->
@@ -2434,8 +2435,9 @@ function renderAttendanceMonitor(data){
   const sec = document.getElementById('bqAttMonitor');
   if(!sec) return;
   const rows = (data && data.rows) || [];
+  const unsched = (data && data.unscheduled) || [];
   const sum = (data && data.summary) || {};
-  if(!rows.length){ sec.style.display='none'; return; }
+  if(!rows.length && !unsched.length){ sec.style.display='none'; return; }
   sec.style.display='';
   const mk=(cls,ico,label,val)=>`<span class="bq-att-chip bq-att-chip--${cls}"><i class="fa-solid ${ico}"></i> ${val} ${label}</span>`;
   const chips=document.getElementById('bqAttChips');
@@ -2443,7 +2445,8 @@ function renderAttendanceMonitor(data){
     mk('all','fa-layer-group','guruh', sum.scheduled||0) +
     mk('ok','fa-circle-check','qilingan', sum.taken||0) +
     mk('miss','fa-triangle-exclamation','unutilgan', sum.missing||0) +
-    mk('pend','fa-clock','kutilmoqda', sum.pending||0);
+    mk('pend','fa-clock','kutilmoqda', sum.pending||0) +
+    ((sum.unscheduled||0) ? mk('uns','fa-gear','jadvalsiz', sum.unscheduled) : '');
   const statusMeta={
     missing:{cls:'miss',label:'Davomat qilinmagan!',ico:'fa-triangle-exclamation'},
     pending:{cls:'pend',label:'Kutilmoqda',ico:'fa-clock'},
@@ -2482,6 +2485,15 @@ function renderAttendanceMonitor(data){
       <div class="bq-att-row__detail">${detail}</div>
     </div>`;
   }).join('');
+  const uEl=document.getElementById('bqAttUnsched');
+  if(uEl){
+    if(unsched.length){
+      const SCHED_BASE='{% url "education:group_schedule_manage" 999999 %}';
+      const SCHED=(gid)=>SCHED_BASE.replace('999999', gid);
+      uEl.innerHTML='<div class="bq-att-unsched__hd"><i class="fa-solid fa-gear"></i> Jadval belgilanmagan guruhlar ('+unsched.length+') — dars kunlari va vaqtini sozlang:</div>'+
+        unsched.map(u=>`<a class="bq-att-unsched__item" href="${SCHED(u.group_id)}"><span class="bq-att-unsched__nm">${esc(u.group_name)} · ${esc(u.teacher_name)}</span><span class="bq-att-unsched__btn"><i class="fa-solid fa-calendar-plus"></i> Jadval belgilash</span></a>`).join('');
+    } else { uEl.innerHTML=''; }
+  }
 }
 
 function render(d){

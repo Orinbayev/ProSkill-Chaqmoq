@@ -224,6 +224,11 @@ def seed(*, slug: str, log=print) -> dict:
         return time(m // 60, m % 60)
     sched_time = {0: _rel(-30), 1: _rel(-150), 2: _rel(+180), 3: time(9, 0)}
     for gi, g in enumerate(groups):
+        if gi >= 2:
+            # Demo: 3-guruhni JADVALSIZ (Avtomatik) qoldiramiz — "Jadval belgilash"
+            # oqimi (davomat nazoratidagi havola) ko'rinib tursin.
+            Enrollment.objects.filter(group=g).update(lesson_pattern="group")
+            continue
         for wd in range(1, 8):  # Dushanba..Yakshanba (demo har kuni ko'rinsin)
             GroupSchedule.objects.get_or_create(
                 center=center, group=g, weekday=wd,

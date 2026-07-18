@@ -4453,3 +4453,17 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-charts-toggle__ba
 .bq-att-abs--e{ color:#7dd3fc; }
 .bq-att-abs--l{ color:#fcd34d; }
 @media(max-width:640px){ .bq-att-row__detail{ align-items:flex-start; width:100%; } .bq-att-row__stats,.bq-att-row__abs{ justify-content:flex-start; } }
+
+/* Davomat nazorati — jadvalsiz guruhlar */
+.bq-att-chip--uns{ background:rgba(167,139,250,.14); color:#c4b5fd; border-color:rgba(167,139,250,.3); }
+.bq-att__unsched{ margin-top:12px; }
+.bq-att__unsched:empty{ display:none; }
+.bq-att-unsched__hd{ font-size:12.5px; font-weight:600; color:#c4b5fd; margin-bottom:8px;
+  display:flex; align-items:center; gap:7px; }
+.bq-att-unsched__item{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 13px; border-radius:12px; margin-bottom:7px; text-decoration:none;
+  background:rgba(167,139,250,.06); border:1px solid rgba(167,139,250,.18); transition:background .15s; }
+.bq-att-unsched__item:hover{ background:rgba(167,139,250,.13); }
+.bq-att-unsched__nm{ font-size:13.5px; font-weight:600; color:var(--bq-txt,#e2e8f0); }
+.bq-att-unsched__btn{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  font-size:12px; font-weight:700; color:#0b1120; background:#c4b5fd; padding:6px 12px; border-radius:999px; }

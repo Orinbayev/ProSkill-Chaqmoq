@@ -107,6 +107,42 @@ class AttendanceMonitorTests(TestCase):
         # tartib: missing avval keladi
         self.assertEqual(data["rows"][0]["status"], STATUS_MISSING)
 
+    # ── Jadvalsiz guruhlar: naqsh (toq/juft) bo'yicha ──
+    def _pattern_group(self, name, pattern):
+        g = Group.objects.create(
+            center=self.center, nom=name, oqituvchi=self.teacher,
+            kurs_narxi=300_000, oqituvchi_foiz=40, oy_dars_soni=12,
+        )  # DIQQAT: GroupSchedule yaratilmaydi
+        for s in self.students:
+            Enrollment.objects.create(
+                center=self.center, group=g, student=s, kurs_narhi=300_000,
+                oqituvchi_foiz=40, is_active=True, lesson_pattern=pattern,
+            )
+        return g
+
+    def test_odd_pattern_group_without_schedule_shows_on_odd_day(self):
+        # TODAY = dushanba (iso 1) = toq kun → toq-naqshli guruh ko'rinadi
+        g = self._pattern_group("Toq", "odd")
+        data = get_attendance_monitor(self.center, TODAY)
+        row = next((r for r in data["rows"] if r["group_id"] == g.id), None)
+        self.assertIsNotNone(row, "Jadvalsiz toq-naqshli guruh toq kunда ko'rinishi kerak!")
+        self.assertFalse(row["has_time"])  # vaqt noma'lum (jadval yo'q)
+
+    def test_even_pattern_group_excluded_on_odd_day(self):
+        # dushanba (toq) → juft-naqshli guruh bugun dars qilmaydi → ko'rinmaydi
+        g = self._pattern_group("Juft", "even")
+        data = get_attendance_monitor(self.center, TODAY)
+        self.assertIsNone(next((r for r in data["rows"] if r["group_id"] == g.id), None))
+        self.assertFalse(any(u["group_id"] == g.id for u in data["unscheduled"]))
+
+    def test_group_pattern_without_schedule_is_unscheduled(self):
+        # "group" (Avtomatik) + jadval yo'q → dars kuni aniqlanmaydi → jadvalsiz ro'yxat
+        g = self._pattern_group("Avtomatik", "group")
+        data = get_attendance_monitor(self.center, TODAY)
+        self.assertTrue(any(u["group_id"] == g.id for u in data["unscheduled"]),
+                        "Jadvalsiz Avtomatik guruh 'unscheduled' ro'yxatida bo'lishi kerak!")
+        self.assertEqual(data["summary"]["unscheduled"], 1)
+
     def test_past_day_without_attendance_is_missing(self):
         # o'tgan kun (jadval bo'yicha dars bo'lган) — davomat yo'q → MISSING
         past = TODAY  # frozen bugun; kelasi darsni tekshirish uchun bugunni ishlatamiz
