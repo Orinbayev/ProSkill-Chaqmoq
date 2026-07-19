@@ -20,7 +20,7 @@ import logging
 import re
 
 from aiogram import Router, F, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -335,6 +335,44 @@ async def family_student_method(callback: types.CallbackQuery, state: FSMContext
         await callback.answer()
         return
     await callback.answer("Noto'g'ri tanlov", show_alert=True)
+
+
+# Wizard (ism/sana kutish) davomida foydalanuvchi menyu tugmasini bossa —
+# uni "ism" deb qabul qilib xato spam qilmasin. Oqimni bekor qilib menyuni qaytaramiz.
+_WIZARD_STATES = (
+    FamilyOnboardingState.waiting_phone,
+    FamilyOnboardingState.waiting_student_name,
+    FamilyOnboardingState.waiting_student_birthdate,
+    FamilyOnboardingState.waiting_child_name,
+    FamilyOnboardingState.waiting_child_birthdate,
+)
+def _collect_menu_texts() -> frozenset[str]:
+    """Reply-menyu tugma matnlarini bevosita klaviaturalardan yig'amiz (aniq mos kelishi uchun)."""
+    from keyboards.parent_menu import get_parent_main_menu
+    from keyboards.student_menu import get_student_main_menu
+
+    texts: set[str] = set()
+    for kb in (get_parent_main_menu(), get_student_main_menu()):
+        for row in kb.keyboard:
+            for btn in row:
+                if getattr(btn, "text", None):
+                    texts.add(btn.text)
+    return frozenset(texts)
+
+
+MENU_BUTTON_TEXTS = _collect_menu_texts()
+
+
+@router.message(StateFilter(*_WIZARD_STATES), F.text.in_(MENU_BUTTON_TEXTS))
+async def cancel_wizard_on_menu_tap(message: types.Message, state: FSMContext):
+    """Oqim davomida menyu tugmasi bosildi → oqimni bekor qilib menyuga qaytaramiz."""
+    data = await state.get_data()
+    role = data.get("current_user_role") or data.get("role")
+    await state.set_state(None)
+    await message.answer(
+        "↩️ Menyuga qaytdingiz. Kerakli bo'limni tanlang.",
+        reply_markup=get_main_menu(role),
+    )
 
 
 @router.message(FamilyOnboardingState.waiting_student_name, F.text)
