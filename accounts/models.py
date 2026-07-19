@@ -89,6 +89,10 @@ class Center(SoftDeleteMixin, models.Model):
     # Manual feature overrides (e.g. {"leads": true, "finance": false})
     features = models.JSONField(default=dict, blank=True)
 
+    # Telegram (Oila) bot — superadmin har markaz uchun alohida yoqadi.
+    # Yangi markazlar default o'chiq; mavjudlari migratsiyada yoqilgan (grandfather).
+    telegram_bot_enabled = models.BooleanField(default=False, db_index=True, verbose_name="Telegram bot yoqilgan")
+
     # AI Yordamchi — admin tomonidan har markaz uchun alohida yoqiladi
     ai_enabled = models.BooleanField(default=False, verbose_name="AI Yordamchi yoqilgan")
     # Director/Manager bu flag larni o'zi boshqaradi

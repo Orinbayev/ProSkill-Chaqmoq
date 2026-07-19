@@ -597,3 +597,83 @@ def superadmin_plans(request):
         "feature_types": PlanFeature.FeatureType.choices,
     }
     return render(request, "accounts/superadmin_plans.html", context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def superadmin_bot(request):
+    """SuperAdmin: Telegram (Oila) bot boshqaruvi — markazlar ro'yxati, ruxsat
+    va foydalanish statistikasi (nechta ota-ona / o'quvchi botга ulangan)."""
+    from django.db.models import Count
+    from accounts.models import User
+
+    centers = list(
+        Center.objects.filter(is_deleted=False)
+        .only("id", "name", "slug", "status", "telegram_bot_enabled")
+        .order_by("-telegram_bot_enabled", "name")
+    )
+
+    # Botга ulangan (is_telegram_linked) ota-ona/o'quvchilarni markaz+rol bo'yicha sanaymiz
+    linked = (
+        User.objects.filter(is_telegram_linked=True, role__in=("parent", "student"))
+        .values("center_id", "role")
+        .annotate(n=Count("id"))
+    )
+    parents_map, students_map = {}, {}
+    for row in linked:
+        (parents_map if row["role"] == "parent" else students_map)[row["center_id"]] = row["n"]
+
+    rows = []
+    total_parents = total_students = enabled_count = 0
+    for c in centers:
+        p = parents_map.get(c.id, 0)
+        s = students_map.get(c.id, 0)
+        if c.telegram_bot_enabled:
+            enabled_count += 1
+        total_parents += p
+        total_students += s
+        rows.append({
+            "id": c.id,
+            "name": c.name,
+            "slug": c.slug,
+            "status": c.status,
+            "enabled": c.telegram_bot_enabled,
+            "parents": p,
+            "students": s,
+            "total": p + s,
+        })
+
+    context = {
+        "rows": rows,
+        "totals": {
+            "centers": len(centers),
+            "enabled": enabled_count,
+            "parents": total_parents,
+            "students": total_students,
+            "users": total_parents + total_students,
+        },
+    }
+    return render(request, "accounts/superadmin_bot.html", context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def toggle_center_bot(request, center_pk):
+    """SuperAdmin: markaz uchun Telegram botni yoqish/o'chirish."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+
+    enabled = data.get("enabled")
+    if isinstance(enabled, str):
+        enabled = enabled.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        enabled = bool(enabled)
+
+    center = get_object_or_404(Center, pk=center_pk)
+    center.telegram_bot_enabled = enabled
+    center.save(update_fields=["telegram_bot_enabled"])
+    return JsonResponse({"ok": True, "center_id": center.id, "enabled": enabled})

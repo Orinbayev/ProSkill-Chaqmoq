@@ -7,6 +7,8 @@ from .views_superadmin import (
     center_edit,
     toggle_center_ui_feature,
     update_center_capacity,
+    superadmin_bot,
+    toggle_center_bot,
 )
 from . import api_superadmin
 from . import views_platform # New HTML Views
@@ -23,6 +25,8 @@ platform_patterns = [
     path("center/create/", center_create, name="center_create"),
     path("center/<int:pk>/edit/", center_edit, name="center_edit"),
     path("center/<int:center_pk>/toggle-feature/", toggle_center_ui_feature, name="toggle_center_ui_feature"),
+    path("bot/", superadmin_bot, name="superadmin_bot"),
+    path("center/<int:center_pk>/toggle-bot/", toggle_center_bot, name="toggle_center_bot"),
     path("centers/<int:pk>/manage/", views.center_manage, name="center_manage"),
     path("centers/<int:pk>/stats/", views.center_stats_view, name="center_stats"),
     path("center/<int:pk>/update-capacity/", update_center_capacity, name="update_center_capacity"),

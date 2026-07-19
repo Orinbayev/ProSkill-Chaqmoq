@@ -825,6 +825,14 @@ def _serialize_match_user(user) -> dict:
     }
 
 
+_BOT_DISABLED_MSG = "Bu o'quv markazi uchun Telegram bot yoqilmagan. Iltimos, markazingizga murojaat qiling."
+
+
+def _center_bot_allowed(center) -> bool:
+    """Markaz uchun Telegram (Oila) bot yoqilganmi?"""
+    return bool(center and getattr(center, "telegram_bot_enabled", False))
+
+
 def _find_parent_user_by_phone(phone: str):
     """Telefon orqali parent rolidagi User'ni topish."""
     if not phone:
@@ -895,7 +903,10 @@ def family_find_by_phone_api(request):
                 {"ok": False, "error": "Sizning raqamingiz bilan o'quvchi topilmadi."},
                 status=404,
             )
-        return JsonResponse({"ok": True, "matches": [_serialize_match_user(s) for s in students]})
+        allowed = [s for s in students if _center_bot_allowed(s.center)]
+        if not allowed:
+            return JsonResponse({"ok": False, "error": _BOT_DISABLED_MSG}, status=403)
+        return JsonResponse({"ok": True, "matches": [_serialize_match_user(s) for s in allowed]})
 
     # role == "parent": ikki yo'l — User.role=parent + children M2M, yoki student.parents
     matches = []
@@ -907,11 +918,15 @@ def family_find_by_phone_api(request):
         .prefetch_related("children", "children__center")
     )
     seen_child_ids = set()
+    disabled_hit = False  # bot o'chirilgan markazда farzand topildimi?
     for parent in parent_users:
         for child in parent.children.filter(is_active=True, is_archived=False):
             if child.id in seen_child_ids:
                 continue
             seen_child_ids.add(child.id)
+            if not _center_bot_allowed(child.center):
+                disabled_hit = True
+                continue
             matches.append(_serialize_match_user(child))
 
     # 2) Student modelida `parents` reverse M2M — "Ota-ona telefoni" sifatida saqlangan students
@@ -926,9 +941,14 @@ def family_find_by_phone_api(request):
             if child.id in seen_child_ids:
                 continue
             seen_child_ids.add(child.id)
+            if not _center_bot_allowed(child.center):
+                disabled_hit = True
+                continue
             matches.append(_serialize_match_user(child))
 
     if not matches:
+        if disabled_hit:
+            return JsonResponse({"ok": False, "error": _BOT_DISABLED_MSG}, status=403)
         return JsonResponse(
             {
                 "ok": False,
@@ -1228,8 +1248,11 @@ def family_student_by_name_api(request):
         name_filter &= Q(ism__icontains=tok) | Q(familya__icontains=tok) | Q(otchestvo__icontains=tok)
     qs = qs.filter(name_filter)
 
-    matches = [_serialize_match_user(s) for s in qs[:10]]
-    if not matches:
+    found = list(qs[:10])
+    allowed = [s for s in found if _center_bot_allowed(s.center)]
+    if not allowed:
+        if found:  # topildi, lekin markaz uchun bot o'chirilgan
+            return JsonResponse({"ok": False, "error": _BOT_DISABLED_MSG}, status=403)
         return JsonResponse(
             {
                 "ok": False,
@@ -1239,7 +1262,7 @@ def family_student_by_name_api(request):
             status=404,
         )
 
-    return JsonResponse({"ok": True, "matches": matches})
+    return JsonResponse({"ok": True, "matches": [_serialize_match_user(s) for s in allowed]})
 
 
 @csrf_exempt

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Telegram bot boshqaruvi — Chaqmoq{% endblock %}
+{% block body_class %}sa-shell{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
+{% endblock %}
+
+{% block content %}
+<style>
+  .tb-wrap { padding: 0 0 48px; }
+  .tb-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:4px 0 18px; }
+  .tb-head h1 { margin:0; font-size:22px; font-weight:800; }
+  .tb-head p { margin:2px 0 0; color:var(--sa-text-muted,#64748b); font-size:13px; }
+  .tb-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+  .tb-kpi { background:var(--sa-card,#fff); border:1px solid var(--sa-border,#e2e8f0); border-radius:16px; padding:16px; }
+  .tb-kpi__label { font-size:12px; color:var(--sa-text-muted,#64748b); font-weight:600; }
+  .tb-kpi__val { font-size:26px; font-weight:800; margin-top:6px; }
+  .tb-kpi__sub { font-size:12px; color:var(--sa-text-muted,#64748b); margin-top:2px; }
+  .tb-card { background:var(--sa-card,#fff); border:1px solid var(--sa-border,#e2e8f0); border-radius:18px; overflow:hidden; }
+  .tb-table { width:100%; border-collapse:collapse; }
+  .tb-table th, .tb-table td { padding:13px 16px; text-align:left; font-size:13.5px; border-bottom:1px solid var(--sa-border,#eef2f7); }
+  .tb-table th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--sa-text-muted,#64748b); font-weight:700; }
+  .tb-table tr:last-child td { border-bottom:0; }
+  .tb-table td.num, .tb-table th.num { text-align:center; }
+  .tb-name { font-weight:700; }
+  .tb-slug { font-size:12px; color:var(--sa-text-muted,#94a3b8); }
+  .tb-pill { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; }
+  .tb-pill--active { background:#dcfce7; color:#15803d; }
+  .tb-pill--blocked { background:#fee2e2; color:#b91c1c; }
+  .tb-pill--archived { background:#e2e8f0; color:#475569; }
+  .tb-count { font-weight:700; }
+  .tb-count--zero { color:var(--sa-text-muted,#94a3b8); font-weight:600; }
+  /* toggle switch */
+  .tb-switch { position:relative; display:inline-block; width:46px; height:26px; }
+  .tb-switch input { opacity:0; width:0; height:0; }
+  .tb-slider { position:absolute; inset:0; cursor:pointer; background:#cbd5e1; border-radius:999px; transition:.2s; }
+  .tb-slider::before { content:""; position:absolute; height:20px; width:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .tb-switch input:checked + .tb-slider { background:#22c55e; }
+  .tb-switch input:checked + .tb-slider::before { transform:translateX(20px); }
+  .tb-switch input:disabled + .tb-slider { opacity:.5; cursor:wait; }
+  @media (max-width:720px){ .tb-kpis{grid-template-columns:repeat(2,1fr);} .tb-table th:nth-child(2),.tb-table td:nth-child(2){display:none;} }
+</style>
+
+<div class="tb-wrap">
+  {% csrf_token %}
+  <div class="tb-head">
+    <div>
+      <h1>🤖 Telegram bot boshqaruvi</h1>
+      <p>Qaysi o'quv markaz botdan foydalanishini boshqaring va foydalanish statistikasini ko'ring.</p>
+    </div>
+  </div>
+
+  <div class="tb-kpis">
+    <div class="tb-kpi">
+      <div class="tb-kpi__label">O'quv markazlar</div>
+      <div class="tb-kpi__val">{{ totals.centers }}</div>
+      <div class="tb-kpi__sub">{{ totals.enabled }} ta bot yoqilgan</div>
+    </div>
+    <div class="tb-kpi">
+      <div class="tb-kpi__label">Ota-onalar (botда)</div>
+      <div class="tb-kpi__val">{{ totals.parents }}</div>
+      <div class="tb-kpi__sub">barcha markazlar bo'yicha</div>
+    </div>
+    <div class="tb-kpi">
+      <div class="tb-kpi__label">O'quvchilar (botда)</div>
+      <div class="tb-kpi__val">{{ totals.students }}</div>
+      <div class="tb-kpi__sub">barcha markazlar bo'yicha</div>
+    </div>
+    <div class="tb-kpi">
+      <div class="tb-kpi__label">Jami foydalanuvchi</div>
+      <div class="tb-kpi__val">{{ totals.users }}</div>
+      <div class="tb-kpi__sub">ota-ona + o'quvchi</div>
+    </div>
+  </div>
+
+  <div class="tb-card">
+    <table class="tb-table">
+      <thead>
+        <tr>
+          <th>O'quv markaz</th>
+          <th>Holat</th>
+          <th class="num">👨‍👩‍👧 Ota-ona</th>
+          <th class="num">🎓 O'quvchi</th>
+          <th class="num">Jami</th>
+          <th class="num">Bot ruxsati</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>
+            <div class="tb-name">{{ r.name }}</div>
+            <div class="tb-slug">/{{ r.slug }}/</div>
+          </td>
+          <td>
+            {% if r.status == 'ACTIVE' %}<span class="tb-pill tb-pill--active">Aktiv</span>
+            {% elif r.status == 'BLOCKED' %}<span class="tb-pill tb-pill--blocked">Bloklangan</span>
+            {% else %}<span class="tb-pill tb-pill--archived">{{ r.status }}</span>{% endif %}
+          </td>
+          <td class="num"><span class="{% if r.parents %}tb-count{% else %}tb-count--zero{% endif %}">{{ r.parents }}</span></td>
+          <td class="num"><span class="{% if r.students %}tb-count{% else %}tb-count--zero{% endif %}">{{ r.students }}</span></td>
+          <td class="num"><span class="{% if r.total %}tb-count{% else %}tb-count--zero{% endif %}">{{ r.total }}</span></td>
+          <td class="num">
+            <label class="tb-switch">
+              <input type="checkbox" data-center="{{ r.id }}" {% if r.enabled %}checked{% endif %}>
+              <span class="tb-slider"></span>
+            </label>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:32px;">O'quv markazlar topilmadi.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  function getCsrf() {
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+  document.querySelectorAll('.tb-switch input[data-center]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      var id = input.getAttribute('data-center');
+      var enabled = input.checked;
+      input.disabled = true;
+      fetch('/platform/center/' + id + '/toggle-bot/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ enabled: enabled }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) { input.checked = !enabled; alert('Xatolik: ' + (data.error || '')); }
+        })
+        .catch(function () { input.checked = !enabled; alert('Ulanishда xatolik.'); })
+        .finally(function () { input.disabled = false; });
+    });
+  });
+})();
+</script>
+{% endblock %}

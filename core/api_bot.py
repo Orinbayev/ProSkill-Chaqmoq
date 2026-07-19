@@ -970,6 +970,10 @@ def bot_dashboard(request):
         return _json_error("Foydalanuvchi topilmadi", status=404)
 
     center = _resolve_center(user)
+    # Family bot (ota-ona/o'quvchi) — markaz uchun bot o'chirilgan bo'lsa panel berilmaydi
+    # (mavjud bog'langan foydalanuvchilarni ham cheklaydi).
+    if user.role in ("parent", "student") and not getattr(center, "telegram_bot_enabled", False):
+        return _json_error("Bu o'quv markazi uchun Telegram bot yoqilmagan.", status=403)
     child_id = str(request.GET.get("child_id") or "").strip()
     group_id = str(request.GET.get("group_id") or "").strip()
 
