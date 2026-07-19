@@ -384,7 +384,21 @@ import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
 
+def _env_admin_ids() -> set[str]:
+    """`.env` dagi ADMIN_ID (bitta yoki vergul bilan bir nechta) — botда to'liq admin."""
+    import os
+    raw = os.getenv("ADMIN_ID") or ""
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
+
 def is_bot_admin(tg_id):
+    if not tg_id:
+        return False
+    tg_id = str(tg_id).strip()
+    # 1) .env dagi ADMIN_ID → to'liq admin (BotAdmin yozuvi shart emas)
+    if tg_id in _env_admin_ids():
+        return True
+    # 2) Yoki DB dagi ro'yxatga olingan bot admin
     return BotAdmin.objects.filter(telegram_id=tg_id).exists()
 
 @csrf_exempt
@@ -441,6 +455,80 @@ def get_bot_app_adoption(request):
         "summary": app_adoption_totals(rows),
         "centers": rows,
     })
+
+
+def _bot_centers_payload() -> dict:
+    """Botда markazlar boshqaruvi uchun: har markaz + bot ruxsati + statistika."""
+    from django.db.models import Count
+    from accounts.models import Center
+
+    centers = list(
+        Center.objects.filter(is_deleted=False)
+        .only("id", "name", "slug", "telegram_bot_enabled")
+        .order_by("-telegram_bot_enabled", "name")
+    )
+    linked = (
+        User.objects.filter(is_telegram_linked=True, role__in=("parent", "student"))
+        .values("center_id", "role").annotate(n=Count("id"))
+    )
+    parents_map, students_map = {}, {}
+    for row in linked:
+        (parents_map if row["role"] == "parent" else students_map)[row["center_id"]] = row["n"]
+
+    rows, total_p, total_s, enabled = [], 0, 0, 0
+    for c in centers:
+        p = parents_map.get(c.id, 0)
+        s = students_map.get(c.id, 0)
+        total_p += p
+        total_s += s
+        if c.telegram_bot_enabled:
+            enabled += 1
+        rows.append({
+            "id": c.id, "name": c.name, "enabled": c.telegram_bot_enabled,
+            "parents": p, "students": s, "total": p + s,
+        })
+    return {
+        "centers": rows,
+        "totals": {"centers": len(centers), "enabled": enabled,
+                   "parents": total_p, "students": total_s, "users": total_p + total_s},
+    }
+
+
+@csrf_exempt
+def get_bot_centers(request):
+    """Bot admin: markazlar ro'yxati + bot ruxsati + statistika."""
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+    if not is_bot_admin(request.GET.get("admin_tg_id")):
+        return JsonResponse({"is_admin": False}, status=403)
+    payload = _bot_centers_payload()
+    payload["is_admin"] = True
+    return JsonResponse(payload)
+
+
+@csrf_exempt
+@require_POST
+def toggle_bot_center(request):
+    """Bot admin: markaz uchun Telegram botni yoqish/o'chirish."""
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri JSON."}, status=400)
+    if not is_bot_admin(str(data.get("admin_tg_id") or "")):
+        return JsonResponse({"ok": False, "is_admin": False}, status=403)
+
+    from accounts.models import Center
+    try:
+        center = Center.objects.get(pk=int(data.get("center_id") or 0))
+    except (Center.DoesNotExist, TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi."}, status=404)
+    center.telegram_bot_enabled = bool(data.get("enabled"))
+    center.save(update_fields=["telegram_bot_enabled"])
+    return JsonResponse({"ok": True, "center_id": center.id, "enabled": center.telegram_bot_enabled})
 
 
 @csrf_exempt

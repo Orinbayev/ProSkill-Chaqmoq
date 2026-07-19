@@ -35,6 +35,8 @@ urlpatterns = [
     # Admin Bot API
     path('bot-admin-dashboard/', api_auth.get_bot_admin_dashboard, name='bot_admin_dashboard'),
     path('bot-app-adoption/', api_auth.get_bot_app_adoption, name='bot_app_adoption'),
+    path('bot-centers/', api_auth.get_bot_centers, name='bot_centers'),
+    path('bot-center-toggle/', api_auth.toggle_bot_center, name='bot_center_toggle'),
     path('bot-linked-users/', api_auth.get_bot_linked_users, name='bot_linked_users'),
     path('bot-broadcast-list/', api_auth.get_bot_broadcast_list, name='bot_broadcast_list'),
     path('bot-excel-export/', api_auth.get_bot_excel_export, name='bot_excel_export'),
