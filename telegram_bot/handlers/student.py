@@ -105,10 +105,9 @@ async def student_ranking(message: types.Message, state: FSMContext):
         bal = payload.get("balance", {})
         top5 = _format_top5(r.get("top5", []), r.get("rank_position"))
         text = t("s_ranking", lang,
-                 group=r.get("group_name", "—"),
                  balance=bal.get("current_balance", 0),
                  rank=r.get("rank_position") or "—",
-                 total=(r.get("total_students") or bal.get("group_ranking", {}).get("total_students", 0)))
+                 total=r.get("total_students", 0))
         if top5:
             text += "\n\n" + top5
         await message.answer(text, parse_mode="HTML")

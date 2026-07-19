@@ -428,16 +428,55 @@ def _group_ranking_payload(group: Group, student: User) -> dict:
     }
 
 
+def _center_ranking_payload(student: User, center, top_n: int = 5) -> dict:
+    """UMUMIY reyting — butun markaz bo'yicha (sayt reytingi bilan aynan bir xil):
+    barcha o'quvchilar chaqmoq balansi bo'yicha tartiblanadi."""
+    try:
+        from chaqmoq.views import _get_balances_with_legacy_fallback
+    except Exception:
+        _get_balances_with_legacy_fallback = None
+
+    students = list(
+        User.objects.filter(role="student", center=center, is_archived=False)
+        .values("id", "ism", "familya")
+    )
+    ids = [row["id"] for row in students]
+    if _get_balances_with_legacy_fallback:
+        balances = _get_balances_with_legacy_fallback(ids, center=center)
+    else:
+        balances = {sid: Ledger.student_balansi(sid, center=center) for sid in ids}
+
+    board = [
+        {
+            "id": row["id"],
+            "full_name": (f"{row['ism'] or ''} {row['familya'] or ''}").strip() or "—",
+            "score": int(balances.get(row["id"], 0) or 0),
+        }
+        for row in students
+    ]
+    # Sayt bilan bir xil tartib: balans↓, ism↑, id↑
+    board.sort(key=lambda r: (-r["score"], r["full_name"], r["id"]))
+
+    rank_position = None
+    top5: list[dict] = []
+    for idx, row in enumerate(board, start=1):
+        if row["id"] == student.id:
+            rank_position = idx
+        if idx <= top_n:
+            top5.append({"position": idx, "full_name": row["full_name"], "score": row["score"]})
+    return {
+        "group_id": None,
+        "group_name": getattr(center, "name", "") or "Umumiy reyting",
+        "rank_position": rank_position,
+        "total_students": len(board),
+        "top5": top5,
+    }
+
+
 def _student_balance_payload(student: User, center) -> dict:
     balance = Ledger.student_balansi(student.id, center=center)
-    first_enrollment = _student_active_enrollments(student, center).first()
-    ranking = _group_ranking_payload(first_enrollment.group, student) if first_enrollment else {
-        "group_id": None,
-        "group_name": "Faol guruh yo'q",
-        "rank_position": None,
-        "total_students": 0,
-        "top5": [],
-    }
+    # UMUMIY reyting (guruh ichki emas — butun markaz bo'yicha).
+    ranking = _center_ranking_payload(student, center)
     return {
         "current_balance": balance,
         "group_ranking": ranking,
