@@ -4,11 +4,10 @@ from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from keyboards.student_menu import get_store_products_keyboard, get_student_settings_keyboard
+from keyboards.student_menu import get_store_products_keyboard
 from services.api_client import (
     create_purchase_request_api,
     get_bot_dashboard_api,
-    update_notification_settings_api,
 )
 from services.profile_context import ensure_active_profile
 from i18n import t, ik, btn_is, get_lang, render_payment
@@ -59,25 +58,6 @@ async def student_status(message: types.Message, state: FSMContext):
         await message.answer(t("generic_error", lang))
 
 
-@router.message(btn_is("s_balance"))
-async def student_balance(message: types.Message, state: FSMContext):
-    lang = get_lang(message.from_user.id)
-    try:
-        payload = await _load_student_dashboard(message, state)
-        if not payload:
-            return
-        bal = payload.get("balance", {})
-        rank = bal.get("group_ranking", {})
-        await message.answer(
-            t("s_balance", lang, balance=bal.get("current_balance", 0),
-              rank=rank.get("rank_position") or "—", total=rank.get("total_students", 0)),
-            parse_mode="HTML",
-        )
-    except Exception:
-        logger.exception("student_balance failed")
-        await message.answer(t("generic_error", lang))
-
-
 @router.message(btn_is("s_schedule"))
 async def student_schedule(message: types.Message, state: FSMContext):
     lang = get_lang(message.from_user.id)
@@ -122,8 +102,13 @@ async def student_ranking(message: types.Message, state: FSMContext):
         if not payload:
             return
         r = payload.get("ranking", {})
+        bal = payload.get("balance", {})
         top5 = _format_top5(r.get("top5", []), r.get("rank_position"))
-        text = t("s_ranking", lang, group=r.get("group_name", "—"), rank=r.get("rank_position") or "—")
+        text = t("s_ranking", lang,
+                 group=r.get("group_name", "—"),
+                 balance=bal.get("current_balance", 0),
+                 rank=r.get("rank_position") or "—",
+                 total=(r.get("total_students") or bal.get("group_ranking", {}).get("total_students", 0)))
         if top5:
             text += "\n\n" + top5
         await message.answer(text, parse_mode="HTML")
@@ -231,42 +216,4 @@ async def student_buy_cancel(callback: types.CallbackQuery, state: FSMContext):
         pass
     await callback.answer(t("s_buy_cancel", lang))
 
-
-@router.message(btn_is("s_settings"))
-async def student_settings(message: types.Message, state: FSMContext):
-    lang = get_lang(message.from_user.id)
-    try:
-        payload = await _load_student_dashboard(message, state)
-        if not payload:
-            return
-        settings = payload.get("settings", {})
-        enabled = bool(settings.get("notifications_enabled"))
-        status_label = t("on", lang) if enabled else t("off", lang)
-        await message.answer(
-            t("s_settings", lang, status=status_label),
-            reply_markup=get_student_settings_keyboard(enabled, lang), parse_mode="HTML",
-        )
-    except Exception:
-        logger.exception("student_settings failed")
-        await message.answer(t("generic_error", lang))
-
-
-@router.callback_query(F.data.startswith("student:notifications:"))
-async def student_toggle_notifications(callback: types.CallbackQuery, state: FSMContext):
-    lang = get_lang(callback.from_user.id)
-    try:
-        profile = await ensure_active_profile(callback, state, allowed_roles=("student",))
-        if not profile:
-            return
-        enabled = bool(int(callback.data.split(":")[2]))
-        status_code, response = await update_notification_settings_api(
-            str(callback.from_user.id), profile["email"], enabled,
-        )
-        if status_code == 200 and response.get("ok"):
-            label = t("on_v", lang) if enabled else t("off_v", lang)
-            await callback.answer(t("s_notif_toggled", lang, status=label), show_alert=True)
-        else:
-            await callback.answer(response.get("error", t("generic_error", lang)), show_alert=True)
-    except Exception:
-        logger.exception("student_toggle_notifications failed")
-        await callback.answer(t("generic_error", lang), show_alert=True)
+# "Sozlamalar" (bildirishnoma) tugmasi olib tashlandi — bildirishnoma doim yoniq.

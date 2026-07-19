@@ -4,11 +4,12 @@ from i18n import b
 
 
 def get_student_main_menu(lang: str = "uz"):
+    # Soddalashtirildi: "Balans" → "Reyting" ichida; "Sozlamalar" olib tashlandi
+    # (bildirishnoma doim yoniq).
     keyboard = [
-        [KeyboardButton(text=b("s_status", lang)), KeyboardButton(text=b("s_balance", lang))],
-        [KeyboardButton(text=b("s_schedule", lang)), KeyboardButton(text=b("s_payment", lang))],
-        [KeyboardButton(text=b("s_ranking", lang)), KeyboardButton(text=b("s_store", lang))],
-        [KeyboardButton(text=b("s_settings", lang)), KeyboardButton(text=b("c_sitelogin", lang))],
+        [KeyboardButton(text=b("s_status", lang)), KeyboardButton(text=b("s_payment", lang))],
+        [KeyboardButton(text=b("s_schedule", lang)), KeyboardButton(text=b("s_ranking", lang))],
+        [KeyboardButton(text=b("s_store", lang)), KeyboardButton(text=b("c_sitelogin", lang))],
         [KeyboardButton(text=b("c_logout", lang))],
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
