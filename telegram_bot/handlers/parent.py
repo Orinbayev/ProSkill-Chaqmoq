@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from keyboards.parent_menu import get_children_selector_keyboard
 from services.api_client import get_bot_dashboard_api
 from services.profile_context import ensure_active_profile, get_active_profile, set_selected_child
-from i18n import t, btn_is, get_lang
+from i18n import t, btn_is, get_lang, render_payment, render_attendance
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -86,10 +86,9 @@ async def parent_attendance(message: types.Message, state: FSMContext):
         if not child:
             await message.answer(t("pick_child_first", lang))
             return
-        a = child.get("attendance", {})
         await message.answer(
-            t("p_attendance", lang, name=child.get("full_name"),
-              rate=a.get("recent_rate", 0), present=a.get("recent_present", 0), total=a.get("recent_total", 0)),
+            render_attendance(child.get("attendance", {}), lang,
+                              title=t("att_title", lang, name=child.get("full_name"))),
             parse_mode="HTML",
         )
     except Exception:
@@ -108,10 +107,9 @@ async def parent_payment(message: types.Message, state: FSMContext):
         if not child:
             await message.answer(t("pick_child_first", lang))
             return
-        p = child.get("payment", {})
         await message.answer(
-            t("p_payment", lang, name=child.get("full_name"),
-              debt=f"{p.get('debt', 0):,}", last=p.get("last_payment_date", "—")),
+            render_payment(child.get("payment", {}), lang,
+                          title=t("pay_title_p", lang, name=child.get("full_name"))),
             parse_mode="HTML",
         )
     except Exception:

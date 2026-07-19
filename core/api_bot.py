@@ -166,7 +166,77 @@ def _student_debt_breakdown(student: User, center) -> tuple[int, list[dict]]:
                 "is_active": bool(enrollment.is_active),
             }
         )
-    return total, items
+    # MUHIM: umumiy qarzni SAYT bilan bir xil manbadan olamiz (prorated, faqat
+    # haqiqiy yozuvlar) — aks holda bot joriy oyning to'liq narxini "qarz" deb
+    # ko'rsatib, sayt bilan mos kelmaydi.
+    return _student_debt_total(student, center), items
+
+
+def _student_debt_total(student: User, center) -> int:
+    """Sayt bilan aynan bir xil umumiy qarz (education.views.get_student_total_debt)."""
+    try:
+        from education.views import get_student_total_debt
+        return int(get_student_total_debt(student, center) or 0)
+    except Exception:
+        logging.exception("_student_debt_total failed for student_id=%s", getattr(student, "id", None))
+        return 0
+
+
+def _student_monthly_rows(student: User, center, months_back: int = 6) -> list[dict]:
+    """Oxirgi `months_back` oy uchun oyma-oy {year, month, fee, paid, debt}."""
+    try:
+        from education.models import Enrollment, TuitionMonth
+        from education.services.tuition import (
+            add_month, month_range_starts, calculate_enrollment_debt_snapshots,
+        )
+    except Exception:
+        return []
+
+    today = timezone.localdate()
+    start = add_month(today.replace(day=1), -(months_back - 1))
+    months = month_range_starts(start, today)
+
+    center_q = (
+        Q(center=center)
+        | Q(center__isnull=True, group__center=center)
+        | Q(center__isnull=True, student__center=center)
+    )
+    active = list(Enrollment.objects.filter(
+        student=student, is_active=True, student__is_archived=False,
+        group__is_archived=False, group__is_deleted=False).filter(center_q))
+    inactive_ids = (
+        TuitionMonth.objects.filter(
+            enrollment__student=student, enrollment__is_active=False, is_deleted=False,
+            enrollment__student__is_archived=False, enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False)
+        .values_list("enrollment_id", flat=True).distinct()
+    )
+    inactive = list(Enrollment.objects.filter(
+        id__in=inactive_ids, student__is_archived=False,
+        group__is_archived=False, group__is_deleted=False).filter(center_q))
+    all_enrs = active + inactive
+    if not all_enrs:
+        return []
+
+    snaps = calculate_enrollment_debt_snapshots(
+        all_enrs, months, cumulative_up_to=today, synthesize_past_virtual=False)
+
+    per_month: dict = {}
+    for snap in snaps.values():
+        for m, md in (snap.get("months") or {}).items():
+            agg = per_month.setdefault(m, {"fee": 0, "paid": 0, "debt": 0})
+            agg["fee"] += int(md.get("fee", 0) or 0)
+            agg["paid"] += int(md.get("paid", 0) or 0)
+            agg["debt"] += int(md.get("debt", 0) or 0)
+
+    rows: list[dict] = []
+    for m in months:
+        md = per_month.get(m)
+        if not md or (md["fee"] == 0 and md["paid"] == 0):
+            continue  # o'sha oyда hech narsa bo'lmagan
+        rows.append({"year": m.year, "month": m.month,
+                     "fee": md["fee"], "paid": md["paid"], "debt": md["debt"]})
+    return rows
 
 
 def _student_last_payment(student: User, center):
@@ -429,6 +499,7 @@ def _student_dashboard(user: User, center) -> dict:
             "payment_day": getattr(center, "payment_day", None),
             "last_payment_date": _fmt_date(getattr(last_payment, "paid_date", None)),
             "items": debt_items,
+            "monthly": _student_monthly_rows(user, center),
             "recent_payments": _student_payments(user, center),
         },
         "ranking": balance["group_ranking"],

@@ -11,7 +11,7 @@ from services.api_client import (
     update_notification_settings_api,
 )
 from services.profile_context import ensure_active_profile
-from i18n import t, ik, btn_is, get_lang
+from i18n import t, ik, btn_is, get_lang, render_payment
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -105,9 +105,8 @@ async def student_payment(message: types.Message, state: FSMContext):
         payload = await _load_student_dashboard(message, state)
         if not payload:
             return
-        p = payload.get("payment", {})
         await message.answer(
-            t("s_payment", lang, debt=f"{p.get('debt', 0):,}", last=p.get("last_payment_date", "—")),
+            render_payment(payload.get("payment", {}), lang, title=t("pay_title_s", lang)),
             parse_mode="HTML",
         )
     except Exception:

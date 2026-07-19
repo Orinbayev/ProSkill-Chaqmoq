@@ -262,6 +262,51 @@ M: dict[str, dict[str, str]] = {
     "off": {"uz": "o'chirilgan", "ru": "выключены", "cy": "ўчирилган"},
     "on_v":  {"uz": "yoqildi", "ru": "включены", "cy": "ёқилди"},
     "off_v": {"uz": "o'chirildi", "ru": "выключены", "cy": "ўчирилди"},
+    # ── To'lov (oyma-oy) — batafsil ──
+    "pay_title_p":  {"uz": "💰 <b>{name}</b> — to'lovlar",
+                     "ru": "💰 <b>{name}</b> — оплаты",
+                     "cy": "💰 <b>{name}</b> — тўловлар"},
+    "pay_title_s":  {"uz": "💰 <b>To'lovlarim</b>",
+                     "ru": "💰 <b>Мои оплаты</b>",
+                     "cy": "💰 <b>Тўловларим</b>"},
+    "pay_total_debt":{"uz": "Umumiy qarz: <b>{debt} so'm</b>",
+                     "ru": "Общий долг: <b>{debt} сум</b>",
+                     "cy": "Умумий қарз: <b>{debt} сўм</b>"},
+    "pay_no_debt":  {"uz": "✅ Qarzdorlik yo'q.",
+                     "ru": "✅ Задолженности нет.",
+                     "cy": "✅ Қарздорлик йўқ."},
+    "pay_months_h": {"uz": "🗓 <b>Oyma-oy:</b>",
+                     "ru": "🗓 <b>По месяцам:</b>",
+                     "cy": "🗓 <b>Ойма-ой:</b>"},
+    "pay_line_paid":{"uz": "• {month}: {paid} so'm ✅",
+                     "ru": "• {month}: {paid} сум ✅",
+                     "cy": "• {month}: {paid} сўм ✅"},
+    "pay_line_debt":{"uz": "• {month}: {paid}/{fee} — qarz {debt} ❌",
+                     "ru": "• {month}: {paid}/{fee} — долг {debt} ❌",
+                     "cy": "• {month}: {paid}/{fee} — қарз {debt} ❌"},
+    "pay_last2":    {"uz": "Oxirgi to'lov: {last}",
+                     "ru": "Последняя оплата: {last}",
+                     "cy": "Охирги тўлов: {last}"},
+    "pay_none":     {"uz": "To'lov yozuvlari topilmadi.",
+                     "ru": "Записей об оплате нет.",
+                     "cy": "Тўлов ёзувлари топилмади."},
+    # ── Davomat — batafsil ──
+    "att_title":    {"uz": "📊 <b>{name}</b> — davomat",
+                     "ru": "📊 <b>{name}</b> — посещаемость",
+                     "cy": "📊 <b>{name}</b> — давомат"},
+    "att_rate":     {"uz": "So'nggi 30 kun: <b>{rate}%</b> ({present}/{total})",
+                     "ru": "За 30 дней: <b>{rate}%</b> ({present}/{total})",
+                     "cy": "Сўнгги 30 кун: <b>{rate}%</b> ({present}/{total})"},
+    "att_recent_h": {"uz": "🗓 <b>So'nggi darslar:</b>",
+                     "ru": "🗓 <b>Последние занятия:</b>",
+                     "cy": "🗓 <b>Сўнгги дарслар:</b>"},
+    "att_none":     {"uz": "Davomat yozuvlari topilmadi.",
+                     "ru": "Записей о посещаемости нет.",
+                     "cy": "Давомат ёзувлари топилмади."},
+    "att_present":  {"uz": "Keldi", "ru": "Пришёл", "cy": "Келди"},
+    "att_late":     {"uz": "Kech", "ru": "Опоздал", "cy": "Кеч"},
+    "att_excused":  {"uz": "Sababli", "ru": "Ув. причина", "cy": "Сабабли"},
+    "att_unexcused":{"uz": "Sababsiz", "ru": "Без причины", "cy": "Сабабсиз"},
     # Til tanlash (barcha tillar birga ko'rsatiladi)
     "pick_lang": {"uz": "👋 Assalomu alaykum! / Здравствуйте! / Ассалому алайкум!\n\n"
                         "Tilni tanlang / Выберите язык / Тилни танланг 👇",
@@ -305,6 +350,93 @@ def btn_variants(*keys: str) -> frozenset[str]:
 def btn_is(*keys: str):
     """Handler filtri: matn shu tugma(lar)ning istalgan tildagi yozuvimi."""
     return F.text.in_(btn_variants(*keys))
+
+
+MONTHS: dict[int, dict[str, str]] = {
+    1:  {"uz": "Yanvar",   "ru": "Январь",   "cy": "Январ"},
+    2:  {"uz": "Fevral",   "ru": "Февраль",  "cy": "Феврал"},
+    3:  {"uz": "Mart",     "ru": "Март",     "cy": "Март"},
+    4:  {"uz": "Aprel",    "ru": "Апрель",   "cy": "Апрел"},
+    5:  {"uz": "May",      "ru": "Май",      "cy": "Май"},
+    6:  {"uz": "Iyun",     "ru": "Июнь",     "cy": "Июн"},
+    7:  {"uz": "Iyul",     "ru": "Июль",     "cy": "Июл"},
+    8:  {"uz": "Avgust",   "ru": "Август",   "cy": "Август"},
+    9:  {"uz": "Sentabr",  "ru": "Сентябрь", "cy": "Сентабр"},
+    10: {"uz": "Oktabr",   "ru": "Октябрь",  "cy": "Октабр"},
+    11: {"uz": "Noyabr",   "ru": "Ноябрь",   "cy": "Ноябр"},
+    12: {"uz": "Dekabr",   "ru": "Декабрь",  "cy": "Декабр"},
+}
+
+
+def month_name(num: int, year: int, lang: str = DEFAULT_LANG) -> str:
+    mn = (MONTHS.get(int(num)) or {}).get(lang) or str(num)
+    return f"{mn} {year}"
+
+
+def att_status_label(status: str, lang: str = DEFAULT_LANG) -> str:
+    key = {
+        "present": "att_present",
+        "late": "att_late",
+        "absent_excused": "att_excused",
+        "absent_unexcused": "att_unexcused",
+    }.get(status or "", "att_unexcused")
+    return t(key, lang)
+
+
+def money(value) -> str:
+    try:
+        return f"{int(value or 0):,}"
+    except (TypeError, ValueError):
+        return str(value or 0)
+
+
+def render_payment(payment: dict, lang: str, title: str) -> str:
+    """To'lovlar — umumiy qarz + oyma-oy (batafsil)."""
+    payment = payment or {}
+    debt = int(payment.get("debt", 0) or 0)
+    lines = [title, ""]
+    lines.append(t("pay_no_debt", lang) if debt <= 0 else t("pay_total_debt", lang, debt=money(debt)))
+
+    monthly = payment.get("monthly") or []
+    if monthly:
+        lines.append("")
+        lines.append(t("pay_months_h", lang))
+        for r in monthly:
+            m = month_name(r.get("month", 1), r.get("year", ""), lang)
+            if int(r.get("debt", 0) or 0) <= 0:
+                lines.append(t("pay_line_paid", lang, month=m, paid=money(r.get("paid"))))
+            else:
+                lines.append(t("pay_line_debt", lang, month=m,
+                              paid=money(r.get("paid")), fee=money(r.get("fee")), debt=money(r.get("debt"))))
+    elif debt <= 0:
+        pass
+    else:
+        lines.append(t("pay_none", lang))
+
+    last = payment.get("last_payment_date") or "—"
+    lines.append("")
+    lines.append(t("pay_last2", lang, last=last))
+    return "\n".join(lines)
+
+
+def render_attendance(att: dict, lang: str, title: str, recent_limit: int = 12) -> str:
+    """Davomat — 30 kunlik foiz + so'nggi darslar ro'yxati (batafsil)."""
+    att = att or {}
+    lines = [
+        title, "",
+        t("att_rate", lang, rate=att.get("recent_rate", 0),
+          present=att.get("recent_present", 0), total=att.get("recent_total", 0)),
+    ]
+    items = att.get("items") or []
+    if items:
+        lines.append("")
+        lines.append(t("att_recent_h", lang))
+        for it in items[:recent_limit]:
+            lines.append(f"• {it.get('date', '—')} — {att_status_label(it.get('status', ''), lang)}")
+    else:
+        lines.append("")
+        lines.append(t("att_none", lang))
+    return "\n".join(lines)
 
 
 def lang_picker_kb() -> InlineKeyboardMarkup:
