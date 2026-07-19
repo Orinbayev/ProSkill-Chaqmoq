@@ -1,22 +1,15 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-
-def _common_rows():
-    # Family botда faqat 🚪 Chiqish ishlaydi; qolgan umumiy tugmalar (Profil,
-    # Faoliyat, Xavfsizlik, Profilni almashtirish, Yordam) handlersiz edi — olib tashlandi.
-    return [
-        [KeyboardButton(text="🚪 Chiqish")],
-    ]
+from i18n import b
 
 
-def get_parent_main_menu():
+def get_parent_main_menu(lang: str = "uz"):
     keyboard = [
-        [KeyboardButton(text="👶 Bolalarim"), KeyboardButton(text="📊 Davomat")],
-        [KeyboardButton(text="💰 To'lov Holati"), KeyboardButton(text="⚡ Chaqmoq Ballari")],
-        [KeyboardButton(text="📞 O'qituvchi"), KeyboardButton(text="➕ Farzand qo'shish")],
-        [KeyboardButton(text="🔑 Saytga login")],
+        [KeyboardButton(text=b("p_children", lang)), KeyboardButton(text=b("p_attendance", lang))],
+        [KeyboardButton(text=b("p_payment", lang)), KeyboardButton(text=b("p_balance", lang))],
+        [KeyboardButton(text=b("p_teacher", lang)), KeyboardButton(text=b("p_addchild", lang))],
+        [KeyboardButton(text=b("c_sitelogin", lang)), KeyboardButton(text=b("c_logout", lang))],
     ]
-    keyboard.extend(_common_rows())
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 
