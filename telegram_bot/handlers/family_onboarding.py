@@ -357,6 +357,12 @@ def _collect_menu_texts() -> frozenset[str]:
             for btn in row:
                 if getattr(btn, "text", None):
                     texts.add(btn.text)
+    # Menyudan olib tashlangan eski umumiy tugmalar — Telegram klaviaturani keshlaydi,
+    # shu sabab eski menyuli foydalanuvchilar bossa ham spam bo'lmasin.
+    texts |= {
+        "👤 Profil", "📜 Faoliyat tarixi", "🔐 Xavfsizlik",
+        "🔄 Profilni almashtirish", "ℹ️ Yordam",
+    }
     return frozenset(texts)
 
 

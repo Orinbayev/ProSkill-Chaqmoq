@@ -2,10 +2,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 
 
 def _common_rows():
+    # Family botда faqat 🚪 Chiqish ishlaydi; qolgan umumiy tugmalar (Profil,
+    # Faoliyat, Xavfsizlik, Profilni almashtirish, Yordam) handlersiz edi — olib tashlandi.
     return [
-        [KeyboardButton(text="👤 Profil"), KeyboardButton(text="📜 Faoliyat tarixi")],
-        [KeyboardButton(text="🔐 Xavfsizlik"), KeyboardButton(text="🔄 Profilni almashtirish")],
-        [KeyboardButton(text="ℹ️ Yordam"), KeyboardButton(text="🚪 Chiqish")],
+        [KeyboardButton(text="🚪 Chiqish")],
     ]
 
 
