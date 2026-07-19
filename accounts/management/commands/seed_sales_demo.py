@@ -19,6 +19,7 @@ from datetime import date, datetime, time, timedelta
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 # Determ. urug' — har safar bir xil demo
 random.seed(2026)
@@ -171,6 +172,70 @@ def seed(*, slug: str, log=print) -> dict:
         )
         groups.append(g)
     log(f"• {len(groups)} ta guruh yaratildi")
+
+    # ─────────────── 4b) Qo'shimcha xodimlar (HR paneli demosi) ───────────────
+    # HR dashboard panellari to'lishi uchun: hire date (so'nggi qo'shilganlar),
+    # fan/Yo'nalish (yo'nalishlar bo'yicha), ish kunlari (jadval zichligi + haftalik
+    # bandlik), bo'sh ustozlar (bugun dars bermaydiganlar).
+    from education.models import StaffProfile, TeacherAvailability
+    from store.models import Yonalish
+
+    subj_names = ["Ingliz tili", "IELTS", "Matematika", "Rus tili", "Ona tili", "Speaking"]
+    subjects = {n: Yonalish.objects.get_or_create(center=center, nom=n)[0] for n in subj_names}
+
+    def _staff_role(role):
+        return {
+            "teacher": StaffProfile.Role.TEACHER,
+            "manager": StaffProfile.Role.MANAGER,
+        }.get(role, StaffProfile.Role.ADMIN)
+
+    def _hire(months_ago):
+        if months_ago == 0:
+            return today.replace(day=max(1, today.day - 3))
+        return _month_add(today, -months_ago).replace(day=min(today.day, 27))
+
+    # (ism, familya, role, lavozim, oy_oldin, [fanlar], [ish_kunlari], [darajalar], [yo'nalishlar])
+    STAFF_DEFS = [
+        ("Aziza", "Karimova", "teacher", "Ingliz tili o'qituvchisi", 0, ["Ingliz tili", "IELTS"], [1, 3, 5], ["Intermediate", "Upper-Intermediate"], ["IELTS", "General English"]),
+        ("Jasur", "Toshmatov", "teacher", "Matematika o'qituvchisi", 0, ["Matematika"], [2, 4, 6], ["Advanced"], ["SAT"]),
+        ("Nilufar", "Rahimova", "teacher", "Speaking o'qituvchisi", 2, ["Speaking", "Ingliz tili"], [1, 3], ["Pre-Intermediate"], ["Speaking", "Kids"]),
+        ("Sardor", "Aliyev", "teacher", "Rus tili o'qituvchisi", 4, ["Rus tili"], [2, 4], ["Elementary"], ["General English"]),
+        ("Kamola", "Yusupova", "teacher", "Ona tili o'qituvchisi", 6, ["Ona tili"], [1, 3, 5, 6], ["Beginner"], ["Kids"]),
+        ("Bekzod", "Nazarov", "teacher", "IELTS o'qituvchisi", 9, ["IELTS", "Matematika"], [3, 5], ["Upper-Intermediate", "Advanced"], ["IELTS"]),
+        ("Gulnora", "Ismoilova", "manager", "Kichik menejer", 12, [], [], [], []),
+    ]
+    extra_staff = 0
+    for ism, familya, role, position, months_ago, fans, kunlar, levels, directions in STAFF_DEFS:
+        u = User.objects.create_user(
+            email=f"{slugify(ism)}.{slugify(familya)}@{slug}.demo.local", password="demo",
+            role=role, center=center, ism=ism, familya=familya,
+            telefon1=f"+9989015{extra_staff:05d}", lavozim=position,
+        )
+        prof = StaffProfile.objects.create(
+            user=u, tenant=center, full_name=f"{ism} {familya}", phone=u.telefon1,
+            role=_staff_role(role), position=position, hire_date=_hire(months_ago),
+            levels=levels, directions=directions, is_active=True,
+        )
+        if fans:
+            prof.subjects.set([subjects[f] for f in fans])
+        if role == "teacher":  # ish kunlari → jadval zichligi + haftalik bandlik
+            for wd in kunlar:
+                TeacherAvailability.objects.get_or_create(
+                    tenant=center, teacher=u, weekday=wd, start_time=time(14, 0),
+                    defaults={"end_time": time(18, 0), "type": TeacherAvailability.Type.AVAILABLE},
+                )
+        extra_staff += 1
+
+    # Mavjud Temur (asosiy teacher) uchun ham profil to'ldiriladi
+    tprof, _ = StaffProfile.objects.get_or_create(user=teacher, tenant=center)
+    tprof.full_name = teacher.get_full_name() or "Temur O'qituvchiyev"
+    tprof.role = StaffProfile.Role.TEACHER
+    tprof.position = "Katta o'qituvchi"
+    tprof.hire_date = _month_add(today, -18).replace(day=15)
+    tprof.is_active = True
+    tprof.save()
+    tprof.subjects.set([subjects["Ingliz tili"], subjects["IELTS"]])
+    log(f"• {extra_staff} ta qo'shimcha xodim (HR demo: hire date, fan, ish kunlari)")
 
     # ─────────────── 5) O'quvchilar + enrollmentlar (o'sish uchun sanalar tarqalgan) ───────────────
     students = []

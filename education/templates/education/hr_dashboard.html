@@ -1680,15 +1680,320 @@
     outline: 2px solid var(--hrx-accent);
     outline-offset: 2px;
   }
+
+  /* ============================================================
+     HR DASHBOARD OVERVIEW  (.hrd-*)  — reference-style overview
+     Uses the same --hrx-* tokens so it matches the platform theme.
+     ============================================================ */
+  .hrd { display: grid; gap: 12px; }
+  .hrd-card {
+    background: var(--hrx-surface);
+    border: 1px solid var(--hrx-border);
+    border-radius: var(--hrx-radius);
+    box-shadow: var(--hrx-shadow-sm);
+  }
+
+  /* ── page header ── */
+  .hrd-head {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+  .hrd-head__text { min-width: 0; }
+  .hrd-head__text h2 {
+    margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--hrx-text);
+  }
+  .hrd-head__text p { margin: 3px 0 0; font-size: 13px; color: var(--hrx-text-muted); }
+  .hrd-head__actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .hrd-datepill {
+    display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+    border-radius: 10px; border: 1px solid var(--hrx-border); background: var(--hrx-surface-2);
+    color: var(--hrx-text-soft); font-size: 13px; font-weight: 600; white-space: nowrap;
+  }
+  .hrd-datepill i { color: var(--hrx-accent-strong); }
+
+  /* ── KPI cards ── */
+  .hrd-kpis {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .hrd-kpi {
+    background: var(--hrx-surface); border: 1px solid var(--hrx-border);
+    border-radius: var(--hrx-radius); box-shadow: var(--hrx-shadow-sm);
+    padding: 15px 15px 13px; display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden; transition: transform .18s var(--hrx-ease), box-shadow .18s var(--hrx-ease), border-color .18s var(--hrx-ease);
+  }
+  .hrd-kpi:hover { transform: translateY(-2px); box-shadow: var(--hrx-shadow-md); border-color: var(--hrx-border-strong); }
+  .hrd-kpi__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .hrd-kpi__label { font-size: 12.5px; color: var(--hrx-text-muted); font-weight: 600; }
+  .hrd-kpi__icon {
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 16px;
+    color: var(--kpi, var(--hrx-accent-strong));
+    background: color-mix(in srgb, var(--kpi, #f59e0b) 15%, transparent);
+  }
+  .hrd-kpi__value { font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -.02em; color: var(--hrx-text); }
+  .hrd-kpi__delta { font-size: 12px; font-weight: 600; color: var(--hrx-text-muted); display: inline-flex; align-items: center; gap: 5px; }
+  .hrd-kpi__delta b { font-weight: 700; }
+  .hrd-kpi__delta--up { color: var(--hrx-success); }
+  .hrd-kpi__delta--down { color: var(--hrx-danger); }
+
+  /* ── charts row ── */
+  .hrd-charts { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .hrd-block__head {
+    display: flex; align-items: center; gap: 10px; padding: 13px 16px 4px;
+  }
+  .hrd-block__head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--hrx-text); }
+  .hrd-block__head .hrd-link { margin-left: auto; }
+  .hrd-link {
+    font-size: 12.5px; font-weight: 600; color: var(--hrx-accent-strong);
+    background: none; border: 0; cursor: pointer; text-decoration: none; white-space: nowrap;
+  }
+  .hrd-link:hover { text-decoration: underline; }
+  .hrd-chart-body { padding: 4px 8px 10px; min-height: 240px; }
+  .hrd-donut-wrap { display: flex; align-items: center; gap: 10px; padding: 4px 12px 14px; flex-wrap: wrap; }
+  .hrd-donut { width: 170px; flex-shrink: 0; }
+  .hrd-legend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 9px; }
+  .hrd-legend__row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .hrd-legend__dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .hrd-legend__name { color: var(--hrx-text-soft); }
+  .hrd-legend__val { margin-left: auto; color: var(--hrx-text); font-weight: 700; }
+  .hrd-legend__pct { color: var(--hrx-text-muted); font-weight: 600; min-width: 46px; text-align: right; }
+
+  /* ── panels row ── */
+  .hrd-panels { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hrd-list { padding: 6px 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .hrd-person { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-bottom: 1px solid var(--hrx-border); }
+  .hrd-person:last-child { border-bottom: 0; }
+  .hrd-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, var(--hrx-accent-strong), #f97316);
+  }
+  .hrd-person__meta { min-width: 0; flex: 1; }
+  .hrd-person__name { font-size: 13.5px; font-weight: 600; color: var(--hrx-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hrd-person__sub { font-size: 12px; color: var(--hrx-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hrd-person__aside { font-size: 12px; color: var(--hrx-text-soft); font-weight: 600; white-space: nowrap; text-align: right; }
+  .hrd-person__aside i { color: var(--hrx-accent-strong); margin-right: 4px; }
+
+  /* directions progress bars */
+  .hrd-bars { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .hrd-bar__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .hrd-bar__name { font-size: 13px; color: var(--hrx-text-soft); font-weight: 600; }
+  .hrd-bar__val { font-size: 12px; color: var(--hrx-text-muted); }
+  .hrd-bar__track { height: 8px; border-radius: 6px; background: var(--hrx-surface-soft); border: 1px solid var(--hrx-border); overflow: hidden; }
+  .hrd-bar__fill { height: 100%; border-radius: 6px; background: var(--bar, var(--hrx-accent-strong)); transition: width .5s var(--hrx-ease); }
+
+  /* ── bottom row: heatmap + quick actions ── */
+  .hrd-bottom { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .hrd-heat { padding: 8px 14px 16px; overflow-x: auto; }
+  .hrd-heat table { border-collapse: separate; border-spacing: 5px; width: 100%; }
+  .hrd-heat th {
+    font-size: 11px; font-weight: 600; color: var(--hrx-text-muted); text-align: center; padding: 2px 0; font-weight: 700;
+  }
+  .hrd-heat th.hrd-heat__name, .hrd-heat td.hrd-heat__name {
+    text-align: left; font-size: 12.5px; color: var(--hrx-text-soft); font-weight: 600;
+    white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;
+  }
+  .hrd-heat__cell { width: 30px; height: 26px; border-radius: 7px; background: var(--hrx-surface-soft); border: 1px solid var(--hrx-border); }
+  .hrd-heat__cell--on {
+    background: color-mix(in srgb, var(--hrx-accent-strong) 78%, transparent);
+    border-color: transparent; box-shadow: 0 2px 6px rgba(245,158,11,.22);
+  }
+  .hrd-heat__cell--soft { background: color-mix(in srgb, var(--hrx-accent-strong) 34%, transparent); border-color: transparent; }
+
+  .hrd-quick { padding: 12px 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hrd-quick__btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    padding: 13px; border-radius: 12px; border: 1px solid var(--hrx-border);
+    background: var(--hrx-surface-2); color: var(--hrx-text); cursor: pointer; text-align: left;
+    font: inherit; transition: all .16s var(--hrx-ease);
+  }
+  .hrd-quick__btn:hover { transform: translateY(-2px); border-color: var(--hrx-border-strong); box-shadow: var(--hrx-shadow-sm); }
+  .hrd-quick__ic {
+    width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--qc, var(--hrx-accent-strong));
+    background: color-mix(in srgb, var(--qc, #f59e0b) 15%, transparent);
+  }
+  .hrd-quick__btn span { font-size: 12.5px; font-weight: 600; }
+
+  /* section divider before the management list */
+  .hrd-divider { display: flex; align-items: center; gap: 12px; margin: 8px 2px 0; }
+  .hrd-divider h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--hrx-text); white-space: nowrap; }
+  .hrd-divider__line { flex: 1; height: 1px; background: var(--hrx-border); }
+
+  .hrd-empty { padding: 26px 12px; text-align: center; color: var(--hrx-text-muted); font-size: 13px; }
+
+  /* responsive */
+  @media (max-width: 1180px) {
+    .hrd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .hrd-charts, .hrd-bottom { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 860px) {
+    .hrd-panels { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 620px) {
+    .hrd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hrd-quick { grid-template-columns: 1fr; }
+  }
 </style>
 
 <div class="hrx" data-hrx-root>
 
+  <!-- ══════════ HR DASHBOARD OVERVIEW ══════════ -->
+  <div class="hrd" id="hrdDashboard">
+
+    <!-- page header -->
+    <header class="hrd-card hrd-head">
+      <div class="hrd-head__text">
+        <h2>Xodimlar boshqaruvi</h2>
+        <p id="hrdWelcome">Xush kelibsiz! Bugun jamoangizda nima bo‘layotganini ko‘ring.</p>
+      </div>
+      <div class="hrd-head__actions">
+        <span class="hrd-datepill"><i class="fa-regular fa-calendar"></i><span id="hrdDateLabel">—</span></span>
+        <button type="button" class="hrx-btn hrx-btn--ghost" id="hrdExportButton">
+          <i class="fa-solid fa-file-arrow-down"></i><span>Hisobot</span>
+        </button>
+        <button type="button" class="hrx-btn hrx-btn--primary" id="hrdAddButton">
+          <i class="fa-solid fa-plus"></i><span>Yangi xodim</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- KPI cards -->
+    <div class="hrd-kpis">
+      <div class="hrd-kpi" style="--kpi:#3b82f6">
+        <div class="hrd-kpi__top">
+          <span class="hrd-kpi__label">Jami xodimlar</span>
+          <span class="hrd-kpi__icon"><i class="fa-solid fa-users"></i></span>
+        </div>
+        <div class="hrd-kpi__value" id="hrdKpiTotal">0</div>
+        <div class="hrd-kpi__delta" id="hrdKpiTotalSub">—</div>
+      </div>
+      <div class="hrd-kpi" style="--kpi:#22c55e">
+        <div class="hrd-kpi__top">
+          <span class="hrd-kpi__label">Aktiv xodimlar</span>
+          <span class="hrd-kpi__icon"><i class="fa-solid fa-user-check"></i></span>
+        </div>
+        <div class="hrd-kpi__value" id="hrdKpiActive">0</div>
+        <div class="hrd-kpi__delta" id="hrdKpiActiveSub">—</div>
+      </div>
+      <div class="hrd-kpi" style="--kpi:#f59e0b">
+        <div class="hrd-kpi__top">
+          <span class="hrd-kpi__label">Ustozlar</span>
+          <span class="hrd-kpi__icon"><i class="fa-solid fa-chalkboard-user"></i></span>
+        </div>
+        <div class="hrd-kpi__value" id="hrdKpiTeachers">0</div>
+        <div class="hrd-kpi__delta" id="hrdKpiTeachersSub">—</div>
+      </div>
+      <div class="hrd-kpi" style="--kpi:#8b5cf6">
+        <div class="hrd-kpi__top">
+          <span class="hrd-kpi__label">Bo‘sh ustozlar</span>
+          <span class="hrd-kpi__icon"><i class="fa-solid fa-user-clock"></i></span>
+        </div>
+        <div class="hrd-kpi__value" id="hrdKpiFree">0</div>
+        <div class="hrd-kpi__delta" id="hrdKpiFreeSub">hozir dars bermayapti</div>
+      </div>
+      <div class="hrd-kpi" style="--kpi:#f43f5e">
+        <div class="hrd-kpi__top">
+          <span class="hrd-kpi__label">Yangi (bu oy)</span>
+          <span class="hrd-kpi__icon"><i class="fa-solid fa-user-plus"></i></span>
+        </div>
+        <div class="hrd-kpi__value" id="hrdKpiNew">0</div>
+        <div class="hrd-kpi__delta" id="hrdKpiNewSub">bu oyda qo‘shildi</div>
+      </div>
+    </div>
+
+    <!-- charts: weekly load + roles donut -->
+    <div class="hrd-charts">
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Haftalik bandlik</h3>
+          <span class="hrd-link" style="cursor:default">Ustozlar / kun</span>
+        </div>
+        <div class="hrd-chart-body"><div id="hrdLoadChart"></div></div>
+      </section>
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Rol bo‘yicha xodimlar</h3>
+        </div>
+        <div class="hrd-donut-wrap">
+          <div class="hrd-donut" id="hrdRolesChart"></div>
+          <div class="hrd-legend" id="hrdRolesLegend"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- panels: recent hires + free teachers + directions -->
+    <div class="hrd-panels">
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>So‘nggi qo‘shilganlar</h3>
+          <button type="button" class="hrd-link" data-hrd-goto="all">Barchasi</button>
+        </div>
+        <div class="hrd-list" id="hrdRecentList"></div>
+      </section>
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Bugun bo‘sh ustozlar</h3>
+          <button type="button" class="hrd-link" data-hrd-goto="free">Barchasi</button>
+        </div>
+        <div class="hrd-list" id="hrdFreeList"></div>
+      </section>
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Yo‘nalishlar bo‘yicha</h3>
+        </div>
+        <div class="hrd-bars" id="hrdDirBars"></div>
+      </section>
+    </div>
+
+    <!-- bottom: heatmap + quick actions -->
+    <div class="hrd-bottom">
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Haftalik dars jadvali zichligi</h3>
+          <span class="hrd-link" style="cursor:default">Ustoz × kun</span>
+        </div>
+        <div class="hrd-heat" id="hrdHeat"></div>
+      </section>
+      <section class="hrd-card">
+        <div class="hrd-block__head">
+          <h3>Tezkor amallar</h3>
+        </div>
+        <div class="hrd-quick">
+          <button type="button" class="hrd-quick__btn" data-hrd-action="add" style="--qc:#22c55e">
+            <span class="hrd-quick__ic"><i class="fa-solid fa-user-plus"></i></span>
+            <span>Xodim qo‘shish</span>
+          </button>
+          <button type="button" class="hrd-quick__btn" data-hrd-action="teachers" style="--qc:#3b82f6">
+            <span class="hrd-quick__ic"><i class="fa-solid fa-chalkboard-user"></i></span>
+            <span>Ustozlar ro‘yxati</span>
+          </button>
+          <button type="button" class="hrd-quick__btn" data-hrd-action="free" style="--qc:#8b5cf6">
+            <span class="hrd-quick__ic"><i class="fa-solid fa-user-clock"></i></span>
+            <span>Bo‘sh ustozlar</span>
+          </button>
+          <button type="button" class="hrd-quick__btn" data-hrd-action="export" style="--qc:#f59e0b">
+            <span class="hrd-quick__ic"><i class="fa-solid fa-file-arrow-down"></i></span>
+            <span>Hisobotni yuklab olish</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- divider before the full management list -->
+    <div class="hrd-divider">
+      <h2>Xodimlar ro‘yxati</h2>
+      <span class="hrd-divider__line"></span>
+    </div>
+  </div>
+
   <!-- ─── TOP BAR ─── -->
-  <header class="hrx-topbar">
+  <header class="hrx-topbar" id="hrxListSection">
     <div class="hrx-topbar__title">
-      <h1>Xodimlar</h1>
-      <p>HR markazi — ustozlar, jadval va bandlik bir ekrandan boshqariladi.</p>
+      <h1>Xodimlar ro‘yxati</h1>
+      <p>Ustozlar, jadval va bandlik bir ekrandan boshqariladi.</p>
     </div>
     <div class="hrx-topbar__actions">
       <div class="hrx-search">
@@ -3131,6 +3436,7 @@
       dom.employeeFormMessage.textContent = isEdit ? "Yangilandi." : "Yangi xodim yaratildi.";
       dom.employeeFormMessage.classList.add("is-success");
       await loadEmployees();
+      loadDashboard();
       setTimeout(() => closeModal("employeeFormModal"), 320);
     } catch (error) {
       dom.employeeFormErrors.textContent = error.message || "Xodimni saqlashda xatolik.";
@@ -3201,6 +3507,7 @@
       closeModal("employeeConfirmModal");
       state.confirmAction = null;
       await loadEmployees();
+      loadDashboard();
       // refresh detail if open
       if (state.selectedId && state.rows.find((r) => Number(r.id) === Number(state.selectedId))) {
         openDetail(state.selectedId);
@@ -3449,6 +3756,305 @@
     }
   });
 
+  // ══════════ HR DASHBOARD OVERVIEW ══════════
+  const UZ_MONTHS = ["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentabr","oktabr","noyabr","dekabr"];
+  const WD_SHORT = { 1: "Du", 2: "Se", 3: "Ch", 4: "Pa", 5: "Ju", 6: "Sh", 7: "Ya" };
+  const ROLE_COLORS = ["#f59e0b", "#3b82f6", "#8b5cf6", "#22c55e", "#f43f5e", "#14b8a6", "#94a3b8"];
+
+  const dash = { rows: [], charts: { load: null, roles: null }, loaded: false };
+
+  function uzDate(d) {
+    return `${d.getDate()}-${UZ_MONTHS[d.getMonth()]}, ${d.getFullYear()}`;
+  }
+  function initialsOf(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+  function cssVar(name, fallback) {
+    const root = document.querySelector(".hrx") || document.documentElement;
+    const v = getComputedStyle(root).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+  function isLightTheme() {
+    return document.documentElement.getAttribute("data-role-theme") === "light";
+  }
+  function chartTheme() {
+    return {
+      accent: cssVar("--hrx-accent-strong", "#f59e0b"),
+      text: cssVar("--hrx-text-muted", "#7c8ba6"),
+      grid: cssVar("--hrx-border", "rgba(148,163,184,.14)"),
+      surface: cssVar("--hrx-surface", "#0d1629"),
+      mode: isLightTheme() ? "light" : "dark",
+    };
+  }
+
+  async function loadDashboard() {
+    try {
+      const data = await fetchJson(apiEmployeesUrl, {}, "Boshqaruv ma'lumotini yuklab bo‘lmadi.");
+      dash.rows = Array.isArray(data.results) ? data.results : [];
+      dash.loaded = true;
+      renderDashboard();
+    } catch (error) {
+      // dashboard is best-effort; keep the management list working regardless
+    }
+  }
+
+  function renderDashboard() {
+    const rows = dash.rows;
+    const now = new Date();
+    $("hrdDateLabel").textContent = uzDate(now);
+
+    const total = rows.length;
+    const active = rows.filter((r) => r.is_active).length;
+    const teachers = rows.filter((r) => r.role === "teacher");
+    const freeTeachers = teachers.filter((r) => r.busy_state === "free");
+    const newThisMonth = rows.filter((r) => {
+      if (!r.hire_date) return false;
+      const d = new Date(r.hire_date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    });
+    const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
+
+    $("hrdKpiTotal").textContent = total;
+    $("hrdKpiTotalSub").innerHTML = `<b>${active}</b> aktiv · <b>${total - active}</b> nofaol`;
+    $("hrdKpiActive").textContent = active;
+    $("hrdKpiActiveSub").innerHTML = `jamidan <b>${pct(active)}%</b>`;
+    $("hrdKpiTeachers").textContent = teachers.length;
+    $("hrdKpiTeachersSub").innerHTML = `jamidan <b>${pct(teachers.length)}%</b>`;
+    $("hrdKpiFree").textContent = freeTeachers.length;
+    $("hrdKpiNew").textContent = newThisMonth.length;
+
+    renderRecentHires(rows);
+    renderFreeTeachers(freeTeachers, teachers);
+    renderDirectionBars(rows);
+    renderHeatmap(teachers);
+    renderCharts(rows, teachers);
+  }
+
+  function renderRecentHires(rows) {
+    const el = $("hrdRecentList");
+    const withDate = rows.filter((r) => r.hire_date).sort((a, b) => (a.hire_date < b.hire_date ? 1 : -1)).slice(0, 5);
+    if (!withDate.length) {
+      el.innerHTML = `<div class="hrd-empty">Ishga kirgan sana kiritilmagan.<br>Xodim tahrirlashda sanani belgilang.</div>`;
+      return;
+    }
+    el.innerHTML = withDate.map((r) => {
+      const d = new Date(r.hire_date);
+      const dl = `${d.getDate()}-${UZ_MONTHS[d.getMonth()]}`;
+      return `<div class="hrd-person">
+        <span class="hrd-avatar">${escapeHtml(initialsOf(r.full_name))}</span>
+        <span class="hrd-person__meta">
+          <span class="hrd-person__name">${escapeHtml(r.full_name || "—")}</span>
+          <span class="hrd-person__sub">${escapeHtml(r.position || r.role_label || "—")}</span>
+        </span>
+        <span class="hrd-person__aside">${escapeHtml(dl)}</span>
+      </div>`;
+    }).join("");
+  }
+
+  function renderFreeTeachers(freeTeachers, teachers) {
+    const el = $("hrdFreeList");
+    if (!teachers.length) {
+      el.innerHTML = `<div class="hrd-empty">Ustozlar qo‘shilmagan.</div>`;
+      return;
+    }
+    if (!freeTeachers.length) {
+      el.innerHTML = `<div class="hrd-empty">Ayni damda barcha ustozlar band. 🎯</div>`;
+      return;
+    }
+    el.innerHTML = freeTeachers.slice(0, 6).map((r) => `<div class="hrd-person">
+        <span class="hrd-avatar" style="background:linear-gradient(135deg,#8b5cf6,#6366f1)">${escapeHtml(initialsOf(r.full_name))}</span>
+        <span class="hrd-person__meta">
+          <span class="hrd-person__name">${escapeHtml(r.full_name || "—")}</span>
+          <span class="hrd-person__sub">${escapeHtml((r.subject_names || []).slice(0, 2).join(", ") || r.role_label || "—")}</span>
+        </span>
+        <span class="hrd-person__aside"><i class="fa-regular fa-clock"></i>${escapeHtml(r.today_free_label || "Bo‘sh")}</span>
+      </div>`).join("");
+  }
+
+  function renderDirectionBars(rows) {
+    const el = $("hrdDirBars");
+    const counts = {};
+    rows.forEach((r) => (r.subject_names || []).forEach((n) => {
+      const key = String(n || "").trim();
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    }));
+    let entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (!entries.length) {
+      el.innerHTML = `<div class="hrd-empty">Yo‘nalishlar biriktirilmagan.<br>Ustoz profilida fanni tanlang.</div>`;
+      return;
+    }
+    const max = entries[0][1] || 1;
+    el.innerHTML = entries.map(([name, count], i) => {
+      const w = Math.round((count / max) * 100);
+      const color = ROLE_COLORS[i % ROLE_COLORS.length];
+      return `<div class="hrd-bar">
+        <div class="hrd-bar__top">
+          <span class="hrd-bar__name">${escapeHtml(name)}</span>
+          <span class="hrd-bar__val"><b>${count}</b> ustoz</span>
+        </div>
+        <div class="hrd-bar__track"><div class="hrd-bar__fill" style="width:${w}%;--bar:${color}"></div></div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderHeatmap(teachers) {
+    const el = $("hrdHeat");
+    const withDays = teachers
+      .filter((r) => Array.isArray(r.schedule_days) && r.schedule_days.length)
+      .sort((a, b) => (b.groups_count || 0) - (a.groups_count || 0) || b.schedule_days.length - a.schedule_days.length)
+      .slice(0, 8);
+    if (!withDays.length) {
+      el.innerHTML = `<div class="hrd-empty">Dars jadvali belgilanmagan.<br>Guruh sahifasida kunlar va vaqtni belgilang, shu yerda ko‘rinadi.</div>`;
+      return;
+    }
+    const head = [1, 2, 3, 4, 5, 6, 7].map((wd) => `<th>${WD_SHORT[wd]}</th>`).join("");
+    const body = withDays.map((r) => {
+      const days = new Set((r.schedule_days || []).map((d) => Number(d.weekday)));
+      const cells = [1, 2, 3, 4, 5, 6, 7].map((wd) => {
+        const on = days.has(wd);
+        return `<td><div class="hrd-heat__cell ${on ? "hrd-heat__cell--on" : ""}" title="${WD_SHORT[wd]}"></div></td>`;
+      }).join("");
+      return `<tr><td class="hrd-heat__name" title="${escapeHtml(r.full_name || "")}">${escapeHtml(r.full_name || "—")}</td>${cells}</tr>`;
+    }).join("");
+    el.innerHTML = `<table><thead><tr><th class="hrd-heat__name">Ustoz</th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  function renderCharts(rows, teachers) {
+    if (typeof ApexCharts === "undefined") return;
+    const loadEl = $("hrdLoadChart");
+    // ApexCharts renders an empty SVG when it can't measure the container — either a
+    // 0-width box (pre-layout) or a hidden/unpainted tab (text getBBox returns 0).
+    // Defer via requestAnimationFrame, which stays paused while the tab is hidden and
+    // fires the moment it becomes visible, so charts always draw correctly.
+    if (!loadEl || loadEl.offsetWidth < 40 || document.hidden) {
+      renderCharts._tries = (renderCharts._tries || 0) + 1;
+      if (renderCharts._tries < 60) { requestAnimationFrame(() => renderCharts(rows, teachers)); return; }
+    }
+    renderCharts._tries = 0;
+    const th = chartTheme();
+
+    // weekly teacher load (area)
+    const loadCounts = [1, 2, 3, 4, 5, 6, 7].map((wd) =>
+      teachers.filter((r) => (r.schedule_days || []).some((d) => Number(d.weekday) === wd)).length
+    );
+    if (dash.charts.load) { dash.charts.load.destroy(); dash.charts.load = null; }
+    dash.charts.load = new ApexCharts(loadEl, {
+      chart: { type: "area", height: 240, toolbar: { show: false }, fontFamily: "inherit", animations: { easing: "easeinout", speed: 500 } },
+      series: [{ name: "Dars beruvchi ustozlar", data: loadCounts }],
+      xaxis: { categories: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"], labels: { style: { colors: th.text } }, axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: { labels: { style: { colors: th.text }, formatter: (v) => Math.round(v) }, min: 0, forceNiceScale: true },
+      colors: [th.accent],
+      stroke: { curve: "smooth", width: 3 },
+      fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.02, stops: [0, 100] } },
+      dataLabels: { enabled: false },
+      grid: { borderColor: th.grid, strokeDashArray: 4, xaxis: { lines: { show: false } } },
+      tooltip: { theme: th.mode, y: { formatter: (v) => `${v} ustoz` } },
+      markers: { size: 0, hover: { size: 5 } },
+    });
+    dash.charts.load.render();
+
+    // roles donut
+    const roleCounts = {};
+    rows.forEach((r) => {
+      const label = r.role_label || "Boshqa";
+      roleCounts[label] = (roleCounts[label] || 0) + 1;
+    });
+    const entries = Object.entries(roleCounts).sort((a, b) => b[1] - a[1]);
+    const labels = entries.map((e) => e[0]);
+    const series = entries.map((e) => e[1]);
+    const colors = labels.map((_, i) => ROLE_COLORS[i % ROLE_COLORS.length]);
+    const totalRoles = series.reduce((a, b) => a + b, 0);
+
+    const donutEl = $("hrdRolesChart");
+    if (dash.charts.roles) { dash.charts.roles.destroy(); dash.charts.roles = null; }
+    dash.charts.roles = new ApexCharts(donutEl, {
+      chart: { type: "donut", height: 190, fontFamily: "inherit" },
+      series: series.length ? series : [1],
+      labels: labels.length ? labels : ["Ma'lumot yo‘q"],
+      colors: colors.length ? colors : [th.grid],
+      legend: { show: false },
+      dataLabels: { enabled: false },
+      stroke: { width: 2, colors: [th.surface] },
+      plotOptions: { pie: { donut: { size: "70%", labels: { show: true, value: { color: th.text, fontSize: "22px", fontWeight: 800 }, total: { show: true, label: "Jami", color: th.text, formatter: () => String(totalRoles) } } } } },
+      tooltip: { theme: th.mode, y: { formatter: (v) => `${v} xodim` } },
+    });
+    dash.charts.roles.render();
+
+    // manual legend
+    const legend = $("hrdRolesLegend");
+    legend.innerHTML = entries.map(([name, count], i) => {
+      const p = totalRoles ? Math.round((count / totalRoles) * 100) : 0;
+      return `<div class="hrd-legend__row">
+        <span class="hrd-legend__dot" style="background:${ROLE_COLORS[i % ROLE_COLORS.length]}"></span>
+        <span class="hrd-legend__name">${escapeHtml(name)}</span>
+        <span class="hrd-legend__val">${count}</span>
+        <span class="hrd-legend__pct">${p}%</span>
+      </div>`;
+    }).join("") || `<div class="hrd-empty">Ma'lumot yo‘q</div>`;
+  }
+
+  function exportDashboardCsv() {
+    const rows = dash.rows;
+    if (!rows.length) return;
+    const header = ["Ism familiya", "Rol", "Lavozim", "Telefon", "Yo'nalishlar", "Holat", "Ishga kirgan"];
+    const esc = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const lines = [header.map(esc).join(",")];
+    rows.forEach((r) => {
+      lines.push([
+        r.full_name || "",
+        r.role_label || "",
+        r.position || "",
+        r.phone || "",
+        (r.subject_names || []).join("; "),
+        r.active_label || (r.is_active ? "Aktiv" : "Nofaol"),
+        r.hire_date || "",
+      ].map(esc).join(","));
+    });
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `xodimlar-hisobot-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function gotoList(statKey) {
+    const btn = document.querySelector(`[data-stat="${statKey}"]`);
+    if (btn) btn.click();
+    const target = document.getElementById("hrxListSection");
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // dashboard wiring
+  $("hrdAddButton")?.addEventListener("click", openCreateModal);
+  $("hrdExportButton")?.addEventListener("click", exportDashboardCsv);
+  document.querySelectorAll("[data-hrd-goto]").forEach((b) =>
+    b.addEventListener("click", () => gotoList(b.dataset.hrdGoto))
+  );
+  document.querySelectorAll("[data-hrd-action]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const a = b.dataset.hrdAction;
+      if (a === "add") openCreateModal();
+      else if (a === "export") exportDashboardCsv();
+      else if (a === "teachers") gotoList("teachers");
+      else if (a === "free") gotoList("free");
+    })
+  );
+  // re-render charts on theme switch
+  let dashThemeTimer = null;
+  new MutationObserver(() => {
+    if (!dash.loaded) return;
+    clearTimeout(dashThemeTimer);
+    dashThemeTimer = setTimeout(() => renderCharts(dash.rows, dash.rows.filter((r) => r.role === "teacher")), 120);
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-role-theme"] });
+  // keep dashboard fresh when list is manually reloaded
+  dom.reloadEmployeesButton?.addEventListener("click", loadDashboard);
+
   // init
   renderRoleOptions();
   renderSubjectOptions();
@@ -3456,6 +4062,7 @@
   renderDirectionOptions();
   toggleAvailabilitySection();
   loadEmployees();
+  loadDashboard();
 })();
 </script>
 {% endblock %}
