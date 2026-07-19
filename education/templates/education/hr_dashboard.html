@@ -277,14 +277,19 @@
     min-width: 0;
     text-align: right;
   }
-  .hrx-stats__filters-mobile { display: none; }
+  .hrx-stats__filters-mobile { display: inline-flex; }
 
   /* ───────── 70/30 SPLIT ───────── */
   .hrx-split {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+    grid-template-columns: minmax(0, 1fr); /* default: panel yig'ilgan, kartalar to'liq keng */
     gap: 12px;
     align-items: stretch;
+  }
+  /* Desktop: filter/detail paneli yig'iladi — ochilganda 2 ustun bo'ladi */
+  @media (min-width: 981px) {
+    .hrx-split.panel-open { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+    .hrx-split:not(.panel-open) > .hrx-panel { display: none; }
   }
   .hrx-list,
   .hrx-panel {
@@ -515,8 +520,8 @@
   .hrx-cards {
     display: grid;
     padding: 10px;
-    gap: 10px;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     align-content: start;
     overflow: auto;
     flex: 1 1 auto;
@@ -525,10 +530,10 @@
     background: var(--hrx-surface-2);
     border: 1px solid var(--hrx-border);
     border-radius: 12px;
-    padding: 11px 12px;
+    padding: 10px 11px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     transition: border-color .15s var(--hrx-ease), background .15s var(--hrx-ease), transform .15s var(--hrx-ease);
     cursor: pointer;
     position: relative;
@@ -1316,8 +1321,8 @@
   }
 
   /* ───────── RESPONSIVE ───────── */
-  @media (max-width: 1180px) {
-    .hrx-split { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); }
+  @media (min-width: 981px) and (max-width: 1180px) {
+    .hrx-split.panel-open { grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); }
   }
   @media (max-width: 980px) {
     .hrx-split { grid-template-columns: minmax(0, 1fr); }
@@ -1741,7 +1746,7 @@
   </div>
 
   <!-- ─── 70/30 SPLIT ─── -->
-  <div class="hrx-split">
+  <div class="hrx-split" id="hrxSplit">
 
     <!-- LEFT: list -->
     <section class="hrx-list" aria-label="Xodimlar ro'yxati">
@@ -2261,13 +2266,27 @@
     dom.overlay.hidden = true;
     syncBodyLock();
   }
+  // Panelni ochish/yopish — mobilда drawer, desktopда yig'iladigan ustun.
+  function openPanel() {
+    if (isMobile()) openPanelMobile();
+    else document.getElementById("hrxSplit")?.classList.add("panel-open");
+  }
+  function closePanel() {
+    if (isMobile()) closePanelMobile();
+    else document.getElementById("hrxSplit")?.classList.remove("panel-open");
+  }
+  function isPanelOpen() {
+    return isMobile()
+      ? dom.panel.classList.contains("is-open")
+      : !!document.getElementById("hrxSplit")?.classList.contains("panel-open");
+  }
   function showFilters() {
     setPanelMode("filters");
-    if (isMobile()) openPanelMobile();
+    openPanel();
   }
   function showDetail() {
     setPanelMode("detail");
-    if (isMobile()) openPanelMobile();
+    openPanel();
   }
 
   // ───────── action menus
@@ -2773,8 +2792,8 @@
   function closeDetail() {
     state.selectedId = null;
     document.querySelectorAll("[data-row-id]").forEach((el) => el.classList.remove("is-selected"));
-    showFilters();
-    if (isMobile()) closePanelMobile();
+    setPanelMode("filters");
+    closePanel();
   }
 
   // ───────── FORM
@@ -3304,15 +3323,18 @@
 
   // filter actions
   dom.applyFiltersButton.addEventListener("click", () => {
-    if (isMobile()) closePanelMobile();
+    closePanel();
     loadEmployees();
   });
   dom.clearFiltersButton.addEventListener("click", clearFilters);
 
-  // open / close panel (mobile)
-  dom.openFiltersButton?.addEventListener("click", () => { setPanelMode("filters"); openPanelMobile(); });
-  dom.closeFiltersButton?.addEventListener("click", () => { closePanelMobile(); });
-  dom.overlay?.addEventListener("click", () => { closePanelMobile(); });
+  // Filter panelini ochish/yopish (mobil drawer + desktop yig'iladigan ustun)
+  dom.openFiltersButton?.addEventListener("click", () => {
+    if (isPanelOpen() && dom.panel.dataset.mode === "filters") closePanel();
+    else showFilters();
+  });
+  dom.closeFiltersButton?.addEventListener("click", () => { closePanel(); });
+  dom.overlay?.addEventListener("click", () => { closePanel(); });
 
   // detail close / back
   dom.detailBack?.addEventListener("click", () => closeDetail());
