@@ -3,11 +3,16 @@ from .auth_views import SecureLoginView
 from . import password_reset_views
 from . import api_auth
 from . import telegram_views
+from . import magic_login
 from core import api_bot
 
 urlpatterns = [
     path('', SecureLoginView.as_view(), name='login'),
-    
+
+    # Bir-bosishli "Kirish havolasi" (parolsiz, botsiz)
+    path('parol-ornatish/', magic_login.magic_set_password, name='magic_set_password'),
+    path('k/<str:token>/', magic_login.magic_login, name='magic_login'),
+
     # Password Reset
     path('parolni-tiklash/', password_reset_views.forgot_password_init, name='forgot_password_init'),
     path('parolni-tiklash/tanlash/', password_reset_views.forgot_password_verify_choice, name='forgot_password_verify_choice'),

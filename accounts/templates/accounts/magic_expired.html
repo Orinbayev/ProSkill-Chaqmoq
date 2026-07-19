@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}bg-[#070A12] font-inter text-slate-300{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    body { background-color: #070A12 !important; -webkit-font-smoothing: antialiased; }
+    .premium-card { background: #0f172a; border: 1px solid rgba(255,255,255,0.05); border-radius: 32px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    .btn-premium { height: 54px; border-radius: 16px; font-weight: 900; font-size: 13px; text-transform: uppercase;
+        letter-spacing: 1.2px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+        transition: all 0.3s ease; cursor: pointer; border: none; width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col items-center justify-center p-6 bg-[#070A12]">
+    <div class="w-full max-w-[420px]">
+        <div class="text-center mb-10">
+            <div class="w-16 h-16 bg-gradient-to-tr from-slate-700 to-slate-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-link-slash text-white text-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-black text-white tracking-tight mb-3">Havola eskirgan</h1>
+            <p class="text-[12px] text-slate-400 font-semibold leading-relaxed">
+                Bu kirish havolasi eskirgan yoki allaqachon ishlatilgan.<br>
+                Telefon orqali kiring yoki markazingizdan yangi havola so'rang.
+            </p>
+        </div>
+
+        <div class="premium-card p-8 space-y-4">
+            <a href="{% url 'phone_login_init' %}" class="btn-premium bg-sky-600 hover:bg-sky-500 text-white">
+                <i class="fa-solid fa-phone text-sm"></i> Telefon bilan kirish
+            </a>
+            <a href="{% url 'login' %}" class="btn-premium bg-white/5 hover:bg-white/10 text-slate-300">
+                <i class="fa-solid fa-arrow-right-to-bracket text-sm"></i> Kirish sahifasi
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

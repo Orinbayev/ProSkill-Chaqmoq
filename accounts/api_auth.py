@@ -1045,6 +1045,12 @@ def family_issue_credentials_api(request):
             status=500,
         )
 
+    # Bir-bosishli "Kirish havolasi" — parolsiz, botsiz. Token yangi parol
+    # hashiga bog'lanadi, foydalanuvchi o'z parolini o'rnatishi bilan kuchsizlanadi.
+    from accounts.magic_login import make_magic_login_url
+    base = str(getattr(settings, "PUBLIC_BASE_URL", "") or "").rstrip("/") or "https://chaqmoqapp.uz"
+    magic_url = make_magic_login_url(user, base_url=base)
+
     return JsonResponse(
         {
             "ok": True,
@@ -1054,6 +1060,7 @@ def family_issue_credentials_api(request):
                 "password": new_password,
             },
             "login_url": _build_login_url(user),
+            "magic_url": magic_url,
         }
     )
 

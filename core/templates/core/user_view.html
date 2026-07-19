@@ -656,6 +656,11 @@ html[data-role-theme="light"] .uv-hero-stat strong { color: #1e293b; }
               <button class="uv-drop-item" onclick="document.getElementById('uvPassModal').classList.add('uv-modal-open')">
                 <i class="fa-solid fa-key"></i> Parolni o'zgartirish
               </button>
+              {% if magic_login_url %}
+              <button class="uv-drop-item" onclick="document.getElementById('uvMagicModal').classList.add('uv-modal-open')">
+                <i class="fa-solid fa-link"></i> Kirish havolasi
+              </button>
+              {% endif %}
             </div>
           </div>
           {% endif %}
@@ -970,6 +975,32 @@ html[data-role-theme="light"] .uv-modal-input { background: #f8fafc; border-colo
     </form>
   </div>
 </div>
+
+{% if magic_login_url %}
+<!-- Bir-bosishli kirish havolasi modali -->
+<div class="uv-modal-overlay" id="uvMagicModal" onclick="if(event.target===this)this.classList.remove('uv-modal-open')">
+  <div class="uv-modal-box">
+    <div class="uv-modal-head">
+      <div class="uv-modal-title"><i class="fa-solid fa-link"></i> Kirish havolasi</div>
+      <button class="uv-modal-close" onclick="document.getElementById('uvMagicModal').classList.remove('uv-modal-open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="uv-modal-note">
+      Ushbu havolani <b>{{ u.get_full_name }}</b>ga yuboring. U bir marta bosib, <b>parolsiz</b> saytga kiradi,
+      so'ng o'ziga qulay parol o'rnatadi. Havola 30 kun amal qiladi.
+    </div>
+    <input id="uvMagicLink" class="uv-modal-input" value="{{ magic_login_url }}" readonly onclick="this.select()">
+    <div class="uv-modal-foot" style="margin-top:14px;">
+      <a class="uv-modal-cancel" href="https://t.me/share/url?url={{ magic_login_url|urlencode }}&text={{ 'Saytga bir bosishda kirish havolangiz:'|urlencode }}" target="_blank" rel="noopener" style="text-decoration:none;">
+        <i class="fa-brands fa-telegram"></i> Telegram
+      </a>
+      <button type="button" class="uv-modal-submit" id="uvMagicCopyBtn"
+        onclick="(function(b){var i=document.getElementById('uvMagicLink');i.select();navigator.clipboard&&navigator.clipboard.writeText(i.value);b.innerHTML='<i class=&quot;fa-solid fa-check&quot;></i> Nusxa olindi';setTimeout(function(){b.innerHTML='<i class=&quot;fa-solid fa-copy&quot;></i> Nusxa olish';},1500);})(this)">
+        <i class="fa-solid fa-copy"></i> Nusxa olish
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Parent link modal — custom, fully theme-aware -->
 {% if can_manage_parent_link %}

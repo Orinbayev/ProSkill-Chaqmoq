@@ -783,23 +783,30 @@ async def family_issue_credentials(message: types.Message, state: FSMContext):
     creds = response.get("credentials") or {}
     user = response.get("user") or {}
     login_url = response.get("login_url") or ""
+    magic_url = response.get("magic_url") or ""
+
+    # Bir-bosishli kirish tugmasi (parolsiz) — asosiy usul
+    reply_markup = None
+    if magic_url:
+        reply_markup = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🔓 Saytga bir bosishda kirish", url=magic_url)]]
+        )
+
     text_lines = [
-        "🔑 <b>Saytga kirish uchun yangi ma'lumotlar</b>",
-        "",
         f"👤 <b>{user.get('full_name', '—')}</b>",
+        "",
+        "🔓 <b>Eng oson yo'l:</b> quyidagi tugmani bosing — parolsiz avtomat kirasiz,",
+        "so'ng o'zingizga qulay parol o'rnatasiz.",
     ]
+    # Qo'lda kirish uchun zaxira ma'lumotlar
+    text_lines.append("")
+    text_lines.append("<i>Yoki qo'lda kiring:</i>")
     if login_url:
         text_lines.append(f"🌐 Sayt: <code>{login_url}</code>")
-    text_lines.extend(
-        [
-            "",
-            f"📧 <b>Login:</b> <code>{creds.get('email', '—')}</code>",
-            f"🔑 <b>Parol:</b> <code>{creds.get('password', '—')}</code>",
-            "",
-            "⚠️ <i>Eski parol bekor qilindi. Iltimos, ushbu parolni xavfsiz saqlang.</i>",
-        ]
-    )
-    await message.answer("\n".join(text_lines), parse_mode="HTML")
+    text_lines.append(f"📧 <b>Login:</b> <code>{creds.get('email', '—')}</code>")
+    text_lines.append(f"🔑 <b>Parol:</b> <code>{creds.get('password', '—')}</code>")
+
+    await message.answer("\n".join(text_lines), parse_mode="HTML", reply_markup=reply_markup)
 
 
 # ─── "🚪 Chiqish" — bitta profildan yoki hammasidan chiqish ─────────────────

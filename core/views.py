@@ -1576,7 +1576,15 @@ def user_view(request, pk):
     if user.role == "student":
         parent_link_status = _student_parent_link_payload(user)
 
+    # Bir-bosishli "Kirish havolasi" — staff o'quvchi/ota-onaga parolsiz kirish havolasini beradi
+    magic_login_url = ""
+    if _staff_only(request) and user.role in ("student", "parent"):
+        from accounts.magic_login import make_magic_login_url
+        base = request.build_absolute_uri("/").rstrip("/")
+        magic_login_url = make_magic_login_url(user, base_url=base)
+
     context = {
+        "magic_login_url": magic_login_url,
         "u": user,
         "balance": balance,
         "rank": rank,
