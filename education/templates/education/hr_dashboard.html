@@ -2578,7 +2578,7 @@
             <span class="hrx-avatar hrx-avatar--lg">${escapeHtml(getInitials(row.full_name))}</span>
             <div class="hrx-card__id">
               <h3 class="hrx-card__name">${escapeHtml(row.full_name || "—")}</h3>
-              <p class="hrx-card__role">${escapeHtml(row.role_label || "—")}${row.position ? " · " + escapeHtml(row.position) : ""}</p>
+              <p class="hrx-card__role">${escapeHtml(row.role_label || "—")}${row.position && row.position !== row.role_label ? " · " + escapeHtml(row.position) : ""}</p>
             </div>
             <span class="hrx-card__menu" data-no-row-click>${actionMenuHtml(row)}</span>
           </div>
@@ -2661,7 +2661,9 @@
     });
 
     dom.profileModalTitle.textContent = employee.full_name || "Xodim profili";
-    dom.profileModalSubtitle.textContent = `${employee.role_label || "Xodim"} · ${employee.position || "Pozitsiya yo‘q"}`;
+    dom.profileModalSubtitle.textContent = employee.position && employee.position !== employee.role_label
+      ? `${employee.role_label || "Xodim"} · ${employee.position}`
+      : `${employee.role_label || "Xodim"}`;
 
     const av = resolveAvailability(employee);
     const subjects = (employee.subjects || []).map((s) => s.name);
@@ -2707,7 +2709,7 @@
           <span class="hrx-avatar hrx-avatar--lg">${escapeHtml(getInitials(employee.full_name))}</span>
           <div class="hrx-detail-hero__meta">
             <div class="hrx-detail-hero__name">${escapeHtml(employee.full_name || "—")}</div>
-            <div class="hrx-detail-hero__role">${escapeHtml(employee.role_label || "—")} · ${escapeHtml(employee.position || "—")}</div>
+            <div class="hrx-detail-hero__role">${escapeHtml(employee.role_label || "—")}${employee.position && employee.position !== employee.role_label ? " · " + escapeHtml(employee.position) : ""}</div>
           </div>
         </div>
         <div class="hrx-detail-hero__badges">
