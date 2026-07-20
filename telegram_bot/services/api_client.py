@@ -114,6 +114,30 @@ async def toggle_bot_center_api(admin_tg_id: str, center_id: int, enabled: bool)
             return 500, {"error": str(e)}
 
 
+async def get_bot_center_detail_api(admin_tg_id: str, center_id: int):
+    url = f"{BACKEND_URL}/hisob/login/bot-center-detail/"
+    params = {"admin_tg_id": admin_tg_id, "center_id": center_id}
+    headers = _get_headers()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, headers=headers)
+            return response.status_code, response.json()
+        except Exception as e:
+            return 500, {"error": str(e)}
+
+
+async def get_bot_finance_api(admin_tg_id: str):
+    url = f"{BACKEND_URL}/hisob/login/bot-finance/"
+    params = {"admin_tg_id": admin_tg_id}
+    headers = _get_headers()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, headers=headers)
+            return response.status_code, response.json()
+        except Exception as e:
+            return 500, {"error": str(e)}
+
+
 async def get_linked_users_api(admin_tg_id: str, role: str = "all", offset: int = 0, limit: int = 20):
     url = f"{BACKEND_URL}/hisob/login/bot-linked-users/"
     params = {"admin_tg_id": admin_tg_id, "role": role, "offset": offset, "limit": limit}

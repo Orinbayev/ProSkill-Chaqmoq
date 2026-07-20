@@ -531,6 +531,86 @@ def toggle_bot_center(request):
     return JsonResponse({"ok": True, "center_id": center.id, "enabled": center.telegram_bot_enabled})
 
 
+def _bot_center_stats(center) -> dict:
+    """Bitta markazning to'liq statistikasi (bot admin uchun)."""
+    from django.db.models import Sum
+    from django.utils import timezone
+    from education.models import Payment, Group
+    from store.models import Expense
+    from education.services.tuition import center_month_debt_summary
+
+    m0 = timezone.localdate().replace(day=1)
+    students = User.objects.filter(role="student", center=center, is_archived=False).count()
+    teachers = User.objects.filter(role="teacher", center=center, is_archived=False).count()
+    groups = Group.objects.filter(center=center, is_archived=False).count()
+    revenue = int(Payment.objects.filter(center=center, paid_date__gte=m0).aggregate(s=Sum("summa"))["s"] or 0)
+    expense = int(Expense.objects.filter(center=center, sana__date__gte=m0).aggregate(s=Sum("summa"))["s"] or 0)
+    try:
+        debt, debtors = center_month_debt_summary(center, [m0])
+    except Exception:
+        debt, debtors = 0, 0
+    return {
+        "id": center.id, "name": center.name, "enabled": center.telegram_bot_enabled,
+        "students": students, "teachers": teachers, "groups": groups,
+        "revenue": revenue, "expense": expense, "net": revenue - expense,
+        "debt": int(debt or 0), "debtors": int(debtors or 0),
+        "bot_parents": User.objects.filter(is_telegram_linked=True, role="parent", center=center).count(),
+        "bot_students": User.objects.filter(is_telegram_linked=True, role="student", center=center).count(),
+    }
+
+
+def _bot_finance_overview() -> dict:
+    """Barcha markazlar bo'yicha joriy oy moliyaviy hisoboti."""
+    from django.db.models import Sum
+    from django.utils import timezone
+    from accounts.models import Center
+    from education.models import Payment
+    from store.models import Expense
+
+    m0 = timezone.localdate().replace(day=1)
+    centers = list(Center.objects.filter(is_deleted=False).only("id", "name"))
+    rev = {r["center"]: r["s"] for r in Payment.objects.filter(paid_date__gte=m0).values("center").annotate(s=Sum("summa"))}
+    exp = {r["center"]: r["s"] for r in Expense.objects.filter(sana__date__gte=m0).values("center").annotate(s=Sum("summa"))}
+    rows, tot_rev, tot_exp = [], 0, 0
+    for c in centers:
+        r = int(rev.get(c.id, 0) or 0)
+        e = int(exp.get(c.id, 0) or 0)
+        tot_rev += r
+        tot_exp += e
+        rows.append({"id": c.id, "name": c.name, "revenue": r, "expense": e, "net": r - e})
+    rows.sort(key=lambda x: -x["net"])
+    return {"totals": {"revenue": tot_rev, "expense": tot_exp, "net": tot_rev - tot_exp}, "centers": rows}
+
+
+@csrf_exempt
+def get_bot_center_detail(request):
+    """Bot admin: bitta markaz statistikasi."""
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+    if not is_bot_admin(request.GET.get("admin_tg_id")):
+        return JsonResponse({"is_admin": False}, status=403)
+    from accounts.models import Center
+    try:
+        center = Center.objects.get(pk=int(request.GET.get("center_id") or 0))
+    except (Center.DoesNotExist, TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi."}, status=404)
+    return JsonResponse({"ok": True, "is_admin": True, "center": _bot_center_stats(center)})
+
+
+@csrf_exempt
+def get_bot_finance(request):
+    """Bot admin: barcha markazlar moliyaviy hisoboti (joriy oy)."""
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+    if not is_bot_admin(request.GET.get("admin_tg_id")):
+        return JsonResponse({"is_admin": False}, status=403)
+    data = _bot_finance_overview()
+    data["is_admin"] = True
+    return JsonResponse(data)
+
+
 @csrf_exempt
 def get_bot_linked_users(request):
     """List of linked users with filters."""
