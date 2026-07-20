@@ -8,7 +8,7 @@ markaziy i18n moduldan olinadi va QISQA.
 import re
 
 from aiogram import F, Router, types
-from aiogram.filters import CommandStart, StateFilter
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -142,6 +142,24 @@ def _try_parse_phone(text: str) -> str | None:
 @router.message(CommandStart())
 async def family_start(message: types.Message, state: FSMContext):
     await state.clear()
+    tg_id = message.from_user.id
+    # Allaqachon ro'yxatdan o'tgan (bog'langan) bo'lsa — TIL SO'RAMAYMIZ, to'g'ridan-to'g'ri menyu.
+    status_code, response = await get_user_status_api(str(tg_id))
+    linked = (
+        status_code == 200
+        and (response or {}).get("status") == "linked"
+        and any(u.get("role") in ("parent", "student") for u in ((response or {}).get("users") or []))
+    )
+    if linked:
+        await _run_start_flow(message, tg_id, state, response=response)
+        return
+    # Yangi foydalanuvchi — til tanlash
+    await message.answer(M["pick_lang"]["uz"], reply_markup=lang_picker_kb(), parse_mode="HTML")
+
+
+@router.message(Command("language", "til"))
+async def family_language(message: types.Message, state: FSMContext):
+    """Istalgan vaqtда tilni o'zgartirish."""
     await message.answer(M["pick_lang"]["uz"], reply_markup=lang_picker_kb(), parse_mode="HTML")
 
 
@@ -153,11 +171,13 @@ async def family_set_lang(callback: types.CallbackQuery, state: FSMContext):
     await _run_start_flow(callback.message, callback.from_user.id, state)
 
 
-async def _run_start_flow(msg: types.Message, tg_id: int, state: FSMContext):
-    """Til tanlangandan keyingi oqim: bog'langan profil bo'lsa menyu, aks holda kirish."""
+async def _run_start_flow(msg: types.Message, tg_id: int, state: FSMContext, response=None):
+    """Bog'langan profil bo'lsa menyu, aks holda kirish oqimi. `response` berilsa qayta so'ramaymiz."""
     lang = get_lang(tg_id)
-    status_code, response = await get_user_status_api(str(tg_id))
-    if status_code == 200 and response.get("status") == "linked":
+    if response is None:
+        _sc, response = await get_user_status_api(str(tg_id))
+    response = response or {}
+    if response.get("status") == "linked":
         users = response.get("users") or []
         family_users = [u for u in users if u.get("role") in ("parent", "student")]
         if family_users:
