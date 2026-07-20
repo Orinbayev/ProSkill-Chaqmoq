@@ -25,21 +25,46 @@ from core.tenant_context import set_current_tenant, clear_current_tenant
 
 logger = logging.getLogger(__name__)
 
-# ── In-process center cache (pk → (center_obj, fetched_at)) ─────────────────
-# Render single-process: safe.  Multi-worker: har worker o'z cache ga ega.
-# TTL: 30 seconds (subscription/status o'zgarishlarini tez aks ettiradi)
+# ── In-process caches (per worker). TTLs come from settings (phase 8). ─────
 _CENTER_CACHE: dict[int, tuple] = {}
-_CENTER_CACHE_TTL = 30  # seconds
-
-# ── Slug cache ───────────────────────────────────────────────────────────────
 _SLUG_CACHE: dict[str, tuple] = {}
-_SLUG_CACHE_TTL = 120  # seconds
-
-# ── Subscription block cache (center_pk → (is_blocked, fetched_at)) ──────────
-# Avoids a DB query on every authenticated request.
-# TTL: 60 seconds — acceptable lag for plan blocking to take effect.
 _SUB_BLOCK_CACHE: dict[int, tuple] = {}
-_SUB_BLOCK_CACHE_TTL = 60  # seconds
+
+
+def _setting_int(name: str, default: int) -> int:
+    try:
+        from django.conf import settings as dj_settings
+        return max(1, int(getattr(dj_settings, name, default) or default))
+    except Exception:
+        return default
+
+
+def _center_cache_ttl() -> int:
+    return _setting_int("CENTER_CACHE_TTL", 15)
+
+
+def _slug_cache_ttl() -> int:
+    return _setting_int("CENTER_SLUG_CACHE_TTL", 60)
+
+
+def _sub_block_cache_ttl() -> int:
+    return _setting_int("SUBSCRIPTION_BLOCK_CACHE_TTL", 15)
+
+
+def _sub_check_interval() -> int:
+    return _setting_int("SUBSCRIPTION_CHECK_INTERVAL_SECONDS", 120)
+
+
+def _root_center(center):
+    """Filial subscription root markazdan olinadi."""
+    if center is None:
+        return None
+    try:
+        if getattr(center, "parent_center_id", None) and hasattr(center, "get_root_center"):
+            return center.get_root_center()
+    except Exception:
+        pass
+    return center
 
 
 def _get_center_cached(center_id: int):
@@ -48,10 +73,11 @@ def _get_center_cached(center_id: int):
     Cache miss yoki TTL o'tsa – DB dan yangilaydi.
     """
     now = time.monotonic()
+    ttl = _center_cache_ttl()
     cached = _CENTER_CACHE.get(center_id)
     if cached:
         center_obj, fetched_at = cached
-        if now - fetched_at < _CENTER_CACHE_TTL:
+        if now - fetched_at < ttl:
             return center_obj
     try:
         center_obj = Center.objects.get(pk=center_id)
@@ -65,10 +91,11 @@ def _get_center_cached(center_id: int):
 def _get_center_by_slug_cached(slug: str):
     """Slug bo'yicha Center ni cache orqali oladi."""
     now = time.monotonic()
+    ttl = _slug_cache_ttl()
     cached = _SLUG_CACHE.get(slug)
     if cached:
         center_obj, fetched_at = cached
-        if now - fetched_at < _SLUG_CACHE_TTL:
+        if now - fetched_at < ttl:
             return center_obj
     center_obj = Center._default_manager.filter(slug=slug, is_deleted=False).first()
     if center_obj:
@@ -78,37 +105,69 @@ def _get_center_by_slug_cached(slug: str):
 
 def invalidate_center_cache(center_id: int):
     """
-    Center o'zgarganda cache ni tozalash uchun.
-    Center.save() signal dan chaqirilishi mumkin.
+    Center yoki uning subscriptioni o'zgarganda in-process cache ni tozalaydi.
+    Filiallar root id bo'yicha ham chaqirilishi mumkin.
     """
+    if center_id is None:
+        return
+    try:
+        center_id = int(center_id)
+    except (TypeError, ValueError):
+        return
     _CENTER_CACHE.pop(center_id, None)
     _SUB_BLOCK_CACHE.pop(center_id, None)
-    # Slug cache: topish qiyin, shuning uchun butun slug cache ni tozalaymiz
+    # Slug cache: reverse index yo'q — tozalaymiz (kichik dict).
     _SLUG_CACHE.clear()
+
+
+def invalidate_center_tree_cache(center) -> None:
+    """Root + filiallar cache ini tozalash (billing eventlardan)."""
+    if center is None:
+        return
+    root = _root_center(center)
+    ids = {getattr(center, "pk", None), getattr(root, "pk", None)}
+    try:
+        if root is not None and hasattr(root, "child_branches"):
+            ids.update(root.child_branches.values_list("pk", flat=True))
+    except Exception:
+        pass
+    for cid in ids:
+        if cid:
+            invalidate_center_cache(cid)
 
 
 def _is_center_blocked(center) -> bool:
     """
     Subscription block holatini in-process cache bilan tekshiradi.
-    Avval center.status='BLOCKED' ni tekshiradi (0 DB), keyin subscription
-    query faqat cache miss yoki TTL o'tganda chaqiriladi.
+    Filiallar root markaz subscriptionidan foydalanadi.
     """
-    if center.status == 'BLOCKED':
+    if center is None:
+        return False
+    root = _root_center(center)
+    if center.status == "BLOCKED" or (root is not None and root.status == "BLOCKED"):
         return True
+
+    cache_key = getattr(root, "pk", None) or center.pk
     now = time.monotonic()
-    cached = _SUB_BLOCK_CACHE.get(center.pk)
+    ttl = _sub_block_cache_ttl()
+    cached = _SUB_BLOCK_CACHE.get(cache_key)
     if cached:
         is_blocked, fetched_at = cached
-        if now - fetched_at < _SUB_BLOCK_CACHE_TTL:
+        if now - fetched_at < ttl:
             return is_blocked
     try:
-        sub = center.subscriptions.filter(
-            status='ACTIVE'
-        ).only('status', 'expires_at', 'manual_block').first()
+        target = root or center
+        sub = target.subscriptions.filter(
+            status="ACTIVE"
+        ).only("status", "expires_at", "manual_block").first()
         is_blocked = bool(sub and sub.is_blocked())
+        # No ACTIVE subscription and center is not on free/system path:
+        # treat hard-expired missing sub as blocked only when status is BLOCKED
+        # (handled above) or sub explicitly blocked. Missing sub → not blocked here
+        # (feature gates handle plan limits separately).
     except Exception:
         is_blocked = False
-    _SUB_BLOCK_CACHE[center.pk] = (is_blocked, now)
+    _SUB_BLOCK_CACHE[cache_key] = (is_blocked, now)
     return is_blocked
 
 
@@ -140,14 +199,20 @@ def _bind_authenticated_center(request, center, path: str, *, clear_invalid_sess
     request.active_center = fresh_center
     request.center = fresh_center
 
-    # Subscription check – faqat 1 soatda bir marta
-    last_check = request.session.get('last_sub_check')
+    # Subscription expiry reconcile — per-center, short interval (default 2 min).
+    root = _root_center(fresh_center)
+    root_id = getattr(root, "pk", None) or fresh_center.pk
+    session_key = f"last_sub_check_{root_id}"
+    last_check = request.session.get(session_key) or request.session.get("last_sub_check")
     now_ts = timezone.now().timestamp()
-    if not last_check or (now_ts - last_check > 3600):
+    if not last_check or (now_ts - float(last_check) > _sub_check_interval()):
         try:
             from billing.services import check_subscription_expiry
-            check_subscription_expiry(fresh_center)
-            request.session['last_sub_check'] = now_ts
+            check_subscription_expiry(root or fresh_center)
+            # Expiry may flip status — drop block cache for this tree.
+            invalidate_center_tree_cache(fresh_center)
+            request.session[session_key] = now_ts
+            request.session["last_sub_check"] = now_ts  # backward compatible
         except Exception as e:
             logger.error(f'Middleware sub-check error: {e}')
 

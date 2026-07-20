@@ -82,8 +82,38 @@ def apply_attendance_lightning_rules(sender, instance, created, **kwargs):
 def invalidate_center_middleware_cache(sender, instance, **kwargs):
     """Center o'zgarganda middleware in-process cache ni tozalaydi."""
     try:
-        from core.middleware import invalidate_center_cache
-        invalidate_center_cache(instance.pk)
+        from core.middleware import invalidate_center_tree_cache
+        invalidate_center_tree_cache(instance)
+    except Exception:
+        pass
+
+
+def invalidate_on_subscription_change(sender, instance, **kwargs):
+    """
+    Subscription activate/block/expire → block cache darhol yangilanadi
+    (phase 8: 1 soatlik lag o'rniga).
+    """
+    try:
+        from core.middleware import invalidate_center_tree_cache
+        center = getattr(instance, "center", None)
+        if center is None and getattr(instance, "center_id", None):
+            center = Center.objects.filter(pk=instance.center_id).first()
+        invalidate_center_tree_cache(center)
+    except Exception:
+        pass
+
+
+def connect_billing_cache_signals():
+    """Called from CoreConfig.ready() to avoid import cycles with billing."""
+    try:
+        from billing.models import CenterSubscription
+        from django.db.models.signals import post_save as _post_save
+
+        _post_save.connect(
+            invalidate_on_subscription_change,
+            sender=CenterSubscription,
+            dispatch_uid="core.invalidate_on_subscription_change",
+        )
     except Exception:
         pass
 

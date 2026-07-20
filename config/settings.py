@@ -215,6 +215,17 @@ else:
 DATABASE_ROUTERS = [
     'core.db_router.TenantDatabaseRouter',
 ]
+# Phase 10: dedicated per-center PostgreSQL routing is OFF by default.
+# Shared default DB remains source of truth until ops enables this and
+# provisions tenant DBs + TENANT_DB_PASSWORD_* secrets.
+TENANT_DB_ROUTING_ENABLED = os.getenv("TENANT_DB_ROUTING_ENABLED", "0") in (
+    "1", "true", "True", "yes", "on",
+)
+TENANT_DB_CONN_MAX_AGE = int(os.getenv("TENANT_DB_CONN_MAX_AGE", "60"))
+# When True, Center.save may fill host/port/user from default DB — never password.
+TENANT_DB_AUTO_FILL_METADATA = os.getenv("TENANT_DB_AUTO_FILL_METADATA", "0") in (
+    "1", "true", "True", "yes", "on",
+)
 
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
@@ -257,6 +268,13 @@ MOBILE_ACCESS_TOKEN_MAX_PER_USER = int(os.getenv("MOBILE_ACCESS_TOKEN_MAX_PER_US
 LOGIN_MAX_FAILED_ATTEMPTS = int(os.getenv("LOGIN_MAX_FAILED_ATTEMPTS", "8"))
 LOGIN_THROTTLE_WINDOW_SECONDS = int(os.getenv("LOGIN_THROTTLE_WINDOW_SECONDS", str(15 * 60)))
 LOGIN_IP_MAX_FAILED_ATTEMPTS = int(os.getenv("LOGIN_IP_MAX_FAILED_ATTEMPTS", "40"))
+
+# Subscription enforcement lag (middleware). Was 3600s expiry check + 60s block cache —
+# too slow for billing cuts. Defaults keep DB load modest on multi-worker hosts.
+SUBSCRIPTION_CHECK_INTERVAL_SECONDS = int(os.getenv("SUBSCRIPTION_CHECK_INTERVAL_SECONDS", "120"))
+SUBSCRIPTION_BLOCK_CACHE_TTL = int(os.getenv("SUBSCRIPTION_BLOCK_CACHE_TTL", "15"))
+CENTER_CACHE_TTL = int(os.getenv("CENTER_CACHE_TTL", "15"))
+CENTER_SLUG_CACHE_TTL = int(os.getenv("CENTER_SLUG_CACHE_TTL", "60"))
 
 
 MEDIA_URL = "/media/"

@@ -1601,11 +1601,17 @@ def check_subscription_expiry(center: Center):
     If yes -> Resume a PAUSED one if exists.
     """
     now = timezone.now()
+    # Filial → root (subscription source of truth)
+    if getattr(center, "parent_center_id", None) and hasattr(center, "get_root_center"):
+        center = center.get_root_center()
+
     active = get_active_subscription(center)
-    
+    changed = False
+
     if active and active.expires_at <= now:
         active.status = CenterSubscription.Status.EXPIRED
         active.save(update_fields=["status"])
+        changed = True
         # Fetch again to be sure it's gone from "active" lookup
         active = None
 
@@ -1625,6 +1631,14 @@ def check_subscription_expiry(center: Center):
             center.capacity_limit = max(int(center.capacity_limit or 0), int(paused.plan.max_students or 0))
             center.save(update_fields=["plan", "expires_at", "max_students", "status", "capacity_limit"])
             invalidate_center_limit_cache(center)
+            changed = True
+
+    if changed:
+        try:
+            from core.middleware import invalidate_center_tree_cache
+            invalidate_center_tree_cache(center)
+        except Exception:
+            pass
 
 
 def get_subscription_ui_state(center: Center) -> dict | None:

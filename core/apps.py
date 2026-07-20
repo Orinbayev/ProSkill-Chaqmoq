@@ -12,6 +12,10 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         import core.signals  # noqa: F401
+        try:
+            core.signals.connect_billing_cache_signals()
+        except Exception:
+            logger.exception("Billing cache signal ulanmadi")
 
         # ── Backup Scheduler ─────────────────────────────────────────────
         # Django dev serveri manage.py runserver ni IKKI MARTA ishlatadi.

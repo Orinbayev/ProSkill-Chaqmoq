@@ -1,31 +1,60 @@
 # core/db_router.py
 """
-Database router for multi-tenant architecture (foundation).
-- Shared apps (accounts, core, tenancy, sessions, auth, admin, contenttypes) → default DB
-- Tenant apps (education, billing) → future: center-specific DB
-- For now: all apps use default unless tenant context is set (future step)
-- Safe, non-breaking, with clear comments for future extension
-"""
+Database router for multi-tenant architecture (phase 10 foundation).
 
-from core.tenant_context import get_current_tenant
-from core.db_config import build_tenant_db_config
+Default behaviour (production-safe):
+  TENANT_DB_ROUTING_ENABLED=False → barcha app'lar `default` DB.
+
+When enabled and a center has dedicated db_name (+ resolved password/host):
+  - SHARED_APPS  → always `default` (users, centers, sessions, …)
+  - TENANT_APPS  → `tenant_<root_id>` connection
+
+Filiallar root center DB metadata sidan foydalanadi.
+"""
+from __future__ import annotations
+
+import logging
+
 from django.conf import settings
 from django.db import connections
 from django.db.utils import DEFAULT_DB_ALIAS
-import logging
+
+from core.db_config import (
+    build_tenant_db_config,
+    center_has_dedicated_db,
+    resolve_routing_center,
+    tenant_db_routing_enabled,
+)
+from core.tenant_context import get_current_tenant, tenant_db_alias
 
 logger = logging.getLogger(__name__)
 
-SHARED_APPS = [
-    'accounts', 'core', 'tenancy',
-    'sessions', 'auth', 'admin', 'contenttypes'
-]
-TENANT_APPS = [
-    'education', 'billing'
-]
+SHARED_APPS = frozenset(
+    {
+        "accounts",
+        "core",
+        "tenancy",
+        "sessions",
+        "auth",
+        "admin",
+        "contenttypes",
+        "messages",
+        # Platform / marketing stay shared
+        "marketing",
+        "game",
+    }
+)
+TENANT_APPS = frozenset(
+    {
+        "education",
+        "billing",
+        "chaqmoq",
+        "store",
+    }
+)
 
 
-def _database_identity(config):
+def _database_identity(config: dict) -> tuple:
     return (
         str(config.get("NAME", "") or "").strip(),
         str(config.get("USER", "") or "").strip(),
@@ -34,14 +63,17 @@ def _database_identity(config):
     )
 
 
-def uses_default_database(config):
+def uses_default_database(config: dict) -> bool:
+    """True if config points at the same logical DB as default (avoid duplicate alias)."""
     default_config = settings.DATABASES.get(DEFAULT_DB_ALIAS, {})
-    if "postgresql" not in str(default_config.get("ENGINE", "")).lower():
-        return False
+    engine = str(default_config.get("ENGINE", "") or "").lower()
+    # SQLite local: never treat as dedicated multi-db
+    if "postgresql" not in engine and "postgres" not in engine:
+        return True
     return _database_identity(config) == _database_identity(default_config)
 
 
-def _normalize_connection_config(alias, config):
+def _normalize_connection_config(alias: str, config: dict) -> dict:
     databases = {
         DEFAULT_DB_ALIAS: dict(settings.DATABASES.get(DEFAULT_DB_ALIAS, {})),
         alias: dict(config),
@@ -49,45 +81,79 @@ def _normalize_connection_config(alias, config):
     return connections.configure_settings(databases)[alias]
 
 
-def ensure_connection(alias, config):
+def ensure_connection(alias: str, config: dict) -> dict:
     config = _normalize_connection_config(alias, config)
     if alias not in settings.DATABASES:
         settings.DATABASES[alias] = config
         connections.databases[alias] = config
-        logger.info(f"[MultiTenant] DB ulandi: {alias}")
+        logger.info("[MultiTenant] DB ulandi: %s name=%s", alias, config.get("NAME"))
     else:
         settings.DATABASES[alias].update(config)
         connections.databases[alias] = settings.DATABASES[alias]
+    return config
+
+
+def resolve_tenant_db_alias(tenant=None) -> str:
+    """
+    Return DB alias for current (or given) tenant.
+
+    Always returns 'default' when routing disabled, no tenant, or config equals default.
+    """
+    if not tenant_db_routing_enabled():
+        return DEFAULT_DB_ALIAS
+
+    tenant = resolve_routing_center(tenant if tenant is not None else get_current_tenant())
+    if not center_has_dedicated_db(tenant):
+        return DEFAULT_DB_ALIAS
+
+    try:
+        config = build_tenant_db_config(tenant)
+    except ValueError:
+        return DEFAULT_DB_ALIAS
+
+    if uses_default_database(config):
+        return DEFAULT_DB_ALIAS
+
+    alias = tenant_db_alias(tenant) or f"tenant_{tenant.pk}"
+    ensure_connection(alias, config)
+    return alias
 
 
 class TenantDatabaseRouter:
     def db_for_read(self, model, **hints):
         app_label = model._meta.app_label
         if app_label in SHARED_APPS:
-            return 'default'
+            return DEFAULT_DB_ALIAS
         if app_label in TENANT_APPS:
-            tenant = get_current_tenant()
-            if tenant and getattr(tenant, 'db_name', None):
-                alias = f"tenant_{tenant.id}"
-                config = build_tenant_db_config(tenant)
-                if uses_default_database(config):
-                    return 'default'
-                ensure_connection(alias, config)
-                return alias
-            return 'default'
-        return 'default'
+            return resolve_tenant_db_alias()
+        # Unknown apps stay on default
+        return DEFAULT_DB_ALIAS
 
     def db_for_write(self, model, **hints):
         return self.db_for_read(model, **hints)
 
     def allow_relation(self, obj1, obj2, **hints):
-        db_obj1 = self.db_for_read(obj1.__class__)
-        db_obj2 = self.db_for_read(obj2.__class__)
-        if db_obj1 and db_obj2:
-            return db_obj1 == db_obj2
-        return True  # безопасно разрешить по умолчанию
+        # Cross-DB relations are not supported; allow when both resolve same alias
+        # or when either side has no routing (None → treat as default).
+        try:
+            db1 = self.db_for_read(obj1.__class__)
+            db2 = self.db_for_read(obj2.__class__)
+        except Exception:
+            return None
+        if db1 is None or db2 is None:
+            return None
+        return db1 == db2
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
-        if db == 'default':
+        """
+        - default: all apps migrate (shared deployment path)
+        - tenant_*: only TENANT_APPS (when dedicated DBs are provisioned)
+        """
+        if db == DEFAULT_DB_ALIAS or db == "default":
+            # When routing is off, everything lives here.
+            # When routing is on, shared apps must still migrate on default;
+            # tenant apps also migrate on default for shared-tenancy installs.
             return True
+        if str(db).startswith("tenant_"):
+            return app_label in TENANT_APPS
         return None

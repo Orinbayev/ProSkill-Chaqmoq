@@ -172,14 +172,18 @@ class Center(SoftDeleteMixin, models.Model):
         return self.child_branches.filter(is_deleted=False, status='ACTIVE').count()
 
     def save(self, *args, **kwargs):
-        # Auto-fill tenant DB credentials from default DB config when not provided manually.
-        default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
-        if default_db and "postgresql" in str(default_db.get("ENGINE", "")).lower():
-            self.db_name = self.db_name or str(default_db.get("NAME", "") or "").strip() or None
-            self.db_user = self.db_user or str(default_db.get("USER", "") or "").strip() or None
-            self.db_password = self.db_password or str(default_db.get("PASSWORD", "") or "").strip() or None
-            self.db_host = self.db_host or str(default_db.get("HOST", "") or "localhost").strip() or "localhost"
-            self.db_port = self.db_port or str(default_db.get("PORT", "") or "5432").strip() or "5432"
+        # Optional ops convenience only. NEVER auto-copy default DB password into
+        # center rows (phase 10 — plaintext credential sprawl). Enable with
+        # TENANT_DB_AUTO_FILL_METADATA=1 if you want host/port defaults only.
+        auto_fill = bool(getattr(settings, "TENANT_DB_AUTO_FILL_METADATA", False))
+        if auto_fill:
+            default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
+            if default_db and "postgresql" in str(default_db.get("ENGINE", "")).lower():
+                self.db_host = self.db_host or str(default_db.get("HOST", "") or "localhost").strip() or "localhost"
+                self.db_port = self.db_port or str(default_db.get("PORT", "") or "5432").strip() or "5432"
+                # name/user only if explicitly empty — still no password copy
+                if not self.db_user:
+                    self.db_user = str(default_db.get("USER", "") or "").strip() or None
 
         # 1. Generate or Clean Slug
         if not self.slug:
