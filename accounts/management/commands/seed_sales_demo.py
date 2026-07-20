@@ -3,21 +3,31 @@ Savdo (sales) demo markazini to'ldiradi: director/manager/teacher loginlari +
 o'quvchilar, guruhlar, to'lovlar, qarzdorlar, grafik ma'lumotlari, do'kon
 mahsulotlari va xaridlar, leadlar hamda arxivlar.
 
-Ishlatish:
-    python manage.py seed_sales_demo            # slug: demo
+Ishlatish (LOKAL):
+    python manage.py migrate --noinput
+    python manage.py seed_sales_demo              # slug: demo-markaz
     python manage.py seed_sales_demo --slug=demo2
+
+Ishlatish (RENDER Shell) — deploy TUGAGANIDAN keyin:
+    python manage.py migrate --noinput
+    python manage.py seed_sales_demo --slug=demo-markaz
 
 Idempotent: har safar demo markazni to'liq tozalab, yangidan quradi.
 Loginlar (login == parol):
     director  d@gmail.com  / d@gmail.com
     manager   m@gmail.com  / m@gmail.com
     teacher   t@mail.com   / t@mail.com
+
+⚠️ Deploy paytida (build/start) ishlatmang — migrate tugamaguncha
+   "column ... does not exist" xatosi chiqadi va Render restart bo'lib ko'rinadi.
 """
 import random
 from datetime import date, datetime, time, timedelta
 
-from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.core.management.base import BaseCommand, CommandError
+from django.core.management import call_command
+from django.db import connection, transaction
+from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -78,27 +88,97 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--slug", default="demo-markaz",
                             help="Demo markaz slug (default: demo-markaz). 'demo' MARKETING sahifasi bilan to'qnashadi!")
+        parser.add_argument(
+            "--skip-migrate-check",
+            action="store_true",
+            help="Migratsiya tekshiruvini o'tkazib yuborish (tavsiya etilmaydi).",
+        )
+        parser.add_argument(
+            "--lite",
+            action="store_true",
+            help="Render uchun yengil rejim: 12 o'quvchi, kamroq to'lov (tezroq tugaydi).",
+        )
 
     def handle(self, *args, **options):
-        slug = options["slug"]
+        import sys
+
+        slug = (options["slug"] or "demo-markaz").strip().lower()
+        if slug in {"demo", "about", "features", "pricing", "login", "platform", "admin", "api"}:
+            raise CommandError(
+                f"Slug '{slug}' marketing/app yo'li bilan to'qnashadi. "
+                f"Masalan: --slug=demo-markaz"
+            )
+
+        if not options.get("skip_migrate_check"):
+            self._ensure_migrations_applied()
+
+        def log(msg=""):
+            # Render Shell chiqishini darhol ko'rsatish (buffer tufayli "to'xtab qolgandek" bo'lmasin)
+            self.stdout.write(str(msg))
+            try:
+                sys.stdout.flush()
+            except Exception:
+                pass
+
         try:
-            summary = seed(slug=slug, log=self.stdout.write)
+            summary = seed(slug=slug, log=log, lite=bool(options.get("lite")))
         except Exception as exc:  # pragma: no cover - CLI qulayligi uchun
             import traceback
             self.stderr.write(traceback.format_exc())
+            msg = str(exc)
+            if "no column named" in msg or "does not exist" in msg:
+                self.stderr.write(self.style.ERROR(
+                    "\n❌ DB sxemasi eski. Avval migratsiya qiling, keyin seed:\n"
+                    "   python manage.py migrate --noinput\n"
+                    "   python manage.py seed_sales_demo --slug=demo-markaz --lite\n"
+                ))
+            elif "unique" in msg.lower() or "duplicate" in msg.lower():
+                self.stderr.write(self.style.ERROR(
+                    "\n❌ UNIQUE to'qnashuv. Qayta urinib ko'ring (seed eski demonu tozalaydi):\n"
+                    "   python manage.py seed_sales_demo --slug=demo-markaz --lite\n"
+                ))
             raise
         self.stdout.write(self.style.SUCCESS(
-            f"\n✅ Demo tayyor! URL: /{slug}/  "
-            f"(director d@gmail.com, manager m@gmail.com, teacher t@mail.com — parol == login)\n"
+            f"\n✅ Demo tayyor! URL: /{slug}/hisob/login/  yoki  /{slug}/\n"
+            f"   director  d@gmail.com  / d@gmail.com\n"
+            f"   manager   m@gmail.com  / m@gmail.com\n"
+            f"   teacher   t@mail.com   / t@mail.com\n"
             f"   O'quvchilar: {summary['students']}, guruhlar: {summary['groups']}, "
             f"to'lovlar: {summary['payments']}, qarzdorlar: {summary['debtors']}, "
             f"xarajatlar: {summary['expenses']}, leadlar: {summary['leads']}, "
             f"xaridlar: {summary['purchases']}, arxiv: {summary['archived']}"
         ))
 
+    def _ensure_migrations_applied(self):
+        """Deploy/shell da eng ko'p uchraydigan xato: migrate qilinmagan."""
+        executor = MigrationExecutor(connection)
+        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        if not plan:
+            return
+        pending = [f"{m.app_label}.{m.name}" for m, _ in plan[:12]]
+        self.stdout.write(self.style.WARNING(
+            f"⚠️  {len(plan)} ta migratsiya qo'llanmagan (masalan: {', '.join(pending)}…).\n"
+            f"   Avtomatik: python manage.py migrate --noinput"
+        ))
+        try:
+            call_command("migrate", interactive=False, verbosity=1)
+        except Exception as exc:
+            raise CommandError(
+                f"migrate muvaffaqiyatsiz: {exc}\n"
+                f"Qo'lda ishga tushiring: python manage.py migrate --noinput"
+            ) from exc
 
-@transaction.atomic
-def seed(*, slug: str, log=print) -> dict:
+
+def seed(*, slug: str, log=print, lite: bool = False) -> dict:
+    """
+    NOTE: Butun seed bitta @transaction.atomic emas.
+    Render free Postgres + Shell da uzun atomic:
+      - timeout / disconnect → hammasi ROLLBACK (log bor, DB bo'sh)
+      - "to'xtab qolgandek" seziladi
+    Har bo'lim alohida atomic commit qilinadi.
+    """
+    from django.contrib.auth.hashers import make_password
+
     from accounts.models import Center, User
     from billing.models import CenterSubscription, SubscriptionPlan
     from education.models import Attendance, Category, Enrollment, Group, GroupSchedule
@@ -108,70 +188,89 @@ def seed(*, slug: str, log=print) -> dict:
     )
 
     today = timezone.localdate()
+    student_names = STUDENT_NAMES[:12] if lite else STUDENT_NAMES
+    # Bir xil parol hash — 30× set_password sekinligini oldini oladi
+    demo_password_hash = make_password("demo")
+    staff_password_hash = make_password("demo")
 
     # ─────────────── 1) Reset (idempotent, HARD delete) ───────────────
     # User/Center — SoftDeleteMixin: oddiy .delete() faqat is_deleted=True qiladi,
     # email/slug bazada qolib UNIQUE to'qnashadi. Shuning uchun hard_delete.
-    demo_emails = [e for _, e, _, _ in DEMO_USERS]
-    User.all_objects.filter(email__in=demo_emails).hard_delete()
-    User.all_objects.filter(email__endswith=f"@{slug}.demo.local").hard_delete()
-    old_center = Center.all_objects.filter(slug=slug).first()
-    if old_center:
-        User.all_objects.filter(center=old_center).hard_delete()
-        old_center.hard_delete()  # cascade: guruh/enrollment/to'lov/lead/...
+    log(f"• Eski demo tozalanmoqda (slug={slug})…")
+    with transaction.atomic():
+        demo_emails = [e for _, e, _, _ in DEMO_USERS]
+        User.all_objects.filter(email__in=demo_emails).hard_delete()
+        User.all_objects.filter(email__endswith=f"@{slug}.demo.local").hard_delete()
+        old_center = Center.all_objects.filter(slug=slug).first()
+        if old_center:
+            User.all_objects.filter(center=old_center).hard_delete()
+            old_center.hard_delete()  # cascade: guruh/enrollment/to'lov/lead/...
     log(f"• Eski demo tozalandi (slug={slug})")
 
-    # ─────────────── 2) Markaz + obuna + featurelar ───────────────
-    all_features = [
-        "finance", "imtihon", "hr", "sertifikat", "store", "leads", "analytics", "xarajatlar",
-        "ui_exam_sessions", "ui_failed_students", "ui_certificates", "ui_weekly_schedule",
-    ]
-    center = Center.objects.create(
-        name="Chaqmoq Demo O'quv Markazi",
-        slug=slug,
-        status=Center.STATUS_ACTIVE,
-        features={f: True for f in all_features},
-        max_students=100_000,
-        capacity_limit=100_000,
-    )
-    plan, _ = SubscriptionPlan.objects.update_or_create(
-        code="DEMO_ALL",
-        defaults=dict(title="Demo All", name="DEMO_ALL", tier=99,
-                      max_students=100_000, duration_days=3650),
-    )
-    CenterSubscription.objects.create(
-        center=center, plan=plan,
-        status=CenterSubscription.Status.ACTIVE,
-        expires_at=timezone.now() + timedelta(days=3650),
-    )
-    log(f"• Markaz yaratildi: {center.name} (aktiv obuna + barcha modullar)")
-
-    # ─────────────── 3) Login foydalanuvchilar (login == parol) ───────────────
-    users = {}
-    for role, email, ism, familya in DEMO_USERS:
-        u = User.objects.create_user(
-            email=email, password=email, role=role, center=center,
-            ism=ism, familya=familya, telefon1="+998901112233",
+    # ─────────────── 2–4) Markaz + loginlar + guruhlar ───────────────
+    with transaction.atomic():
+        all_features = [
+            "finance", "imtihon", "hr", "sertifikat", "store", "leads", "analytics", "xarajatlar",
+            "ui_exam_sessions", "ui_failed_students", "ui_certificates", "ui_weekly_schedule",
+        ]
+        center_kwargs = dict(
+            name="Chaqmoq Demo O'quv Markazi",
+            slug=slug,
+            status=Center.STATUS_ACTIVE,
+            features={f: True for f in all_features},
+            max_students=100_000,
+            capacity_limit=100_000,
+            plan="DEMO_ALL",
+            expires_at=timezone.now() + timedelta(days=3650),
         )
-        users[role] = u
-    director, manager, teacher = users["director"], users["manager"], users["teacher"]
-    log("• Loginlar: d@gmail.com / m@gmail.com / t@mail.com (parol == login)")
-
-    # ─────────────── 4) Kategoriyalar + guruhlar ───────────────
-    cats = {}
-    for _, cat_name, *_ in GROUP_DEFS:
-        if cat_name not in cats:
-            cats[cat_name], _ = Category.objects.get_or_create(center=center, name=cat_name)
-
-    groups = []
-    for nom, cat_name, narx, foiz, dars in GROUP_DEFS:
-        g = Group.objects.create(
-            center=center, nom=nom, oqituvchi=teacher,
-            kurs_narxi=narx, oqituvchi_foiz=foiz, oy_dars_soni=dars,
-            category_obj=cats[cat_name],
+        if any(f.name == "is_demo" for f in Center._meta.fields):
+            center_kwargs["is_demo"] = True
+        center = Center.objects.create(**center_kwargs)
+        plan, _ = SubscriptionPlan.objects.update_or_create(
+            code="DEMO_ALL",
+            defaults=dict(title="Demo All", name="DEMO_ALL", tier=99,
+                          max_students=100_000, duration_days=3650, active=True),
         )
-        groups.append(g)
-    log(f"• {len(groups)} ta guruh yaratildi")
+        CenterSubscription.objects.filter(
+            center=center, status=CenterSubscription.Status.ACTIVE
+        ).update(status=CenterSubscription.Status.EXPIRED)
+        sub_kwargs = dict(
+            center=center,
+            plan=plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=timezone.now() + timedelta(days=3650),
+            manual_block=False,
+        )
+        if any(f.name == "is_grandfathered" for f in CenterSubscription._meta.fields):
+            sub_kwargs["is_grandfathered"] = True
+        CenterSubscription.objects.create(**sub_kwargs)
+        log(f"• Markaz yaratildi: {center.name} (aktiv obuna + barcha modullar)")
+
+        users = {}
+        for i, (role, email, ism, familya) in enumerate(DEMO_USERS):
+            # Har biriga alohida telefon — unique constraint (phone_number/telefon) to'qnashmasin
+            u = User.objects.create_user(
+                email=email, password=email, role=role, center=center,
+                ism=ism, familya=familya, telefon1=f"+99890111000{i}",
+            )
+            users[role] = u
+        director, manager, teacher = users["director"], users["manager"], users["teacher"]
+        log("• Loginlar: d@gmail.com / m@gmail.com / t@mail.com (parol == login)")
+
+        cats = {}
+        for _, cat_name, *_ in GROUP_DEFS:
+            if cat_name not in cats:
+                cats[cat_name], _ = Category.objects.get_or_create(center=center, name=cat_name)
+
+        groups = []
+        for nom, cat_name, narx, foiz, dars in GROUP_DEFS:
+            g = Group.objects.create(
+                center=center, nom=nom, oqituvchi=teacher,
+                kurs_narxi=narx, oqituvchi_foiz=foiz, oy_dars_soni=dars,
+                category_obj=cats[cat_name],
+            )
+            groups.append(g)
+        log(f"• {len(groups)} ta guruh yaratildi")
 
     # ─────────────── 4b) Qo'shimcha xodimlar (HR paneli demosi) ───────────────
     # HR dashboard panellari to'lishi uchun: hire date (so'nggi qo'shilganlar),
@@ -204,79 +303,82 @@ def seed(*, slug: str, log=print) -> dict:
         ("Bekzod", "Nazarov", "teacher", "IELTS o'qituvchisi", 9, ["IELTS", "Matematika"], [3, 5], ["Upper-Intermediate", "Advanced"], ["IELTS"]),
         ("Gulnora", "Ismoilova", "manager", "Kichik menejer", 12, [], [], [], []),
     ]
-    extra_staff = 0
-    for ism, familya, role, position, months_ago, fans, kunlar, levels, directions in STAFF_DEFS:
-        u = User.objects.create_user(
-            email=f"{slugify(ism)}.{slugify(familya)}@{slug}.demo.local", password="demo",
-            role=role, center=center, ism=ism, familya=familya,
-            telefon1=f"+9989015{extra_staff:05d}", lavozim=position,
-        )
-        prof = StaffProfile.objects.create(
-            user=u, tenant=center, full_name=f"{ism} {familya}", phone=u.telefon1,
-            role=_staff_role(role), position=position, hire_date=_hire(months_ago),
-            levels=levels, directions=directions, is_active=True,
-        )
-        if fans:
-            prof.subjects.set([subjects[f] for f in fans])
-        if role == "teacher":  # ish kunlari → jadval zichligi + haftalik bandlik
-            for wd in kunlar:
-                TeacherAvailability.objects.get_or_create(
-                    tenant=center, teacher=u, weekday=wd, start_time=time(14, 0),
-                    defaults={"end_time": time(18, 0), "type": TeacherAvailability.Type.AVAILABLE},
-                )
-        extra_staff += 1
+    with transaction.atomic():
+        extra_staff = 0
+        for ism, familya, role, position, months_ago, fans, kunlar, levels, directions in STAFF_DEFS:
+            u = User(
+                email=f"{slugify(ism)}.{slugify(familya)}@{slug}.demo.local",
+                role=role, center=center, ism=ism, familya=familya,
+                telefon1=f"+9989015{extra_staff:05d}", lavozim=position,
+            )
+            u.password = staff_password_hash
+            u.save()
+            prof = StaffProfile.objects.create(
+                user=u, tenant=center, full_name=f"{ism} {familya}", phone=u.telefon1,
+                role=_staff_role(role), position=position, hire_date=_hire(months_ago),
+                levels=levels, directions=directions, is_active=True,
+            )
+            if fans:
+                prof.subjects.set([subjects[f] for f in fans])
+            if role == "teacher":
+                for wd in kunlar:
+                    TeacherAvailability.objects.get_or_create(
+                        tenant=center, teacher=u, weekday=wd, start_time=time(14, 0),
+                        defaults={"end_time": time(18, 0), "type": TeacherAvailability.Type.AVAILABLE},
+                    )
+            extra_staff += 1
 
-    # Mavjud Temur (asosiy teacher) uchun ham profil to'ldiriladi
-    tprof, _ = StaffProfile.objects.get_or_create(user=teacher, tenant=center)
-    tprof.full_name = teacher.get_full_name() or "Temur O'qituvchiyev"
-    tprof.role = StaffProfile.Role.TEACHER
-    tprof.position = "Katta o'qituvchi"
-    tprof.hire_date = _month_add(today, -18).replace(day=15)
-    tprof.is_active = True
-    tprof.save()
-    tprof.subjects.set([subjects["Ingliz tili"], subjects["IELTS"]])
-    log(f"• {extra_staff} ta qo'shimcha xodim (HR demo: hire date, fan, ish kunlari)")
+        tprof, _ = StaffProfile.objects.get_or_create(user=teacher, tenant=center)
+        tprof.full_name = teacher.get_full_name() or "Temur O'qituvchiyev"
+        tprof.role = StaffProfile.Role.TEACHER
+        tprof.position = "Katta o'qituvchi"
+        tprof.hire_date = _month_add(today, -18).replace(day=15)
+        tprof.is_active = True
+        tprof.save()
+        tprof.subjects.set([subjects["Ingliz tili"], subjects["IELTS"]])
+        log(f"• {extra_staff} ta qo'shimcha xodim (HR demo: hire date, fan, ish kunlari)")
 
-    # ─────────────── 5) O'quvchilar + enrollmentlar (o'sish uchun sanalar tarqalgan) ───────────────
+    # ─────────────── 5) O'quvchilar + enrollmentlar ───────────────
+    log(f"• O'quvchilar yaratilmoqda ({len(student_names)} ta)…")
     students = []
     enrollments = []
-    # oldingi 6 oyda qo'shilgan (har oy ko'proq → o'sish grafigi)
-    month_starts = [_month_add(today.replace(day=1), -k) for k in range(5, -1, -1)]  # 6 oy
-    join_plan = [1, 3, 4, 5, 6, 8]  # oyiga qancha yangi o'quvchi (o'sib boruvchi)
+    month_starts = [_month_add(today.replace(day=1), -k) for k in range(5, -1, -1)]
+    join_plan = [1, 2, 2, 2, 2, 3] if lite else [1, 3, 4, 5, 6, 8]
     join_dates = []
     for m, n in zip(month_starts, join_plan):
         for _ in range(n):
             day = random.randint(1, 26)
             join_dates.append(m.replace(day=min(day, 26)))
-    join_dates = join_dates[:len(STUDENT_NAMES)]
+    join_dates = join_dates[:len(student_names)]
 
-    for idx, (ism, familya) in enumerate(STUDENT_NAMES):
-        s = User.objects.create_user(
-            email=f"student{idx+1}@{slug}.demo.local", password="demo",
-            role="student", center=center, ism=ism, familya=familya,
-            telefon1=f"+9989012{idx:05d}",
-        )
-        s.birth_date = date(2008 + (idx % 6), (idx % 12) + 1, (idx % 27) + 1)
-        s.gender = getattr(User, "Gender", None) and (User.Gender.MALE if idx % 2 else User.Gender.FEMALE)
-        try:
-            s.save(update_fields=["birth_date", "gender"])
-        except Exception:
+    with transaction.atomic():
+        for idx, (ism, familya) in enumerate(student_names):
+            s = User(
+                email=f"student{idx+1}@{slug}.demo.local",
+                role="student", center=center, ism=ism, familya=familya,
+                telefon1=f"+9989012{idx:05d}",
+                birth_date=date(2008 + (idx % 6), (idx % 12) + 1, (idx % 27) + 1),
+            )
+            if getattr(User, "Gender", None):
+                s.gender = User.Gender.MALE if idx % 2 else User.Gender.FEMALE
+            s.password = demo_password_hash  # already hashed — tezkor
             s.save()
-        students.append(s)
+            students.append(s)
 
-        joined = join_dates[idx] if idx < len(join_dates) else month_starts[-1]
-        grp = groups[idx % len(groups)]
-        # ba'zilarda chegirma (student_payable_amount < kurs narxi)
-        payable = grp.kurs_narxi
-        if idx % 5 == 0:
-            payable = int(grp.kurs_narxi * 0.7)  # chegirmali
-        e = Enrollment.objects.create(
-            center=center, group=grp, student=s,
-            kurs_narhi=grp.kurs_narxi, oqituvchi_foiz=grp.oqituvchi_foiz,
-            student_payable_amount=payable, is_active=True, joined_at=joined,
-        )
-        enrollments.append(e)
-    log(f"• {len(students)} ta o'quvchi enroll qilindi (6 oyga tarqalgan)")
+            joined = join_dates[idx] if idx < len(join_dates) else month_starts[-1]
+            grp = groups[idx % len(groups)]
+            payable = grp.kurs_narxi
+            if idx % 5 == 0:
+                payable = int(grp.kurs_narxi * 0.7)
+            e = Enrollment.objects.create(
+                center=center, group=grp, student=s,
+                kurs_narhi=grp.kurs_narxi, oqituvchi_foiz=grp.oqituvchi_foiz,
+                student_payable_amount=payable, is_active=True, joined_at=joined,
+            )
+            enrollments.append(e)
+            if (idx + 1) % 10 == 0:
+                log(f"  … {idx + 1}/{len(student_names)} o'quvchi")
+    log(f"• {len(students)} ta o'quvchi enroll qilindi")
 
     # ─────────────── 5b) Jadval + bugungi davomat (davomat nazorati demosi) ───────────────
     # Har guruh haftaning barcha kunlari darsga ega — bugun doim jadvalda bo'ladi.
@@ -384,10 +486,12 @@ def seed(*, slug: str, log=print) -> dict:
     for month in month_starts:  # oxirgi 6 oy
         for name, amount, izoh in expense_defs:
             day = random.randint(2, 26)
+            naive = datetime.combine(month.replace(day=day), datetime.min.time())
+            sana = timezone.make_aware(naive, timezone.get_current_timezone())
             Expense.objects.create(
                 center=center, summa=int(amount * random.uniform(0.85, 1.15)),
                 izoh=izoh, category=exp_cats[name],
-                sana=datetime.combine(month.replace(day=day), datetime.min.time()),
+                sana=sana,
                 worker=manager,
             )
             expense_count += 1

@@ -29,6 +29,7 @@ def superadmin_dashboard(request):
     from datetime import timedelta
     from billing.models import SubscriptionOrder
     from accounts.models import User
+    from core.perf_cache import TTL_SHORT, TTL_MEDIUM, perf_cache_get_or_set
 
     now = timezone.now()
     seven_days_later = now + timedelta(days=7)
@@ -113,40 +114,51 @@ def superadmin_dashboard(request):
         elif expiry_filter == 'active':
             centers = centers.filter(expires_at__gt=now)
 
-    # ── 4. KPI aggregates — ONE query instead of 6 ─────────────
-    kpis = Center.objects.filter(is_deleted=False, is_demo=False).aggregate(
-        total_centers=Count('id'),
-        active_centers_count=Count('id', filter=Q(status='ACTIVE')),
-        blocked_centers_count=Count('id', filter=Q(status='BLOCKED')),
-        archived_centers_count=Count('id', filter=Q(status='ARCHIVED')),
-        active_subs_count=Count('id', filter=Q(status='ACTIVE', expires_at__gt=now)),
-        expired_count=Count('id', filter=Q(expires_at__lt=now)),
-        expiring_soon_count=Count('id', filter=Q(
-            expires_at__gte=now, expires_at__lte=seven_days_later
-        )),
-    )
+    # ── 4. KPI + MRR + students — 60s cache (global, filterdan mustaqil) ──
+    def _global_kpis():
+        kpis = Center.objects.filter(is_deleted=False, is_demo=False).aggregate(
+            total_centers=Count('id'),
+            active_centers_count=Count('id', filter=Q(status='ACTIVE')),
+            blocked_centers_count=Count('id', filter=Q(status='BLOCKED')),
+            archived_centers_count=Count('id', filter=Q(status='ARCHIVED')),
+            active_subs_count=Count('id', filter=Q(status='ACTIVE', expires_at__gt=now)),
+            expired_count=Count('id', filter=Q(expires_at__lt=now)),
+            expiring_soon_count=Count('id', filter=Q(
+                expires_at__gte=now, expires_at__lte=seven_days_later
+            )),
+        )
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        mrr = SubscriptionOrder.objects.filter(
+            status='PAID',
+            center__is_demo=False,
+            paid_at__gte=month_start,
+            paid_at__lte=now,
+        ).aggregate(total=Sum('final_price'))['total'] or 0
+        total_students_global = User.objects.filter(
+            role='student', is_archived=False, center__is_demo=False
+        ).count()
+        return {
+            "kpis": kpis,
+            "mrr": mrr,
+            "total_students_global": total_students_global,
+        }
 
-    # ── Real MRR: sum of all PAID orders this month ─────────────
-    # mark_order_paid() PAID statusini qo'yadi har safar savdo tasdiqlanganda
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    mrr = SubscriptionOrder.objects.filter(
-        status='PAID',
-        center__is_demo=False,
-        paid_at__gte=month_start,
-        paid_at__lte=now,
-    ).aggregate(total=Sum('final_price'))['total'] or 0
+    _g = perf_cache_get_or_set("sa_dash_global_kpis", _global_kpis, ttl=TTL_SHORT)
+    kpis = _g["kpis"]
+    mrr = _g["mrr"]
+    total_students_global = _g["total_students_global"]
 
-    # ── 5. Global student count ─────────────────────────────────
-    # Filter over-capacity centers if requested
+    # ── 5. Centers list ─────────────────────────────────────────
     limit_filter = request.GET.get('limit', '')
     centers = list(centers)
 
     if limit_filter == 'over':
-        centers = [c for c in centers if int(c.student_count or 0) > int(c.effective_student_limit or 0)]
-
-    total_students_global = User.objects.filter(
-        role='student', is_archived=False, center__is_demo=False
-    ).count()
+        # effective_student_limit har markaz uchun subscription resolve qilishi mumkin —
+        # faqat "over" filter so'ralganda chaqiramiz.
+        centers = [
+            c for c in centers
+            if int(c.student_count or 0) > int(c.effective_student_limit or 0)
+        ]
 
     # ── Payment History (paginated paid orders) ───────────────
     payments_per_page_raw = (request.GET.get("payments_per_page") or "10").strip()
@@ -176,10 +188,16 @@ def superadmin_dashboard(request):
     payment_query_params.pop("payments_per_page", None)
     payment_base_query = payment_query_params.urlencode()
 
-    # ── Mobil ilova qamrovi (ChaqmoqApp) ────────────────────────
+    # ── Mobil ilova qamrovi (5 daqiqa cache) ────────────────────
     from core.services.app_adoption import center_app_adoption, app_adoption_totals
-    app_adoption_rows = center_app_adoption()
-    app_adoption_summary = app_adoption_totals(app_adoption_rows)
+
+    def _adoption():
+        rows = center_app_adoption()
+        return {"rows": rows, "summary": app_adoption_totals(rows)}
+
+    _ad = perf_cache_get_or_set("sa_dash_app_adoption", _adoption, ttl=TTL_MEDIUM)
+    app_adoption_rows = _ad["rows"]
+    app_adoption_summary = _ad["summary"]
 
     # ── 6. Context ──────────────────────────────────────────────
     context = {

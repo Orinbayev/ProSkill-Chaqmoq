@@ -23,7 +23,13 @@ from contextlib import ExitStack
 from django.conf import settings
 from django.db import connections
 
-_SKIP_PREFIXES = ("/static/", "/favicon.", "/.well-known/", "/robots.txt")
+_SKIP_PREFIXES = (
+    "/static/",
+    "/favicon.",
+    "/.well-known/",
+    "/robots.txt",
+    "/health/",  # Render health — hech qanday logging / wrapper kechiktirmasin
+)
 
 
 class SlowRequestLoggingMiddleware:

@@ -360,10 +360,11 @@ class TenantMiddleware:
         request.active_center = None
         request.url_center_slug = None
 
-        # Skip static/media
+        # Skip static/media/health — Render health check eng tez yo'l
         if (path.startswith('/static/')
                 or path.startswith('/media/')
-                or path == '/favicon.ico'):
+                or path == '/favicon.ico'
+                or path.rstrip('/') == '/health'):
             return self.get_response(request)
 
         # Pre-compute redirect flags once (used in fast-path and fallback)

@@ -1123,56 +1123,12 @@ def payment_history_api(request):
     """Barcha to'langan obunalarni (SaaS tushumlari) qaytaradi."""
     if not is_superadmin(request.user):
         return HttpResponseForbidden("Faqat superadmin uchun")
-    
-    # 1. Base query for all paid orders
-    paid_orders = SubscriptionOrder.objects.filter(
-        status='PAID',
-        center__is_demo=False,
-    )
-    
-    # 2. Key Metrics (KPIs)
-    total_revenue = paid_orders.aggregate(s=Sum('final_price'))['s'] or 0
-    
-    from django.utils import timezone
-    from datetime import datetime, time
-    today = timezone.localdate()
-    first_day_this_month = today.replace(day=1)
-    first_day_this_month_dt = timezone.make_aware(datetime.combine(first_day_this_month, time.min))
-    
-    this_month_revenue = paid_orders.filter(paid_at__gte=first_day_this_month_dt).aggregate(s=Sum('final_price'))['s'] or 0
-    total_subscribers = paid_orders.values('center').distinct().count()
-    
-    kpi = {
-        "total_revenue": total_revenue,
-        "this_month_revenue": this_month_revenue,
-        "total_subscribers": total_subscribers,
-    }
-    
-    # 3. Chart Data (Last 6 months)
-    revenue_chart = []
-    for i in range(5, -1, -1):
-        target_year = today.year
-        target_month = today.month - i
-        while target_month <= 0:
-            target_month += 12
-            target_year -= 1
-        month_start_date = today.replace(year=target_year, month=target_month, day=1)
-        y, m = month_start_date.year, month_start_date.month
-        if m == 12:
-            next_month_date = month_start_date.replace(year=y+1, month=1, day=1)
-        else:
-            next_month_date = month_start_date.replace(month=m+1, day=1)
 
-        month_start = timezone.make_aware(datetime.combine(month_start_date, time.min))
-        next_month = timezone.make_aware(datetime.combine(next_month_date, time.min))
-            
-        rev = paid_orders.filter(paid_at__gte=month_start, paid_at__lt=next_month).aggregate(s=Sum('final_price'))['s'] or 0
-        revenue_chart.append({
-            "label": month_start_date.strftime("%b %Y"),
-            "value": rev
-        })
-    
-    # 4. Paginated Payments List
+    from django.utils import timezone
+    from datetime import datetime, time, timedelta
+    from django.db.models.functions import TruncMonth
+    from core.perf_cache import TTL_MEDIUM, perf_cache_get_or_set
+
     per_page_raw = (request.GET.get("per_page") or "10").strip()
     allowed_page_sizes = (10, 20, 50)
     try:
@@ -1190,44 +1146,119 @@ def payment_history_api(request):
     if page_number < 1:
         page_number = 1
 
-    qs = paid_orders.select_related('center', 'plan').order_by('-paid_at', '-id')
-    paginator = Paginator(qs, per_page)
-    page_obj = paginator.get_page(page_number)
-    
-    data = []
-    for order in page_obj.object_list:
-        paid_dt = timezone.localtime(order.paid_at or order.created_at)
-        data.append({
-            "id": order.id,
-            "center_name": order.center.name,
-            "center_slug": order.center.slug,
-            "plan_code": order.plan.code,
-            "plan_title": order.plan.title,
-            "duration": order.duration_months,
-            "amount": order.final_price,
-            "paid_at": paid_dt.strftime("%d.%m.%Y %H:%M"),
-        })
-        
-    # 5. Plan Distribution (Which plan sold how many times)
-    plan_distribution = list(paid_orders.values('plan__title', 'plan__code').annotate(
-        count=Count('id'),
-        total_revenue=Sum('final_price')
-    ).order_by('-count'))
-        
-    return JsonResponse({
-        "payments": data,
-        "kpi": kpi,
-        "chart": revenue_chart,
-        "plan_stats": plan_distribution,
-        "pagination": {
-            "page": page_obj.number,
-            "per_page": per_page,
-            "total_pages": paginator.num_pages,
-            "total_count": paginator.count,
-            "has_previous": page_obj.has_previous(),
-            "has_next": page_obj.has_next(),
-        },
-    })
+    def _build_payload():
+        paid_orders = SubscriptionOrder.objects.filter(
+            status="PAID",
+            center__is_demo=False,
+        )
+
+        today = timezone.localdate()
+        first_day_this_month = today.replace(day=1)
+        first_day_this_month_dt = timezone.make_aware(
+            datetime.combine(first_day_this_month, time.min)
+        )
+
+        # KPI: 2 aggregate o'rniga bitta (total + this month)
+        agg = paid_orders.aggregate(
+            total_revenue=Sum("final_price"),
+            this_month_revenue=Sum(
+                "final_price",
+                filter=models.Q(paid_at__gte=first_day_this_month_dt),
+            ),
+        )
+        total_subscribers = (
+            paid_orders.values("center").distinct().count()
+        )
+        kpi = {
+            "total_revenue": agg["total_revenue"] or 0,
+            "this_month_revenue": agg["this_month_revenue"] or 0,
+            "total_subscribers": total_subscribers,
+        }
+
+        # Chart: 6 oy → 1 query (TruncMonth), loop ichida 6 aggregate emas
+        chart_start = (first_day_this_month - timedelta(days=160)).replace(day=1)
+        chart_start_dt = timezone.make_aware(datetime.combine(chart_start, time.min))
+        def _month_key(v):
+            if v is None:
+                return None
+            if hasattr(v, "date"):
+                v = v.date()
+            try:
+                return v.replace(day=1)
+            except Exception:
+                return v
+
+        month_rows = {}
+        for row in (
+            paid_orders.filter(paid_at__gte=chart_start_dt)
+            .annotate(m=TruncMonth("paid_at"))
+            .values("m")
+            .annotate(rev=Sum("final_price"))
+        ):
+            key = _month_key(row.get("m"))
+            if key is None:
+                continue
+            month_rows[key] = int(row["rev"] or 0)
+        revenue_chart = []
+        for i in range(5, -1, -1):
+            target_year = today.year
+            target_month = today.month - i
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            month_start_date = today.replace(
+                year=target_year, month=target_month, day=1
+            )
+            revenue_chart.append({
+                "label": month_start_date.strftime("%b %Y"),
+                "value": month_rows.get(month_start_date, 0),
+            })
+
+        qs = paid_orders.select_related("center", "plan").order_by("-paid_at", "-id")
+        paginator = Paginator(qs, per_page)
+        page_obj = paginator.get_page(page_number)
+
+        data = []
+        for order in page_obj.object_list:
+            paid_dt = timezone.localtime(order.paid_at or order.created_at)
+            data.append({
+                "id": order.id,
+                "center_name": order.center.name,
+                "center_slug": order.center.slug,
+                "plan_code": order.plan.code,
+                "plan_title": order.plan.title,
+                "duration": order.duration_months,
+                "amount": order.final_price,
+                "paid_at": paid_dt.strftime("%d.%m.%Y %H:%M"),
+            })
+
+        plan_distribution = list(
+            paid_orders.values("plan__title", "plan__code")
+            .annotate(count=Count("id"), total_revenue=Sum("final_price"))
+            .order_by("-count")
+        )
+
+        return {
+            "payments": data,
+            "kpi": kpi,
+            "chart": revenue_chart,
+            "plan_stats": plan_distribution,
+            "pagination": {
+                "page": page_obj.number,
+                "per_page": per_page,
+                "total_pages": paginator.num_pages,
+                "total_count": paginator.count,
+                "has_previous": page_obj.has_previous(),
+                "has_next": page_obj.has_next(),
+            },
+        }
+
+    payload = perf_cache_get_or_set(
+        f"sa_payments_api:p={page_number}:pp={per_page}",
+        _build_payload,
+        ttl=TTL_MEDIUM,
+    )
+    return JsonResponse(payload)
 
 
 # ══════════════════════════════════════════════════════════════════════════

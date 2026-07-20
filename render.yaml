@@ -41,11 +41,16 @@ services:
       - key: GUNICORN_TIMEOUT
         value: "60"
 
+      # Worker recycle kamroq bo'lsin — har 500 requestda restart 502 berardi.
       - key: GUNICORN_MAX_REQUESTS
-        value: "500"
+        value: "2000"
 
       - key: GUNICORN_MAX_REQUESTS_JITTER
-        value: "50"
+        value: "100"
+
+      # Bot Gunicorn port bind + health o'tgach ishga tushsin (cold-start 502).
+      - key: BOT_START_DELAY
+        value: "12"
 
       - key: BACKUP_SCHEDULER_ENABLED
         value: "false"
