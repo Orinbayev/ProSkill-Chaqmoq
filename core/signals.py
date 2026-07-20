@@ -4,7 +4,7 @@ from .models import Notification, NotificationPreference
 from chaqmoq.models import Ledger
 from store.models import PurchaseRequest
 from accounts.models import Center
-from accounts.utils_bot import send_telegram_message
+from accounts.utils_bot import send_telegram_message_async
 from education.models import Attendance, Payment, StudentGroupTransfer
 
 
@@ -50,7 +50,7 @@ def notify_ledger_change(sender, instance, created, **kwargs):
             total_balance = Ledger.student_balansi(user.id, center=instance.group.center if instance.group else user.center)
             delta = f"+{instance.ball}" if instance.ball > 0 else str(instance.ball)
             tg_text = f"⚡ {delta} Chaqmoq ball o'zgardi! Jami: {total_balance}"
-            send_telegram_message(user.telegram_id, tg_text)
+            send_telegram_message_async(user.telegram_id, tg_text)
 
 
 @receiver(post_save, sender=Attendance)
@@ -210,7 +210,7 @@ def notify_parent_on_absence(sender, instance, created, **kwargs):
             )
 
         for tg_id in parent_tg_ids:
-            send_telegram_message(tg_id, text)
+            send_telegram_message_async(tg_id, text)
     except Exception:
         pass
 
@@ -243,7 +243,7 @@ def notify_parent_on_payment(sender, instance, created, **kwargs):
         )
 
         for tg_id in parent_tg_ids:
-            send_telegram_message(tg_id, text)
+            send_telegram_message_async(tg_id, text)
     except Exception:
         pass
 
@@ -275,6 +275,6 @@ def notify_parent_on_group_transfer(sender, instance, created, **kwargs):
         )
 
         for tg_id in parent_tg_ids:
-            send_telegram_message(tg_id, text)
+            send_telegram_message_async(tg_id, text)
     except Exception:
         pass

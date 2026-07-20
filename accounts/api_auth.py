@@ -17,7 +17,7 @@ from datetime import timedelta, datetime, date as date_cls
 from accounts.utils import normalize_phone
 from accounts.models import User, UserActivity
 
-from accounts.utils_bot import send_telegram_message
+from accounts.utils_bot import send_telegram_message_async
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,8 @@ def record_activity(user, action, request=None, device_info=None):
                 msg += f"Ma'lumot: <i>{device_info}</i>\n"
             
             msg += "\nAgar bu siz bo'lmasangiz, darhol parolingizni o'zgartiring."
-            send_telegram_message(user.telegram_id, msg)
+            # CRITICAL: never block login/HTTP on Telegram (was ~5–15s on chat not found).
+            send_telegram_message_async(user.telegram_id, msg)
 
 @csrf_exempt
 def link_telegram_api(request):

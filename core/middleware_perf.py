@@ -9,7 +9,7 @@ Har request uchun stdout'ga chiqaradi (Render logsida ko'rinadi):
 
 Render logsida filtrlash:
   grep "[PERF]"
-  grep "CRITICAL\|N+1\|HIGH-Q"
+  grep -E "CRITICAL|N\\+1|HIGH-Q"
 
 Settings (config/settings.py yoki Render env vars):
   SLOW_REQUEST_MS  = 800     # ms, bu'dan sekin bo'lsa [SLOW] tegi

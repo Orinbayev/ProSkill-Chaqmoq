@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
 from django.core.validators import validate_email
-from django.db.models import Avg, Q, Sum
+from django.db.models import Avg, Prefetch, Q, Sum
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -2907,6 +2907,8 @@ def mobile_attendance(request):
 
 
 def _mobile_payments_payload(request, child: User, center) -> dict:
+    from education.models import PaymentAllocation
+
     enrollments = list(
         Enrollment.objects.filter(
             student=child,
@@ -2919,29 +2921,35 @@ def _mobile_payments_payload(request, child: User, center) -> dict:
         .select_related("group")
         .order_by("group__nom")
     )
+    # Faqat oxirgi 18 oy — to'liq tarix mobil UI uchun kerak emas, sekinlik manbai edi.
+    tuition_from = (timezone.localdate().replace(day=1) - timedelta(days=18 * 31)).replace(day=1)
     tuition_months = list(
         TuitionMonth.objects
-        .filter(enrollment__student=child, enrollment__group__center=center, is_deleted=False)
+        .filter(
+            enrollment__student=child,
+            enrollment__group__center=center,
+            is_deleted=False,
+            month__gte=tuition_from,
+        )
         .select_related("enrollment", "enrollment__group")
-        .prefetch_related("allocations")
+        .prefetch_related(
+            Prefetch(
+                "allocations",
+                queryset=PaymentAllocation.objects.filter(is_deleted=False).only(
+                    "id", "amount", "tuition_month_id", "is_deleted"
+                ),
+            )
+        )
         .order_by("month", "enrollment__group__nom")
     )
-    paid_total = (
-        Payment.objects.filter(student=child, center=center, is_deleted=False)
-        .aggregate(total=Sum("summa"))["total"]
-        or 0
-    )
-    payments = (
-        Payment.objects
-        .filter(student=child, center=center, is_deleted=False)
-        .select_related("group")
-        .order_by("-paid_date", "-id")
-    )
+    payment_qs = Payment.objects.filter(student=child, center=center, is_deleted=False)
+    paid_total = payment_qs.aggregate(total=Sum("summa"))["total"] or 0
     current_month = timezone.localdate().replace(day=1)
     paid_this_month = (
-        payments.filter(paid_date__gte=current_month).aggregate(total=Sum("summa"))["total"]
+        payment_qs.filter(paid_date__gte=current_month).aggregate(total=Sum("summa"))["total"]
         or 0
     )
+    payments = payment_qs.select_related("group").order_by("-paid_date", "-id")[:100]
     total_plan = 0
     debt_amount = 0
     pending_amount = 0
@@ -3608,12 +3616,45 @@ def mobile_notification_read(request, notification_id: int):
 def mobile_notifications(request):
     page = max(int(request.GET.get("page") or 1), 1)
     per_page = min(max(int(request.GET.get("per_page") or 20), 1), 100)
-    qs = _notification_queryset_for_user(request.user).order_by("-created_at")
+    # select_related: sender/recipient N+1 (HIGH-Q) ni yo'qotadi
+    qs = (
+        _notification_queryset_for_user(request.user)
+        .select_related("sender", "recipient")
+        .only(
+            "id",
+            "title",
+            "message",
+            "type",
+            "is_read",
+            "created_at",
+            "sender_id",
+            "recipient_id",
+            "sender__id",
+            "sender__ism",
+            "sender__familya",
+            "sender__otchestvo",
+            "sender__email",
+            "recipient__id",
+            "recipient__ism",
+            "recipient__familya",
+            "recipient__otchestvo",
+            "recipient__email",
+        )
+        .order_by("-created_at")
+    )
     paginator = Paginator(qs, per_page)
     try:
         page_obj = paginator.page(page)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages or 1)
+    # Bitta count + unread — alohida to'liq queryset qayta ochmaslik
+    total = paginator.count
+    unread_count = (
+        _notification_queryset_for_user(request.user)
+        .filter(is_read=False)
+        .only("id")
+        .count()
+    )
     return JsonResponse(
         {
             "ok": True,
@@ -3621,10 +3662,10 @@ def mobile_notifications(request):
             "pagination": {
                 "page": page_obj.number,
                 "pages": paginator.num_pages,
-                "total": paginator.count,
+                "total": total,
                 "has_next": page_obj.has_next(),
             },
-            "unread_count": qs.filter(is_read=False).count(),
+            "unread_count": unread_count,
         }
     )
 

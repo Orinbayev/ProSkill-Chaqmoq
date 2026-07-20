@@ -110,12 +110,35 @@ async def handle_send_message(request):
 
         if not chat_id or not text:
             return web.json_response({"error": "Missing chat_id or text"}, status=400)
-            
-        await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
-        return web.json_response({"status": "ok"})
+
+        try:
+            await bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup,
+            )
+            return web.json_response({"status": "ok"})
+        except Exception as tg_err:
+            # Expected user-side issues — do not 500 (Django login path used to block 5–15s).
+            err_text = str(tg_err).lower()
+            if "chat not found" in err_text:
+                logging.info("send_message skip chat_id=%s reason=chat_not_found", chat_id)
+                return web.json_response(
+                    {"status": "skipped", "reason": "chat_not_found"},
+                    status=200,
+                )
+            if "bot was blocked" in err_text or "user is deactivated" in err_text or "forbidden" in err_text:
+                logging.info("send_message skip chat_id=%s reason=bot_blocked err=%s", chat_id, tg_err)
+                return web.json_response(
+                    {"status": "skipped", "reason": "bot_blocked"},
+                    status=200,
+                )
+            logging.warning("send_message Telegram error chat_id=%s: %s", chat_id, tg_err)
+            return web.json_response({"error": str(tg_err), "status": "error"}, status=200)
     except Exception as err:
-        logging.error(f"Error in send_message API: {err}")
-        return web.json_response({"error": str(err)}, status=500)
+        logging.warning("Error in send_message API: %s", err)
+        return web.json_response({"error": str(err), "status": "error"}, status=200)
 
 async def start_api():
     # Use a separate port for internal API to avoid conflict with Render's $PORT
