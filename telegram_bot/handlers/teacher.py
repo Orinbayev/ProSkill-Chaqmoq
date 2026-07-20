@@ -3,8 +3,10 @@ import logging
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.teacher_menu import (
     get_teacher_attendance_keyboard,
+    get_teacher_group_detail_kb,
     get_teacher_groups_keyboard,
 )
 from services.api_client import (
@@ -62,23 +64,16 @@ def _format_attendance_sheet(sheet: dict):
     return "\n".join(lines)
 
 
+def _groups_list_text(groups: list[dict]) -> str:
+    return (
+        f"📚 <b>Guruhlarim</b>\n\n{_format_groups(groups)}\n\n"
+        "<i>Guruhni tanlang — o'quvchilar ro'yxati va davomat 👇</i>"
+    )
+
+
 @router.message(F.text == "📚 Guruhlarim")
 async def teacher_groups(message: types.Message, state: FSMContext):
-    try:
-        payload = await _load_teacher_dashboard(message, state)
-        if not payload:
-            return
-        await message.answer(
-            f"📚 <b>Guruhlarim</b>\n\n{_format_groups(payload.get('groups', []))}",
-            parse_mode="HTML",
-        )
-    except Exception:
-        logger.exception("teacher_groups failed")
-        await message.answer("❌ Guruhlarni ko'rsatishda xatolik yuz berdi.")
-
-
-@router.message(F.text == "✅ Davomat Belgilash")
-async def teacher_attendance_entry(message: types.Message, state: FSMContext):
+    """Birlashtirilган: guruhlar ro'yxati (soni, davomat) + tanlab davomat/o'quvchilar."""
     try:
         payload = await _load_teacher_dashboard(message, state)
         if not payload:
@@ -88,12 +83,66 @@ async def teacher_attendance_entry(message: types.Message, state: FSMContext):
             await message.answer("ℹ️ Sizga biriktirilgan faol guruh yo'q.")
             return
         await message.answer(
-            "✅ Davomat olish uchun guruhni tanlang:",
-            reply_markup=get_teacher_groups_keyboard(groups, "attendance"),
+            _groups_list_text(groups),
+            reply_markup=get_teacher_groups_keyboard(groups, "group"),
+            parse_mode="HTML",
         )
     except Exception:
-        logger.exception("teacher_attendance_entry failed")
-        await message.answer("❌ Davomat bo'limini ochishda xatolik yuz berdi.")
+        logger.exception("teacher_groups failed")
+        await message.answer("❌ Guruhlarni ko'rsatishda xatolik yuz berdi.")
+
+
+@router.callback_query(F.data == "teacher:grouplist")
+async def teacher_group_list_cb(callback: types.CallbackQuery, state: FSMContext):
+    profile = await ensure_active_profile(callback, state, allowed_roles=("teacher",))
+    if not profile:
+        return
+    status_code, response = await get_bot_dashboard_api(str(callback.from_user.id), profile["email"])
+    if status_code != 200 or not response.get("ok"):
+        await callback.answer()
+        return
+    groups = response.get("teacher", {}).get("groups", [])
+    try:
+        await callback.message.edit_text(
+            _groups_list_text(groups),
+            reply_markup=get_teacher_groups_keyboard(groups, "group"),
+            parse_mode="HTML",
+        )
+    except Exception:
+        pass
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("teacher:group:"))
+async def teacher_group_detail(callback: types.CallbackQuery, state: FSMContext):
+    profile = await ensure_active_profile(callback, state, allowed_roles=("teacher",))
+    if not profile:
+        return
+    try:
+        group_id = int(callback.data.split(":")[2])
+    except (IndexError, ValueError):
+        await callback.answer("Xato", show_alert=True)
+        return
+    status_code, response = await get_bot_dashboard_api(str(callback.from_user.id), profile["email"])
+    if status_code != 200 or not response.get("ok"):
+        await callback.answer("❌ Guruh ma'lumoti yuklanmadi.", show_alert=True)
+        return
+    groups = response.get("teacher", {}).get("groups", [])
+    g = next((x for x in groups if x.get("id") == group_id), None)
+    if g:
+        text = (
+            f"📚 <b>{g['name']}</b>\n\n"
+            f"👥 O'quvchilar: <b>{g.get('student_count', 0)}</b>\n"
+            f"📊 O'rtacha davomat: <b>{g.get('average_attendance_rate', 0)}%</b>\n"
+            f"✅ Bugungi davomat: <b>{g.get('today_attendance_count', 0)}</b>"
+        )
+    else:
+        text = "📚 <b>Guruh</b>"
+    try:
+        await callback.message.edit_text(text, reply_markup=get_teacher_group_detail_kb(group_id), parse_mode="HTML")
+    except Exception:
+        pass
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("teacher:attendance:"))
@@ -159,25 +208,8 @@ async def teacher_mark_attendance(callback: types.CallbackQuery, state: FSMConte
         await callback.answer("❌ Davomatni saqlab bo'lmadi.", show_alert=True)
 
 
-@router.message(F.text == "👥 O'quvchilarim")
-async def teacher_students(message: types.Message, state: FSMContext):
-    try:
-        payload = await _load_teacher_dashboard(message, state)
-        if not payload:
-            return
-        groups = payload.get("groups", [])
-        if not groups:
-            await message.answer("ℹ️ Sizga biriktirilgan faol guruh yo'q.")
-            return
-        await message.answer(
-            "👥 O'quvchilar ro'yxatini ko'rish uchun guruhni tanlang:",
-            reply_markup=get_teacher_groups_keyboard(groups, "students"),
-        )
-    except Exception:
-        logger.exception("teacher_students failed")
-        await message.answer("❌ O'quvchilar bo'limini ochishda xatolik yuz berdi.")
-
-
+# "👥 O'quvchilarim" tugmasi "📚 Guruhlarim" ichига birlashtirildi
+# (guruh → 👥 O'quvchilar ro'yxati). Callback quyida qoladi.
 @router.callback_query(F.data.startswith("teacher:students:"))
 async def teacher_students_group(callback: types.CallbackQuery, state: FSMContext):
     try:
@@ -207,7 +239,10 @@ async def teacher_students_group(callback: types.CallbackQuery, state: FSMContex
                 f"  Chaqmoq: {item['balance']}\n"
                 f"  Qarz: {item['debt']:,} so'm"
             )
-        await callback.message.edit_text("\n\n".join(lines), parse_mode="HTML")
+        back_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=f"teacher:group:{group_id}")]
+        ])
+        await callback.message.edit_text("\n\n".join(lines), reply_markup=back_kb, parse_mode="HTML")
         await callback.answer()
     except Exception:
         logger.exception("teacher_students_group failed")
@@ -313,20 +348,6 @@ async def teacher_schedule_bot(message: types.Message, state: FSMContext):
         await message.answer("❌ Jadval ko'rsatishda xatolik yuz berdi.")
 
 
-@router.message(F.text == "📊 Statistika")
-async def teacher_statistics(message: types.Message, state: FSMContext):
-    try:
-        payload = await _load_teacher_dashboard(message, state)
-        if not payload:
-            return
-        stats = payload.get("statistics", {})
-        text = (
-            "📊 <b>Statistika</b>\n\n"
-            f"Guruhlar soni: <b>{stats.get('groups_count', 0)}</b>\n"
-            f"O'quvchilar soni: <b>{stats.get('students_count', 0)}</b>\n"
-            f"O'rtacha davomat: <b>{stats.get('average_attendance_rate', 0)}%</b>"
-        )
-        await message.answer(text, parse_mode="HTML")
-    except Exception:
-        logger.exception("teacher_statistics failed")
-        await message.answer("❌ Statistikani ko'rsatishda xatolik yuz berdi.")
+# "📊 Statistika" o'qituvchi menyusidan olib tashlandi — u superadmin/bot admin
+# statistikasini ko'rsatardi (admin_panel handleri bilan to'qnashuv). Guruh soni /
+# o'quvchi soni / o'rtacha davomat allaqachon "📚 Guruhlarim"да ko'rinadi.

@@ -317,6 +317,8 @@ def _sync_profile_and_user(
     if familya or create:
         user.familya = familya or "-"
     if phone:
+        if User.login_phone_taken(phone, exclude_pk=getattr(user, "pk", None)):
+            raise ValidationError("Bu telefon raqami boshqa faol foydalanuvchida login sifatida band.")
         user.telefon1 = phone
         user.phone_number = phone
     user.center = center
@@ -526,6 +528,11 @@ def employees_api(request):
     generated_password = str(payload.get("password") or "").strip() or secrets.token_urlsafe(8)
     ism, familya = parse_full_name(full_name)
     phone = _normalize_phone(payload.get("phone") or "")
+    if phone and User.login_phone_taken(phone):
+        return JsonResponse(
+            {"error": "Bu telefon raqami boshqa faol foydalanuvchida login sifatida band."},
+            status=400,
+        )
 
     try:
         with transaction.atomic():
@@ -537,7 +544,7 @@ def employees_api(request):
                 ism=ism or "Xodim",
                 familya=familya or "-",
                 telefon1=phone,
-                phone_number=phone,
+                phone_number=phone or None,
                 lavozim=" ".join(str(payload.get("position") or "").split()).strip(),
                 is_active=bool(payload.get("is_active", True)),
             )

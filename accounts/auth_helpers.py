@@ -75,22 +75,36 @@ def resolve_login_attempt(
     request=None,
     center=None,
 ) -> LoginAttemptResult:
+    """
+    Authenticate by email/phone/username.
+
+    Anti-enumeration notes:
+    - ``user_not_found`` and ``invalid_password`` should be surfaced to clients
+      as the same public error (see mobile/web login handlers).
+    - ``inactive_user`` is returned only when the password is correct, so
+      attackers cannot probe account existence without credentials.
+    """
     authenticated_user = authenticate(request, username=identifier, password=password)
     if authenticated_user:
+        if not authenticated_user.is_active:
+            return LoginAttemptResult(user=None, code="inactive_user")
         return LoginAttemptResult(user=authenticated_user, code="success")
 
     candidates = list(find_login_users(identifier, center=center, active_only=False))
     if not candidates:
         return LoginAttemptResult(user=None, code="user_not_found")
 
-    active_candidates = [candidate for candidate in candidates if candidate.is_active]
-    if not active_candidates:
+    # Check password against all candidates (active + inactive) so inactive
+    # accounts do not short-circuit with a distinguishable response.
+    password_matches = [c for c in candidates if c.check_password(password)]
+    if not password_matches:
+        return LoginAttemptResult(user=None, code="invalid_password")
+
+    active_matches = [c for c in password_matches if c.is_active]
+    if not active_matches:
         return LoginAttemptResult(user=None, code="inactive_user")
 
-    for candidate in active_candidates:
-        if candidate.check_password(password):
-            return LoginAttemptResult(user=candidate, code="success")
-    return LoginAttemptResult(user=None, code="invalid_password")
+    return LoginAttemptResult(user=active_matches[0], code="success")
 
 
 def mask_login_identifier(identifier: str) -> str:

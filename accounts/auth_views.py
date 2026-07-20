@@ -12,13 +12,11 @@ PERF v3:
 - Login request timing va SQL query count log qilinadi (`chaqmoq.login.perf`).
 """
 
-import hashlib
 import logging
 import threading
 import time
 
 from django.contrib.auth import views as auth_views
-from django.core.cache import cache
 from django.db import connection
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
@@ -53,8 +51,6 @@ class SecureLoginView(auth_views.LoginView):
     """
 
     template_name = 'accounts/login.html'
-    LOGIN_MAX_FAILED_ATTEMPTS = 8
-    LOGIN_THROTTLE_WINDOW_SECONDS = 15 * 60
 
     ORPHAN_ERROR = (
         "Siz hech qaysi o'quv markazga biriktirilmagansiz. "
@@ -68,6 +64,8 @@ class SecureLoginView(auth_views.LoginView):
         Measures total request duration and SQL query count per login.
         Log line: `chaqmoq.login.perf` with ms + query count.
         """
+        from accounts.login_throttle import is_login_locked, locked_message
+
         t0 = time.perf_counter()
         q0 = len(connection.queries) if connection.queries_logged else 0
 
@@ -76,9 +74,9 @@ class SecureLoginView(auth_views.LoginView):
                 return redirect(self._get_home_url(request.user))
             if request.method == "POST":
                 username = (request.POST.get("username") or "").strip().lower()
-                if self._is_login_locked(request, username):
+                if is_login_locked(request, username):
                     form = self.get_form()
-                    form.add_error(None, "Ko'p urinish bo'ldi. 15 daqiqadan keyin qayta urinib ko'ring.")
+                    form.add_error(None, locked_message())
                     return self.render_to_response(self.get_context_data(form=form))
             return super().dispatch(request, *args, **kwargs)
         finally:
@@ -94,13 +92,15 @@ class SecureLoginView(auth_views.LoginView):
                 )
 
     def form_invalid(self, form):
+        from accounts.login_throttle import register_failed_login
+
         response = super().form_invalid(form)
         email = (form.data.get('username') or '').strip()
 
         # ✅ PERF FIX: Noto'g'ri login bo'lsa ham 2 DB query ketardi (email + phone).
         # Endi faqat throttle key uchun email ishlatamiz, DB query YO'Q.
         # UserActivity.create fon threadida bajariladi.
-        self._register_failed_attempt(self.request, email)
+        register_failed_login(self.request, email)
 
         if email:
             # DB query va Telegram xabari fon threadida — response tezlashadi
@@ -117,6 +117,8 @@ class SecureLoginView(auth_views.LoginView):
         return response
 
     def form_valid(self, form):
+        from accounts.login_throttle import clear_failed_login
+
         # ✅ Orphan/no-role guard: superuser bundan mustasno, qolgan rollar
         # uchun tenant va role majburiy. Bu yerda tekshirib, login qilishdan
         # oldin aniq xato chiqaramiz (session ga user yozilmaydi).
@@ -143,7 +145,7 @@ class SecureLoginView(auth_views.LoginView):
         # record_activity + Telegram xabari BLOCKING edi (5s timeout).
         # Endi fon threadida ishlaydi — response darhol qaytadi.
         response = super().form_valid(form)
-        self._clear_failed_attempts(self.request, form.cleaned_data.get("username", ""))
+        clear_failed_login(self.request, form.cleaned_data.get("username", ""))
 
         user = self.request.user
         meta_copy = {
@@ -197,31 +199,6 @@ class SecureLoginView(auth_views.LoginView):
                 _record_activity_bg(user, "Failed login attempt detected", meta_copy)
         except Exception as exc:
             logger.warning("_record_failed_login_bg xatosi: %s", exc)
-
-    def _client_ip(self, request):
-        forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR", "")
-
-    def _throttle_key(self, request, username):
-        normalized_username = (username or "").strip().lower()
-        raw_key = f"{self._client_ip(request)}:{normalized_username}"
-        key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
-        return f"login:throttle:{key_hash}"
-
-    def _is_login_locked(self, request, username):
-        key = self._throttle_key(request, username)
-        return int(cache.get(key, 0) or 0) >= self.LOGIN_MAX_FAILED_ATTEMPTS
-
-    def _register_failed_attempt(self, request, username):
-        key = self._throttle_key(request, username)
-        attempts = int(cache.get(key, 0) or 0) + 1
-        cache.set(key, attempts, timeout=self.LOGIN_THROTTLE_WINDOW_SECONDS)
-
-    def _clear_failed_attempts(self, request, username):
-        key = self._throttle_key(request, username)
-        cache.delete(key)
 
     def _get_home_url(self, user):
         """

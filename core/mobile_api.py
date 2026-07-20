@@ -188,6 +188,38 @@ def _hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
+def _mobile_token_lifetime_days() -> int:
+    """Configured access-token lifetime in days (hard-clamped 1..90)."""
+    try:
+        days = int(getattr(settings, "MOBILE_ACCESS_TOKEN_DAYS", 30) or 30)
+    except (TypeError, ValueError):
+        days = 30
+    return max(1, min(days, 90))
+
+
+def _mobile_token_lifetime() -> timedelta:
+    return timedelta(days=_mobile_token_lifetime_days())
+
+
+def _mobile_token_max_per_user() -> int:
+    try:
+        n = int(getattr(settings, "MOBILE_ACCESS_TOKEN_MAX_PER_USER", 8) or 8)
+    except (TypeError, ValueError):
+        n = 8
+    return max(1, min(n, 50))
+
+
+def _token_effective_expires_at(token: MobileAccessToken):
+    """
+    Absolute policy clamp: never honor more lifetime than current settings
+    allow from created_at. Soft-migrates old 180-day tokens without a DB rewrite.
+    """
+    max_exp = token.created_at + _mobile_token_lifetime()
+    if token.expires_at and token.expires_at < max_exp:
+        return token.expires_at
+    return max_exp
+
+
 def _bearer_token(request) -> str:
     header = request.headers.get("Authorization", "")
     if not header.lower().startswith("bearer "):
@@ -207,7 +239,6 @@ def _authenticate_mobile_token(request) -> User | None:
         .filter(
             key_hash=key_hash,
             is_revoked=False,
-            expires_at__gt=timezone.now(),
             user__is_active=True,
         )
         .first()
@@ -215,8 +246,24 @@ def _authenticate_mobile_token(request) -> User | None:
     if not token:
         return None
 
-    token.last_used_at = timezone.now()
-    token.save(update_fields=["last_used_at"])
+    now = timezone.now()
+    effective_exp = _token_effective_expires_at(token)
+    if effective_exp <= now:
+        # Persist revoke so subsequent lookups stay cheap.
+        if not token.is_revoked or token.expires_at > now:
+            token.is_revoked = True
+            token.expires_at = min(token.expires_at, now) if token.expires_at else now
+            token.save(update_fields=["is_revoked", "expires_at"])
+        return None
+
+    # Shrink stored expires_at if legacy row still has a longer window.
+    update_fields = ["last_used_at"]
+    token.last_used_at = now
+    if token.expires_at and token.expires_at > effective_exp:
+        token.expires_at = effective_exp
+        update_fields.append("expires_at")
+    token.save(update_fields=update_fields)
+
     request.mobile_access_token = token
     request.user = token.user
     if token.center_id:
@@ -230,8 +277,21 @@ def mobile_login_required(view_func):
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
         try:
-            if not request.user.is_authenticated:
-                _authenticate_mobile_token(request)
+            # Bearer token always wins when present — revoked/expired tokens must
+            # not be rescued by a leftover Django session cookie.
+            if _bearer_token(request):
+                if _authenticate_mobile_token(request) is None:
+                    return _mobile_json_error(
+                        "Sessiya yakunlandi. Qayta tizimga kiring.",
+                        status=401,
+                        code="not_authenticated",
+                    )
+            elif not request.user.is_authenticated:
+                return _mobile_json_error(
+                    "Sessiya yakunlandi. Qayta tizimga kiring.",
+                    status=401,
+                    code="not_authenticated",
+                )
             center = _request_center(request)
             if center is not None:
                 _bind_request_center(request, center)
@@ -248,8 +308,31 @@ def mobile_login_required(view_func):
     return _wrapped
 
 
+def _prune_user_mobile_tokens(user: User, *, keep: int | None = None) -> int:
+    """Revoke oldest active tokens when user exceeds concurrent session cap."""
+    limit = keep if keep is not None else _mobile_token_max_per_user()
+    now = timezone.now()
+    active_ids = list(
+        MobileAccessToken.objects.filter(
+            user=user,
+            is_revoked=False,
+            expires_at__gt=now,
+        )
+        .order_by("-created_at")
+        .values_list("id", flat=True)
+    )
+    if len(active_ids) <= limit:
+        return 0
+    excess_ids = active_ids[limit:]
+    return MobileAccessToken.objects.filter(id__in=excess_ids).update(
+        is_revoked=True,
+    )
+
+
 def _create_mobile_access_token(request, user: User, center, data: dict) -> tuple[str, MobileAccessToken]:
     raw_token = secrets.token_urlsafe(40)
+    lifetime = _mobile_token_lifetime()
+    now = timezone.now()
     token = MobileAccessToken.objects.create(
         user=user,
         center=center,
@@ -257,10 +340,22 @@ def _create_mobile_access_token(request, user: User, center, data: dict) -> tupl
         key_hash=_hash_token(raw_token),
         device_name=str(data.get("device_name") or "")[:120],
         device_platform=str(data.get("device_platform") or "")[:32],
-        expires_at=timezone.now() + timezone.timedelta(days=180),
+        expires_at=now + lifetime,
     )
+    # Cap concurrent sessions (new token counts toward the limit).
+    _prune_user_mobile_tokens(user, keep=_mobile_token_max_per_user())
     request.mobile_access_token = token
     return raw_token, token
+
+
+def _revoke_mobile_token(token: MobileAccessToken | None) -> bool:
+    if token is None:
+        return False
+    if token.is_revoked:
+        return True
+    token.is_revoked = True
+    token.save(update_fields=["is_revoked"])
+    return True
 
 
 def _center_from_login_payload(request, data: dict):
@@ -279,6 +374,14 @@ def _center_from_login_payload(request, data: dict):
 
 
 def _resolve_login_user(request, data: dict):
+    from accounts.login_throttle import (
+        clear_failed_login,
+        generic_invalid_credentials_message,
+        is_login_locked,
+        locked_json_response,
+        register_failed_login,
+    )
+
     identifier = str(
         data.get("login")
         or data.get("phone")
@@ -302,6 +405,15 @@ def _resolve_login_user(request, data: dict):
             "Login va parol majburiy",
             code="missing_credentials",
         )
+
+    # Brute-force / stuffing protection (IP + identifier).
+    if is_login_locked(request, identifier):
+        logger.info(
+            "mobile_login outcome=rate_limited identifier=%s center_slug=%s",
+            masked_identifier or "-",
+            requested_slug or "-",
+        )
+        return None, None, locked_json_response()
 
     _mobile_debug(
         "login_center_resolved",
@@ -332,30 +444,26 @@ def _resolve_login_user(request, data: dict):
     authenticated_user = login_result.user
 
     if not authenticated_user:
-        error_map = {
-            "inactive_user": (
+        # Anti-enumeration: same public response for unknown user + bad password.
+        # inactive_user only when password is correct (see resolve_login_attempt).
+        if login_result.code == "inactive_user":
+            status, code, error_message = (
                 403,
                 "inactive_user",
                 "Akkaunt faol emas. Administrator bilan bog‘laning.",
-            ),
-            "user_not_found": (
-                404,
-                "user_not_found",
-                "Bunday foydalanuvchi topilmadi",
-            ),
-            "invalid_password": (
+            )
+            # Correct password on inactive account — do not burn throttle.
+        else:
+            register_failed_login(request, identifier)
+            status, code, error_message = (
                 401,
-                "invalid_password",
-                "Parol noto‘g‘ri",
-            ),
-        }
-        status, code, error_message = error_map.get(
-            login_result.code,
-            (401, "invalid_credentials", "Login yoki parol noto‘g‘ri"),
-        )
+                "invalid_credentials",
+                generic_invalid_credentials_message(),
+            )
         logger.info(
-            "mobile_login outcome=%s identifier=%s center_slug=%s",
+            "mobile_login outcome=%s internal=%s identifier=%s center_slug=%s",
             code,
+            login_result.code,
             masked_identifier or "-",
             requested_slug or "-",
         )
@@ -364,12 +472,15 @@ def _resolve_login_user(request, data: dict):
             login=identifier,
             center_slug=requested_slug or None,
             code=code,
+            internal=login_result.code,
         )
         return None, None, _mobile_json_error(
             error_message,
             status=status,
             code=code,
         )
+
+    clear_failed_login(request, identifier)
 
     if not authenticated_user.is_superuser and getattr(authenticated_user, "center", None) is None:
         logger.info(
@@ -553,11 +664,18 @@ def _serialize_session(request, user: User, *, access_token: str | None = None, 
         "role": user.role,
         "center": _serialize_center(_request_center(request)),
     }
+    active_token = token_obj or getattr(request, "mobile_access_token", None)
     if access_token:
         payload["access_token"] = access_token
         payload["token"] = access_token
         payload["token_type"] = "Bearer"
-        payload["expires_at"] = token_obj.expires_at.isoformat() if token_obj else None
+    if active_token is not None:
+        effective_exp = _token_effective_expires_at(active_token)
+        payload["expires_at"] = effective_exp.isoformat()
+        payload["expires_in"] = max(
+            0, int((effective_exp - timezone.now()).total_seconds())
+        )
+        payload["token_lifetime_days"] = _mobile_token_lifetime_days()
     return payload
 
 
@@ -1717,9 +1835,7 @@ def mobile_auth_logout(request):
         if token is None:
             _authenticate_mobile_token(request)
             token = getattr(request, "mobile_access_token", None)
-        if token is not None:
-            token.is_revoked = True
-            token.save(update_fields=["is_revoked"])
+        _revoke_mobile_token(token)
         if request.user.is_authenticated:
             try:
                 record_activity(request.user, "Logout (Mobile API)", request=request)
@@ -1729,6 +1845,147 @@ def mobile_auth_logout(request):
         return JsonResponse({"ok": True, "authenticated": False})
     finally:
         clear_current_tenant()
+
+
+@csrf_exempt
+@require_POST
+def mobile_auth_refresh(request):
+    """
+    Rotate the current Bearer token: revoke the old one, issue a fresh token
+    with a new absolute TTL. Requires a still-valid (non-expired, non-revoked) token.
+    """
+    try:
+        user = _authenticate_mobile_token(request)
+        if user is None:
+            return _mobile_json_error(
+                "Sessiya yakunlandi. Qayta tizimga kiring.",
+                status=401,
+                code="not_authenticated",
+            )
+        old_token = getattr(request, "mobile_access_token", None)
+        center = getattr(old_token, "center", None) or getattr(user, "center", None)
+        device_meta = {
+            "device_name": getattr(old_token, "device_name", "") or "",
+            "device_platform": getattr(old_token, "device_platform", "") or "",
+        }
+        data = _request_payload(request)
+        if data.get("device_name"):
+            device_meta["device_name"] = str(data.get("device_name"))[:120]
+        if data.get("device_platform"):
+            device_meta["device_platform"] = str(data.get("device_platform"))[:32]
+
+        _revoke_mobile_token(old_token)
+        raw_token, new_token = _create_mobile_access_token(
+            request, user, center, device_meta
+        )
+        if not getattr(user, "backend", ""):
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        login(request, user)
+        try:
+            record_activity(user, "Token refresh (Mobile API)", request=request)
+        except Exception:
+            pass
+        return JsonResponse(
+            _serialize_session(
+                request, user, access_token=raw_token, token_obj=new_token
+            )
+        )
+    finally:
+        clear_current_tenant()
+
+
+@csrf_exempt
+@require_POST
+def mobile_auth_logout_all(request):
+    """Revoke every active mobile token for the current user (all devices)."""
+    try:
+        user = _authenticate_mobile_token(request)
+        if user is None and not request.user.is_authenticated:
+            return _mobile_json_error(
+                "Sessiya yakunlandi. Qayta tizimga kiring.",
+                status=401,
+                code="not_authenticated",
+            )
+        actor = user or request.user
+        revoked = MobileAccessToken.objects.filter(
+            user=actor, is_revoked=False
+        ).update(is_revoked=True)
+        if request.user.is_authenticated or user is not None:
+            try:
+                record_activity(actor, "Logout all devices (Mobile API)", request=request)
+            except Exception:
+                pass
+        logout(request)
+        return JsonResponse(
+            {"ok": True, "authenticated": False, "revoked_count": int(revoked)}
+        )
+    finally:
+        clear_current_tenant()
+
+
+@require_GET
+@mobile_login_required
+def mobile_auth_sessions(request):
+    """List active (non-revoked, not-expired) mobile sessions for the user."""
+    now = timezone.now()
+    current = getattr(request, "mobile_access_token", None)
+    tokens = (
+        MobileAccessToken.objects.filter(
+            user=request.user,
+            is_revoked=False,
+            expires_at__gt=now,
+        )
+        .order_by("-last_used_at", "-created_at")[:50]
+    )
+    sessions = []
+    for tok in tokens:
+        effective_exp = _token_effective_expires_at(tok)
+        if effective_exp <= now:
+            continue
+        sessions.append(
+            {
+                "id": tok.id,
+                "device_name": tok.device_name or "",
+                "device_platform": tok.device_platform or "",
+                "created_at": tok.created_at.isoformat() if tok.created_at else None,
+                "last_used_at": tok.last_used_at.isoformat() if tok.last_used_at else None,
+                "expires_at": effective_exp.isoformat(),
+                "is_current": bool(current and current.id == tok.id),
+            }
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "sessions": sessions,
+            "token_lifetime_days": _mobile_token_lifetime_days(),
+            "max_per_user": _mobile_token_max_per_user(),
+        }
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST", "DELETE"])
+@mobile_login_required
+def mobile_auth_session_revoke(request, token_id: int):
+    """Revoke one of the current user's mobile sessions by id."""
+    token = MobileAccessToken.objects.filter(
+        id=token_id, user=request.user
+    ).first()
+    if token is None:
+        return _mobile_json_error("Sessiya topilmadi", status=404, code="not_found")
+    _revoke_mobile_token(token)
+    current = getattr(request, "mobile_access_token", None)
+    is_current = bool(current and current.id == token.id)
+    if is_current:
+        logout(request)
+    return JsonResponse(
+        {
+            "ok": True,
+            "revoked_id": token_id,
+            "was_current": is_current,
+            "authenticated": not is_current,
+        }
+    )
 
 
 @require_GET

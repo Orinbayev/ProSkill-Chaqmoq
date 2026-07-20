@@ -303,7 +303,8 @@ class MobileAPITests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         payload = response.json()
-        self.assertEqual(payload["code"], "invalid_password")
+        # Anti-enumeration: same public code as missing user
+        self.assertEqual(payload["code"], "invalid_credentials")
 
     def test_mobile_login_rejects_inactive_user_cleanly(self):
         self.parent.is_active = False
@@ -324,9 +325,10 @@ class MobileAPITests(TestCase):
             data='{"login":"missing@mobile.test","password":"testpass123"}',
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         payload = response.json()
-        self.assertEqual(payload["code"], "user_not_found")
+        # Same public code as wrong password (no user enumeration)
+        self.assertEqual(payload["code"], "invalid_credentials")
 
     def test_mobile_login_accepts_phone_number_field(self):
         response = self.client.post(

@@ -6,11 +6,15 @@ Role-based access control middleware for ChaqmoqApp.
 Bu middleware:
 1. Har bir request'da foydalanuvchi rolini tekshiradi
 2. Agar foydalanuvchi ruxsatsiz sahifaga kirmoqchi bo'lsa, o'z dashboardiga yo'naltiradi
-3. Login'dan keyin ?next parametrini role-based filter qiladi
+   (API/JSON so'rovlarda 403 JSON qaytaradi)
+3. Faqat tashqi auth ishlatadigan API prefikslarini (mobile token, Click, bot secret) o'tkazadi —
+   blanket `/api/` skip YO'Q (IDOR/RBAC bypass oldini olish)
 """
 
 import logging
 import re
+
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import resolve, Resolver404
 
@@ -25,24 +29,75 @@ _SLUG_EXCLUDED = {
 }
 _SLUG_PATH_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})(/.+)$')
 
-# Barcha rollar uchun ochiq yo'llar (tekshirilmaydi)
+# Umumiy tizim yo'llari — RBAC tekshirilmaydi
 SKIP_PREFIXES = (
     '/static/',
     '/media/',
     '/admin/',
     '/logout/',
-    '/hisob/login/',
+    '/hisob/login/',   # login + bot internal APIs (X-API-SECRET)
     '/hisob/logout/',
     '/hisob/billing/',
     '/hisob/tolov/',
-    '/api/',
-    '/click/',
+    '/click/',         # Click Shop API (imzo tekshiruvi viewda)
     '/health/',
     '/c/',
     '/emergency-enter-now/',
     '/favicon.ico',
     '/__debug__/',
 )
+
+# Tashqi/token asosidagi API lar — o'z auth qatlamiga ega (sessiya RBAC emas)
+# Eslatma: blanket `/api/` BU YERDA YO'Q — web sessiya API lar RBAC dan o'tadi.
+EXTERNAL_API_PREFIXES = (
+    '/api/mobile/',    # Flutter Bearer token
+    '/api/click/',     # Click prepare/complete/webhook
+    '/api/schema/',    # OpenAPI schema
+    '/api/docs/',      # Swagger UI
+    '/api/redoc/',     # ReDoc
+    '/api/v1/',        # Bot telegram link va boshqa secret API
+)
+
+
+def _strip_slug_prefix(path: str) -> str:
+    """`/center-slug/rest` → `/rest` (faqat haqiqiy center slug bo'lsa)."""
+    m = _SLUG_PATH_RE.match(path)
+    if not m:
+        return path
+    slug = m.group(1)
+    if slug in _SLUG_EXCLUDED:
+        return path
+    return m.group(2)
+
+
+def _is_skipped_path(path: str) -> bool:
+    """Tizim yoki tashqi-auth API yo'li ekanini aniqlaydi."""
+    if any(path.startswith(prefix) for prefix in SKIP_PREFIXES):
+        return True
+
+    # Slug-prefixed: /proskill/hisob/login/ ...
+    rest = _strip_slug_prefix(path)
+    if rest != path and any(rest.startswith(prefix) for prefix in SKIP_PREFIXES):
+        return True
+
+    # External APIs (root yoki slug ostida)
+    candidates = (path, rest) if rest != path else (path,)
+    for candidate in candidates:
+        if any(candidate.startswith(prefix) for prefix in EXTERNAL_API_PREFIXES):
+            return True
+    return False
+
+
+def _wants_json_response(request, path: str) -> bool:
+    """API/AJAX so'rovlar uchun 403 JSON qaytarish kerakmi."""
+    if '/api/' in path:
+        return True
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return True
+    accept = (request.headers.get('Accept') or '').lower()
+    if 'application/json' in accept and 'text/html' not in accept:
+        return True
+    return False
 
 
 class RoleBasedAccessMiddleware:
@@ -66,6 +121,18 @@ class RoleBasedAccessMiddleware:
                 'core:game_hub',
                 'core:game_play',
                 'core:game_rating',
+                # Student panel APIs (web)
+                'core:student_panel_dashboard_api',
+                'core:student_panel_groups_api',
+                'core:student_panel_attendance_api',
+                'core:student_panel_payments_api',
+                'core:student_game_status_api',
+                'core:student_game_result_api',
+                'core:game_convert_balls_api',
+                'core:game_balls_config_api',
+                'core:game_config_api',
+                'core:game_suggestion_api',
+                'core:game_student_questions_api',
                 # Guruh Chat
                 'core:chat_list',
                 'core:group_chat',
@@ -88,6 +155,12 @@ class RoleBasedAccessMiddleware:
                 'core:notifications_mark_read',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
+                # Parent panel APIs
+                'core:parent_panel_children_api',
+                'core:parent_panel_child_dashboard_api',
+                'core:parent_panel_child_groups_api',
+                'core:parent_panel_child_attendance_api',
+                'core:parent_panel_child_payments_api',
                 'logout',
             },
         },
@@ -113,6 +186,9 @@ class RoleBasedAccessMiddleware:
                 # Profil sahifasi (ism, familya, parol, avatar)
                 'accounts:profile',
                 'accounts:user_edit',
+                # Lesson preview (global + namespaced)
+                'api_calculate_lessons',
+                'education:calculate_lessons_api',
                 # Telegram ulash
                 'connect_telegram',
                 # Parol o'zgartirish
@@ -127,11 +203,32 @@ class RoleBasedAccessMiddleware:
         },
         'manager': {
             'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing', 'accounts'},
-            'names': {'logout'},
+            'names': {
+                'logout',
+                'api_calculate_lessons',
+                'education:calculate_lessons_api',
+                # HR (global + slug-prefixed, namespace yo'q)
+                'hr_employees_api',
+                'hr_employee_detail_api',
+                'hr_available_teachers_api',
+                'hr_employees_api_prefixed',
+                'hr_employee_detail_api_prefixed',
+                'hr_available_teachers_api_prefixed',
+            },
         },
         'director': {
             'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing', 'marketing', 'accounts'},
-            'names': {'logout'},
+            'names': {
+                'logout',
+                'api_calculate_lessons',
+                'education:calculate_lessons_api',
+                'hr_employees_api',
+                'hr_employee_detail_api',
+                'hr_available_teachers_api',
+                'hr_employees_api_prefixed',
+                'hr_employee_detail_api_prefixed',
+                'hr_available_teachers_api_prefixed',
+            },
         },
     }
 
@@ -151,9 +248,8 @@ class RoleBasedAccessMiddleware:
         if not request.user.is_authenticated:
             return self.get_response(request)
 
-        # Tizimli yo'llarni o'tkazib yuborish
         path = request.path
-        if any(path.startswith(prefix) for prefix in SKIP_PREFIXES) or '/api/' in path:
+        if _is_skipped_path(path):
             return self.get_response(request)
 
         # Superuser — hamma narsaga ruxsat
@@ -178,8 +274,7 @@ class RoleBasedAccessMiddleware:
         namespace = resolved.namespace or ''
         url_name = resolved.url_name or ''
 
-        # Slug-prefix URL lar uchun namespace bo'sh bo'ladi (masalan /<slug>/talim/...)
-        # Slugni olib tashlab, canonical namespace ni topamiz
+        # Slug-prefix URL lar uchun namespace bo'sh bo'lishi mumkin
         if not namespace:
             m = _SLUG_PATH_RE.match(path)
             if m and m.group(1) not in _SLUG_EXCLUDED:
@@ -196,9 +291,18 @@ class RoleBasedAccessMiddleware:
         # Ruxsat tekshiruvi
         if not self._has_permission(user_role, namespace, full_name):
             logger.info(
-                "RBAC: user %s (role=%s) blocked from '%s', redirecting to dashboard.",
-                request.user.pk, user_role, full_name
+                "RBAC: user %s (role=%s) blocked from '%s', path=%s",
+                request.user.pk, user_role, full_name, path,
             )
+            if _wants_json_response(request, path):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "error": "Bu amal uchun ruxsat yo'q.",
+                        "code": "rbac_forbidden",
+                    },
+                    status=403,
+                )
             dashboard = self.DASHBOARD_MAP.get(user_role, 'core:home')
             return redirect(dashboard)
 
@@ -213,5 +317,9 @@ class RoleBasedAccessMiddleware:
             return True
         if full_name in allowed_names:
             return True
+        # Bare url_name fallback (namespaced full_name mos kelmasa)
+        if url_name_only := full_name.split(':')[-1]:
+            if url_name_only in allowed_names:
+                return True
 
         return False

@@ -493,8 +493,15 @@ class User(SoftDeleteMixin, AbstractUser):
     # ✅ login email bo‘ladi
     email = models.EmailField(_("Login email (Gmail bo‘lishi mumkin)"), unique=True)
 
-    # ✅ phone login
-    phone_number = models.CharField(_("Telefon raqami (Login uchun)"), max_length=20, null=True, blank=True)
+    # ✅ phone login — unique among *alive* users (partial constraint in Meta).
+    # blank/empty always stored as NULL so multiple users may omit a login phone.
+    phone_number = models.CharField(
+        _("Telefon raqami (Login uchun)"),
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Login uchun. Bo'sh bo'lsa NULL saqlanadi; faol foydalanuvchilar orasida unique.",
+    )
     
     # ✅ Telegram bot
     telegram_id = models.CharField(_("Telegram ID"), max_length=50, null=True, blank=True)
@@ -607,10 +614,12 @@ class User(SoftDeleteMixin, AbstractUser):
         # Defensive guard: prevent null inserts for new non-nullable flag on older/stale payloads.
         if self.is_demo_user is None:
             self.is_demo_user = False
-        if self.phone_number:
-            self.phone_number = normalize_phone(self.phone_number)
+        # Login phone: normalize; empty/invalid → NULL (partial unique allows many NULLs).
+        if self.phone_number is not None:
+            normalized = normalize_phone(str(self.phone_number).strip())
+            self.phone_number = normalized or None
         if self.telefon1:
-            self.telefon1 = normalize_phone(self.telefon1)
+            self.telefon1 = normalize_phone(self.telefon1) or ""
         if self.child_code:
             self.child_code = str(self.child_code).strip().upper()
         if self.role == Roles.OQUVCHI and not self.child_code:
@@ -619,6 +628,18 @@ class User(SoftDeleteMixin, AbstractUser):
             self.child_code = None
         super().save(*args, **kwargs)
 
+    @classmethod
+    def login_phone_taken(cls, phone: str, *, exclude_pk=None) -> bool:
+        """True if an alive user already uses this login phone."""
+        from accounts.utils import normalize_phone
+
+        normalized = normalize_phone(phone)
+        if not normalized:
+            return False
+        qs = cls.objects.filter(phone_number=normalized, is_deleted=False)
+        if exclude_pk:
+            qs = qs.exclude(pk=exclude_pk)
+        return qs.exists()
 
     class Meta:
         verbose_name = "Foydalanuvchi"
@@ -628,6 +649,14 @@ class User(SoftDeleteMixin, AbstractUser):
             models.Index(fields=['center', 'role', 'is_archived'], name='user_center_role_idx'),
             # Phone qidirish (login + lookup)
             models.Index(fields=['phone_number'], name='user_phone_num_idx'),
+        ]
+        constraints = [
+            # Soft-deleted users may keep historical phones; only alive rows compete.
+            models.UniqueConstraint(
+                fields=["phone_number"],
+                condition=models.Q(is_deleted=False) & models.Q(phone_number__isnull=False),
+                name="user_alive_phone_unique",
+            ),
         ]
 
     def full_name(self) -> str:

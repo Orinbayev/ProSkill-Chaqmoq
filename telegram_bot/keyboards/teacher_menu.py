@@ -11,43 +11,55 @@ def _common_rows():
 
 
 def get_teacher_main_menu():
+    # Soddalashtirildi: "Davomat belgilash" + "O'quvchilarim" → "📚 Guruhlarim" ichига
+    # (guruhni tanlab, o'quvchilarni ko'rasiz yoki davomat belgilaysiz).
+    # "📊 Statistika" olib tashlandi (u superadmin/bot admin statistikasi edi).
     keyboard = [
-        [KeyboardButton(text="📚 Guruhlarim"), KeyboardButton(text="✅ Davomat Belgilash")],
-        [KeyboardButton(text="👥 O'quvchilarim"), KeyboardButton(text="💵 Oylik Daromadim")],
-        [KeyboardButton(text="📊 Statistika"), KeyboardButton(text="📅 Dars Jadvalim")],
+        [KeyboardButton(text="📚 Guruhlarim"), KeyboardButton(text="💵 Oylik Daromadim")],
+        [KeyboardButton(text="📅 Dars Jadvalim")],
     ]
     keyboard.extend(_common_rows())
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 
-def get_teacher_groups_keyboard(groups: list[dict], action: str):
+def get_teacher_groups_keyboard(groups: list[dict], action: str = "group"):
+    """Har guruh — bosiladigan tugma (default: guruh detali)."""
     buttons = []
     for group in groups:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=f"📚 {group['name']}",
-                    callback_data=f"teacher:{action}:{group['id']}",
-                )
-            ]
-        )
+        cnt = group.get("student_count", 0)
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"📚 {group['name']} · {cnt}👤",
+                callback_data=f"teacher:{action}:{group['id']}",
+            )
+        ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_teacher_group_detail_kb(group_id: int):
+    """Bitta guruh: davomat belgilash / o'quvchilar / orqaga."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Davomat belgilash", callback_data=f"teacher:attendance:{group_id}")],
+        [InlineKeyboardButton(text="👥 O'quvchilar ro'yxati", callback_data=f"teacher:students:{group_id}")],
+        [InlineKeyboardButton(text="⬅️ Guruhlarga qaytish", callback_data="teacher:grouplist")],
+    ])
 
 
 def get_teacher_attendance_keyboard(group_id: int, students: list[dict]):
     rows = []
     for student in students[:25]:
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=f"✅ {student['full_name']}",
-                    callback_data=f"teacher:mark:{group_id}:{student['id']}:present",
-                ),
-                InlineKeyboardButton(
-                    text="❌ Kelmadi",
-                    callback_data=f"teacher:mark:{group_id}:{student['id']}:absent",
-                ),
-            ]
-        )
-    rows.append([InlineKeyboardButton(text="🔄 Yangilash", callback_data=f"teacher:attendance:{group_id}")])
+        rows.append([
+            InlineKeyboardButton(
+                text=f"✅ {student['full_name']}",
+                callback_data=f"teacher:mark:{group_id}:{student['id']}:present",
+            ),
+            InlineKeyboardButton(
+                text="❌ Kelmadi",
+                callback_data=f"teacher:mark:{group_id}:{student['id']}:absent",
+            ),
+        ])
+    rows.append([
+        InlineKeyboardButton(text="🔄 Yangilash", callback_data=f"teacher:attendance:{group_id}"),
+        InlineKeyboardButton(text="⬅️ Orqaga", callback_data=f"teacher:group:{group_id}"),
+    ])
     return InlineKeyboardMarkup(inline_keyboard=rows)

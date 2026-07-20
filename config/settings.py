@@ -247,6 +247,17 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 BOT_INTERNAL_API_URL = os.getenv("BOT_INTERNAL_API_URL", "http://127.0.0.1:8080")
 API_SECRET = resolve_api_secret(secret_key=SECRET_KEY)
 
+# Mobile Bearer access tokens (was hardcoded 180 days — too long for stolen-device risk).
+# Clamp is applied in core.mobile_api (1..90 days). Override via env in production.
+MOBILE_ACCESS_TOKEN_DAYS = int(os.getenv("MOBILE_ACCESS_TOKEN_DAYS", "30"))
+# Max concurrent non-revoked tokens per user (oldest revoked when exceeded).
+MOBILE_ACCESS_TOKEN_MAX_PER_USER = int(os.getenv("MOBILE_ACCESS_TOKEN_MAX_PER_USER", "8"))
+
+# Login brute-force / credential stuffing protection (web + mobile).
+LOGIN_MAX_FAILED_ATTEMPTS = int(os.getenv("LOGIN_MAX_FAILED_ATTEMPTS", "8"))
+LOGIN_THROTTLE_WINDOW_SECONDS = int(os.getenv("LOGIN_THROTTLE_WINDOW_SECONDS", str(15 * 60)))
+LOGIN_IP_MAX_FAILED_ATTEMPTS = int(os.getenv("LOGIN_IP_MAX_FAILED_ATTEMPTS", "40"))
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
