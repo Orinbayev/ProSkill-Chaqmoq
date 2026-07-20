@@ -16,6 +16,7 @@ import 'package:chaqmoq_mobile/screens/progress/progress_screen.dart'
 import 'package:chaqmoq_mobile/screens/settings/settings_screen.dart';
 import 'package:chaqmoq_mobile/widgets/app_parent_bottom_nav.dart';
 import 'package:chaqmoq_mobile/widgets/app_state_widgets.dart';
+import 'package:chaqmoq_mobile/widgets/brand_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -169,25 +170,14 @@ class ParentDrawer extends StatelessWidget {
             Container(
               padding: ParentUi.cardPadding,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: ParentColors.card,
                 borderRadius: BorderRadius.circular(ParentUi.cardRadius),
                 border: Border.all(color: ParentColors.line),
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: ParentColors.primaryTint,
-                    child: Text(
-                      _initials(name),
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: ParentColors.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  const BrandLogo(size: 48, radius: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,15 +231,6 @@ class ParentDrawer extends StatelessWidget {
     );
   }
 
-  static String _initials(String value) {
-    final parts = value
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((e) => e.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return 'O';
-    return parts.take(2).map((e) => e[0].toUpperCase()).join();
-  }
 }
 
 class _DrawerItem extends StatelessWidget {

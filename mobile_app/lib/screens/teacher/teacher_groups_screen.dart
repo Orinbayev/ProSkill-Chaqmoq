@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/theme/panel_tokens.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/teacher_models.dart';
 import 'package:chaqmoq_mobile/providers/teacher_provider.dart';
@@ -27,7 +28,7 @@ class _State extends State<TeacherGroupsScreen> {
     final p = context.watch<TeacherProvider>();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF5F7FB),
+      backgroundColor: PanelTokens.bg(isDark),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF0F1B2A) : Colors.white,
         elevation: 0,
@@ -44,7 +45,7 @@ class _State extends State<TeacherGroupsScreen> {
       ),
       body: () {
         if (p.groupsState == ViewState.loading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF0EA5E9)));
         }
         if (p.groupsState == ViewState.error) {
           return Center(child: Padding(
@@ -59,7 +60,7 @@ class _State extends State<TeacherGroupsScreen> {
                 onPressed: p.loadGroups,
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text("Qayta urinish"),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0EA5E9)),
               ),
             ]),
           ));
@@ -73,7 +74,7 @@ class _State extends State<TeacherGroupsScreen> {
           ]));
         }
         return RefreshIndicator(
-          color: const Color(0xFF6366F1),
+          color: const Color(0xFF0EA5E9),
           onRefresh: p.loadGroups,
           child: ListView.separated(
             padding: const EdgeInsets.all(14),
@@ -120,7 +121,7 @@ class _GroupCard extends StatelessWidget {
               width: 46, height: 46,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
+                  colors: [Color(0xFF38BDF8), Color(0xFF0EA5E9)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -159,7 +160,7 @@ class _GroupCard extends StatelessWidget {
                   value: pct,
                   backgroundColor: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                      pct >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF6366F1)),
+                      pct >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF0EA5E9)),
                   minHeight: 6,
                 ),
               ),
@@ -181,7 +182,7 @@ class _GroupCard extends StatelessWidget {
               icon: const Icon(Icons.fact_check_rounded, size: 16),
               label: const Text("Davomat belgilash", style: TextStyle(fontWeight: FontWeight.w700)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
+                backgroundColor: const Color(0xFF0EA5E9),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 11),

@@ -1,6 +1,7 @@
 import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:chaqmoq_mobile/screens/student/widgets/theme_toggle_button.dart';
 import 'package:chaqmoq_mobile/widgets/app_parent_app_bar.dart';
+import 'package:chaqmoq_mobile/widgets/brand_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -19,22 +20,7 @@ class StudentDashboardHeader extends StatelessWidget {
     final tokens = StudentTokens.of(context);
     return Row(
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              colors: [
-                tokens.primary.withValues(alpha: 0.22),
-                tokens.secondary.withValues(alpha: 0.22),
-              ],
-            ),
-            border: Border.all(color: tokens.primary.withValues(alpha: 0.32)),
-          ),
-          child: Icon(Icons.bolt_rounded, color: tokens.primary, size: 22),
-        ),
+        const BrandLogo(size: 40, radius: 12),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -42,7 +28,7 @@ class StudentDashboardHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'ChaqmoqApp ⚡',
+                'ChaqmoqApp',
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

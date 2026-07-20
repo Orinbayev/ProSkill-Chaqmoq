@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/design/ds_colors.dart';
 import 'package:flutter/material.dart';
 
 class RolePanelStyle {
@@ -22,105 +23,99 @@ class RolePanelStyle {
   final LinearGradient heroGradient;
 }
 
+/// Barcha rollar bir xil Sky/Slate dizayn; faqat matn/ikon rolga mos.
 class RolePanelStyles {
   const RolePanelStyles._();
 
-  static RolePanelStyle of(String role) {
+  static const LinearGradient _heroLight = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[DsPalette.sky50, DsPalette.white],
+  );
+
+  static const LinearGradient _heroDark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF13233A), DsPalette.slate800],
+  );
+
+  static RolePanelStyle of(String role, {bool isDark = false}) {
     final normalized = role.trim().toLowerCase();
+    final accent = DsPalette.sky500;
+    final accentSoft = isDark ? const Color(0xFF11324B) : DsPalette.sky100;
+    final background = isDark ? DsPalette.slate900 : const Color(0xFFEDF1F5);
+    final hero = isDark ? _heroDark : _heroLight;
+
     switch (normalized) {
       case 'parent':
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'Ota-ona paneli',
           headline: 'Farzandingiz jarayonlari nazorat ostida',
           subtitle: 'Davomat, progress va to‘lovlarni bir joydan boshqaring.',
           icon: Icons.family_restroom_rounded,
-          accent: Color(0xFF2563EB),
-          accentSoft: Color(0xFFE8F1FF),
-          background: Color(0xFFF7FBFF),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFFEEF5FF), Color(0xFFFFFFFF)],
-          ),
+          accent: accent,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
       case 'student':
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'O‘quvchi paneli',
           headline: 'Natijalar va intizomni bir markazdan kuzating',
           subtitle: 'Reyting, qarzdorlik va bildirishnomalar doim qo‘l ostida.',
           icon: Icons.school_rounded,
-          accent: Color(0xFF0F766E),
-          accentSoft: Color(0xFFE6F8F4),
-          background: Color(0xFF07131F),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF102235), Color(0xFF0B3C4A)],
-          ),
+          accent: accent,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
       case 'teacher':
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'Ustoz paneli',
           headline: 'Guruhlar va kundalik nazorat bir joyda',
           subtitle:
               'Dars jarayoni, guruhlar va xabarlar bo‘yicha tezkor boshqaruv.',
           icon: Icons.co_present_rounded,
-          accent: Color(0xFF0F766E),
-          accentSoft: Color(0xFFE6F7F1),
-          background: Color(0xFF08131A),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF0D1F2A), Color(0xFF143C32)],
-          ),
+          accent: accent,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
       case 'manager':
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'Menejer paneli',
           headline: 'Operatsion jarayonlar bir ko‘rishda',
           subtitle: 'O‘quvchilar, guruhlar va faoliyat oqimini boshqaring.',
           icon: Icons.manage_accounts_rounded,
-          accent: Color(0xFF0F766E),
-          accentSoft: Color(0xFFE8FAF6),
-          background: Color(0xFF07131F),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF102235), Color(0xFF0E3A3E)],
-          ),
+          accent: DsPalette.sky600,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
       case 'director':
       case 'superadmin':
       case 'superuser':
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'Boshqaruv paneli',
           headline: 'Asosiy ko‘rsatkichlar va jarayonlar nazoratda',
           subtitle:
               'CRM statistikasi, o‘quvchilar va markaz oqimini boshqaring.',
           icon: Icons.insights_rounded,
-          accent: Color(0xFF2563EB),
-          accentSoft: Color(0xFFEAF2FF),
-          background: Color(0xFF07131F),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF102235), Color(0xFF1C2D4B)],
-          ),
+          accent: accent,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
       default:
-        return const RolePanelStyle(
+        return RolePanelStyle(
           panelLabel: 'Mobil panel',
           headline: 'Shaxsiy ish maydoni',
           subtitle: 'Asosiy ma’lumotlar va tezkor amallar shu yerda.',
           icon: Icons.phone_iphone_rounded,
-          accent: Color(0xFF2563EB),
-          accentSoft: Color(0xFFEAF2FF),
-          background: Color(0xFF07131F),
-          heroGradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF102235), Color(0xFF1C2D4B)],
-          ),
+          accent: accent,
+          accentSoft: accentSoft,
+          background: background,
+          heroGradient: hero,
         );
     }
   }

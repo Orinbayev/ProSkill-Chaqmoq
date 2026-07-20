@@ -261,7 +261,7 @@ _NotificationVisual _visualFor(NotificationKind kind) {
     case NotificationKind.payment:
       return const _NotificationVisual(
         icon: Icons.calendar_month_rounded,
-        accentColor: Color(0xFF2563EB),
+        accentColor: Color(0xFF0EA5E9),
         iconColor: Color(0xFF1D4ED8),
         iconBackground: Color(0xFFEAF2FF),
       );
@@ -269,7 +269,7 @@ _NotificationVisual _visualFor(NotificationKind kind) {
       return const _NotificationVisual(
         icon: Icons.fact_check_rounded,
         accentColor: Color(0xFF0EA5A4),
-        iconColor: Color(0xFF0F766E),
+        iconColor: Color(0xFF0284C7),
         iconBackground: Color(0xFFE8FBFA),
       );
     case NotificationKind.comment:

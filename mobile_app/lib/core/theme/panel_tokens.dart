@@ -1,17 +1,22 @@
+import 'package:chaqmoq_mobile/core/design/ds_colors.dart';
+import 'package:chaqmoq_mobile/core/design/ds_tokens.dart';
 import 'package:flutter/material.dart';
 
-/// Barcha 3 panel (Teacher, Parent, Student) uchun umumiy dizayn tokenlar.
-/// Har bir panel o'z accent rangiga ega, lekin card, spacing, radius umumiy.
+/// Barcha rollar (Teacher, Parent, Student, Manager, Director) uchun
+/// umumiy dizayn tokenlar — "Chaqmoq Panellar" (Sky/Slate).
+///
+/// Accent faqat rol "badge"/chip uchun biroz farq qiladi; card, spacing,
+/// radius, bg, text — hammasi bir xil.
 abstract class PanelTokens {
   // ─── Card ────────────────────────────────────────────────────────────────
-  static const double cardRadius = 16.0;
-  static const double cardRadiusSm = 12.0;
-  static const double cardRadiusLg = 20.0;
+  static const double cardRadius = DsRadius.card;
+  static const double cardRadiusSm = DsRadius.md;
+  static const double cardRadiusLg = DsRadius.lg;
 
   // ─── Spacing ─────────────────────────────────────────────────────────────
-  static const double screenPad = 16.0;
-  static const double sectionGap = 20.0;
-  static const double itemGap = 10.0;
+  static const double screenPad = DsSpace.screen;
+  static const double sectionGap = DsSpace.section;
+  static const double itemGap = DsSpace.item;
 
   // ─── Typography ──────────────────────────────────────────────────────────
   static const double fontHero = 26.0;
@@ -22,50 +27,62 @@ abstract class PanelTokens {
   static const double fontMicro = 10.0;
 
   // ─── Shared semantic colors ───────────────────────────────────────────────
-  static const Color success = Color(0xFF10B981);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color danger = Color(0xFFEF4444);
-  static const Color info = Color(0xFF3B82F6);
+  static const Color success = DsPalette.green500;
+  static const Color warning = DsPalette.amber500;
+  static const Color danger = DsPalette.red500;
+  static const Color info = DsPalette.sky500;
 
-  // ─── Role accent colors ───────────────────────────────────────────────────
-  static const Color teacherAccent = Color(0xFF6366F1);    // indigo
-  static const Color parentAccent  = Color(0xFF3B82F6);    // blue
-  static const Color studentAccent = Color(0xFF10B981);    // emerald
+  // ─── Role accent (primary = Sky family; secondary tint for identity) ──────
+  static const Color directorAccent = DsPalette.sky500;
+  static const Color managerAccent = DsPalette.sky600;
+  static const Color teacherAccent = DsPalette.sky500;
+  static const Color parentAccent = DsPalette.sky500;
+  static const Color studentAccent = DsPalette.sky500;
 
-  // ─── Dark bg ─────────────────────────────────────────────────────────────
-  static const Color darkBg = Color(0xFF0B1220);
-  static const Color darkSurface = Color(0xFF0F1B2A);
-  static const Color darkCard = Color(0xFF162436);
+  // ─── Dark / light (Ds bilan bir xil) ─────────────────────────────────────
+  static const Color darkBg = DsPalette.slate900;
+  static const Color darkSurface = Color(0xFF13233A);
+  static const Color darkCard = DsPalette.slate800;
 
-  // ─── Light bg ────────────────────────────────────────────────────────────
-  static const Color lightBg = Color(0xFFF5F7FB);
-  static const Color lightCard = Colors.white;
+  static const Color lightBg = Color(0xFFEDF1F5);
+  static const Color lightCard = DsPalette.white;
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────
   static Color bg(bool isDark) => isDark ? darkBg : lightBg;
   static Color surface(bool isDark) => isDark ? darkSurface : lightCard;
   static Color card(bool isDark) => isDark ? darkCard : lightCard;
   static Color border(bool isDark) =>
-      isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05);
+      isDark ? DsPalette.slate700 : DsPalette.slate200;
   static Color text(bool isDark) =>
-      isDark ? Colors.white : const Color(0xFF0F172A);
+      isDark ? DsPalette.slate50 : DsPalette.slate900;
   static Color textMuted(bool isDark) =>
-      isDark ? Colors.white54 : Colors.black54;
+      isDark ? DsPalette.slate400 : DsPalette.slate500;
   static Color textFaint(bool isDark) =>
-      isDark ? Colors.white30 : Colors.black26;
+      isDark ? DsPalette.slate500 : DsPalette.slate400;
+
+  static Color accentForRole(String role) {
+    switch (role.trim().toLowerCase()) {
+      case 'manager':
+        return managerAccent;
+      case 'teacher':
+        return teacherAccent;
+      case 'parent':
+        return parentAccent;
+      case 'student':
+        return studentAccent;
+      case 'director':
+      case 'superadmin':
+      case 'superuser':
+      default:
+        return directorAccent;
+    }
+  }
 
   static BoxDecoration cardDecoration(bool isDark, {Color? accent}) =>
       BoxDecoration(
         color: card(isDark),
         borderRadius: BorderRadius.circular(cardRadius),
         border: Border.all(color: border(isDark)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: DsShadow.card(isDark),
       );
 
   static BoxDecoration gradientCard(List<Color> colors, {double radius = 20}) =>
@@ -76,12 +93,6 @@ abstract class PanelTokens {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: colors.first.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: DsShadow.primaryGlow(colors.first),
       );
 }

@@ -47,13 +47,14 @@ class RoleUtils {
   }
 
   static Color roleColor(String role) {
+    // Barcha rollar Sky oilasi — vizual bir xil, badge biroz farq qiladi.
     return switch (normalize(role)) {
-      'superuser' => const Color(0xFFD97706),
-      'director' => const Color(0xFF2563EB),
-      'manager' => const Color(0xFF0F766E),
-      'teacher' => const Color(0xFF1A936F),
-      'student' => const Color(0xFF0F766E),
-      'parent' => const Color(0xFF2563EB),
+      'superuser' => const Color(0xFFF59E0B),
+      'director' => const Color(0xFF0EA5E9),
+      'manager' => const Color(0xFF0284C7),
+      'teacher' => const Color(0xFF0EA5E9),
+      'student' => const Color(0xFF38BDF8),
+      'parent' => const Color(0xFF0EA5E9),
       _ => AppColors.textMuted,
     };
   }

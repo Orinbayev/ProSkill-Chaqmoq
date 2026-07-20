@@ -1,6 +1,7 @@
-import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
+import 'package:chaqmoq_mobile/core/design/ds_bottom_nav.dart';
+import 'package:chaqmoq_mobile/core/design/ds_colors.dart';
+import 'package:chaqmoq_mobile/core/design/ds_typography.dart';
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
-import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
 import 'package:chaqmoq_mobile/core/utils/role_panel_style.dart';
 import 'package:chaqmoq_mobile/core/utils/role_utils.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
@@ -12,6 +13,7 @@ import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/leads/leads_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
 import 'package:chaqmoq_mobile/screens/teachers/teachers_screen.dart';
+import 'package:chaqmoq_mobile/widgets/brand_logo.dart';
 import 'package:chaqmoq_mobile/widgets/role_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -33,9 +35,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       context.read<NotificationsProvider>().load();
     });
   }
@@ -45,21 +45,17 @@ class _AppShellState extends State<AppShell> {
     if (normalized == 'superuser') {
       return const [
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
-        _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
+        _ShellItem(ShellTab.students, "O'quvchi", Icons.groups_rounded),
         _ShellItem(ShellTab.teachers, 'Ustoz', Icons.school_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(
-          ShellTab.notifications,
-          'Xabar',
-          Icons.notifications_rounded,
-        ),
+        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
     if (normalized == 'director' || normalized == 'manager') {
       return const [
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
-        _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
+        _ShellItem(ShellTab.students, "O'quvchi", Icons.groups_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
         _ShellItem(ShellTab.leads, 'Leadlar', Icons.person_add_rounded),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
@@ -69,11 +65,7 @@ class _AppShellState extends State<AppShell> {
       return const [
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(
-          ShellTab.notifications,
-          'Xabar',
-          Icons.notifications_rounded,
-        ),
+        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
@@ -101,27 +93,39 @@ class _AppShellState extends State<AppShell> {
     final auth = context.watch<AuthProvider>();
     final notifications = context.watch<NotificationsProvider>();
     final user = auth.user;
-    if (user == null) {
-      return const SizedBox.shrink();
-    }
+    if (user == null) return const SizedBox.shrink();
 
+    final ds = context.ds;
     final items = _itemsForRole(user.role);
-    final panel = RolePanelStyles.of(user.role);
+    final panel = RolePanelStyles.of(
+      user.role,
+      isDark: Theme.of(context).brightness == Brightness.dark,
+    );
     if (!items.any((item) => item.tab == _currentTab)) {
       _currentTab = items.first.tab;
     }
     final selectedIndex = items.indexWhere((item) => item.tab == _currentTab);
 
     return Scaffold(
-      extendBody: true,
+      backgroundColor: ds.bg,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: ds.surface,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
           children: [
-            Text(panel.panelLabel, style: AppTextStyles.title),
-            Text(
-              user.center?.name ?? 'CRM Platform',
-              style: AppTextStyles.bodySmall,
+            const BrandLogo(size: 34, radius: 10, showShadow: false),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(panel.panelLabel, style: DsType.bodyStrong(ds.textPrimary)),
+                  Text(
+                    user.center?.name ?? 'CRM Platform',
+                    style: DsType.small(ds.textMuted),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -131,12 +135,11 @@ class _AppShellState extends State<AppShell> {
             child: RoleBadge(role: user.role),
           ),
           IconButton(
-            onPressed: () =>
-                setState(() => _currentTab = ShellTab.notifications),
+            onPressed: () => setState(() => _currentTab = ShellTab.notifications),
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_none_rounded),
+                Icon(Icons.notifications_none_rounded, color: ds.textSecondary),
                 if (notifications.unreadCount > 0)
                   Positioned(
                     top: -2,
@@ -144,8 +147,8 @@ class _AppShellState extends State<AppShell> {
                     child: Container(
                       width: 18,
                       height: 18,
-                      decoration: const BoxDecoration(
-                        color: AppColors.danger,
+                      decoration: BoxDecoration(
+                        color: ds.danger,
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -153,10 +156,7 @@ class _AppShellState extends State<AppShell> {
                         notifications.unreadCount > 9
                             ? '9+'
                             : '${notifications.unreadCount}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.white,
-                          fontSize: 9,
-                        ),
+                        style: DsType.micro(Colors.white),
                       ),
                     ),
                   ),
@@ -166,43 +166,22 @@ class _AppShellState extends State<AppShell> {
           const SizedBox(width: AppSpacing.sm),
         ],
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.appBackground),
-        child: SafeArea(
-          top: false,
-          child: AnimatedSwitcher(
-            duration: 280.ms,
-            child: KeyedSubtree(
-              key: ValueKey(_currentTab),
-              child: _screenForTab(
-                _currentTab,
-              ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.02, end: 0),
-            ),
-          ),
+      body: AnimatedSwitcher(
+        duration: 280.ms,
+        child: KeyedSubtree(
+          key: ValueKey(_currentTab),
+          child: _screenForTab(_currentTab)
+              .animate()
+              .fadeIn(duration: 260.ms)
+              .slideY(begin: 0.02, end: 0),
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            child: NavigationBar(
-              selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() => _currentTab = items[index].tab);
-              },
-              destinations: items
-                  .map(
-                    (item) => NavigationDestination(
-                      icon: Icon(item.icon),
-                      label: item.label,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ),
+      bottomNavigationBar: DsBottomNav(
+        currentIndex: selectedIndex < 0 ? 0 : selectedIndex,
+        onTap: (index) => setState(() => _currentTab = items[index].tab),
+        items: [
+          for (final item in items) DsNavItem(icon: item.icon, label: item.label),
+        ],
       ),
     );
   }

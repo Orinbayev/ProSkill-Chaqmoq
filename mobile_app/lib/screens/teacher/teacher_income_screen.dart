@@ -272,7 +272,7 @@ class _MainSalaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: PanelTokens.gradientCard(
-          [const Color(0xFF312E81), const Color(0xFF4F46E5)]),
+          [const Color(0xFF312E81), const Color(0xFF0284C7)]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(

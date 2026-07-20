@@ -94,7 +94,7 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconBg = dark ? const Color(0x1A00D4AA) : ParentColors.primaryTint;
+    final iconBg = dark ? const Color(0x1A0EA5E9) : ParentColors.primaryTint;
     final iconFg = dark ? StudentColors.primary : ParentColors.primary;
     final titleColor = dark ? StudentColors.text : ParentColors.text;
     final subtitleColor = dark ? StudentColors.textMuted : ParentColors.textMuted;

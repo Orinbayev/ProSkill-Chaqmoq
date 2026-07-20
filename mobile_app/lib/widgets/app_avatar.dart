@@ -93,14 +93,14 @@ class AppAvatar extends StatelessWidget {
         );
       case AppAvatarColor.teal:
         return const _AvatarPalette(
-          start: Color(0xFF00D4AA),
-          end: Color(0xFF2BE5BF),
+          start: Color(0xFF0EA5E9),
+          end: Color(0xFF38BDF8),
           fg: Color(0xFF0A1F1A),
         );
       case AppAvatarColor.violet:
         return const _AvatarPalette(
-          start: Color(0xFF6C63FF),
-          end: Color(0xFF8C85FF),
+          start: Color(0xFF0EA5E9),
+          end: Color(0xFF38BDF8),
           fg: Colors.white,
         );
       case AppAvatarColor.amber:

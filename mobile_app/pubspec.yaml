@@ -46,6 +46,9 @@ flutter:
   assets:
     - assets/images/login_logo.png
     - assets/images/login_illustration.png
+    - assets/images/brand_logo.png
+    - assets/images/brand_logo_navy.png
+    - assets/images/brand_bolt.png
     - assets/images/parent_avatar.png
     - assets/images/parent_child_avatar.png
     - assets/images/progress_teacher_avatar.png

@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/theme/panel_tokens.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/teacher_models.dart';
@@ -20,7 +21,7 @@ class _State extends State<TeacherAttendanceScreen>
   DateTime _date = DateTime.now();
   late final TabController _tabCtrl = TabController(length: 2, vsync: this);
 
-  static const _indigo = Color(0xFF6366F1);
+  static const _accent = Color(0xFF0EA5E9);
   static const _amber = Color(0xFFF59E0B);
 
   @override
@@ -53,7 +54,7 @@ class _State extends State<TeacherAttendanceScreen>
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: _indigo,
+            primary: _accent,
             surface: Color(0xFF1E2D40),
           ),
         ),
@@ -86,7 +87,7 @@ class _State extends State<TeacherAttendanceScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF0B1220) : const Color(0xFFF5F7FB);
+    final bg = PanelTokens.bg(isDark);
     final navBg = isDark ? const Color(0xFF0F1B2A) : Colors.white;
     final borderColor =
         isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.06);
@@ -124,11 +125,11 @@ class _State extends State<TeacherAttendanceScreen>
             onPressed: _pickDate,
             icon: Icon(Icons.calendar_today_rounded,
                 size: 13,
-                color: _isToday ? _indigo : _amber),
+                color: _isToday ? _accent : _amber),
             label: Text(
               _isToday ? 'Bugun' : Formatters.date(_date),
               style: TextStyle(
-                color: _isToday ? _indigo : _amber,
+                color: _isToday ? _accent : _amber,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
@@ -137,9 +138,9 @@ class _State extends State<TeacherAttendanceScreen>
         ],
         bottom: TabBar(
           controller: _tabCtrl,
-          indicatorColor: _indigo,
+          indicatorColor: _accent,
           indicatorWeight: 3,
-          labelColor: _indigo,
+          labelColor: _accent,
           unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
           labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           unselectedLabelStyle:
@@ -219,7 +220,7 @@ class _AttendanceTab extends StatelessWidget {
             _StatChip('${students.length - presentCount}', 'Kelmadi',
                 const Color(0xFFEF4444)),
             const SizedBox(width: 8),
-            _StatChip('${students.length}', 'Jami', const Color(0xFF6366F1)),
+            _StatChip('${students.length}', 'Jami', const Color(0xFF0EA5E9)),
             const Spacer(),
             if (students.isNotEmpty)
               Text(
@@ -276,7 +277,7 @@ class _AttendanceTab extends StatelessWidget {
         if (p.attendanceState == ViewState.loading) {
           return const Center(
               child: CircularProgressIndicator(
-                  color: Color(0xFF6366F1)));
+                  color: Color(0xFF0EA5E9)));
         }
         if (p.attendanceState == ViewState.error) {
           return _ErrorView(message: p.attendanceError, onRetry: () => onReload(force: true));
@@ -289,7 +290,7 @@ class _AttendanceTab extends StatelessWidget {
           );
         }
         return RefreshIndicator(
-          color: const Color(0xFF6366F1),
+          color: const Color(0xFF0EA5E9),
           onRefresh: () async => onReload(force: true),
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
@@ -333,7 +334,7 @@ class _ChaqmoqTab extends StatelessWidget {
 
     if (p.attendanceState == ViewState.loading) {
       return const Center(
-          child: CircularProgressIndicator(color: Color(0xFF6366F1)));
+          child: CircularProgressIndicator(color: Color(0xFF0EA5E9)));
     }
     if (p.attendanceState == ViewState.error) {
       return _ErrorView(message: p.attendanceError, onRetry: () {
@@ -394,7 +395,7 @@ class _AwardSheetState extends State<_AwardSheet> {
   bool _loading = false;
   String? _error;
 
-  static const _indigo = Color(0xFF6366F1);
+  static const _accent = Color(0xFF0EA5E9);
   static const _green = Color(0xFF10B981);
   static const _red = Color(0xFFEF4444);
 
@@ -436,11 +437,11 @@ class _AwardSheetState extends State<_AwardSheet> {
             child: Row(children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: _indigo.withValues(alpha: 0.15),
+                backgroundColor: _accent.withValues(alpha: 0.15),
                 child: Text(
                   _initials(widget.student.fullName),
                   style: const TextStyle(
-                    color: _indigo,
+                    color: _accent,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
@@ -811,7 +812,7 @@ class _ChaqmoqRow extends StatelessWidget {
   final VoidCallback onAward;
 
   static const _amber = Color(0xFFF59E0B);
-  static const _indigo = Color(0xFF6366F1);
+  static const _accent = Color(0xFF0EA5E9);
 
   @override
   Widget build(BuildContext context) {
@@ -871,16 +872,16 @@ class _ChaqmoqRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: _indigo.withValues(alpha: 0.12),
+              color: _accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.bolt_rounded, size: 15, color: _indigo),
+              Icon(Icons.bolt_rounded, size: 15, color: _accent),
               SizedBox(width: 4),
               Text(
                 'Berish',
                 style: TextStyle(
-                  color: _indigo,
+                  color: _accent,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),

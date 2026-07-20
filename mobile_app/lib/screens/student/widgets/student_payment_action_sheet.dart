@@ -201,7 +201,7 @@ class StudentPaymentActionSheet extends StatelessWidget {
                         icon: Icons.credit_card_rounded,
                         title: 'Bank kartasi (P2P)',
                         subtitle: 'Markaz kartasiga o‘tkazma',
-                        accent: const Color(0xFF6C63FF),
+                        accent: const Color(0xFF0EA5E9),
                         onTap: () => _showInstructions(
                           context,
                           method: 'Bank kartasi',

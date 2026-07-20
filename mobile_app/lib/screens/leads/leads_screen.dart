@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/theme/panel_tokens.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/lead_models.dart';
 import 'package:chaqmoq_mobile/providers/leads_provider.dart';
@@ -49,7 +50,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final p = context.watch<LeadsProvider>();
-    final bg = isDark ? const Color(0xFF0B1220) : const Color(0xFFF5F7FB);
+    final bg = PanelTokens.bg(isDark);
     final navBg = isDark ? const Color(0xFF0F1B2A) : Colors.white;
 
     return Scaffold(
@@ -172,7 +173,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
         body: () {
           if (p.state == ViewState.loading) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+              child: CircularProgressIndicator(color: Color(0xFF0EA5E9)),
             );
           }
           if (p.state == ViewState.error) {
@@ -194,7 +195,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                     icon: const Icon(Icons.refresh_rounded, size: 16),
                     label: const Text('Qayta urinish'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFF0EA5E9),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
@@ -235,7 +236,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
           }
 
           return RefreshIndicator(
-            color: const Color(0xFF6366F1),
+            color: const Color(0xFF0EA5E9),
             onRefresh: () => p.load(q: _query, force: true),
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
@@ -254,7 +255,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
   static Color _statusColor(String code) {
     return switch (code) {
-      'new' => const Color(0xFF6366F1),
+      'new' => const Color(0xFF0EA5E9),
       'contacted' => const Color(0xFF3B82F6),
       'trial' => const Color(0xFFF59E0B),
       'confirmed' => const Color(0xFF10B981),
@@ -425,7 +426,7 @@ class _LeadCard extends StatelessWidget {
 
   static Color _statusColor(String code) {
     return switch (code) {
-      'new' => const Color(0xFF6366F1),
+      'new' => const Color(0xFF0EA5E9),
       'contacted' => const Color(0xFF3B82F6),
       'trial' => const Color(0xFFF59E0B),
       'confirmed' => const Color(0xFF10B981),

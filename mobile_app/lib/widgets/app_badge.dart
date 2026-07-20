@@ -71,7 +71,7 @@ class AppBadge extends StatelessWidget {
             ? const _BadgePalette(bg: Color(0x244FC3F7), fg: Color(0xFF4FC3F7))
             : _BadgePalette(bg: ParentColors.infoBg, fg: ParentColors.primaryDeep);
       case AppBadgeTone.teal:
-        return const _BadgePalette(bg: Color(0x2400D4AA), fg: Color(0xFF00D4AA));
+        return const _BadgePalette(bg: Color(0x240EA5E9), fg: Color(0xFF0EA5E9));
       case AppBadgeTone.violet:
         return const _BadgePalette(bg: Color(0x296C63FF), fg: Color(0xFF8C85FF));
       case AppBadgeTone.neutral:

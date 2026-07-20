@@ -307,9 +307,13 @@ class _AuthInitScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0F172A) : const Color(0xFFEDF1F5);
+    final accent = const Color(0xFF0EA5E9);
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF7FBFF),
-      body: const Center(child: CircularProgressIndicator()),
+      backgroundColor: bg,
+      body: Center(
+        child: CircularProgressIndicator(color: accent),
+      ),
     );
   }
 }
@@ -350,8 +354,8 @@ class _AuthSuccessSplashState extends State<_AuthSuccessSplash>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF0B1220) : const Color(0xFFF7FBFF);
-    final accent = const Color(0xFF10B981);
+    final bg = isDark ? const Color(0xFF0F172A) : const Color(0xFFEDF1F5);
+    final accent = const Color(0xFF0EA5E9);
 
     return Scaffold(
       backgroundColor: bg,
@@ -397,11 +401,11 @@ class _AuthSuccessSplashState extends State<_AuthSuccessSplash>
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [accent, const Color(0xFF059669)],
+                              colors: [accent, const Color(0xFF38BDF8)],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: accent.withOpacity(0.35),
+                                color: accent.withValues(alpha: 0.35),
                                 blurRadius: 30,
                                 spreadRadius: 4,
                               ),
@@ -441,7 +445,7 @@ class _AuthSuccessSplashState extends State<_AuthSuccessSplash>
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: isDark
-                      ? Colors.white.withOpacity(0.7)
+                      ? Colors.white.withValues(alpha: 0.7)
                       : const Color(0xFF64748B),
                 ),
               ),
