@@ -1,141 +1,36 @@
 """
-education.views package — domain-split view modules.
+education.views package (phase 7 — god-file reduction).
 
-Backward compatible: ``from education import views`` / ``from . import views``
-and ``views.create_payment`` continue to work.
+Structure
+---------
+helpers.py   Shared permission/tenant helpers (extracted).
+courses.py   Course templates + expense create (extracted).
+legacy.py    Remaining large surface (still being split).
+
+Public API is unchanged for callers::
+
+    from education import views
+    from education.views import create_payment, course_list
+
+New code should import from the domain module when possible::
+
+    from education.views.courses import course_list
+    from education.views.helpers import get_active_center
 """
 from __future__ import annotations
 
-from .common import *  # noqa: F403
-from .payments import *  # noqa: F403
-from .attendance import *  # noqa: F403
-from .tuition import *  # noqa: F403
-from .salary import *  # noqa: F403
-from .exams import *  # noqa: F403
-from .students import *  # noqa: F403
-from .groups import *  # noqa: F403
-from .misc import *  # noqa: F403
+# Domain modules first (explicit, preferred).
+from education.views.helpers import (  # noqa: F401
+    get_active_center,
+)
+from education.views.courses import (  # noqa: F401
+    expense_create,
+    course_list,
+    course_create,
+    course_edit,
+    course_delete,
+    course_price_api,
+)
 
-# Explicit __all__ for clarity (public callables/classes)
-__all__ = [
-    "parse_month_yyyy_mm",
-    "first_day_of_current_month",
-    "get_student_total_debt",
-    "get_active_center",
-    "parse_month_str",
-    "month_first_day",
-    "get_month_paid",
-    "CategoryForm",
-    "create_payment",
-    "payment_update",
-    "payment_history_enrollment",
-    "payment_receipt_pdf",
-    "payment_export_xlsx",
-    "tolovlar_home",
-    "get_payment_details",
-    "student_payments_pdf",
-    "payment_delete",
-    "student_groups_api",
-    "students_with_debt_api",
-    "payment_history",
-    "tolov_oqituvchilar",
-    "attendance_groups",
-    "group_month_attendance",
-    "group_month_attendance_export",
-    "attendance_toggle_cell",
-    "points_details",
-    "attendance_force",
-    "attend_all",
-    "attend_all_students",
-    "attendance_today",
-    "group_points",
-    "group_rollcall",
-    "force_absent_attendance",
-    "toggle_attendance",
-    "calculate_lessons_api",
-    "sync_tuition_fee",
-    "qarzdorlar_home",
-    "month_preview",
-    "edit_tuition_month_fee",
-    "edit_student_month_debt",
-    "delete_student_month",
-    "reset_student_month_payments",
-    "student_monthly_breakdown",
-    "teacher_salary_list",
-    "teacher_salary_export",
-    "teacher_groups",
-    "teacher_salary_report",
-    "teacher_salary_summary",
-    "teacher_salary_redirect",
-    "teacher_groups_view",
-    "teacher_income_dashboard",
-    "close_finance_month_view",
-    "fix_all_incomes",
-    "exam_settings_view",
-    "exam_reminder_action",
-    "exam_list",
-    "exam_create",
-    "exam_session_entry",
-    "group_exam_history",
-    "teacher_exam_history",
-    "exam_session_detail",
-    "failed_students_list",
-    "group_internal_ranking",
-    "group_completion_recommendations",
-    "group_closure_action",
-    "certificate_templates_view",
-    "certificate_template_activate",
-    "group_certificate_candidates",
-    "issue_certificate_action",
-    "certificate_detail",
-    "certificate_download_pdf",
-    "certificate_verify",
-    "student_exam_report",
-    "enrollment_edit",
-    "enrollment_delete",
-    "student_detail",
-    "transfer_student_view",
-    "add_student_to_group",
-    "enrollment_remove",
-    "enrollment_toggle_deferred",
-    "enrollment_leave",
-    "groups_hub",
-    "group_delete_confirm",
-    "edit_category",
-    "delete_category",
-    "groups_by_category",
-    "create_group_for_category",
-    "guruhlar",
-    "guruhlar_tillar",
-    "guruhlar_it",
-    "group_detail",
-    "group_schedule_manage",
-    "schedule_conflict_check",
-    "weekly_schedule_view",
-    "teacher_schedule_view",
-    "group_bulk_remove",
-    "category_detail",
-    "group_toggle_archive",
-    "group_toggle_close",
-    "oylik_hisobot",
-    "group_create_by_category",
-    "groups_home",
-    "all_groups_overview",
-    "add_category",
-    "group_create",
-    "group_edit",
-    "group_generate_month_debt",
-    "group_list",
-    "get_group_price",
-    "group_add",
-    "group_delete",
-    "my_groups",
-    "month_start",
-    "parse_month_str_safe",
-    "expense_create",
-    "course_list",
-    "course_create",
-    "course_edit",
-    "course_delete",
-    "course_price_api",
-]
+# Legacy monolit — to'liq orqaga moslik (urls, tests, ichki importlar).
+from education.views.legacy import *  # noqa: F403, F401

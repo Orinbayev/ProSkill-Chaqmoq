@@ -1,34 +1,26 @@
-"""
-Auto-split from education/views.py (phase 7 god-file reduction).
-Public API re-exported via education.views package.
-"""
+"""Course templates and expense views (extracted from legacy)."""
 from __future__ import annotations
 
-from .common import *  # noqa: F403
+import json
+import logging
+from decimal import Decimal
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
-def month_start(d: date) -> date:
-    return d.replace(day=1)
+from accounts.models import Center
+from core.tenant import get_request_center
 
+from ..forms import CenterExpenseForm
+from ..models import Category, CourseTemplate
+from .helpers import _can_manage, _director_or_manager
 
-
-def parse_month_str_safe(s: str) -> date:
-    """
-    'YYYY-MM' -> date(YYYY,MM,1)
-    bo'sh yoki xato bo'lsa -> joriy oy(1-kun)
-    """
-    s = (s or "").strip()
-    today = timezone.localdate()
-    if len(s) == 7 and s[4] == "-":
-        try:
-            y = int(s[:4])
-            m = int(s[5:])
-            return date(y, m, 1)
-        except Exception:
-            pass
-    return month_start(today)
-
-
+logger = logging.getLogger(__name__)
 
 @login_required
 def expense_create(request):
@@ -60,7 +52,6 @@ def expense_create(request):
     )
 
 
-
 @login_required
 def course_list(request):
     from core.tenant import get_request_center
@@ -77,7 +68,6 @@ def course_list(request):
         .order_by("name")
     )
     return render(request, "education/course_list.html", {"courses": courses})
-
 
 
 @login_required
@@ -145,7 +135,6 @@ def course_create(request):
     })
 
 
-
 @login_required
 def course_edit(request, pk):
     from core.tenant import get_request_center
@@ -209,7 +198,6 @@ def course_edit(request, pk):
     })
 
 
-
 @login_required
 def course_delete(request, pk):
     from core.tenant import get_request_center
@@ -222,7 +210,6 @@ def course_delete(request, pk):
         course.delete()
         messages.success(request, f"'{name}' kursi o'chirildi.")
     return redirect("education:course_list")
-
 
 
 def course_price_api(request, pk):
@@ -239,4 +226,5 @@ def course_price_api(request, pk):
         "lessons_per_month": course.lessons_per_month,
         "name": course.name,
     })
+
 
