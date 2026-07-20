@@ -19,7 +19,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
-from keyboards.menu import get_main_menu
+from keyboards.menu import get_family_menu
 from services.api_client import (
     family_add_child_api,
     family_confirm_link_api,
@@ -193,7 +193,7 @@ async def _run_start_flow(msg: types.Message, tg_id: int, state: FSMContext, res
                 })
                 await msg.answer(
                     t("linked_one", lang, name=u.get("ism") or "—"),
-                    reply_markup=get_main_menu(role, lang),
+                    reply_markup=get_family_menu(role, lang),
                     parse_mode="HTML",
                 )
                 return
@@ -240,7 +240,7 @@ async def family_resume_profile(callback: types.CallbackQuery, state: FSMContext
     })
     await callback.message.answer(
         t("linked_one", lang, name=user.get("ism") or "—"),
-        reply_markup=get_main_menu(role, lang),
+        reply_markup=get_family_menu(role, lang),
         parse_mode="HTML",
     )
     await callback.answer()
@@ -321,7 +321,7 @@ async def cancel_wizard_on_menu_tap(message: types.Message, state: FSMContext):
     data = await state.get_data()
     role = data.get("current_user_role") or data.get("role")
     await state.set_state(None)
-    await message.answer(t("back_to_menu", lang), reply_markup=get_main_menu(role, lang))
+    await message.answer(t("back_to_menu", lang), reply_markup=get_family_menu(role, lang))
 
 
 # ─── O'quvchi: ism + tug'ilgan sana ──────────────────────────────────────────
@@ -484,7 +484,7 @@ async def _confirm_and_open_panel(callback: types.CallbackQuery, state: FSMConte
     role_text = t("role_parent", lang) if role == "parent" else t("role_student", lang)
     await callback.message.answer(
         t("panel_open", lang, role=role_text, name=profile.get("full_name") or "—"),
-        reply_markup=get_main_menu(role, lang), parse_mode="HTML",
+        reply_markup=get_family_menu(role, lang), parse_mode="HTML",
     )
     await callback.answer("✅")
 
@@ -632,7 +632,7 @@ async def family_confirm_birthdate(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await message.answer(
         t("child_added", lang, name=name),
-        reply_markup=get_main_menu(role or "parent", lang), parse_mode="HTML",
+        reply_markup=get_family_menu(role or "parent", lang), parse_mode="HTML",
     )
 
 
@@ -753,7 +753,7 @@ async def family_unlink_do(callback: types.CallbackQuery, state: FSMContext):
             })
             await callback.message.answer(
                 t("linked_one", lang, name=u.get("ism") or "—"),
-                reply_markup=get_main_menu(role, lang), parse_mode="HTML",
+                reply_markup=get_family_menu(role, lang), parse_mode="HTML",
             )
             return
 

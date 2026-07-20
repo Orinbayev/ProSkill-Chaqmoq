@@ -2,9 +2,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 
 
 def _common_rows():
+    # Soddalashtirildi: 📜 Faoliyat tarixi → 🔐 Xavfsizlik ichiga; 🔄 Profilni
+    # almashtirish → 👤 Profil ichida.
     return [
-        [KeyboardButton(text="👤 Profil"), KeyboardButton(text="📜 Faoliyat tarixi")],
-        [KeyboardButton(text="🔐 Xavfsizlik"), KeyboardButton(text="🔄 Profilni almashtirish")],
+        [KeyboardButton(text="👤 Profil"), KeyboardButton(text="🔐 Xavfsizlik")],
         [KeyboardButton(text="ℹ️ Yordam"), KeyboardButton(text="🚪 Chiqish")],
     ]
 

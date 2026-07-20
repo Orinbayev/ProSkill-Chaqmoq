@@ -46,7 +46,9 @@ def send_code_to_telegram(user):
     user.reset_code_used = False
     user.reset_attempts += 1
     user.reset_last_attempt = now
-    user.save()
+    # update_fields: o'qituvchi post_save signalidagi N+1 (barcha davomat) oldini oladi
+    user.save(update_fields=["reset_code", "reset_code_expire_at", "reset_code_used",
+                             "reset_attempts", "reset_last_attempt"])
     
     msg = f"<code>Code: {code}</code>\n\nUshbu kod 5 daqiqa davomida amal qiladi."
     
@@ -167,7 +169,7 @@ def forgot_password_verify(request):
 
         if user.reset_code == code and user.reset_code_expire_at and user.reset_code_expire_at > timezone.now() and not user.reset_code_used:
             user.reset_code_used = True
-            user.save()
+            user.save(update_fields=["reset_code_used"])
             request.session['auth_verify_attempts'] = 0
             
             if flow_type == 'login':
@@ -206,7 +208,7 @@ def forgot_password_set(request):
         
         if password == confirm and _is_strong_password(password):
             user.set_password(password)
-            user.save()
+            user.save(update_fields=["password"])
             record_activity(user, "Password changed successfully", request=request)
             
             # Cleanup session

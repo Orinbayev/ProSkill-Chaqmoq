@@ -18,6 +18,7 @@ from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
 from handlers import student, teacher, parent, manager, branch_approval
 from handlers import family_onboarding
+from handlers import fallback
 from services.scheduler import setup_scheduler
 
 try:
@@ -67,6 +68,9 @@ dp.include_router(manager.router)
 dp.include_router(branch_approval.router)
 if backup_router is not None:
     dp.include_router(backup_router)  # Register manual backup command
+# ENG OXIRIDA: hech bir handler ushlamagan matn (eski/kesh menyu tugmalari) →
+# to'g'ri menyuга qaytaramiz. Boshqa barcha routerlar undan oldin ishlaydi.
+dp.include_router(fallback.router)
 
 async def handle_send_message(request):
     """

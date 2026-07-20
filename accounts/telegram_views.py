@@ -16,7 +16,9 @@ def connect_telegram(request):
     user.reset_code = code
     user.reset_code_expire_at = timezone.now() + timedelta(minutes=10)
     user.reset_code_used = False
-    user.save()
+    # MUHIM: update_fields — aks holda o'qituvchi uchun post_save signal (handle_rate_change)
+    # barcha davomatlarni qayta hisoblab, minglab query hosil qiladi (94s N+1 bug).
+    user.save(update_fields=["reset_code", "reset_code_expire_at", "reset_code_used"])
 
     
     return render(request, "accounts/connect_telegram.html", {

@@ -4,45 +4,43 @@ from services.api_client import get_user_details_api
 
 router = Router()
 
+
 @router.message(F.text == "🔐 Xavfsizlik")
 async def show_security(message: types.Message, state: FSMContext):
+    """Xavfsizlik + faoliyat — yagona professional ko'rinish.
+    (Oldingi '📜 Faoliyat tarixi' shu yerга birlashtirildi.)"""
     data = await state.get_data()
     email = data.get("current_user_email")
     status_code, response = await get_user_details_api(str(message.from_user.id), email=email)
-    
-    if status_code == 200:
-        activities = response.get("activities", [])
-        
-        # Categorize
-        # Note: sorting in API is newer first.
-        logins = [a for a in activities if "Login successful" in a['raw_action']]
-        failures = [a for a in activities if "Failed login" in a['raw_action']]
-        audit = [a for a in activities if any(k in a['raw_action'].lower() for k in ["code", "password", "linked"])]
-        
-        msg = "🔐 <b>Xavfsizlik bo'limi</b>\n\n"
-        
-        # 🔓 Last Success
-        if logins:
-            msg += "🔓 <b>Oxirgi muvaffaqiyatli kirishlar:</b>\n"
-            for l in logins[:3]:
-                # Format: 📅 06.03.2026 12:45 (Windows, IP: 84.54..)
-                msg += f"  - 📅 {l['created_at']} (<i>{l['device']}, IP: {l['ip']}</i>)\n"
-        
-        # 🛑 Recent Failures
-        if failures:
-            msg += "\n🛑 <b>Muvaffaqiyatsiz urinishlar:</b>\n"
-            for f in failures[:3]:
-                msg += f"  - 📅 {f['created_at']} (<i>{f['device']}</i>)\n"
-        
-        # 🛡️ Audit
-        if audit:
-            msg += "\n🛡️ <b>Tizim auditi:</b>\n"
-            for a in audit[:5]:
-                msg += f"  - 📅 {a['created_at']} — {a['action']}\n"
-        
-        if not (logins or failures or audit):
-            msg += "Xavfsizlik tarixi hali mavjud emas."
-            
-        await message.answer(msg, parse_mode="HTML")
+
+    if status_code != 200:
+        await message.answer("❌ Ma'lumotni yuklashda xatolik yuz berdi.")
+        return
+
+    activities = response.get("activities", [])
+    logins = [a for a in activities if "Login successful" in a["raw_action"]]
+    failures = [a for a in activities if "Failed login" in a["raw_action"]]
+
+    parts = ["🔐 <b>Xavfsizlik va faoliyat</b>\n"]
+
+    if logins:
+        parts.append("🔓 <b>Oxirgi kirishlar:</b>")
+        for l in logins[:3]:
+            parts.append(f"  • {l['created_at']} <i>({l['device']}, IP: {l['ip']})</i>")
+        parts.append("")
+
+    if failures:
+        parts.append("🛑 <b>Muvaffaqiyatsiz urinishlar:</b>")
+        for f in failures[:3]:
+            parts.append(f"  • {f['created_at']} <i>({f['device']})</i>")
+        parts.append("")
+
+    if activities:
+        parts.append("📜 <b>So'nggi faoliyat:</b>")
+        for a in activities[:8]:
+            parts.append(f"  • {a['created_at']} — {a['action']}")
     else:
-        await message.answer("❌ Xavfsizlik ma'lumotlarini yuklashda xatolik yuz berdi.")
+        parts.append("Faoliyat tarixi hali bo'sh.")
+
+    parts.append("\n<i>Shubhali harakat sezsangiz, parolingizni darhol o'zgartiring.</i>")
+    await message.answer("\n".join(parts), parse_mode="HTML")

@@ -5,12 +5,12 @@ router = Router()
 @router.message(F.text == "ℹ️ Yordam")
 async def show_help(message: types.Message):
     msg = (
-        "ℹ️ <b>Yordam bo'limi</b>\n\n"
-        "Ushbu bot sizning hisobingiz xavfsizligini ta'minlash uchun xizmat qiladi.\n\n"
-        "<b>Asosiy buyruqlar:</b>\n"
-        "👤 Profil — Hisob ma'lumotlarini ko'rish\n"
-        "📜 Faoliyat tarixi — Oxirgi 10 ta amalni ko'rish\n"
-        "🔐 Xavfsizlik — Kirish va kod yuborish tarixi\n\n"
-        "Agar sizdan boshqa birov hisobingizga kirayotganini bilsangiz, darhol parolingizni o'zgartiring."
+        "ℹ️ <b>Yordam</b>\n\n"
+        "Bu bot hisobingiz xavfsizligi va profilingizni boshqarish uchun.\n\n"
+        "👤 <b>Profil</b> — profilingizni ko'rish; bir nechta profil bo'lsa, shu yerдан almashtirasiz.\n"
+        "🔐 <b>Xavfsizlik</b> — kirishlar, urinishlar va so'nggi faoliyat bir joyда.\n"
+        "🚪 <b>Chiqish</b> — profilni botдан uzish.\n\n"
+        "🔑 Parolni unutsangiz — saytдаgi \"Parolni unutdingizmi?\" orqali shu botга kod keladi.\n\n"
+        "Shubhali harakat sezsangiz, parolingizni darhol o'zgartiring."
     )
     await message.answer(msg, parse_mode="HTML")
