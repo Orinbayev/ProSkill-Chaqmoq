@@ -25,6 +25,7 @@ urlpatterns = [
     
     # Telegram Link
     path('telegram-boglash/', telegram_views.connect_telegram, name='connect_telegram'),
+    path('telegram-link-status/', telegram_views.telegram_link_status, name='telegram_link_status'),
     
     # Internal Bot API
     path('bot-user-status/', api_auth.get_bot_user_status, name='bot_user_status'),

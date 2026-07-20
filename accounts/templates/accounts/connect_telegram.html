@@ -230,5 +230,45 @@
             }, 2000);
         });
     }
+
+    // ── Bog'lanishni kutish: botда kod kiritilса, avtomatik profilga qaytamiz ──
+    (function () {
+        const statusUrl = "{% url 'telegram_link_status' %}";
+        const profileUrl = "/hisob/profil/";
+        let stopped = false;
+
+        function showSuccess() {
+            const ov = document.createElement("div");
+            ov.style.cssText = "position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;" +
+                "align-items:center;justify-content:center;gap:16px;background:rgba(7,10,18,.92);" +
+                "backdrop-filter:blur(6px);color:#fff;font-family:inherit;text-align:center;padding:24px;";
+            ov.innerHTML =
+                '<div style="font-size:56px">✅</div>' +
+                '<div style="font-size:20px;font-weight:800">Telegram muvaffaqiyatli bog\'landi!</div>' +
+                '<div style="font-size:13px;opacity:.7">Profil bo\'limiga qaytmoqdamiz…</div>';
+            document.body.appendChild(ov);
+        }
+
+        async function poll() {
+            if (stopped) return;
+            try {
+                const r = await fetch(statusUrl, { headers: { "X-Requested-With": "XMLHttpRequest" }, cache: "no-store" });
+                if (r.ok) {
+                    const d = await r.json();
+                    if (d.linked) {
+                        stopped = true;
+                        clearInterval(timer);
+                        showSuccess();
+                        setTimeout(() => { window.location.href = profileUrl; }, 1200);
+                        return;
+                    }
+                }
+            } catch (e) { /* tarmoq xatosi — keyingi urinishда qayta tekshiramiz */ }
+        }
+
+        const timer = setInterval(poll, 3000);
+        // 10 daqiqадан keyin to'xtatamiz (kod muddati tugaydi)
+        setTimeout(() => { stopped = true; clearInterval(timer); }, 600000);
+    })();
 </script>
 {% endblock %}

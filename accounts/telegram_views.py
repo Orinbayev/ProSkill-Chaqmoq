@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.conf import settings
+from django.http import JsonResponse
 import secrets
 import string
 from datetime import timedelta
@@ -25,3 +26,17 @@ def connect_telegram(request):
         "code": code,
         "bot_username": settings.TELEGRAM_BOT_USERNAME
     })
+
+
+@login_required
+def telegram_link_status(request):
+    """Sahifa polling qiladi: botда kod kiritilса (reset_code_used=True) → 'linked': true.
+    Sayt shu javobni ko'rib avtomatik profil bo'limiga qaytadi."""
+    from accounts.models import User
+    u = (
+        User.objects
+        .only("id", "reset_code_used", "is_telegram_linked")
+        .get(id=request.user.id)
+    )
+    linked = bool(u.reset_code_used and u.is_telegram_linked)
+    return JsonResponse({"linked": linked})
