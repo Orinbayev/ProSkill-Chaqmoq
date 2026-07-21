@@ -31,6 +31,11 @@ from education.views.courses import (  # noqa: F401
     course_delete,
     course_price_api,
 )
+from education.views.exam_hub import (  # noqa: F401
+    exam_hub,
+    exam_annual_grades,
+    exam_questions,
+)
 
 # Legacy monolit — to'liq orqaga moslik (urls, tests, ichki importlar).
 from education.views.legacy import *  # noqa: F403, F401

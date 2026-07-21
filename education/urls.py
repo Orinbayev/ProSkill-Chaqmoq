@@ -79,6 +79,9 @@ urlpatterns = [
     path("schedule/my/", views.teacher_schedule_view, name="teacher_schedule"),
 
     # === 🧪 Imtihon moduli ===
+    path("exam/", views.exam_hub, name="exam_hub"),
+    path("exam/annual/", views.exam_annual_grades, name="exam_annual_grades"),
+    path("exam/questions/", views.exam_questions, name="exam_questions"),
     path("exam/settings/", views.exam_settings_view, name="exam_settings"),
     path("exam/reminder/<int:group_id>/action/", views.exam_reminder_action, name="exam_reminder_action"),
     path("exam/list/", views.exam_list, name="exam_list"),

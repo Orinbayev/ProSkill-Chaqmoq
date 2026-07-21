@@ -487,15 +487,18 @@
 
     {% if feature_exam_sessions_ui or feature_failed_students_ui %}
     <div class="sidebar-item-group">
-      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}open{% endif %}"
+      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_hub' or vn == 'education:exam_annual_grades' or vn == 'education:exam_questions' or vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}open{% endif %}"
         onclick="toggleSidebarSection(this, 'teacherExamMenu')" data-title="Imtihon">
         <span class="si-ico"><i class="fa-solid fa-pen-to-square"></i></span>
         <span class="si-text">Imtihon</span>
         <i class="fa-solid fa-chevron-right ms-auto exam-arrow"></i>
       </div>
-      <div id="teacherExamMenu" class="sidebar-submenu {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}show{% endif %}">
+      <div id="teacherExamMenu" class="sidebar-submenu {% if vn == 'education:exam_hub' or vn == 'education:exam_annual_grades' or vn == 'education:exam_questions' or vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}show{% endif %}">
         {% if feature_exam_sessions_ui %}
+        <a href="{% url 'education:exam_hub' %}" class="sidebar-subitem {% if vn == 'education:exam_hub' %}active{% endif %}">Bosh panel</a>
         <a href="{% url 'education:exam_create' %}" class="sidebar-subitem {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' %}active{% endif %}">Sessiya yaratish</a>
+        <a href="{% url 'education:exam_questions' %}" class="sidebar-subitem {% if vn == 'education:exam_questions' %}active{% endif %}">Savollar banki</a>
+        <a href="{% url 'education:exam_annual_grades' %}" class="sidebar-subitem {% if vn == 'education:exam_annual_grades' %}active{% endif %}">Yillik baholar</a>
         <a href="{% url 'education:teacher_exam_history' %}" class="sidebar-subitem {% if vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' %}active{% endif %}">Sessiyalar tarixi</a>
         {% endif %}
         {% if feature_failed_students_ui %}
@@ -645,15 +648,19 @@
     {# Imtihonlar — UI feature bo'lsa ko'rsatamiz #}
     {% if feature_exam_sessions_ui or feature_failed_students_ui or feature_certificates_ui %}
     <div class="sidebar-item-group">
-      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}open{% endif %}"
+      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_hub' or vn == 'education:exam_annual_grades' or vn == 'education:exam_questions' or vn == 'education:exam_settings' or vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}open{% endif %}"
         onclick="toggleSidebarSection(this, 'managerExamMenu')" data-title="Imtihonlar">
         <span class="si-ico"><i class="fa-solid fa-pen-to-square"></i></span>
         <span class="si-text">Imtihonlar</span>
         <i class="fa-solid fa-chevron-right ms-auto exam-arrow"></i>
       </div>
-      <div id="managerExamMenu" class="sidebar-submenu {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}show{% endif %}">
+      <div id="managerExamMenu" class="sidebar-submenu {% if vn == 'education:exam_hub' or vn == 'education:exam_annual_grades' or vn == 'education:exam_questions' or vn == 'education:exam_settings' or vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}show{% endif %}">
         {% if feature_exam_sessions_ui %}
+        <a href="{% url 'education:exam_hub' %}" class="sidebar-subitem {% if vn == 'education:exam_hub' %}active{% endif %}">Bosh panel</a>
         <a href="{% url 'education:exam_list' %}" class="sidebar-subitem {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' %}active{% endif %}">Barcha sessiyalar</a>
+        <a href="{% url 'education:exam_questions' %}" class="sidebar-subitem {% if vn == 'education:exam_questions' %}active{% endif %}">Savollar banki</a>
+        <a href="{% url 'education:exam_annual_grades' %}" class="sidebar-subitem {% if vn == 'education:exam_annual_grades' %}active{% endif %}">Yillik baholar</a>
+        <a href="{% url 'education:exam_settings' %}" class="sidebar-subitem {% if vn == 'education:exam_settings' %}active{% endif %}">Sozlamalar</a>
         {% endif %}
         {% if feature_failed_students_ui %}
         <a href="{% url 'education:failed_students_list' %}" class="sidebar-subitem {% if vn == 'education:failed_students_list' %}active{% endif %}">Zaif o'quvchilar</a>

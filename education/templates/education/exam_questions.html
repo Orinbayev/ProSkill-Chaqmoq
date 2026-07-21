@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block body_class %}exam-questions-page{% endblock %}
+{% block title %}Savollar banki | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+.qpage { max-width:900px; margin:0 auto; display:grid; gap:16px; }
+.qhead { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center; }
+.qhead h1 { margin:0; font-size:22px; font-weight:900; color:#0f172a; }
+.qback { color:#0ea5e9; font-weight:700; text-decoration:none; font-size:13px; }
+.qcard { border-radius:18px; padding:18px 20px; background:#fff; border:1px solid rgba(148,163,184,.16); }
+.qcard h2 { margin:0 0 12px; font-size:15px; font-weight:800; }
+.qgrid { display:grid; gap:12px; }
+.qgrid label { display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:4px; }
+.qgrid input, .qgrid select, .qgrid textarea {
+  width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; font-size:14px;
+}
+.qgrid textarea { min-height:100px; resize:vertical; }
+.qbtn {
+  border:none; border-radius:12px; padding:11px 16px; font-weight:800; cursor:pointer;
+  background:#0ea5e9; color:#fff; font-size:13px;
+}
+.qitem {
+  padding:14px 0; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; gap:12px;
+}
+.qitem:last-child { border-bottom:0; }
+.qtitle { font-weight:800; color:#0f172a; }
+.qbody { font-size:13px; color:#475569; margin-top:4px; white-space:pre-wrap; }
+.qmeta { font-size:11px; color:#94a3b8; margin-top:6px; }
+.qdel { background:#fef2f2; color:#b91c1c; border:none; border-radius:8px; padding:8px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qpage">
+  <div>
+    <a class="qback" href="{% url 'education:exam_hub' %}">← Imtihon paneli</a>
+    <div class="qhead">
+      <h1>📚 Imtihon savollari banki</h1>
+      <form method="get" style="display:flex;gap:8px;align-items:end">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b">Guruh</label>
+          <select name="group" onchange="this.form.submit()" style="border-radius:10px;border:1px solid #e2e8f0;padding:8px 10px">
+            <option value="">Barchasi</option>
+            {% for g in groups %}
+              <option value="{{ g.id }}" {% if selected_group_id == g.id %}selected{% endif %}>{{ g.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="qcard">
+    <h2>Yangi savol / fayl yuklash</h2>
+    <form method="post" enctype="multipart/form-data" class="qgrid">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+      <div>
+        <label>Sarlavha (ixtiyoriy)</label>
+        <input type="text" name="title" placeholder="Masalan: 12-dars test savoli 1" maxlength="200">
+      </div>
+      <div>
+        <label>Savol matni *</label>
+        <textarea name="body" required placeholder="Savolni yozing..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label>Guruh (ixtiyoriy)</label>
+          <select name="group">
+            <option value="">Umumiy (markaz)</option>
+            {% for g in groups %}
+              <option value="{{ g.id }}">{{ g.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Ball</label>
+          <input type="number" name="points" value="1" min="1" max="100">
+        </div>
+      </div>
+      {% if settings_obj.exam_file_upload_enabled %}
+      <div>
+        <label>Fayl (PDF / rasm, max 10MB)</label>
+        <input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.txt">
+      </div>
+      {% endif %}
+      <div>
+        <button class="qbtn" type="submit">Saqlash</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="qcard">
+    <h2>Saqlangan savollar</h2>
+    {% for q in questions %}
+      <div class="qitem">
+        <div>
+          <div class="qtitle">{% if q.title %}{{ q.title }}{% else %}Savol #{{ q.id }}{% endif %}</div>
+          <div class="qbody">{{ q.body }}</div>
+          <div class="qmeta">
+            {{ q.points }} ball
+            {% if q.group %} · {{ q.group.nom }}{% else %} · Umumiy{% endif %}
+            {% if q.attachment %} · <a href="{{ q.attachment.url }}" target="_blank">Fayl</a>{% endif %}
+          </div>
+        </div>
+        <form method="post" onsubmit="return confirm('O‘chirish?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="question_id" value="{{ q.id }}">
+          <button class="qdel" type="submit">O‘chirish</button>
+        </form>
+      </div>
+    {% empty %}
+      <p style="margin:0;color:#64748b;">Hali savol yo‘q. Yuqoridan qo‘shing.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

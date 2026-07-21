@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block body_class %}exam-hub-page{% endblock %}
+{% block title %}Imtihon paneli | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+.exam-hub { display:grid; gap:16px; max-width:1100px; margin:0 auto; }
+.exam-hero {
+  border-radius:20px; padding:22px 24px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%);
+  color:#fff; box-shadow:0 12px 32px rgba(14,165,233,.28);
+}
+.exam-hero h1 { margin:0; font-size:24px; font-weight:900; letter-spacing:-.3px; }
+.exam-hero p { margin:8px 0 0; opacity:.92; font-size:14px; line-height:1.45; }
+.exam-hero-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.exam-chip {
+  background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22);
+  border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700;
+}
+.exam-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.exam-stat {
+  border-radius:16px; padding:16px 18px;
+  background:var(--card-bg, #fff); border:1px solid rgba(148,163,184,.18);
+  box-shadow:0 4px 14px rgba(15,23,42,.04);
+}
+.exam-stat b { display:block; font-size:22px; font-weight:900; color:#0f172a; }
+.exam-stat span { font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
+.exam-panel {
+  border-radius:18px; padding:18px 20px;
+  background:var(--card-bg, #fff); border:1px solid rgba(148,163,184,.16);
+}
+.exam-panel h2 { margin:0 0 12px; font-size:16px; font-weight:800; color:#0f172a; }
+.exam-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.exam-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:12px; padding:10px 14px; font-size:13px; font-weight:700;
+  text-decoration:none; border:none; cursor:pointer;
+}
+.exam-btn-primary { background:#0ea5e9; color:#fff; }
+.exam-btn-primary:hover { background:#0284c7; color:#fff; }
+.exam-btn-ghost { background:#f1f5f9; color:#0f172a; }
+.exam-btn-ghost:hover { background:#e2e8f0; color:#0f172a; }
+.exam-btn-warn { background:#fef3c7; color:#92400e; }
+.exam-due-item {
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+  padding:12px 0; border-bottom:1px solid rgba(148,163,184,.14);
+}
+.exam-due-item:last-child { border-bottom:0; }
+.exam-due-title { font-weight:800; color:#0f172a; }
+.exam-due-sub { font-size:12px; color:#64748b; margin-top:3px; }
+.exam-badge-due {
+  background:#fef2f2; color:#b91c1c; border-radius:999px;
+  padding:4px 10px; font-size:11px; font-weight:800;
+}
+.exam-badge-ok {
+  background:#ecfdf5; color:#047857; border-radius:999px;
+  padding:4px 10px; font-size:11px; font-weight:800;
+}
+.exam-table { width:100%; border-collapse:collapse; font-size:13px; }
+.exam-table th { text-align:left; color:#64748b; font-size:11px; text-transform:uppercase; padding:8px 6px; }
+.exam-table td { padding:10px 6px; border-top:1px solid rgba(148,163,184,.12); color:#0f172a; }
+@media (max-width: 900px) {
+  .exam-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 560px) {
+  .exam-stats { grid-template-columns:1fr; }
+  .exam-due-item { flex-direction:column; align-items:flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exam-hub">
+  <div class="exam-hero">
+    <h1>📝 Imtihon paneli</h1>
+    <p>
+      Har <strong>{{ every_n }}-darsda</strong> o‘quvchidan imtihon oling, ballarni kiriting,
+      savollar bankini to‘ldiring va yillik baholarni kuzating.
+      {% if not settings_obj.exam_system_enabled %}
+        <br><strong>Diqqat:</strong> markazda imtihon tizimi hozir o‘chiq — director yoqishi kerak.
+      {% endif %}
+    </p>
+    <div class="exam-hero-meta">
+      <span class="exam-chip">O‘tish: {{ settings_obj.passing_score_percent }}%</span>
+      <span class="exam-chip">Har {{ every_n }} dars</span>
+      {% if settings_obj.exam_file_upload_enabled %}
+        <span class="exam-chip">Fayl yuklash yoqilgan</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="exam-stats">
+    <div class="exam-stat"><b>{{ stats.due_count }}</b><span>Kutilayotgan imtihon</span></div>
+    <div class="exam-stat"><b>{{ stats.sessions_open }}</b><span>Ochiq sessiya</span></div>
+    <div class="exam-stat"><b>{{ stats.sessions_total }}</b><span>Jami sessiya</span></div>
+    <div class="exam-stat"><b>{% if stats.avg_percent != None %}{{ stats.avg_percent }}%{% else %}—{% endif %}</b><span>O‘rtacha ball</span></div>
+  </div>
+
+  <div class="exam-panel">
+    <h2>Tezkor amallar</h2>
+    <div class="exam-actions">
+      <a class="exam-btn exam-btn-primary" href="{% url 'education:exam_create' %}">+ Yangi sessiya</a>
+      <a class="exam-btn exam-btn-ghost" href="{% url 'education:exam_questions' %}">📚 Savollar banki ({{ stats.questions_count }})</a>
+      <a class="exam-btn exam-btn-ghost" href="{% url 'education:exam_annual_grades' %}">📊 Yillik baholar</a>
+      <a class="exam-btn exam-btn-ghost" href="{% url 'education:teacher_exam_history' %}">🗂 Sessiyalar tarixi</a>
+      {% if not is_teacher %}
+        <a class="exam-btn exam-btn-ghost" href="{% url 'education:exam_list' %}">Barcha sessiyalar</a>
+        <a class="exam-btn exam-btn-ghost" href="{% url 'education:exam_settings' %}">⚙️ Sozlamalar</a>
+      {% endif %}
+      <a class="exam-btn exam-btn-warn" href="{% url 'education:failed_students_list' %}">Zaif o‘quvchilar</a>
+    </div>
+  </div>
+
+  <div class="exam-panel">
+    <h2>Eslatmalar — {{ every_n }}-dars nazorati</h2>
+    {% if due_rows %}
+      {% for row in due_rows %}
+        <div class="exam-due-item">
+          <div>
+            <div class="exam-due-title">{{ row.group.nom }}</div>
+            <div class="exam-due-sub">
+              Dars #{{ row.state.lesson_number }}
+              {% if row.state.target_lesson_number %} · nazorat: {{ row.state.target_lesson_number }}{% endif %}
+              {% if row.group.oqituvchi %} · {{ row.group.oqituvchi.get_full_name }}{% endif %}
+            </div>
+          </div>
+          <div class="exam-actions">
+            {% if row.state.due %}
+              <span class="exam-badge-due">Imtihon kerak</span>
+              <a class="exam-btn exam-btn-primary" href="{% url 'education:exam_reminder_action' row.group.id %}?decision=yes">
+                {% if row.state.existing_session %}Davom ettirish{% else %}Natija kiritish{% endif %}
+              </a>
+            {% else %}
+              <span class="exam-badge-ok">Kutish mumkin</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="margin:0;color:#64748b;font-size:14px;">
+        Hozircha eslatma yo‘q. Guruhda {{ every_n }} ta dars bo‘lganda bu yerda paydo bo‘ladi
+        (guruh sahifasida ham eslatma chiqadi).
+      </p>
+    {% endif %}
+  </div>
+
+  <div class="exam-panel">
+    <h2>So‘nggi sessiyalar</h2>
+    {% if recent_sessions %}
+      <div style="overflow-x:auto">
+        <table class="exam-table">
+          <thead>
+            <tr>
+              <th>Sana</th>
+              <th>Guruh</th>
+              <th>Dars #</th>
+              <th>Holat</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recent_sessions %}
+              <tr>
+                <td>{{ s.exam_date }}</td>
+                <td>{{ s.group.nom }}</td>
+                <td>{{ s.lesson_number_reference }}</td>
+                <td>{{ s.get_status_display }}</td>
+                <td>
+                  <a href="{% url 'education:exam_session_entry' s.id %}">Ochish</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="margin:0;color:#64748b;font-size:14px;">Hali sessiya yo‘q. «Yangi sessiya» dan boshlang.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1699,6 +1699,57 @@ class ExamSessionTaskFile(models.Model):
         return f"Sessiya #{self.session_id} task fayli"
 
 
+class ExamQuestion(models.Model):
+    """O'qituvchi savollar banki — markaz/guruh bo'yicha qayta ishlatiladi."""
+
+    center = models.ForeignKey(
+        "accounts.Center",
+        on_delete=models.CASCADE,
+        related_name="exam_questions",
+    )
+    group = models.ForeignKey(
+        "education.Group",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="exam_questions",
+        help_text="Bo'sh bo'lsa — butun markaz uchun umumiy savol",
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="authored_exam_questions",
+        limit_choices_to={"role": "teacher"},
+    )
+    title = models.CharField(max_length=200, blank=True, default="")
+    body = models.TextField(verbose_name="Savol matni")
+    points = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
+    attachment = models.FileField(
+        upload_to=exam_upload_path,
+        null=True,
+        blank=True,
+        verbose_name="Qo'shimcha fayl (PDF/rasm)",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("sort_order", "-created_at")
+        verbose_name = "Imtihon savoli"
+        verbose_name_plural = "Imtihon savollari"
+        indexes = [
+            models.Index(fields=["center", "is_active"]),
+            models.Index(fields=["group", "is_active"]),
+        ]
+
+    def __str__(self):
+        return self.title or (self.body[:60] + ("…" if len(self.body) > 60 else ""))
+
+
 class EducationAuditLog(models.Model):
     center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="education_audit_logs")
     actor = models.ForeignKey(

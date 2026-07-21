@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block body_class %}exam-annual-page{% endblock %}
+{% block title %}Yillik baholar | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+.ann { max-width:1100px; margin:0 auto; display:grid; gap:16px; }
+.ann-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:flex-end; }
+.ann-head h1 { margin:0; font-size:22px; font-weight:900; color:#0f172a; }
+.ann-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+.ann-filters label { display:block; font-size:11px; font-weight:700; color:#64748b; margin-bottom:4px; }
+.ann-filters select, .ann-filters button {
+  border-radius:10px; border:1px solid #e2e8f0; padding:9px 12px; font-size:13px; background:#fff;
+}
+.ann-filters button { background:#0ea5e9; color:#fff; border:none; font-weight:700; cursor:pointer; }
+.ann-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.ann-kpi {
+  border-radius:16px; padding:16px; background:#fff; border:1px solid rgba(148,163,184,.16);
+}
+.ann-kpi b { font-size:24px; font-weight:900; color:#0f172a; display:block; }
+.ann-kpi span { font-size:12px; color:#64748b; font-weight:700; }
+.ann-card { border-radius:18px; padding:18px; background:#fff; border:1px solid rgba(148,163,184,.16); }
+.ann-card h2 { margin:0 0 12px; font-size:15px; font-weight:800; }
+.ann-chart { display:flex; align-items:flex-end; gap:8px; height:160px; padding-top:8px; }
+.ann-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+.ann-bar {
+  width:100%; max-width:36px; border-radius:8px 8px 4px 4px;
+  background:linear-gradient(180deg,#38bdf8,#0ea5e9); min-height:4px;
+}
+.ann-bar-label { font-size:10px; color:#64748b; font-weight:700; }
+.ann-table { width:100%; border-collapse:collapse; font-size:13px; }
+.ann-table th { text-align:left; font-size:11px; color:#64748b; text-transform:uppercase; padding:8px; }
+.ann-table td { padding:10px 8px; border-top:1px solid #f1f5f9; }
+.ann-pass { color:#047857; font-weight:800; }
+.ann-fail { color:#b91c1c; font-weight:800; }
+.ann-back { color:#0ea5e9; font-weight:700; text-decoration:none; font-size:13px; }
+@media (max-width:700px){ .ann-kpis{grid-template-columns:1fr;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ann">
+  <div class="ann-head">
+    <div>
+      <a class="ann-back" href="{% url 'education:exam_hub' %}">← Imtihon paneli</a>
+      <h1>Yillik baholar — {{ year }}</h1>
+    </div>
+    <form class="ann-filters" method="get">
+      <div>
+        <label>Yil</label>
+        <select name="year">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Guruh</label>
+        <select name="group">
+          <option value="">Barchasi</option>
+          {% for g in data.groups %}
+            <option value="{{ g.id }}" {% if selected_group_id == g.id %}selected{% endif %}>{{ g.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit">Ko‘rsatish</button>
+    </form>
+  </div>
+
+  <div class="ann-kpis">
+    <div class="ann-kpi">
+      <b>{% if data.overall_avg != None %}{{ data.overall_avg }}%{% else %}—{% endif %}</b>
+      <span>O‘rtacha foiz</span>
+    </div>
+    <div class="ann-kpi">
+      <b>{{ data.pass_rate }}%</b>
+      <span>O‘tish foizi</span>
+    </div>
+    <div class="ann-kpi">
+      <b>{{ data.total_results }}</b>
+      <span>Jami natijalar</span>
+    </div>
+  </div>
+
+  <div class="ann-card">
+    <h2>Oyma-oy o‘rtacha ball</h2>
+    {% if data.month_labels %}
+      {{ data.month_values|json_script:"exam-month-values" }}
+      <div class="ann-chart" id="exam-month-chart">
+        {% for label in data.month_labels %}
+          <div class="ann-bar-wrap">
+            <div class="ann-bar" data-i="{{ forloop.counter0 }}"></div>
+            <span class="ann-bar-label">{{ label }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      <script>
+        (function(){
+          var el = document.getElementById('exam-month-values');
+          var vals = el ? JSON.parse(el.textContent) : [];
+          var max = Math.max.apply(null, vals.concat([1]));
+          document.querySelectorAll('#exam-month-chart .ann-bar').forEach(function(bar){
+            var i = parseInt(bar.getAttribute('data-i'), 10);
+            var v = Number(vals[i] || 0);
+            bar.style.height = Math.max(4, Math.round(v / max * 140)) + 'px';
+            bar.title = v + '%';
+          });
+        })();
+      </script>
+    {% else %}
+      <p style="margin:0;color:#64748b;">Bu yil uchun hali imtihon natijasi yo‘q.</p>
+    {% endif %}
+  </div>
+
+  <div class="ann-card">
+    <h2>O‘quvchilar bo‘yicha</h2>
+    {% if data.students %}
+      <div style="overflow-x:auto">
+        <table class="ann-table">
+          <thead>
+            <tr>
+              <th>O‘quvchi</th>
+              <th>Guruh</th>
+              <th>Imtihonlar</th>
+              <th>O‘rtacha %</th>
+              <th>O‘tgan</th>
+              <th>Yiqilgan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in data.students %}
+              <tr>
+                <td><strong>{{ s.student__ism }} {{ s.student__familya }}</strong></td>
+                <td>{{ s.group__nom }}</td>
+                <td>{{ s.exam_count }}</td>
+                <td>{% if s.avg_percent != None %}{{ s.avg_percent|floatformat:1 }}%{% else %}—{% endif %}</td>
+                <td class="ann-pass">{{ s.pass_count }}</td>
+                <td class="ann-fail">{{ s.fail_count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="margin:0;color:#64748b;">Ma’lumot yo‘q.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

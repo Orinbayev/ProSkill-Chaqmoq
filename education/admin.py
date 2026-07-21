@@ -10,6 +10,7 @@ from .models import (
     DailyLightningSetting,
     EducationAuditLog,
     Enrollment,
+    ExamQuestion,
     ExamReminderLog,
     ExamResult,
     ExamResultFile,
@@ -125,6 +126,13 @@ class ExamReminderLogAdmin(admin.ModelAdmin):
     list_display = ("id", "group", "teacher", "attendance_date", "lesson_number_reference", "action")
     list_filter = ("action", "center")
     search_fields = ("group__nom", "teacher__ism", "teacher__familya")
+
+
+@admin.register(ExamQuestion)
+class ExamQuestionAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "center", "group", "teacher", "points", "is_active", "created_at")
+    list_filter = ("center", "is_active")
+    search_fields = ("title", "body", "group__nom")
 
 
 @admin.register(EducationAuditLog)

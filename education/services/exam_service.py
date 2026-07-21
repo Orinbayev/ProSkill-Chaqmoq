@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.db import transaction
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 
 from education.models import (
@@ -713,6 +713,114 @@ def notify_exam_results(session: ExamSession):
     except Exception:
         logger.exception("notify_exam_results failed: session_id=%s", getattr(session, "id", None))
         return 0
+
+
+def get_teacher_due_exam_groups(*, center, teacher, on_date=None) -> list[dict]:
+    """O'qituvchi guruhlarida imtihon eslatmasi kerak bo'lganlar."""
+    on_date = on_date or timezone.localdate()
+    from education.models import Group
+
+    groups = (
+        Group.objects.filter(
+            center=center,
+            oqituvchi=teacher,
+            is_archived=False,
+            is_deleted=False,
+            is_closed=False,
+        )
+        .select_related("center")
+        .order_by("nom")
+    )
+    rows = []
+    for group in groups:
+        state = get_exam_reminder_state(group=group, on_date=on_date)
+        if not state.get("enabled"):
+            continue
+        rows.append({"group": group, "state": state})
+    due = [r for r in rows if r["state"].get("due")]
+    rest = [r for r in rows if not r["state"].get("due")]
+    return due + rest
+
+
+def get_annual_exam_grades(*, center, year: int, teacher=None, group=None) -> dict:
+    """Yillik baholar — oyma-oy o'rtacha, o'quvchi kesimi."""
+    from django.db.models.functions import TruncMonth
+    from education.models import Group
+
+    qs = ExamResult.objects.filter(
+        center=center,
+        exam_date__year=year,
+    ).filter(
+        Q(score__isnull=False) | Q(percent__isnull=False) | Q(absent_in_exam=True)
+    )
+    if teacher is not None:
+        qs = qs.filter(Q(teacher=teacher) | Q(session__teacher=teacher) | Q(group__oqituvchi=teacher))
+    if group is not None:
+        qs = qs.filter(group=group)
+
+    monthly = list(
+        qs.exclude(percent__isnull=True)
+        .annotate(month=TruncMonth("exam_date"))
+        .values("month")
+        .annotate(
+            avg_percent=Avg("percent"),
+            count=Count("id"),
+            pass_count=Count("id", filter=Q(passed=True, absent_in_exam=False)),
+        )
+        .order_by("month")
+    )
+
+    by_student = list(
+        qs.values(
+            "student_id",
+            "student__ism",
+            "student__familya",
+            "group_id",
+            "group__nom",
+        )
+        .annotate(
+            exam_count=Count("id"),
+            avg_percent=Avg("percent", filter=Q(percent__isnull=False)),
+            pass_count=Count("id", filter=Q(passed=True, absent_in_exam=False)),
+            fail_count=Count(
+                "id",
+                filter=Q(passed=False)
+                & (Q(score__isnull=False) | Q(percent__isnull=False) | Q(absent_in_exam=True)),
+            ),
+        )
+        .order_by("student__ism", "student__familya")
+    )
+
+    overall_avg = qs.exclude(percent__isnull=True).aggregate(a=Avg("percent"))["a"]
+    total = qs.count()
+    passed = qs.filter(passed=True, absent_in_exam=False).count()
+
+    month_labels = []
+    month_values = []
+    month_counts = []
+    for row in monthly:
+        m = row["month"]
+        if m:
+            month_labels.append(m.strftime("%b"))
+            month_values.append(round(float(row["avg_percent"] or 0), 1))
+            month_counts.append(int(row["count"] or 0))
+
+    groups = Group.objects.filter(center=center, is_archived=False).order_by("nom")
+    if teacher is not None:
+        groups = groups.filter(oqituvchi=teacher)
+
+    return {
+        "year": year,
+        "total_results": total,
+        "passed_count": passed,
+        "pass_rate": round(passed / total * 100, 1) if total else 0,
+        "overall_avg": round(float(overall_avg or 0), 1) if overall_avg is not None else None,
+        "month_labels": month_labels,
+        "month_values": month_values,
+        "month_counts": month_counts,
+        "students": by_student,
+        "groups": list(groups),
+    }
 
 
 def get_student_exam_summary(*, student, group=None):
