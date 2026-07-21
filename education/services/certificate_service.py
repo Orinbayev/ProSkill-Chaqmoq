@@ -33,12 +33,27 @@ from education.services.audit_service import log_education_event
 from education.services.ranking_service import build_group_completion_recommendations
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
-PDF_LAYOUT_VERSION = 8
+PDF_LAYOUT_VERSION = 11
 CERT_PAGE_WIDTH = 297 * mm
 CERT_PAGE_HEIGHT = CERT_PAGE_WIDTH * 9 / 16
 CERT_PAGE_SIZE = (CERT_PAGE_WIDTH, CERT_PAGE_HEIGHT)
-CERT_LOGO_PATH = Path(settings.BASE_DIR) / "static" / "img" / "chaqmoq_blue_logo_v2.png"
+# Gold brand mark (cream/gold certificate palette bilan mos)
+CERT_LOGO_PATH = Path(settings.BASE_DIR) / "static" / "img" / "chaqmoq_logo_transparent.png"
+CERT_LOGO_FALLBACK = Path(settings.BASE_DIR) / "static" / "img" / "chaqmoq_blue_logo_v2.png"
 logger = logging.getLogger(__name__)
+
+# Premium palette — navy + gold academy style
+C_NAVY = "#0B1F3A"
+C_NAVY_MID = "#163A66"
+C_GOLD = "#C9A227"
+C_GOLD_LIGHT = "#E8D48B"
+C_GOLD_DEEP = "#9A7B1A"
+C_CREAM = "#FFFCF5"
+C_CREAM_SOFT = "#F7F1E3"
+C_INK = "#1A2332"
+C_MUTED = "#5C6570"
+C_LINE = "#D9C78A"
+C_WHITE = "#FFFFFF"
 
 
 def _abs_uri(request, path: str) -> str:
@@ -169,42 +184,6 @@ def _draw_vertical_gradient(
         c.rect(x, y_strip, width, step_h + 0.4, stroke=0, fill=1)
 
 
-def _draw_hex_pattern(c: canvas.Canvas, *, x: float, y: float, width: float, height: float, radius: float = 4.6 * mm):
-    c.saveState()
-    c.setStrokeColor(colors.HexColor("#EAF2FF"))
-    c.setLineWidth(0.6)
-
-    step_x = radius * 1.72
-    step_y = radius * 1.48
-    rows = int(height / step_y) + 3
-    cols = int(width / step_x) + 3
-
-    for row in range(rows):
-        cy = y + row * step_y
-        if cy - radius > y + height:
-            continue
-        x_offset = (step_x / 2) if row % 2 else 0
-        for col in range(cols):
-            cx = x + x_offset + col * step_x
-            if cx + radius < x or cx - radius > x + width:
-                continue
-
-            pts = []
-            for k in range(6):
-                angle = math.radians(60 * k + 30)
-                px = cx + radius * math.cos(angle)
-                py = cy + radius * math.sin(angle)
-                pts.append((px, py))
-
-            path = c.beginPath()
-            path.moveTo(pts[0][0], pts[0][1])
-            for px, py in pts[1:]:
-                path.lineTo(px, py)
-            path.close()
-            c.drawPath(path, stroke=1, fill=0)
-    c.restoreState()
-
-
 def _fit_text_lines(
     *,
     text: str,
@@ -245,6 +224,7 @@ def _draw_circular_text(
     end_angle: float,
     font_name: str,
     font_size: float,
+    fill_color=None,
 ):
     letters = [ch for ch in (text or "").strip() if ch]
     if not letters:
@@ -257,6 +237,8 @@ def _draw_circular_text(
         step = span / (len(letters) - 1)
         angles = [start_angle + i * step for i in range(len(letters))]
 
+    if fill_color is not None:
+        c.setFillColor(fill_color)
     for letter, angle in zip(letters, angles):
         rad = math.radians(angle)
         px = x + radius * math.cos(rad)
@@ -269,136 +251,285 @@ def _draw_circular_text(
         c.restoreState()
 
 
-def _draw_center_seal(c: canvas.Canvas, *, center_name: str, x: float, y: float, radius: float):
+def _draw_corner_ornament(c: canvas.Canvas, *, x: float, y: float, size: float, rotate_deg: float = 0):
+    """Classic L-shaped gold corner flourish."""
     c.saveState()
-    blue = colors.HexColor("#2C7BF3")
-    pale = colors.Color(0.16, 0.48, 0.95, alpha=0.06)
+    c.translate(x, y)
+    c.rotate(rotate_deg)
+    gold = colors.HexColor(C_GOLD)
+    gold_deep = colors.HexColor(C_GOLD_DEEP)
+    c.setStrokeColor(gold)
+    c.setFillColor(gold)
+    c.setLineWidth(1.6)
+    c.setLineCap(1)
+    # Outer L
+    path = c.beginPath()
+    path.moveTo(0, size)
+    path.lineTo(0, 0)
+    path.lineTo(size, 0)
+    c.drawPath(path, stroke=1, fill=0)
+    # Inner L
+    inset = 2.2 * mm
+    c.setLineWidth(0.9)
+    c.setStrokeColor(gold_deep)
+    path2 = c.beginPath()
+    path2.moveTo(inset, size - 1.5 * mm)
+    path2.lineTo(inset, inset)
+    path2.lineTo(size - 1.5 * mm, inset)
+    c.drawPath(path2, stroke=1, fill=0)
+    # Diamond accent at corner
+    d = 1.3 * mm
+    c.setFillColor(gold)
+    diamond = c.beginPath()
+    diamond.moveTo(inset, inset + d)
+    diamond.lineTo(inset + d, inset)
+    diamond.lineTo(inset, inset - d)
+    diamond.lineTo(inset - d, inset)
+    diamond.close()
+    c.drawPath(diamond, stroke=0, fill=1)
+    c.restoreState()
 
-    c.setFillColor(pale)
-    c.circle(x, y, radius - 2 * mm, stroke=0, fill=1)
 
-    c.setStrokeColor(blue)
-    c.setLineWidth(1.2)
-    c.circle(x, y, radius, stroke=1, fill=0)
-    c.circle(x, y, radius - 2.2 * mm, stroke=1, fill=0)
-    c.circle(x, y, radius - 8.0 * mm, stroke=1, fill=0)
+def _draw_gold_divider(c: canvas.Canvas, *, cx: float, y: float, half_width: float):
+    """Horizontal gold rule with center diamond."""
+    c.saveState()
+    gold = colors.HexColor(C_GOLD)
+    c.setStrokeColor(gold)
+    c.setFillColor(gold)
+    c.setLineWidth(1.0)
+    c.line(cx - half_width, y, cx - 3.2 * mm, y)
+    c.line(cx + 3.2 * mm, y, cx + half_width, y)
+    # diamond
+    d = 1.8 * mm
+    path = c.beginPath()
+    path.moveTo(cx, y + d)
+    path.lineTo(cx + d, y)
+    path.lineTo(cx, y - d)
+    path.lineTo(cx - d, y)
+    path.close()
+    c.drawPath(path, stroke=0, fill=1)
+    # tiny outer ring
+    c.setLineWidth(0.7)
+    c.circle(cx, y, 2.6 * mm, stroke=1, fill=0)
+    c.restoreState()
 
-    c.setFillColor(blue)
-    c.setStrokeColor(blue)
-    c.setLineWidth(0.8)
-    for deg in (265, 275):
+
+def _draw_premium_seal(c: canvas.Canvas, *, center_name: str, x: float, y: float, radius: float):
+    """Gold official seal — clean center monogram + top ring label only."""
+    c.saveState()
+    gold = colors.HexColor(C_GOLD)
+    navy = colors.HexColor(C_NAVY)
+    cream = colors.HexColor(C_CREAM)
+
+    # Soft glow
+    c.setFillColor(colors.Color(0.79, 0.64, 0.15, alpha=0.12))
+    c.circle(x, y, radius + 1.8 * mm, stroke=0, fill=1)
+
+    # Outer gold disc + cream face
+    c.setFillColor(gold)
+    c.circle(x, y, radius, stroke=0, fill=1)
+    c.setFillColor(cream)
+    c.circle(x, y, radius - 1.5 * mm, stroke=0, fill=1)
+
+    # Rings
+    c.setStrokeColor(gold)
+    c.setLineWidth(1.15)
+    c.circle(x, y, radius - 1.5 * mm, stroke=1, fill=0)
+    c.setLineWidth(0.75)
+    c.circle(x, y, radius - 3.2 * mm, stroke=1, fill=0)
+    c.circle(x, y, radius - 8.2 * mm, stroke=1, fill=0)
+
+    # Decorative beads on outer gold band
+    c.setFillColor(gold)
+    for deg in range(0, 360, 30):
         ang = math.radians(deg)
-        sx = x + (radius - 4.0 * mm) * math.cos(ang)
-        sy = y + (radius - 4.0 * mm) * math.sin(ang)
-        c.circle(sx, sy, 0.85 * mm, stroke=1, fill=1)
+        sx = x + (radius - 0.75 * mm) * math.cos(ang)
+        sy = y + (radius - 0.75 * mm) * math.sin(ang)
+        c.circle(sx, sy, 0.45 * mm, stroke=0, fill=1)
 
-    ring_text = _short_text(center_name.upper().replace("'", " "), 44)
-    _draw_circular_text(
-        c,
-        text=ring_text,
-        x=x,
-        y=y,
-        radius=radius - 3.7 * mm,
-        start_angle=160,
-        end_angle=20,
-        font_name="Helvetica",
-        font_size=6.6,
-    )
+    # Top arc label (angles decrease: left → right across the top)
     _draw_circular_text(
         c,
         text="RASMIY MUHR",
         x=x,
         y=y,
-        radius=radius - 3.7 * mm,
-        start_angle=340,
-        end_angle=200,
+        radius=radius - 4.4 * mm,
+        start_angle=155,
+        end_angle=25,
         font_name="Helvetica-Bold",
-        font_size=6.8,
+        font_size=5.8,
+        fill_color=colors.HexColor(C_GOLD_DEEP),
     )
 
-    c.setFillColor(blue)
-    center_lines = simpleSplit(_short_text(center_name, 42), "Helvetica-Bold", 8.2, (radius - 8.8 * mm) * 2)
-    center_lines = center_lines[:2] if center_lines else [center_name]
-    line_specs = [("Helvetica-Bold", 8.2, line) for line in center_lines]
-    line_specs.append(("Helvetica", 6.2, "SERTIFIKAT"))
-
-    block_step = 4.15 * mm
-    start_y = y + ((len(line_specs) - 1) * block_step) / 2
-    for idx, (font_name, font_size, line) in enumerate(line_specs):
-        c.setFont(font_name, font_size)
-        c.drawCentredString(x, start_y - idx * block_step, line)
+    # Center: short center name + CERT
+    c.setFillColor(navy)
+    short = _short_text(center_name, 22)
+    max_inner = (radius - 9.0 * mm) * 2
+    lines = simpleSplit(short, "Helvetica-Bold", 7.0, max_inner)[:2] or [short]
+    step = 3.4 * mm
+    block_h = (len(lines) - 1) * step
+    start_y = y + block_h / 2 + 1.2 * mm
+    for idx, line in enumerate(lines):
+        c.setFont("Helvetica-Bold", 7.0)
+        c.drawCentredString(x, start_y - idx * step, line)
+    c.setFont("Helvetica", 5.4)
+    c.setFillColor(colors.HexColor(C_GOLD_DEEP))
+    c.drawCentredString(x, y - block_h / 2 - 3.6 * mm, "SERTIFIKAT")
     c.restoreState()
 
 
-def _draw_decorative_panel(c: canvas.Canvas, *, x: float, y: float, width: float, height: float):
+def _load_cert_logo_reader():
+    """
+    Logo PNG (ko'pincha qora fon) → shaffof fon + ImageReader.
+    Certificate cream fonida chiroyli ko'rinishi uchun.
+    """
+    path = CERT_LOGO_PATH if CERT_LOGO_PATH.exists() else CERT_LOGO_FALLBACK
+    if not path.exists():
+        return None
+    try:
+        from PIL import Image
+
+        img = Image.open(path).convert("RGBA")
+        pixels = img.load()
+        w, h = img.size
+        for py in range(h):
+            for px in range(w):
+                r, g, b, a = pixels[px, py]
+                # Qora / deyarli qora fonni olib tashlash
+                if r < 28 and g < 28 and b < 28:
+                    pixels[px, py] = (0, 0, 0, 0)
+                # Juda qorong'i pixel — yumshoq alpha
+                elif r < 45 and g < 45 and b < 45 and a > 0:
+                    pixels[px, py] = (r, g, b, max(0, a // 3))
+
+        # Contented bounding box
+        bbox = img.getbbox()
+        if bbox:
+            # Biroz padding
+            pad = 8
+            l, t, r, b = bbox
+            l = max(0, l - pad)
+            t = max(0, t - pad)
+            r = min(w, r + pad)
+            b = min(h, b + pad)
+            img = img.crop((l, t, r, b))
+
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return ImageReader(buf)
+    except Exception:
+        try:
+            return ImageReader(str(path))
+        except Exception:
+            return None
+
+
+def _draw_logo_badge(c: canvas.Canvas, *, cx: float, y: float, size: float = 18 * mm):
+    """Premium gold-ring badge with ChaqmoqApp mark."""
+    logo_reader = _load_cert_logo_reader()
+    cy = y + size / 2
+    outer_r = size / 2 + 3.2 * mm
+
+    c.saveState()
+    # Soft gold glow rings
+    c.setFillColor(colors.Color(0.79, 0.64, 0.15, alpha=0.10))
+    c.circle(cx, cy, outer_r + 2.5 * mm, stroke=0, fill=1)
+    c.setFillColor(colors.Color(0.79, 0.64, 0.15, alpha=0.16))
+    c.circle(cx, cy, outer_r + 0.8 * mm, stroke=0, fill=1)
+
+    # White/cream disc
+    c.setFillColor(colors.HexColor(C_CREAM))
+    c.circle(cx, cy, outer_r, stroke=0, fill=1)
+
+    # Gold double ring
+    c.setStrokeColor(colors.HexColor(C_GOLD))
+    c.setLineWidth(1.6)
+    c.circle(cx, cy, outer_r, stroke=1, fill=0)
+    c.setLineWidth(0.7)
+    c.setStrokeColor(colors.HexColor(C_GOLD_DEEP))
+    c.circle(cx, cy, outer_r - 1.6 * mm, stroke=1, fill=0)
+
+    # Decorative beads
+    c.setFillColor(colors.HexColor(C_GOLD))
+    for deg in (20, 70, 110, 160, 200, 250, 290, 340):
+        ang = math.radians(deg)
+        bx = cx + (outer_r - 0.15 * mm) * math.cos(ang)
+        by = cy + (outer_r - 0.15 * mm) * math.sin(ang)
+        c.circle(bx, by, 0.55 * mm, stroke=0, fill=1)
+
+    if logo_reader is not None:
+        # Logo slightly inset inside the ring
+        logo_box = size * 0.92
+        c.drawImage(
+            logo_reader,
+            cx - logo_box / 2,
+            cy - logo_box / 2,
+            width=logo_box,
+            height=logo_box,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+    else:
+        # Fallback monogram
+        c.setFillColor(colors.HexColor(C_NAVY))
+        c.setFont("Times-Bold", 11)
+        c.drawCentredString(cx, cy - 1.5 * mm, "C")
+    c.restoreState()
+
+
+def _draw_certificate_frame(c: canvas.Canvas, *, page_w: float, page_h: float):
+    """Cream background, navy outer + gold double border, corner ornaments."""
+    # Base cream
+    c.setFillColor(colors.HexColor(C_CREAM))
+    c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+
+    # Soft vertical wash
     _draw_vertical_gradient(
         c,
-        x=x,
-        y=y,
-        width=width,
-        height=height,
-        top_hex="#25A8FF",
-        bottom_hex="#1D4DF1",
+        x=0,
+        y=0,
+        width=page_w,
+        height=page_h,
+        top_hex=C_CREAM,
+        bottom_hex=C_CREAM_SOFT,
+        steps=80,
     )
 
+    # Outer navy frame
+    m1 = 4.5 * mm
+    c.setStrokeColor(colors.HexColor(C_NAVY))
+    c.setLineWidth(2.4)
+    c.rect(m1, m1, page_w - 2 * m1, page_h - 2 * m1, stroke=1, fill=0)
+
+    # Gold middle frame
+    m2 = 6.2 * mm
+    c.setStrokeColor(colors.HexColor(C_GOLD))
+    c.setLineWidth(1.5)
+    c.rect(m2, m2, page_w - 2 * m2, page_h - 2 * m2, stroke=1, fill=0)
+
+    # Inner thin navy
+    m3 = 7.6 * mm
+    c.setStrokeColor(colors.HexColor(C_NAVY_MID))
+    c.setLineWidth(0.6)
+    c.rect(m3, m3, page_w - 2 * m3, page_h - 2 * m3, stroke=1, fill=0)
+
+    # Corner ornaments
+    corner = 14 * mm
+    inset = 9.2 * mm
+    _draw_corner_ornament(c, x=inset, y=inset, size=corner, rotate_deg=0)  # BL
+    _draw_corner_ornament(c, x=page_w - inset, y=inset, size=corner, rotate_deg=90)  # BR
+    _draw_corner_ornament(c, x=page_w - inset, y=page_h - inset, size=corner, rotate_deg=180)  # TR
+    _draw_corner_ornament(c, x=inset, y=page_h - inset, size=corner, rotate_deg=270)  # TL
+
+    # Faint watermark circle
     c.saveState()
-    c.setStrokeColor(colors.Color(1, 1, 1, alpha=0.18))
-    c.setLineWidth(1.1)
-    for i in range(5):
-        r = 12 * mm + i * 4.4 * mm
-        c.circle(x + width * 0.64, y + height * 0.34, r, stroke=1, fill=0)
-
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.16))
-    c.circle(x + width * 0.60, y + height * 0.34, 12.5 * mm, stroke=0, fill=1)
-
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.18))
-    c.roundRect(x + width * 0.10, y + height * 0.68, 10 * mm, 7 * mm, 3 * mm, stroke=0, fill=1)
-    c.roundRect(x + width * 0.72, y + height * 0.54, 12 * mm, 8 * mm, 3.2 * mm, stroke=0, fill=1)
-
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.20))
-    c.rect(x + width * 0.12, y + 16 * mm, 22 * mm, 1.2 * mm, stroke=0, fill=1)
-    c.rect(x + width * 0.12, y + 12 * mm, 17 * mm, 1.2 * mm, stroke=0, fill=1)
-    c.rect(x + width * 0.12, y + 8 * mm, 20 * mm, 1.2 * mm, stroke=0, fill=1)
+    c.setStrokeColor(colors.Color(0.79, 0.64, 0.15, alpha=0.07))
+    c.setLineWidth(8)
+    c.circle(page_w / 2, page_h / 2, 48 * mm, stroke=1, fill=0)
+    c.setLineWidth(1.2)
+    c.circle(page_w / 2, page_h / 2, 42 * mm, stroke=1, fill=0)
     c.restoreState()
-
-
-def _draw_brand(c: canvas.Canvas, *, x: float, y: float, center_name: str):
-    c.saveState()
-    c.setFillColor(colors.HexColor("#0F172A"))
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(x, y + 1.0 * mm, _short_text(center_name, 44))
-    c.setFillColor(colors.HexColor("#4B5563"))
-    c.setFont("Helvetica", 8.8)
-    c.drawString(x, y - 3.7 * mm, "O'QUV MARKAZI SERTIFIKATI")
-    c.restoreState()
-
-
-def _draw_panel_center_logo(c: canvas.Canvas, *, panel_x: float, panel_y: float, panel_w: float, panel_h: float):
-    if not CERT_LOGO_PATH.exists():
-        return
-    try:
-        logo_reader = ImageReader(str(CERT_LOGO_PATH))
-    except Exception:
-        return
-
-    logo_size = 30 * mm
-    logo_x = panel_x + (panel_w - logo_size) / 2
-    logo_y = panel_y + panel_h * 0.52
-
-    c.saveState()
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.12))
-    c.circle(panel_x + panel_w / 2, logo_y + logo_size / 2, 18 * mm, stroke=0, fill=1)
-    c.restoreState()
-
-    c.drawImage(
-        logo_reader,
-        logo_x,
-        logo_y,
-        width=logo_size,
-        height=logo_size,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
 
 
 def _resolve_completion_date(record: CertificateRecord):
@@ -429,151 +560,220 @@ def _resolve_completion_date(record: CertificateRecord):
 
 
 def _generate_pdf_bytes(*, record: CertificateRecord, verify_url: str) -> bytes:
+    """
+    Premium academy-style landscape certificate:
+    cream canvas, navy + gold double frame, centered typography,
+    gold seal, QR verification, certificate number.
+    """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=CERT_PAGE_SIZE)
     page_w, page_h = CERT_PAGE_SIZE
-    has_image_template = _has_image_template(record)
+    cx = page_w / 2
 
+    has_image_template = _has_image_template(record)
     if has_image_template:
+        # Custom background image, then light cream veil so text stays readable
         _draw_template_background(c, record)
         c.saveState()
         try:
-            c.setFillAlpha(0.92)
+            c.setFillAlpha(0.88)
         except Exception:
             pass
-        c.setFillColor(colors.white)
+        c.setFillColor(colors.HexColor(C_CREAM))
         c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
         c.restoreState()
+        # Still draw elegant borders on top of custom template
+        m1, m2, m3 = 4.5 * mm, 6.2 * mm, 7.6 * mm
+        c.setStrokeColor(colors.HexColor(C_NAVY))
+        c.setLineWidth(2.4)
+        c.rect(m1, m1, page_w - 2 * m1, page_h - 2 * m1, stroke=1, fill=0)
+        c.setStrokeColor(colors.HexColor(C_GOLD))
+        c.setLineWidth(1.5)
+        c.rect(m2, m2, page_w - 2 * m2, page_h - 2 * m2, stroke=1, fill=0)
+        c.setStrokeColor(colors.HexColor(C_NAVY_MID))
+        c.setLineWidth(0.6)
+        c.rect(m3, m3, page_w - 2 * m3, page_h - 2 * m3, stroke=1, fill=0)
+        corner = 14 * mm
+        inset = 9.2 * mm
+        _draw_corner_ornament(c, x=inset, y=inset, size=corner, rotate_deg=0)
+        _draw_corner_ornament(c, x=page_w - inset, y=inset, size=corner, rotate_deg=90)
+        _draw_corner_ornament(c, x=page_w - inset, y=page_h - inset, size=corner, rotate_deg=180)
+        _draw_corner_ornament(c, x=inset, y=page_h - inset, size=corner, rotate_deg=270)
     else:
-        c.setFillColor(colors.white)
-        c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+        _draw_certificate_frame(c, page_w=page_w, page_h=page_h)
 
     completion_date = _resolve_completion_date(record)
     completion_date_text = completion_date.strftime("%d.%m.%Y") if completion_date else "—"
-    issue_date_text = record.issue_date.strftime("%d.%m.%Y")
-    student_name = " ".join((record.student.get_full_name() or "").split())
-    course_name = " ".join((record.group.nom or "").split())
-    center_name = _short_text(record.center.name, max_len=70)
+    issue_date_text = record.issue_date.strftime("%d.%m.%Y") if record.issue_date else "—"
+    student_name = " ".join((record.student.get_full_name() or "O'quvchi").split())
+    course_name = " ".join((record.group.nom or "Kurs").split())
+    center_name = _short_text(record.center.name, max_len=60)
+    cert_no = record.certificate_number or ""
+    is_diploma = record.certificate_type == CertificateRecord.TYPE_DIPLOMA
+    title = "DIPLOM" if is_diploma else "SERTIFIKAT"
+    subtitle = "Certificate of Achievement" if not is_diploma else "Diploma of Completion"
 
-    margin = 6 * mm
-    frame_x = margin
-    frame_y = margin
-    frame_w = page_w - (2 * margin)
-    frame_h = page_h - (2 * margin)
+    content_max_w = page_w - 52 * mm
+    footer_top = 52 * mm  # everything below is seal zone
 
-    c.setStrokeColor(colors.HexColor("#D4E0F5"))
-    c.setLineWidth(1)
-    c.roundRect(frame_x, frame_y, frame_w, frame_h, 3.6 * mm, stroke=1, fill=0)
+    # ── Header: logo → center name (gap) → kicker → divider → title ──
+    # Sequential Y so long names never collide with the logo badge.
+    # _draw_logo_badge: outer_r = size/2 + 3.2mm, glow +2.5mm → ring past box bottom ~5.7mm
+    logo_size = 14 * mm
+    logo_top = page_h - 11 * mm
+    logo_bottom_y = logo_top - logo_size
+    _draw_logo_badge(c, cx=cx, y=logo_bottom_y, size=logo_size)
 
-    panel_w = frame_w * 0.26
-    panel_x = frame_x + frame_w - panel_w
-    panel_y = frame_y
-    panel_h = frame_h
+    # Clear gap under badge (ring + glow + font ascent). Must stay clear of icon.
+    y_cursor = logo_bottom_y - 12.5 * mm
 
-    _draw_decorative_panel(c, x=panel_x, y=panel_y, width=panel_w, height=panel_h)
+    # Center name: up to 2 lines, auto-shrink so it never runs into the icon
+    center_display = (center_name or "").upper()
+    center_font, center_lines = _fit_text_lines(
+        text=center_display,
+        font_name="Times-Bold",
+        max_width=content_max_w * 0.90,
+        max_lines=2,
+        max_font_size=11,
+        min_font_size=8,
+    )
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Times-Bold", center_font)
+    center_step = center_font * 1.22
+    for line in center_lines:
+        c.drawCentredString(cx, y_cursor, line)
+        y_cursor -= center_step
 
-    left_x = frame_x
-    left_y = frame_y
-    left_w = panel_x - frame_x
-    left_h = frame_h
-    _draw_hex_pattern(
-        c,
-        x=left_x + 2.5 * mm,
-        y=left_y + 2.5 * mm,
-        width=left_w - 5 * mm,
-        height=left_h - 5 * mm,
+    y_cursor -= 2.8 * mm
+    c.setFillColor(colors.HexColor(C_GOLD_DEEP))
+    c.setFont("Helvetica", 7.2)
+    c.drawCentredString(cx, y_cursor, "O'QUV MARKAZI  •  RASMIY HUJJAT")
+
+    y_cursor -= 4.2 * mm
+    _draw_gold_divider(c, cx=cx, y=y_cursor, half_width=50 * mm)
+
+    y_cursor -= 9.5 * mm
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Times-Bold", 30)
+    c.drawCentredString(cx, y_cursor, title)
+
+    y_cursor -= 6.2 * mm
+    c.setFillColor(colors.HexColor(C_GOLD))
+    c.setFont("Helvetica-Oblique", 9.5)
+    c.drawCentredString(cx, y_cursor, subtitle)
+
+    y_cursor -= 7.5 * mm
+    c.setFillColor(colors.HexColor(C_MUTED))
+    c.setFont("Times-Italic", 10)
+    c.drawCentredString(
+        cx,
+        y_cursor,
+        "Ushbu hujjat quyidagi o'quvchiga muvaffaqiyatli o'qishni yakunlagani uchun beriladi:",
     )
 
-    content_x = left_x + 10 * mm
-    content_w = left_w - 20 * mm
-    top_y = frame_y + frame_h - 11 * mm
-
-    _draw_brand(c, x=content_x, y=top_y - 1.5 * mm, center_name=center_name)
-
-    title = "SERTIFIKAT" if record.certificate_type == CertificateRecord.TYPE_CERTIFICATE else "DIPLOM"
-    c.setFillColor(colors.HexColor("#2A9DF4"))
-    c.setFont("Helvetica-Bold", 36)
-    c.drawString(content_x, top_y - 24 * mm, title)
-
-    c.setFillColor(colors.HexColor("#4B5563"))
-    c.setFont("Helvetica", 11)
-    c.drawString(content_x, top_y - 32.5 * mm, "Ushbu sertifikat quyidagi o'quvchiga berildi:")
-
+    # ── Student name (middle band, below intro) ──
     name_font, name_lines = _fit_text_lines(
         text=student_name,
-        font_name="Helvetica-Bold",
-        max_width=content_w,
-        max_lines=3,
-        max_font_size=28,
-        min_font_size=16,
+        font_name="Times-Bold",
+        max_width=content_max_w,
+        max_lines=2,
+        max_font_size=30,
+        min_font_size=15,
     )
-    c.setFillColor(colors.HexColor("#1D7FE9"))
-    c.setFont("Helvetica-Bold", name_font)
-    y_name = top_y - 45 * mm
-    name_step = name_font * 1.20
+    name_step = name_font * 1.12
+    name_block_h = max(len(name_lines) - 1, 0) * name_step
+    mid_band_top = y_cursor - 6 * mm
+    mid_band_bottom = footer_top + 8 * mm
+    mid_center = (mid_band_top + mid_band_bottom) / 2 + 4 * mm
+
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Times-Bold", name_font)
+    y_name = mid_center + name_block_h / 2 + 6 * mm
     for line in name_lines:
-        c.drawString(content_x, y_name, line)
+        c.drawCentredString(cx, y_name, line)
         y_name -= name_step
 
+    name_width = max((stringWidth(line, "Times-Bold", name_font) for line in name_lines), default=80 * mm)
+    underline_half = min(max(name_width / 2 + 6 * mm, 38 * mm), 95 * mm)
+    _draw_gold_divider(c, cx=cx, y=y_name - 1.2 * mm, half_width=underline_half)
+
+    # ── Course line ──
+    course_text = f'"{course_name}" kursini muvaffaqiyatli tamomladi.'
     course_font, course_lines = _fit_text_lines(
-        text=f"{course_name} kursini muvaffaqiyatli tamomladi.",
-        font_name="Helvetica",
-        max_width=content_w,
-        max_lines=3,
-        max_font_size=15,
+        text=course_text,
+        font_name="Times-Roman",
+        max_width=content_max_w,
+        max_lines=2,
+        max_font_size=14,
         min_font_size=11,
     )
-    c.setFillColor(colors.HexColor("#374151"))
-    c.setFont("Helvetica", course_font)
-    y_course = y_name - 3 * mm
-    course_step = course_font * 1.35
+    c.setFillColor(colors.HexColor(C_INK))
+    c.setFont("Times-Roman", course_font)
+    y_course = y_name - 8 * mm
+    course_step = course_font * 1.32
     for line in course_lines:
-        c.drawString(content_x, y_course, line)
+        c.drawCentredString(cx, y_course, line)
         y_course -= course_step
 
-    c.setFont("Helvetica", 10.2)
-    c.setFillColor(colors.HexColor("#4B5563"))
-    c.drawString(content_x, y_course - 2.3 * mm, f"Kursni tugatgan sana: {completion_date_text}")
-    c.drawString(content_x, y_course - 7.2 * mm, f"O'quv markazi: {center_name}")
+    # Meta — always above footer band
+    chip_y = min(y_course - 5 * mm, footer_top + 2 * mm)
+    chip_y = max(chip_y, footer_top + 1 * mm)
+    c.setFillColor(colors.HexColor(C_MUTED))
+    c.setFont("Helvetica", 8.8)
+    meta_line = f"Kurs tugagan sana: {completion_date_text}   ·   Berilgan sana: {issue_date_text}"
+    c.drawCentredString(cx, chip_y, meta_line)
 
-    meta_y = frame_y + 10.5 * mm
-    c.setFillColor(colors.HexColor("#5B6473"))
-    c.setFont("Helvetica-Bold", 10.7)
-    c.drawString(content_x, meta_y + 3.5 * mm, f"Berilgan sana: {issue_date_text}")
+    # ── Bottom zone: date | seal | QR (fixed, no overlap) ──
+    col_left = page_w * 0.20
+    col_mid = cx
+    col_right = page_w * 0.80
+    seal_cy = 28 * mm
+    seal_r = 16 * mm
 
-    _draw_center_seal(c, center_name=center_name, x=content_x + 101 * mm, y=meta_y + 10.0 * mm, radius=21.5 * mm)
+    # Left: date / signature
+    c.setStrokeColor(colors.HexColor(C_LINE))
+    c.setLineWidth(0.85)
+    c.line(col_left - 24 * mm, seal_cy + 6 * mm, col_left + 24 * mm, seal_cy + 6 * mm)
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawCentredString(col_left, seal_cy - 1 * mm, issue_date_text)
+    c.setFillColor(colors.HexColor(C_MUTED))
+    c.setFont("Helvetica", 7.4)
+    c.drawCentredString(col_left, seal_cy - 5.5 * mm, "Berilgan sana")
+    c.setFont("Helvetica", 6.8)
+    c.drawCentredString(col_left, seal_cy - 10 * mm, _short_text(center_name, 30))
 
+    # Center seal
+    _draw_premium_seal(c, center_name=center_name, x=col_mid, y=seal_cy, radius=seal_r)
+
+    # Right: QR
+    qr_card = 26 * mm
+    qr_x = col_right - qr_card / 2
+    qr_y = seal_cy - qr_card / 2 + 1 * mm
     c.setFillColor(colors.white)
-    panel_title_font, panel_title_lines = _fit_text_lines(
-        text=center_name,
-        font_name="Helvetica-Bold",
-        max_width=panel_w - 14 * mm,
-        max_lines=4,
-        max_font_size=28,
-        min_font_size=16,
-    )
-    c.setFont("Helvetica-Bold", panel_title_font)
-    panel_title_y = panel_y + panel_h - 18 * mm
-    panel_step = panel_title_font * 1.22
-    panel_center_x = panel_x + panel_w / 2
-    for line in panel_title_lines:
-        c.drawCentredString(panel_center_x, panel_title_y, line)
-        panel_title_y -= panel_step
+    c.setStrokeColor(colors.HexColor(C_GOLD))
+    c.setLineWidth(1.05)
+    c.roundRect(qr_x - 2.2 * mm, qr_y - 3 * mm, qr_card + 4.4 * mm, qr_card + 9 * mm, 2.0 * mm, stroke=1, fill=1)
+    _draw_qr(c, payload=verify_url or cert_no, x=qr_x, y=qr_y, size=qr_card)
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Helvetica-Bold", 6.4)
+    c.drawCentredString(col_right, qr_y - 1.8 * mm, "TEKSHIRISH")
 
-    qr_card = 31 * mm
-    qr_x = panel_x + panel_w - qr_card - 8 * mm
-    qr_y = panel_y + 10 * mm
-    c.setFillColor(colors.white)
-    c.roundRect(qr_x, qr_y, qr_card, qr_card, 2.4 * mm, stroke=0, fill=1)
+    # ── Footer: tekshirish kodi (unique ID) — "№" o'rniga ASCII (font black-box bo'lmasin)
+    c.setFillColor(colors.HexColor(C_MUTED))
+    c.setFont("Helvetica", 6.5)
+    c.drawString(14 * mm, 9.2 * mm, "Tekshirish kodi:")
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.setFont("Helvetica-Bold", 7.0)
+    c.drawString(14 * mm, 5.8 * mm, cert_no)
+    c.setFillColor(colors.HexColor(C_MUTED))
+    c.setFont("Helvetica", 6.5)
+    c.drawRightString(page_w - 14 * mm, 7.5 * mm, "chaqmoqapp.uz  •  Powered by ChaqmoqApp")
 
-    qr_size = qr_card - 4 * mm
-    _draw_qr(c, payload=verify_url, x=qr_x + 2 * mm, y=qr_y + 2 * mm, size=qr_size)
-
-    c.saveState()
-    c.setFillColor(colors.HexColor("#8EA7D4"))
-    c.setFont("Helvetica", 6.3)
-    c.drawRightString(page_w - 8.5 * mm, frame_y + 2.9 * mm, "chaqmoqapp.uz sayti tomonidan tayyorlandi")
-    c.restoreState()
+    c.setFillColor(colors.HexColor(C_GOLD))
+    c.rect(0, 0, page_w, 1.15 * mm, stroke=0, fill=1)
+    c.setFillColor(colors.HexColor(C_NAVY))
+    c.rect(0, page_h - 1.15 * mm, page_w, 1.15 * mm, stroke=0, fill=1)
 
     c.showPage()
     c.save()
@@ -809,13 +1009,31 @@ def auto_check_certificate_eligibility(session):
 
 
 def regenerate_certificate_pdf(*, record: CertificateRecord, request=None):
-    verify_url = _abs_uri(request, _verification_path(record))
+    path = _verification_path(record)
+    metadata = record.metadata if isinstance(record.metadata, dict) else {}
+    metadata = dict(metadata)
+
+    # Request bo'lmasa — avvalgi absolute verify_url ni saqlaymiz (QR ishlashi uchun)
+    if request is not None:
+        verify_url = _abs_uri(request, path)
+    else:
+        prev = str(metadata.get("verify_url") or "").strip()
+        if prev.startswith("http://") or prev.startswith("https://"):
+            verify_url = prev
+        else:
+            from django.conf import settings as dj_settings
+
+            base = (
+                getattr(dj_settings, "PUBLIC_BASE_URL", None)
+                or getattr(dj_settings, "SITE_URL", None)
+                or ""
+            ).rstrip("/")
+            verify_url = f"{base}{path}" if base else path
+
     pdf_bytes = _generate_pdf_bytes(record=record, verify_url=verify_url)
     filename = f"{record.certificate_number}.pdf"
     completion_date = _resolve_completion_date(record)
 
-    metadata = record.metadata if isinstance(record.metadata, dict) else {}
-    metadata = dict(metadata)
     metadata["verify_url"] = verify_url
     metadata["pdf_layout_version"] = PDF_LAYOUT_VERSION
     metadata["completion_date"] = completion_date.isoformat() if completion_date else None

@@ -1,49 +1,43 @@
 {% extends "base.html" %}
-{% block body_class %}education-phase-page{% endblock %}
+{% block body_class %}education-phase-page cert-verify-page{% endblock %}
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<div class="ui-shell" style="max-width:900px;">
-  <div class="ui-panel ui-header">
-    <div>
-      <h3 class="ui-title">Sertifikat tekshiruvi</h3>
-      <div class="ui-sub">No: {{ cert.certificate_number }}</div>
-    </div>
-    <div class="ui-actions">
-      {% if cert.status == 'issued' %}
-        <span class="ui-badge ui-badge-success">HAQIQIY</span>
-      {% elif cert.status == 'revoked' %}
-        <span class="ui-badge ui-badge-danger">BEKOR QILINGAN</span>
-      {% else %}
-        <span class="ui-badge ui-badge-warning">QORALAMA</span>
-      {% endif %}
-    </div>
+<style>
+  .cert-verify-page .cv-wrap { max-width: 960px; margin: 0 auto; padding: 8px 0 40px; }
+  .cv-badge-row { display:flex; justify-content:center; margin: 8px 0 16px; }
+  .cv-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+    animation: certFadeUp 0.6s ease 0.2s both;
+  }
+  .cv-badge.ok { background: #E8F8EF; color: #0B7A3E; border: 1px solid #A7E3C0; }
+  .cv-badge.bad { background: #FDECEC; color: #B42318; border: 1px solid #F3B4AE; }
+  .cv-badge.warn { background: #FFF7E6; color: #9A6700; border: 1px solid #F5D78E; }
+  .cv-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top: 8px; }
+  @keyframes certFadeUp {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<div class="cv-wrap">
+  <div class="cv-badge-row">
+    {% if cert.status == 'issued' %}
+      <div class="cv-badge ok">✓ HAQIQIY · BERILGAN</div>
+    {% elif cert.status == 'revoked' %}
+      <div class="cv-badge bad">✕ BEKOR QILINGAN</div>
+    {% else %}
+      <div class="cv-badge warn">○ QORALAMA</div>
+    {% endif %}
   </div>
 
-  <div class="ui-panel ui-section">
-    <div class="ui-kv">
-      <div class="ui-kv-key">Sertifikat raqami</div>
-      <div class="ui-kv-val">{{ cert.certificate_number }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">O'quvchi</div>
-      <div class="ui-kv-val">{{ cert.student.get_full_name }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Guruh/Kurs</div>
-      <div class="ui-kv-val">{{ cert.group.nom }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Markaz</div>
-      <div class="ui-kv-val">{{ cert.center.name }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Berilgan sana</div>
-      <div class="ui-kv-val">{{ cert.issue_date }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Holati</div>
-      <div class="ui-kv-val">{{ cert.get_status_display }}</div>
-    </div>
+  {% include "education/partials/certificate_showcase.html" %}
+
+  <div class="cv-actions">
+    {% if cert.pdf_file %}
+      <a class="ui-btn ui-btn-primary" href="{% url 'education:certificate_download_pdf' cert.id %}">PDF yuklab olish</a>
+    {% endif %}
+    <a class="ui-btn ui-btn-secondary" href="javascript:history.back()">Orqaga</a>
   </div>
 </div>
 {% endblock %}

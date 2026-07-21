@@ -1457,10 +1457,12 @@ class ExamReminderLog(models.Model):
     ACTION_YES = "yes"
     ACTION_NO = "no"
     ACTION_LATER = "later"
+    ACTION_TELEGRAM = "telegram"
     ACTION_CHOICES = (
         (ACTION_YES, "Ha"),
         (ACTION_NO, "Yo‘q"),
         (ACTION_LATER, "Keyinroq"),
+        (ACTION_TELEGRAM, "Telegram eslatma"),
     )
 
     center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="exam_reminder_logs")

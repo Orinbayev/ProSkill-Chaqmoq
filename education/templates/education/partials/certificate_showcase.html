@@ -1,0 +1,303 @@
+{% comment %}
+  Animated on-screen certificate showcase.
+  Context: cert (CertificateRecord)
+{% endcomment %}
+{% load static %}
+<style>
+  .cert-show {
+    --navy: #0B1F3A;
+    --gold: #C9A227;
+    --gold-soft: #E8D48B;
+    --cream: #FFFCF5;
+    --muted: #5C6570;
+    position: relative;
+    max-width: 920px;
+    margin: 0 auto 18px;
+    perspective: 1400px;
+  }
+  .cert-show-card {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(201,162,39,0.14), transparent 42%),
+      linear-gradient(165deg, #FFFCF5 0%, #F7F1E3 60%, #EEF4FF 100%);
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    box-shadow:
+      0 0 0 3px var(--navy),
+      0 0 0 6px rgba(201, 162, 39, 0.75),
+      0 28px 70px rgba(11, 31, 58, 0.22);
+    padding: 28px 28px 22px;
+    transform-origin: center top;
+    animation: certFlipIn 0.95s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .cert-show-card::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .cert-show-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 30%,
+      rgba(255,255,255,0.35) 48%,
+      transparent 62%
+    );
+    transform: translateX(-120%);
+    animation: certShine 3.2s ease-in-out 0.8s infinite;
+    pointer-events: none;
+  }
+  .cert-show-logo-wrap {
+    width: 78px;
+    height: 78px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle, #fff 40%, #FFFCF5 100%);
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 8px 24px rgba(201,162,39,0.25);
+    animation: certLogoPop 0.8s cubic-bezier(.2,.9,.2,1) 0.15s both, certLogoPulse 2.8s ease-in-out 1.2s infinite;
+  }
+  .cert-show-logo-wrap img {
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(11,31,58,0.18));
+  }
+  .cert-show-kicker {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9A7B1A;
+    font-weight: 700;
+    animation: certFadeUp 0.6s ease 0.25s both;
+  }
+  .cert-show-center {
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--navy);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin: 6px 0 2px;
+    animation: certFadeUp 0.6s ease 0.32s both;
+  }
+  .cert-show-title {
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    color: var(--navy);
+    letter-spacing: 0.06em;
+    margin: 10px 0 4px;
+    animation: certFadeUp 0.7s ease 0.4s both;
+  }
+  .cert-show-sub {
+    text-align: center;
+    color: var(--gold);
+    font-style: italic;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    animation: certFadeUp 0.7s ease 0.48s both;
+  }
+  .cert-show-divider {
+    width: 180px;
+    height: 12px;
+    margin: 8px auto 14px;
+    position: relative;
+    background: linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent);
+    opacity: 0.9;
+    animation: certFadeUp 0.6s ease 0.52s both;
+  }
+  .cert-show-divider::after {
+    content: "◆";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -55%);
+    color: var(--gold);
+    font-size: 11px;
+    background: var(--cream);
+    padding: 0 8px;
+  }
+  .cert-show-intro {
+    text-align: center;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.95rem;
+    margin: 0 0 8px;
+    animation: certFadeUp 0.65s ease 0.55s both;
+  }
+  .cert-show-name {
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+    color: #163A66;
+    font-weight: 700;
+    margin: 4px 0 8px;
+    animation: certNameIn 0.85s cubic-bezier(.2,.8,.2,1) 0.6s both;
+  }
+  .cert-show-course {
+    text-align: center;
+    color: var(--navy);
+    font-size: 1.02rem;
+    margin: 0 0 14px;
+    animation: certFadeUp 0.65s ease 0.72s both;
+  }
+  .cert-show-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 18px;
+    margin-bottom: 16px;
+    animation: certFadeUp 0.65s ease 0.8s both;
+  }
+  .cert-show-chip {
+    background: rgba(255,255,255,0.75);
+    border: 1px solid rgba(201,162,39,0.35);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .cert-show-chip span {
+    color: #9A7B1A;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .cert-show-code {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    animation: certFadeUp 0.6s ease 0.9s both;
+  }
+  .cert-show-code strong {
+    color: var(--navy);
+    letter-spacing: 0.04em;
+  }
+  .cert-show-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #8A7350;
+    margin-top: 4px;
+    opacity: 0.9;
+  }
+  .cert-show-confetti {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .cert-show-confetti i {
+    position: absolute;
+    top: -12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: certConfetti 2.8s ease-out forwards;
+  }
+  @keyframes certFlipIn {
+    0% { opacity: 0; transform: rotateX(18deg) translateY(28px) scale(0.96); }
+    100% { opacity: 1; transform: rotateX(0) translateY(0) scale(1); }
+  }
+  @keyframes certFadeUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes certNameIn {
+    0% { opacity: 0; transform: scale(0.92); letter-spacing: 0.2em; }
+    100% { opacity: 1; transform: scale(1); letter-spacing: normal; }
+  }
+  @keyframes certLogoPop {
+    0% { opacity: 0; transform: scale(0.4) rotate(-18deg); }
+    70% { transform: scale(1.08) rotate(4deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+  }
+  @keyframes certLogoPulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 8px 24px rgba(201,162,39,0.22); }
+    50% { box-shadow: 0 0 0 8px rgba(201,162,39,0.22), 0 10px 30px rgba(201,162,39,0.35); }
+  }
+  @keyframes certShine {
+    0%, 100% { transform: translateX(-120%); }
+    40%, 60% { transform: translateX(120%); }
+  }
+  @keyframes certConfetti {
+    0% { opacity: 0; transform: translateY(0) rotate(0); }
+    10% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(340px) rotate(540deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cert-show-card,
+    .cert-show-logo-wrap,
+    .cert-show-kicker,
+    .cert-show-center,
+    .cert-show-title,
+    .cert-show-sub,
+    .cert-show-divider,
+    .cert-show-intro,
+    .cert-show-name,
+    .cert-show-course,
+    .cert-show-meta,
+    .cert-show-code,
+    .cert-show-shine,
+    .cert-show-confetti i {
+      animation: none !important;
+    }
+  }
+</style>
+
+<div class="cert-show" id="certShowcase">
+  <div class="cert-show-card">
+    <div class="cert-show-shine"></div>
+    <div class="cert-show-confetti" id="certConfetti" aria-hidden="true"></div>
+
+    <div class="cert-show-logo-wrap">
+      <img src="{% static 'img/chaqmoq_logo_transparent.png' %}" alt="ChaqmoqApp" onerror="this.style.display='none'">
+    </div>
+    <div class="cert-show-kicker">ChaqmoqApp · Raqamli sertifikat</div>
+    <div class="cert-show-center">{{ cert.center.name }}</div>
+    <h2 class="cert-show-title">
+      {% if cert.certificate_type == 'diploma' %}DIPLOM{% else %}SERTIFIKAT{% endif %}
+    </h2>
+    <div class="cert-show-sub">
+      {% if cert.certificate_type == 'diploma' %}Diploma of Completion{% else %}Certificate of Achievement{% endif %}
+    </div>
+    <div class="cert-show-divider"></div>
+    <p class="cert-show-intro">Ushbu hujjat quyidagi o‘quvchiga muvaffaqiyatli o‘qishni yakunlagani uchun beriladi:</p>
+    <div class="cert-show-name">{{ cert.student.get_full_name }}</div>
+    <p class="cert-show-course">«{{ cert.group.nom }}» kursini muvaffaqiyatli tamomladi.</p>
+    <div class="cert-show-meta">
+      <div class="cert-show-chip"><span>Sana</span> {{ cert.issue_date|date:"d.m.Y" }}</div>
+      <div class="cert-show-chip"><span>Holat</span> {{ cert.get_status_display }}</div>
+      <div class="cert-show-chip"><span>Markaz</span> {{ cert.center.name }}</div>
+    </div>
+    <div class="cert-show-code">
+      Tekshirish kodi: <strong>{{ cert.certificate_number }}</strong>
+      <div class="cert-show-hint">Bu raqam hujjatni onlayn tekshirish va soxtalashtirishdan himoya qilish uchun kerak.</div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('certConfetti');
+  if (!box || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var colors = ['#C9A227', '#0B1F3A', '#E8D48B', '#2C7BF3', '#FFFFFF'];
+  for (var i = 0; i < 28; i++) {
+    var el = document.createElement('i');
+    el.style.left = (Math.random() * 100) + '%';
+    el.style.background = colors[i % colors.length];
+    el.style.animationDelay = (Math.random() * 1.2) + 's';
+    el.style.width = (5 + Math.random() * 7) + 'px';
+    el.style.height = (5 + Math.random() * 10) + 'px';
+    box.appendChild(el);
+  }
+})();
+</script>

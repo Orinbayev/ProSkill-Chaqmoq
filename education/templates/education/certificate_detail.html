@@ -1,66 +1,142 @@
 {% extends "base.html" %}
-{% block body_class %}education-phase-page{% endblock %}
+{% block body_class %}education-phase-page cert-detail-page{% endblock %}
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<div class="ui-shell">
-  <div class="ui-panel ui-header">
-    <div>
-      <h3 class="ui-title">Sertifikat tafsiloti</h3>
-      <div class="ui-sub">Sertifikat raqami: {{ cert.certificate_number }}</div>
-    </div>
-    <div class="ui-actions">
-      <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
-    </div>
-  </div>
+<style>
+  .cert-detail-page .cd-hero {
+    border-radius: 18px;
+    padding: 22px 24px;
+    background:
+      radial-gradient(circle at 90% 10%, rgba(201,162,39,0.18), transparent 40%),
+      linear-gradient(135deg, #0B1F3A 0%, #163A66 55%, #1a4a7a 100%);
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(11, 31, 58, 0.22);
+    margin-bottom: 16px;
+    animation: certFadeUp 0.55s ease both;
+  }
+  .cert-detail-page .cd-hero h3 {
+    margin: 0 0 6px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.45rem;
+    letter-spacing: 0.03em;
+  }
+  .cert-detail-page .cd-hero .ui-sub { color: rgba(255,255,255,0.78); }
+  .cert-detail-page .cd-gold {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #E8D48B;
+  }
+  .cert-detail-page .cd-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 720px) {
+    .cert-detail-page .cd-grid { grid-template-columns: 1fr; }
+  }
+  .cert-detail-page .cd-item {
+    background: linear-gradient(180deg, #FFFCF5, #fff);
+    border: 1px solid rgba(201, 162, 39, 0.28);
+    border-radius: 12px;
+    padding: 12px 14px;
+    animation: certFadeUp 0.5s ease both;
+  }
+  .cert-detail-page .cd-item:nth-child(1) { animation-delay: .05s; }
+  .cert-detail-page .cd-item:nth-child(2) { animation-delay: .1s; }
+  .cert-detail-page .cd-item:nth-child(3) { animation-delay: .15s; }
+  .cert-detail-page .cd-item:nth-child(4) { animation-delay: .2s; }
+  .cert-detail-page .cd-item .k {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #9A7B1A;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .cert-detail-page .cd-item .v {
+    color: #0B1F3A;
+    font-weight: 600;
+    word-break: break-word;
+  }
+  @keyframes certFadeUp {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+</style>
 
-  <div class="ui-panel ui-section">
-    <div class="ui-kv">
-      <div class="ui-kv-key">Sertifikat raqami</div>
-      <div class="ui-kv-val">{{ cert.certificate_number }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">O'quvchi</div>
-      <div class="ui-kv-val">{{ cert.student.get_full_name }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Guruh</div>
-      <div class="ui-kv-val">{{ cert.group.nom }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Markaz</div>
-      <div class="ui-kv-val">{{ cert.center.name }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Turi</div>
-      <div class="ui-kv-val">{{ cert.get_certificate_type_display }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Holati</div>
-      <div class="ui-kv-val">{{ cert.get_status_display }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Berilgan sana</div>
-      <div class="ui-kv-val">{{ cert.issue_date }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Tavsiya</div>
-      <div class="ui-kv-val">{{ cert.get_recommendation_status_display }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Sabab</div>
-      <div class="ui-kv-val">{{ cert.recommendation_reason|default:"—" }}</div>
-    </div>
-    <div class="ui-kv">
-      <div class="ui-kv-key">Tekshirish havolasi</div>
-      <div class="ui-kv-val">
-        <a href="{% url 'education:certificate_verify' cert.certificate_number %}" target="_blank">
-          {% url 'education:certificate_verify' cert.certificate_number %}
-        </a>
+<div class="ui-shell">
+  <div class="cd-hero">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div class="cd-gold">Premium sertifikat</div>
+        <h3>Sertifikat tafsiloti</h3>
+        <div class="ui-sub">Tekshirish kodi: {{ cert.certificate_number }}</div>
+      </div>
+      <div class="ui-actions">
+        <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
       </div>
     </div>
   </div>
 
-  <div class="ui-actions">
+  {% include "education/partials/certificate_showcase.html" %}
+
+  <div class="ui-panel ui-section">
+    <div class="cd-grid">
+      <div class="cd-item">
+        <div class="k">Tekshirish kodi</div>
+        <div class="v">{{ cert.certificate_number }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">O'quvchi</div>
+        <div class="v">{{ cert.student.get_full_name }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Guruh</div>
+        <div class="v">{{ cert.group.nom }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Markaz</div>
+        <div class="v">{{ cert.center.name }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Turi</div>
+        <div class="v">{{ cert.get_certificate_type_display }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Holati</div>
+        <div class="v">{{ cert.get_status_display }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Berilgan sana</div>
+        <div class="v">{{ cert.issue_date }}</div>
+      </div>
+      <div class="cd-item">
+        <div class="k">Tavsiya</div>
+        <div class="v">{{ cert.get_recommendation_status_display }}</div>
+      </div>
+      <div class="cd-item" style="grid-column:1/-1;">
+        <div class="k">Nima uchun bu kod?</div>
+        <div class="v" style="font-weight:500;color:#5C6570;">
+          Har bir sertifikatda unikal tekshirish kodi bo‘ladi (masalan, {{ cert.certificate_number }}).
+          QR kod va sayt orqali hujjat haqiqiyligini tasdiqlash uchun kerak — soxta sertifikatni ushlashga yordam beradi.
+        </div>
+      </div>
+      <div class="cd-item" style="grid-column:1/-1;">
+        <div class="k">Tekshirish havolasi</div>
+        <div class="v">
+          <a href="{% url 'education:certificate_verify' cert.certificate_number %}" target="_blank">
+            {% url 'education:certificate_verify' cert.certificate_number %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ui-actions" style="margin-top:14px;">
     {% if cert.status == 'draft' %}
     {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
       <form method="post" action="{% url 'education:issue_certificate_action' cert.group.id cert.student.id %}" class="ui-inline-form">

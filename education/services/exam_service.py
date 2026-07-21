@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -189,13 +190,24 @@ def get_exam_reminder_state(*, group, on_date=None):
     }
 
 
-def log_exam_reminder_action(*, group, teacher, action: str, attendance_date, note: str = "", metadata=None):
+def log_exam_reminder_action(
+    *,
+    group,
+    teacher,
+    action: str,
+    attendance_date,
+    note: str = "",
+    metadata=None,
+    lesson_number_reference: int | None = None,
+):
+    if lesson_number_reference is None:
+        lesson_number_reference = get_group_lesson_number(group=group, on_date=attendance_date)
     log = ExamReminderLog.objects.create(
         center=group.center,
         group=group,
         teacher=teacher,
         attendance_date=attendance_date or timezone.localdate(),
-        lesson_number_reference=get_group_lesson_number(group=group, on_date=attendance_date),
+        lesson_number_reference=int(lesson_number_reference or 0),
         action=action,
         note=note or "",
         metadata=metadata or {},
@@ -713,6 +725,226 @@ def notify_exam_results(session: ExamSession):
     except Exception:
         logger.exception("notify_exam_results failed: session_id=%s", getattr(session, "id", None))
         return 0
+
+
+def _exam_telegram_already_notified(*, group, checkpoint: int, reason: str) -> bool:
+    """
+    Checkpoint bo'yicha dedupe:
+    - due_now / overdue: bir marta (session ochilguncha)
+    - deferred / pending_results: 24 soatda bir marta
+    """
+    qs = ExamReminderLog.objects.filter(
+        group=group,
+        lesson_number_reference=checkpoint,
+        action=ExamReminderLog.ACTION_TELEGRAM,
+    )
+    if reason in ("pending_results", "deferred_checkpoint"):
+        since = timezone.now() - timedelta(hours=24)
+        return qs.filter(created_at__gte=since).exists()
+    return qs.exists()
+
+
+def _build_teacher_exam_due_message(*, group, state: dict) -> str:
+    settings_obj = state.get("settings")
+    n = int(getattr(settings_obj, "exam_every_n_lessons", None) or 12)
+    lesson_number = int(state.get("lesson_number") or 0)
+    checkpoint = int(state.get("target_lesson_number") or 0)
+    reason = state.get("reason") or "due_now"
+    group_name = getattr(group, "nom", "") or f"Guruh #{getattr(group, 'id', '')}"
+
+    if reason == "pending_results":
+        progress = state.get("progress") or {}
+        return (
+            f"📝 Imtihon natijalari kutilmoqda\n\n"
+            f"Guruh: {group_name}\n"
+            f"Nazorat darsi: {checkpoint}-dars\n"
+            f"Hozirgi dars: {lesson_number}\n"
+            f"Kiritilgan: {progress.get('completed_students', 0)}/"
+            f"{progress.get('total_students', 0)}\n\n"
+            f"Iltimos, saytda imtihon natijalarini to‘ldiring."
+        )
+
+    if reason == "deferred_checkpoint":
+        return (
+            f"⏰ Imtihon eslatmasi (keyinga qoldirilgan)\n\n"
+            f"Guruh: {group_name}\n"
+            f"Nazorat: har {n} darsda ({checkpoint}-dars)\n"
+            f"Hozirgi dars: {lesson_number}\n\n"
+            f"Imtihon o‘tkazish yoki qaror qilish uchun saytga kiring."
+        )
+
+    overdue = bool(state.get("is_overdue_checkpoint"))
+    prefix = "⚠️ Muddat o‘tgan imtihon" if overdue else "📝 Imtihon vaqti keldi"
+    return (
+        f"{prefix}\n\n"
+        f"Guruh: {group_name}\n"
+        f"Dars: {lesson_number}-dars (har {n} darsda imtihon)\n"
+        f"Nazorat bosqichi: {checkpoint}-dars\n\n"
+        f"Saytda guruh sahifasida «Ha / Yo‘q / Keyinroq» ni tanlang "
+        f"va baholarni kiriting."
+    )
+
+
+def notify_teacher_exam_due(*, group, on_date=None, force: bool = False) -> dict:
+    """
+    Guruhda imtihon muddati yetganda o'qituvchiga in-app + Telegram eslatma yuboradi.
+    Attendance saqlanganda va kunlik skaner orqali chaqiriladi.
+    """
+    on_date = on_date or timezone.localdate()
+    try:
+        state = get_exam_reminder_state(group=group, on_date=on_date)
+        if not state.get("enabled"):
+            return {"sent": False, "reason": "disabled"}
+        if not state.get("due"):
+            return {"sent": False, "reason": state.get("reason") or "not_due"}
+
+        teacher = getattr(group, "oqituvchi", None)
+        if teacher is None and getattr(group, "oqituvchi_id", None):
+            from accounts.models import User
+
+            teacher = User.objects.filter(pk=group.oqituvchi_id).first()
+        if not teacher or getattr(teacher, "is_archived", False):
+            return {"sent": False, "reason": "no_teacher"}
+
+        checkpoint = int(state.get("target_lesson_number") or 0)
+        reason = state.get("reason") or "due_now"
+        if checkpoint <= 0:
+            return {"sent": False, "reason": "no_checkpoint"}
+
+        # Dedupe: bir checkpoint (yoki 24s ichida deferred/pending) uchun bir marta.
+        # Claim avval log yoziladi — keyin yuboriladi (bulk attendance race'ida ham spam kamayadi).
+        if not force and _exam_telegram_already_notified(
+            group=group, checkpoint=checkpoint, reason=reason
+        ):
+            return {"sent": False, "reason": "already_notified"}
+
+        message = _build_teacher_exam_due_message(group=group, state=state)
+        title = "Imtihon eslatmasi"
+
+        # Avval log (claim), so'ng xabar — parallel chaqiriqlar keyingi exists() da to'xtaydi
+        log_exam_reminder_action(
+            group=group,
+            teacher=teacher,
+            action=ExamReminderLog.ACTION_TELEGRAM,
+            attendance_date=on_date,
+            note="Telegram/in-app imtihon eslatmasi",
+            lesson_number_reference=checkpoint,
+            metadata={
+                "reason": reason,
+                "checkpoint": checkpoint,
+                "lesson_number": int(state.get("lesson_number") or 0),
+                "force": bool(force),
+            },
+        )
+
+        try:
+            from core.models import Notification
+
+            Notification.objects.create(
+                center=group.center,
+                recipient=teacher,
+                title=title,
+                message=message.replace("\n", "<br>"),
+                type="system",
+            )
+        except Exception:
+            logger.exception(
+                "In-app exam reminder failed: group_id=%s teacher_id=%s",
+                getattr(group, "id", None),
+                getattr(teacher, "id", None),
+            )
+
+        telegram_sent = False
+        if getattr(teacher, "is_telegram_linked", False) and getattr(teacher, "telegram_id", None):
+            try:
+                from accounts.utils_bot import send_telegram_message_async
+
+                send_telegram_message_async(teacher.telegram_id, message)
+                telegram_sent = True
+            except Exception:
+                logger.exception(
+                    "Teacher telegram exam reminder failed: group_id=%s teacher_id=%s",
+                    getattr(group, "id", None),
+                    getattr(teacher, "id", None),
+                )
+
+        return {
+            "sent": True,
+            "telegram": telegram_sent,
+            "reason": reason,
+            "checkpoint": checkpoint,
+            "teacher_id": teacher.id,
+        }
+    except Exception:
+        logger.exception(
+            "notify_teacher_exam_due failed: group_id=%s",
+            getattr(group, "id", None),
+        )
+        return {"sent": False, "reason": "error"}
+
+
+def maybe_notify_teacher_exam_due_for_attendance(attendance) -> dict:
+    """
+    Davomat saqlangandan keyin (on_commit) chaqiriladi.
+    Faqat guruhda imtihon tizimi yoqilgan va muddat yetgan bo'lsa yuboradi.
+    """
+    group = getattr(attendance, "group", None)
+    if group is None:
+        return {"sent": False, "reason": "no_group"}
+    # Archived/closed guruhlarga eslatma yo'q
+    if getattr(group, "is_archived", False) or getattr(group, "is_deleted", False) or getattr(
+        group, "is_closed", False
+    ):
+        return {"sent": False, "reason": "group_inactive"}
+
+    center = getattr(group, "center", None) or getattr(attendance, "center", None)
+    if center is None:
+        return {"sent": False, "reason": "no_center"}
+
+    # Sozlama yo'q yoki o'chiq markazlarda get_or_create qilmaymiz (har davomatda spam bo'lmasin)
+    settings_obj = CenterExamSetting.objects.filter(center=center).only("exam_system_enabled").first()
+    if settings_obj is None or not settings_obj.exam_system_enabled:
+        return {"sent": False, "reason": "disabled"}
+
+    on_date = getattr(attendance, "date", None) or timezone.localdate()
+    return notify_teacher_exam_due(group=group, on_date=on_date)
+
+
+def scan_and_notify_due_exams(*, center=None, on_date=None, force: bool = False) -> dict:
+    """
+    Barcha (yoki bitta markaz) faol guruhlar bo'yicha imtihon muddatini skanerlaydi
+    va o'qituvchilarga eslatma yuboradi. Kunlik cron uchun.
+    """
+    on_date = on_date or timezone.localdate()
+    from education.models import Group
+
+    groups = (
+        Group.objects.filter(
+            is_archived=False,
+            is_deleted=False,
+            is_closed=False,
+            center__exam_settings__exam_system_enabled=True,
+        )
+        .select_related("center", "oqituvchi")
+        .order_by("center_id", "nom")
+    )
+    if center is not None:
+        groups = groups.filter(center=center)
+
+    sent = 0
+    skipped = 0
+    errors = 0
+    details: list[dict] = []
+    for group in groups.iterator(chunk_size=100):
+        result = notify_teacher_exam_due(group=group, on_date=on_date, force=force)
+        if result.get("sent"):
+            sent += 1
+        elif result.get("reason") == "error":
+            errors += 1
+        else:
+            skipped += 1
+        details.append({"group_id": group.id, **result})
+    return {"sent": sent, "skipped": skipped, "errors": errors, "details": details}
 
 
 def get_teacher_due_exam_groups(*, center, teacher, on_date=None) -> list[dict]:

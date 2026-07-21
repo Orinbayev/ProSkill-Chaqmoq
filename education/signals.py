@@ -106,6 +106,47 @@ def derive_student_activity_from_attendance(sender, instance, **kwargs):
         pass
 
 
+@receiver(post_save, sender=Attendance, dispatch_uid="exam_due_telegram_on_attendance")
+def notify_teacher_exam_due_on_attendance(sender, instance, created, **kwargs):
+    """
+    Davomat saqlanganda (yangi yozuv) guruhda har N-dars imtihon muddati
+    yetgan bo'lsa o'qituvchiga Telegram/in-app eslatma yuboradi.
+    """
+    if not created:
+        return
+    if not instance.group_id:
+        return
+
+    from django.db import transaction
+
+    attendance_id = instance.pk
+    group_id = instance.group_id
+
+    def _run():
+        try:
+            from education.models import Attendance as Att
+            from education.services.exam_service import maybe_notify_teacher_exam_due_for_attendance
+
+            att = (
+                Att.objects.select_related("group", "group__center", "group__oqituvchi")
+                .filter(pk=attendance_id)
+                .first()
+            )
+            if att is None:
+                return
+            maybe_notify_teacher_exam_due_for_attendance(att)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "exam due telegram notify failed: attendance_id=%s group_id=%s",
+                attendance_id,
+                group_id,
+            )
+
+    transaction.on_commit(_run)
+
+
 def _derive_student_activity_from_exam(sender, instance, **kwargs):
     try:
         from education.services.progress_service import derive_activity_for_exam
