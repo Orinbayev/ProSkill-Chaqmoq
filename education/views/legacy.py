@@ -2924,7 +2924,7 @@ def qarzdorlar_home(request):
     )
     active_enrs_qs = (
         Enrollment.objects
-        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center", "center")
         .filter(
             is_active=True,
             student__is_archived=False,
@@ -2972,7 +2972,7 @@ def qarzdorlar_home(request):
     _inactive_enr_ids = _inactive_tm_enr_ids | _inactive_att_enr_ids
     inactive_enrs_qs = (
         Enrollment.all_objects
-        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj", "group__center", "center")
         .filter(
             Q(is_active=False) | Q(is_deleted=True),
             id__in=_inactive_enr_ids,
@@ -3047,6 +3047,10 @@ def qarzdorlar_home(request):
     # bulk_update bilan bir so'rovda, N+1 save() o'rniga.
     _cur_month_for_recalc = today.replace(day=1)
     from education.services.tuition import ensure_tuition_month as _etm
+    from education.services.tuition import is_month_closed_for_center as _is_month_closed
+    # PERF: joriy oy "yopilganmi" — bir marta hisoblaymiz; _etm loop'ida har
+    # enrollment uchun qayta FinancialMonth so'rovi qilinmasin (N+1).
+    _mc_current = _is_month_closed(center, _cur_month_for_recalc)
     _pattern_stale = [
         e for e in active_list
         if getattr(e, "is_active", False)
@@ -3127,7 +3131,10 @@ def qarzdorlar_home(request):
                 if not _has_custom and e.id not in _unlinked_pay_ids:
                     continue
             try:
-                _etm(e, _cur_month_for_recalc)
+                _etm(
+                    e, _cur_month_for_recalc,
+                    _month_closed=_mc_current if getattr(e, "center_id", None) == center.id else None,
+                )
             except Exception:
                 pass
 
@@ -3159,7 +3166,10 @@ def qarzdorlar_home(request):
                 # Inactive o'quvchi: haqiqiy davomat asosida TM fee ni yangilaylik.
                 # Davomat 0 bo'lsa fee=0 → qarzdorlardan chiqib ketadi.
                 try:
-                    _etm(_ie, _cur_month_for_recalc)
+                    _etm(
+                        _ie, _cur_month_for_recalc,
+                        _month_closed=_mc_current if getattr(_ie, "center_id", None) == center.id else None,
+                    )
                 except Exception:
                     pass
                 continue

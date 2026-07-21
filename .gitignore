@@ -64,3 +64,10 @@ backup_before_saas.json
 
 # Frontend build cache (prototype dirs)
 .vite/
+
+# Desktop app binaries — GitHub 100MB limitidan oshadi; git'da SAQLANMAYDI.
+# Bular alohida (public) hostда turadi; diskda qoladi, faqat commit qilinmaydi.
+static/downloads/*.dmg
+static/downloads/*.exe
+static/downloads/*.zip
+static/downloads/*.AppImage

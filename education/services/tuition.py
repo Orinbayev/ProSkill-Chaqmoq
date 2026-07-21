@@ -1571,7 +1571,7 @@ def _auto_create_zero_payment(enrollment, month: date) -> None:
         pass
 
 
-def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None) -> TuitionMonth:
+def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None, _month_closed=None) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
     Fee = prorated_monthly_fee (qisman oyni hisobga oladi, cheat-proof).
@@ -1627,8 +1627,16 @@ def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_i
         update_fields.append("center")
 
     cur_fee = int(getattr(tm, fee_field, 0) or 0)
+    # _month_closed: chaqiruvchi oldindan hisoblab bergan bo'lsa (bir xil center+oy
+    # ni ko'p enrollment uchun aylantirganda) qayta so'rov qilmaymiz. None bo'lsa —
+    # eski xatti-harakat: har chaqiruvda FinancialMonth so'roviladi.
+    _closed = (
+        _month_closed
+        if _month_closed is not None
+        else is_month_closed_for_center(getattr(enrollment, "center", None), month)
+    )
     if (
-        not is_month_closed_for_center(getattr(enrollment, "center", None), month)
+        not _closed
         and cur_fee != fee
     ):
         setattr(tm, fee_field, fee)
