@@ -17,6 +17,7 @@
   </div>
 
   <div class="mobile-topbar-actions d-flex align-items-center gap-2">
+    {% include "partials/desktop_download_btn.html" %}
     <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Menyuni ochish/yopish"
       aria-controls="sidebar" aria-expanded="false">
       <i class="fa-solid fa-bars" aria-hidden="true"></i>
@@ -690,29 +691,61 @@
 
   <!-- BOTTOM: SETTINGS & SUB -->
   <div class="sidebar-bottom">
-    <!-- 💳 MINI SUBSCRIPTION WIDGET -->
-    {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role != 'teacher'%}
-    <div class="sidebar-sub-widget-mini {% if sub_ui.warn %}warn-border{% endif %}">
-      <div class="sub-header-mini">
-        <div class="sub-icon-mini">
-          <i class="fa-solid fa-bolt-lightning"></i>
+    <!-- 💳 SUBSCRIPTION WIDGET -->
+    {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role != 'teacher' %}
+    <div class="sb-sub sb-sub--{{ sub_ui.status_tone|default:'ok' }}{% if sub_ui.warn %} sb-sub--warn{% endif %}{% if sub_ui.blocked %} sb-sub--danger{% endif %}"
+         data-title="Obuna: {{ sub_ui.plan_title }} · {{ sub_ui.days_left }} kun qoldi">
+      <div class="sb-sub__top">
+        <div class="sb-sub__icon" aria-hidden="true">
+          {% if sub_ui.blocked %}
+          <i class="fa-solid fa-lock"></i>
+          {% elif sub_ui.warn or sub_ui.critical %}
+          <i class="fa-solid fa-hourglass-half"></i>
+          {% else %}
+          <i class="fa-solid fa-crown"></i>
+          {% endif %}
         </div>
-        <div class="sub-info-mini">
-          <div class="sub-label-mini">Obuna: {{ sub_ui.plan_title }}</div>
-          <div class="sub-progress-text-mini">
-            {{ sub_ui.days_left }} kun qoldi ({{ sub_ui.progress }}%)
+        <div class="sb-sub__meta">
+          <div class="sb-sub__kicker">
+            <span>Obuna</span>
+            <em class="sb-sub__status sb-sub__status--{{ sub_ui.status_tone|default:'ok' }}">
+              {{ sub_ui.status_label|default:"Faol" }}
+            </em>
+          </div>
+          <div class="sb-sub__plan" title="{{ sub_ui.plan_title }}">{{ sub_ui.plan_title }}</div>
+          <div class="sb-sub__days">
+            <strong>{{ sub_ui.days_left }}</strong> kun qoldi
+            {% if sub_ui.expires_at %}
+            <span class="sb-sub__until">· {{ sub_ui.expires_at|date:"d.m.Y" }}</span>
+            {% endif %}
           </div>
         </div>
       </div>
 
-      <div class="sub-progress-bar-mini">
-        <div class="sub-progress-fill-mini {% if sub_ui.warn or sub_ui.blocked %}bg-danger{% endif %}"
-          style="--p: {{ sub_ui.progress|default:0 }}%; width: var(--p);"></div>
+      <div class="sb-sub__bar" role="progressbar"
+           aria-valuenow="{{ sub_ui.progress|default:0 }}"
+           aria-valuemin="0" aria-valuemax="100"
+           aria-label="Obuna muddati qolgan foizi">
+        <span class="sb-sub__fill{% if sub_ui.blocked or sub_ui.critical %} sb-sub__fill--danger{% elif sub_ui.warn %} sb-sub__fill--warn{% endif %}"
+              style="width: {{ sub_ui.progress|default:0 }}%"></span>
+      </div>
+      <div class="sb-sub__bar-lbl">
+        <span>Qolgan muddat</span>
+        <span>{{ sub_ui.progress|default:0 }}%</span>
       </div>
 
-      <a href="{% url 'billing:plans' %}" class="sub-upgrade-btn-mini"
-        data-title="Obuna: {{ sub_ui.plan_title }} ({{ sub_ui.progress }}% qoldi) | Uzatirish">
-        <i class="fa-solid fa-calendar-plus"></i> <span class="si-text">Uzaytirish</span>
+      {% if sub_ui.stack %}
+      <div class="sb-sub__stack">
+        {% for s in sub_ui.stack %}
+        <span><i class="fa-solid fa-layer-group"></i> {{ s.plan }} · +{{ s.days }} kun</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <a href="{% url 'billing:plans' %}" class="sb-sub__btn"
+         data-title="Tarifni o'zgartirish / uzaytirish">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span class="si-text">{% if sub_ui.blocked %}Tarifni faollashtirish{% else %}Tarif / Uzaytirish{% endif %}</span>
       </a>
     </div>
     {% endif %}

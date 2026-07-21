@@ -14,7 +14,11 @@
     href="{% static 'img/chaqmoq_logo_favicon.png' %}?v=20260718-yellow-icon">
   <link rel="apple-touch-icon" sizes="180x180"
     href="{% static 'img/chaqmoq_logo_favicon_180.png' %}?v=20260718-yellow-icon">
-
+  <link rel="manifest" href="{% static 'pwa/manifest.webmanifest' %}">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ChaqmoqApp">
 
   <!-- Bootstrap Icons (lokal) -->
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
@@ -559,6 +563,11 @@
       <main class="main-content" role="main">
 
         <div class="content-shell">
+          {% if request.user.is_authenticated %}
+          <div class="cq-dl-topbar" aria-label="Desktop dastur">
+            {% include "partials/desktop_download_btn.html" %}
+          </div>
+          {% endif %}
           {% if request.user.is_authenticated and demo_mode_active %}
           <div class="demo-mode-banner" role="status" aria-live="polite">
             <i class="fa-solid fa-flask"></i>
@@ -1122,6 +1131,22 @@
         console.error('Phone prefix MutationObserver failed:', err);
       }
     })();
+  </script>
+
+  {% include "partials/desktop_download.html" %}
+  {% if not request.user.is_authenticated %}
+  <div class="cq-dl-float" style="position:fixed;top:14px;right:14px;z-index:10040">
+    {% include "partials/desktop_download_btn.html" %}
+  </div>
+  {% endif %}
+
+  <script>
+    // PWA — brauzer manzil qatorida o'rnatish ikonkasi
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('{% static "pwa/sw.js" %}', { scope: '/' }).catch(function () {});
+      });
+    }
   </script>
 </body>
 

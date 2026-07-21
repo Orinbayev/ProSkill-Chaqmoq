@@ -1661,20 +1661,27 @@ def get_subscription_ui_state(center: Center) -> dict | None:
             diff = (sub.hard_expires_at - timezone.now()).total_seconds()
             grace_hours_left = max(int(diff / 3600), 0)
 
-        # Progress calculation
-        progress = 100
-        if sub.expires_at > timezone.now():
-             total_span = (sub.expires_at - sub.started_at).total_seconds()
-             if total_span > 0:
-                 elapsed = (timezone.now() - sub.started_at).total_seconds()
-                 progress = int((elapsed / total_span) * 100)
-                 progress = max(0, min(100, progress))
+        # Progress = qolgan foiz (0 = tugagan, 100 = to'liq muddat)
+        progress = 0
+        now = timezone.now()
+        started = getattr(sub, "started_at", None) or getattr(sub, "created_at", None)
+        if sub.expires_at and started and sub.expires_at > now:
+            total_span = (sub.expires_at - started).total_seconds()
+            remaining = (sub.expires_at - now).total_seconds()
+            if total_span > 0:
+                progress = int(round((remaining / total_span) * 100))
+                progress = max(0, min(100, progress))
+            else:
+                progress = 100 if remaining > 0 else 0
+        elif sub.expires_at and sub.expires_at > now:
+            # started_at yo'q bo'lsa ham qolgan kun asosida taxmin
+            progress = 100 if days_left > 30 else max(5, min(100, int(days_left * 3)))
 
         warn = (days_left <= 7 and not blocked and not in_grace_period)
+        critical = days_left <= 3 and not blocked
 
-        # STACK INFO (Paused subs)
-        # Use center.subscriptions related manager
-        paused_subs = center.subscriptions.filter(status=CenterSubscription.Status.PAUSED)
+        # STACK INFO (Paused subs) — root markaz bo'yicha
+        paused_subs = root.subscriptions.filter(status=CenterSubscription.Status.PAUSED)
         stack_info = []
         for p in paused_subs:
             rem_days = int(p.remaining_seconds / 86400)
@@ -1682,6 +1689,22 @@ def get_subscription_ui_state(center: Center) -> dict | None:
                 "plan": p.plan.title,
                 "days": rem_days
             })
+
+        if blocked:
+            status_label = "Bloklangan"
+            status_tone = "danger"
+        elif in_grace_period:
+            status_label = "Grace period"
+            status_tone = "warn"
+        elif critical:
+            status_label = "Kritik"
+            status_tone = "danger"
+        elif warn:
+            status_label = "Tez tugaydi"
+            status_tone = "warn"
+        else:
+            status_label = "Faol"
+            status_tone = "ok"
 
         return {
             "plan_code": sub.plan.code,
@@ -1691,11 +1714,14 @@ def get_subscription_ui_state(center: Center) -> dict | None:
             "days_left": days_left,
             "blocked": blocked,
             "warn": warn,
+            "critical": critical,
             "progress": progress,
             "in_grace_period": in_grace_period,
             "grace_hours_left": grace_hours_left,
             "hard_expires_at": sub.hard_expires_at,
-            "stack": stack_info # ✅ Show queued plans
+            "stack": stack_info,
+            "status_label": status_label,
+            "status_tone": status_tone,
         }
     except Exception as e:
         logging.error(f"get_subscription_ui_state error: {str(e)}")

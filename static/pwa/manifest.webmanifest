@@ -1,0 +1,26 @@
+{
+  "name": "ChaqmoqApp",
+  "short_name": "ChaqmoqApp",
+  "description": "O'quv markazi boshqaruv tizimi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070a12",
+  "theme_color": "#0b1220",
+  "lang": "uz",
+  "icons": [
+    {
+      "src": "/static/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

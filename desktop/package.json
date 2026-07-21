@@ -1,0 +1,85 @@
+{
+  "name": "chaqmoqapp-desktop",
+  "version": "1.0.0",
+  "description": "ChaqmoqApp — Windows va Mac desktop dasturi",
+  "main": "main.js",
+  "author": "ChaqmoqApp",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --mac --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:all": "electron-builder --mac --win"
+  },
+  "build": {
+    "appId": "uz.chaqmoq.app.desktop",
+    "productName": "ChaqmoqApp",
+    "copyright": "Copyright © ChaqmoqApp",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["universal"]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "artifactName": "ChaqmoqApp-Mac.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "ChaqmoqApp-Windows-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ChaqmoqApp",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "artifactName": "ChaqmoqApp-Windows-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "ChaqmoqApp-Windows-Portable.${ext}"
+    },
+    "dmg": {
+      "artifactName": "ChaqmoqApp-Mac.${ext}",
+      "title": "ChaqmoqApp"
+    },
+    "publish": null
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}
