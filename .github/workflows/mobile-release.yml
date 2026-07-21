@@ -1,18 +1,20 @@
-name: Mobile Release (Play + App Store)
+name: Mobile Release (Android + iOS)
 
-# Bu workflow `main` branch'ga mobile_app/ ichida o'zgarish push qilinganda
-# avtomatik ishga tushadi.
+# Push → avtomatik build (va secret bo'lsa store ga yuklash).
 #
-# HOZIRGI HOLAT (do'kon akkauntlari 3-shaxsники, faqat cheklangan ruxsat):
-#   - Android: signed AAB build qilib, YUKLAB OLINADIGAN artifact qiladi.
-#     Siz uni Actions run sahifasidan yuklab olib, Play Console'ga QO'LDA joylaysiz.
-#   - iOS: VAQTINCHA O'CHIRILGAN (imzo kalitlari egadan olingach yoqiladi).
+# Trigger:
+#   - main ga mobile_app/ o'zgarishi push qilinganda
+#   - yoki Actions → "Mobile Release" → Run workflow
 #
-# TO'LIQ AVTOMATIK'ga o'tish (kelajakda):
-#   - Play service account olingach → Android'ni to'g'ridan-to'g'ri Play'ga yuklashga o'tkazamiz.
-#   - Apple imzo kalitlari olingach → iOS job'dagi "if: false" ni o'chiramiz.
+# Android (har doim):
+#   - signed AAB build + artifact (yuklab olish mumkin)
+#   - PLAY_SERVICE_ACCOUNT_JSON secret bo'lsa → Play (internal track) ga yuklaydi
 #
-# Qo'lda ishga tushirish uchun "Run workflow" tugmasi ham bor (workflow_dispatch).
+# iOS (ixtiyoriy):
+#   - Repo → Settings → Variables → ENABLE_IOS_CI = true
+#   - va iOS secret'lari to'ldirilgach TestFlight ga yuklaydi
+#
+# To'liq yo'riqnoma: MOBILE_DEPLOY_SETUP.md
 
 on:
   push:
@@ -21,21 +23,32 @@ on:
       - 'mobile_app/**'
       - '.github/workflows/mobile-release.yml'
   workflow_dispatch:
+    inputs:
+      play_track:
+        description: 'Play track (internal | alpha | beta | production)'
+        required: false
+        default: 'internal'
+      skip_ios:
+        description: 'iOS job ni o‘tkazib yuborish'
+        type: boolean
+        default: false
 
 env:
-  FLUTTER_VERSION: '3.44.4'
-  # Build raqami (versionCode / CFBundleVersion) har doim shu BASE + run_number bo'ladi,
-  # shunda u monotonik o'sadi va do'konda avval yuklangan raqamlardan katta bo'ladi.
-  # Play'da hozirgi eng yuqori versionCode = 4/5 bo'lgani uchun BASE=5 (birinchi run -> 6).
-  BUILD_BASE: '5'
+  FLUTTER_VERSION: '3.32.0'
+  # versionCode = BUILD_BASE + run_number (monoton o'sadi)
+  # 1.0.2+7 allaqachon ishlatilgan — BASE=7 → run #1 = 8
+  BUILD_BASE: '7'
 
 jobs:
   # ────────────────────────────────────────────────────────────────
-  #  ANDROID → GOOGLE PLAY
+  #  ANDROID
   # ────────────────────────────────────────────────────────────────
   android:
-    name: Android → Google Play
+    name: Android AAB
     runs-on: ubuntu-latest
+    outputs:
+      version_name: ${{ steps.ver.outputs.name }}
+      version_code: ${{ steps.ver.outputs.number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,32 +59,48 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Keystore va key.properties'ni secret'lardan tiklash
-        working-directory: mobile_app
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
-          cat > android/key.properties <<EOF
-          storeFile=../upload-keystore.jks
-          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          EOF
+      - name: Flutter version
+        run: flutter --version
 
-      - name: Versiya raqamlarini hisoblash
+      - name: Restore Android signing secrets
+        working-directory: mobile_app
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64:-}" ] || [ -z "${STORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ]; then
+            echo "❌ Android secret'lar yo'q."
+            echo "Kerak: ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD, ANDROID_KEY_PASSWORD, ANDROID_KEY_ALIAS"
+            echo "Qarang: MOBILE_DEPLOY_SETUP.md"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 --decode > android/upload-keystore.jks
+          # key.properties — boshida bo'sh joy BO'LMASIN
+          {
+            echo "storeFile=../upload-keystore.jks"
+            echo "storePassword=${STORE_PASSWORD}"
+            echo "keyPassword=${KEY_PASSWORD:-$STORE_PASSWORD}"
+            echo "keyAlias=${KEY_ALIAS}"
+          } > android/key.properties
+          ls -la android/upload-keystore.jks android/key.properties
+
+      - name: Compute version
         id: ver
         working-directory: mobile_app
         run: |
-          BUILD_NAME=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          BUILD_NAME=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1 | tr -d '[:space:]')
           BUILD_NUMBER=$(( BUILD_BASE + GITHUB_RUN_NUMBER ))
-          echo "name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
-          echo "number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "Build: $BUILD_NAME ($BUILD_NUMBER)"
+          echo "name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "📦 ${BUILD_NAME} (${BUILD_NUMBER})"
 
-      - name: AAB build qilish
+      - name: Build release AAB
         working-directory: mobile_app
         run: |
           flutter pub get
@@ -79,15 +108,7 @@ jobs:
             --build-name=${{ steps.ver.outputs.name }} \
             --build-number=${{ steps.ver.outputs.number }}
 
-      # AAB'ni yuklab olinadigan artifact sifatida saqlaymiz. Play Console
-      # egasi/admin ruxsati (service account) hozircha yo'q, shuning uchun CI
-      # to'g'ridan-to'g'ri Play'ga yuklamaydi — siz bu AAB'ni Actions run
-      # sahifasidan yuklab olib, Play Console'ga QO'LDA joylaysiz (tayyor, imzolangan).
-      #
-      # Egasi service account bergach: bu bosqichni r0adkll/upload-google-play
-      # bilan almashtirib, PLAY_SERVICE_ACCOUNT_JSON secret'ini qo'shsangiz —
-      # to'liq avtomatik yuklashga o'tadi. (Namuna MOBILE_DEPLOY_SETUP.md da.)
-      - name: AAB'ni artifact sifatida saqlash (qo'lda yuklash uchun)
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: ChaqmoqApp-${{ steps.ver.outputs.name }}-${{ steps.ver.outputs.number }}-aab
@@ -95,108 +116,128 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # Yoqish: Variables → ENABLE_PLAY_UPLOAD = true  +  secret PLAY_SERVICE_ACCOUNT_JSON
+      - name: Upload to Google Play (optional)
+        if: ${{ vars.ENABLE_PLAY_UPLOAD == 'true' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: uz.chaqmoq.chaqmoq_mobile
+          releaseFiles: mobile_app/build/app/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.play_track || 'internal' }}
+          status: completed
+
   # ────────────────────────────────────────────────────────────────
-  #  iOS → APP STORE CONNECT (TestFlight)
+  #  iOS → TestFlight
   # ────────────────────────────────────────────────────────────────
   ios:
-    name: iOS → App Store (TestFlight)
-    # ⏸️ VAQTINCHA O'CHIRILGAN. App Store Connect akkaunt EGASI imzo kalitlarini
-    # (distribution sertifikat + provisioning profil + API kalit) bergach:
-    #   1) quyidagi "if: false" qatorini o'chiring,
-    #   2) MOBILE_DEPLOY_SETUP.md dagi iOS secret'larini qo'shing.
-    # Shundan keyin push'da iOS ham avtomatik TestFlight'ga chiqadi.
-    if: false
+    name: iOS IPA → TestFlight
+    # Yoqish: Settings → Secrets and variables → Actions → Variables
+    #   ENABLE_IOS_CI = true
+    # + barcha iOS secret'lari (MOBILE_DEPLOY_SETUP.md)
+    if: ${{ vars.ENABLE_IOS_CI == 'true' && github.event.inputs.skip_ios != 'true' }}
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Apple imzo sertifikati va provisioning profile o'rnatish
+      - name: Install CocoaPods
+        run: gem install cocoapods --no-document
+
+      - name: Install Apple certificate + provisioning profile
         env:
           CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
         run: |
+          set -euo pipefail
+          if [ -z "${CERT_P12_BASE64:-}" ] || [ -z "${PROFILE_BASE64:-}" ]; then
+            echo "❌ iOS secret'lar yetarli emas (IOS_DIST_CERT_P12_BASE64, IOS_PROVISION_PROFILE_BASE64)"
+            exit 1
+          fi
           CERT_PATH=$RUNNER_TEMP/dist_cert.p12
           PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
           KEYCHAIN=$RUNNER_TEMP/build.keychain-db
+          KC_PASS=${KEYCHAIN_PASSWORD:-ci-temp-pass}
 
           echo "$CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
           echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
 
-          # Vaqtinchalik keychain yaratib, sertifikatni import qilamiz
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security create-keychain -p "$KC_PASS" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$CERT_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security import "$CERT_PATH" -P "${CERT_PASSWORD:-}" -A -t cert -f pkcs12 -k "$KEYCHAIN"
           security list-keychain -d user -s "$KEYCHAIN" login.keychain-db
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KEYCHAIN"
 
-          # Provisioning profile'ni o'rnatamiz
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          # UUID nom bilan saqlash (Xcode shunday qidiradi)
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$PROFILE_PATH")" 2>/dev/null || true)
+          if [ -n "${UUID:-}" ]; then
+            cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/${UUID}.mobileprovision"
+          else
+            cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+          fi
 
-      - name: App Store Connect API kalitini o'rnatish
+      - name: App Store Connect API key
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
         run: |
+          set -euo pipefail
           mkdir -p mobile_app/ios/private_keys
-          echo "$ASC_API_KEY_P8_BASE64" | base64 --decode > mobile_app/ios/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          echo "$ASC_API_KEY_P8_BASE64" | base64 --decode > "mobile_app/ios/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          ls -la "mobile_app/ios/private_keys/"
 
-      - name: Versiya raqamlarini hisoblash
+      - name: Compute version
         id: ver
         working-directory: mobile_app
         run: |
-          BUILD_NAME=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          BUILD_NAME=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1 | tr -d '[:space:]')
           BUILD_NUMBER=$(( BUILD_BASE + GITHUB_RUN_NUMBER ))
-          echo "name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
-          echo "number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - name: ExportOptions.plist yaratish (secret'lardan)
+      - name: ExportOptions.plist
         working-directory: mobile_app
         env:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
           IOS_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
-          cat > ios/ExportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>${IOS_TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>uz.chaqmoq.chaqmoqMobile</key>
-              <string>${IOS_PROFILE_NAME}</string>
-            </dict>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          EOF
+          set -euo pipefail
+          plutil -create xml1 ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :teamID string ${IOS_TEAM_ID}" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:uz.chaqmoq.chaqmoqMobile string ${IOS_PROFILE_NAME}" ios/ExportOptions.plist
+          plutil -lint ios/ExportOptions.plist
+          cat ios/ExportOptions.plist
 
-      - name: IPA build qilish
+      - name: Pod install + IPA build
         working-directory: mobile_app
         run: |
           flutter pub get
+          cd ios && pod install --repo-update && cd ..
           flutter build ipa --release \
             --build-name=${{ steps.ver.outputs.name }} \
             --build-number=${{ steps.ver.outputs.number }} \
             --export-options-plist=ios/ExportOptions.plist
 
-      - name: TestFlight'ga yuklash (Fastlane)
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChaqmoqApp-${{ steps.ver.outputs.name }}-${{ steps.ver.outputs.number }}-ipa
+          path: mobile_app/build/ios/ipa/*.ipa
+          retention-days: 30
+
+      - name: Upload to TestFlight (Fastlane)
         working-directory: mobile_app/ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}

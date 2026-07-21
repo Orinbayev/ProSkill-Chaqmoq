@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "uz.chaqmoq.chaqmoq_mobile"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.3.13750724"
+    ndkVersion = "28.2.13676358"
 
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
