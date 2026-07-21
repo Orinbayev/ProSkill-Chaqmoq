@@ -89,6 +89,15 @@ class QarzdorlarPaginationTests(TestCase):
         self.assertContains(response, "?page=2&per_page=20")
 
     def test_qarzdorlar_chart_shows_last_12_months(self):
+        """Chart labels: oxirgi 12 oy. Virtual o'tgan oy qarz yo'q (faqat haqiqiy TM)."""
+        from education.models import TuitionMonth
+        from education.services.tuition import ensure_tuition_month
+
+        # Aprel uchun haqiqiy TuitionMonth yaratamiz — chart shuni aks ettirsin
+        april = date(2026, 4, 1)
+        for enr in Enrollment.objects.filter(center=self.center, is_active=True):
+            ensure_tuition_month(enr, april)
+
         response = self.client.get(
             self.url,
             {
@@ -104,4 +113,5 @@ class QarzdorlarPaginationTests(TestCase):
         self.assertEqual(response.context["chart_labels"][0], "May")
         self.assertEqual(response.context["chart_labels"][-1], "Aprel")
         self.assertTrue(all(value == 0 for value in response.context["chart_data"][:-1]))
+        # 25 student × 150_000 = 3_750_000 (haqiqiy TM)
         self.assertEqual(response.context["chart_data"][-1], 3_750_000)

@@ -9,9 +9,47 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260502-debtors-v2">
+<link rel="stylesheet" href="{% static 'css/moliya.css' %}?v=20260721-debtors-fast">
 <style>
 /* Debtors Multi-Group Premium Badge Layout */
+.debtors-empty-pro {
+  text-align: center;
+  padding: 48px 24px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(16,185,129,0.08), rgba(59,130,246,0.06));
+  border: 1px dashed rgba(16,185,129,0.35);
+  margin: 12px 0 24px;
+}
+.debtors-empty-pro__icon {
+  width: 64px; height: 64px; margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  font-size: 1.6rem;
+  animation: debtPulse 2s ease-in-out infinite;
+}
+.debtors-empty-pro h3 { margin: 0 0 6px; font-size: 1.15rem; color: var(--m-text, #e5e7eb); }
+.debtors-empty-pro p { margin: 0; color: var(--m-text-muted, #9ca3af); font-size: 0.92rem; }
+@keyframes debtPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.35); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+}
+.debtors-stat__hint {
+  display: block;
+  font-size: 11px;
+  color: var(--m-text-muted, #9ca3af);
+  margin-top: 4px;
+  font-weight: 500;
+}
+.cell-amount__gross {
+  display: block;
+  font-size: 10px;
+  color: var(--m-text-muted, #9ca3af);
+  text-decoration: line-through;
+  margin-top: 2px;
+}
+
 .group-tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -116,10 +154,12 @@ function toggleRemainingGroups(link) {
             <div class="debtors-stat">
                 <span class="debtors-stat__label">Jami qarz</span>
                 <span class="debtors-stat__value" id="statTotalDebt" data-amount="{{ total_debt }}">{{ total_debt|intcomma }} so'm</span>
+                <span class="debtors-stat__hint">Markaz bo‘yicha · {{ selected_period_label }}</span>
             </div>
             <div class="debtors-stat">
                 <span class="debtors-stat__label">Filter bo'yicha jami</span>
                 <span class="debtors-stat__value" id="statFilteredDebt" data-amount="{{ filtered_debt }}">{{ filtered_debt|intcomma }} so'm</span>
+                <span class="debtors-stat__hint">{{ stats_summary.debtors }} ta qarzdor · jadvaldagi yig‘indi</span>
             </div>
         </div>
 
@@ -287,7 +327,7 @@ function toggleRemainingGroups(link) {
                                             {% if not forloop.first %}
                                             <div class="group-tag-card">
                                                 <div class="group-tag-info">
-                                                    <span class="group-tag-name">{{ group_card.group_name }}</span>
+                                                    <span class="group-tag-name">{{ group_card.group_name }}{% if group_card.is_unenrolled %} <span style="font-size:10px;font-weight:600;color:#ef4444;background:#fee2e2;padding:1px 5px;border-radius:4px;vertical-align:middle;"><i class="fa-solid fa-user-xmark" style="font-size:9px;"></i> Chiqarilgan</span>{% endif %}</span>
                                                     <span class="group-tag-meta">{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta dars</span>
                                                 </div>
                                                 <div class="group-tag-status">
@@ -339,13 +379,16 @@ function toggleRemainingGroups(link) {
                                 <div class="cell-amount cell-amount--red js-debt-cell"{% if row.is_deferred %} style="color:var(--m-amber);"{% endif %} data-total-debt="{{ row.debt }}">
                                     {{ row.debt|money_uz }}
                                 </div>
+                                {% if row.gross_debt and row.credit_balance and row.gross_debt > row.debt %}
+                                <span class="cell-amount__gross">{{ row.gross_debt|money_uz }}</span>
+                                {% endif %}
                                 {% if row.previous_unpaid > 0 %}
                                 <span class="cell-amount__sub" style="color:#f97316;">
                                     <i class="fa-solid fa-clock-rotate-left" style="font-size:9px;margin-right:2px;"></i>O'tgan: {{ row.previous_unpaid|money_uz }}
                                 </span>
                                 {% endif %}
                                 {% if row.credit_balance %}
-                                <span class="cell-amount__sub" style="color:#10b981;">Hisobida: {{ row.credit_balance|intcomma }} so'm</span>
+                                <span class="cell-amount__sub" style="color:#10b981;">Hisobida: −{{ row.credit_balance|intcomma }} so'm</span>
                                 {% endif %}
                                 {% if row.has_teacher_share_only %}
                                 <span class="cell-amount__sub cell-amount__sub--amber">O'qituvchi haqqi: {{ row.teacher_share_only_debt|money_uz }}</span>
@@ -433,7 +476,11 @@ function toggleRemainingGroups(link) {
         </div>
     {% else %}
     <div class="data-table-card data-table-card--empty">
-        <div class="empty-state-simple">Qarzdor talabalar topilmadi</div>
+        <div class="debtors-empty-pro">
+            <div class="debtors-empty-pro__icon"><i class="fa-solid fa-circle-check"></i></div>
+            <h3>Qarzdor topilmadi</h3>
+            <p>Tanlangan davr va filtrlar bo‘yicha barcha to‘lovlar yopilgan yoki mos yozuv yo‘q.</p>
+        </div>
     </div>
     {% endif %}
 

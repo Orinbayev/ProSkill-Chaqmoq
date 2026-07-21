@@ -3114,18 +3114,44 @@ def qarzdorlar_home(request):
         else:
             _unlinked_pay_ids = set()
 
+        # PERF: yetishmayotgan joriy oy TM larni bulk yaratish (N ta ensure o'rniga)
+        from education.services.tuition import prorated_monthly_fee as _pmf
+        _missing = [
+            e for e in active_list
+            if getattr(e, "is_active", False) and e.id not in _existing_tm_enr_ids
+        ]
+        if _missing:
+            _bulk_tms = []
+            for e in _missing:
+                try:
+                    _fee = int(_pmf(e, _cur_month_for_recalc) or 0)
+                except Exception:
+                    _fee = 0
+                _bulk_tms.append(
+                    _TM(
+                        enrollment=e,
+                        month=_cur_month_for_recalc,
+                        fee_amount=_fee,
+                        center=e.center or getattr(e.group, "center", None),
+                    )
+                )
+            if _bulk_tms:
+                try:
+                    _TM.objects.bulk_create(_bulk_tms, ignore_conflicts=True)
+                    _existing_tm_enr_ids |= {e.id for e in _missing}
+                except Exception:
+                    for e in _missing:
+                        try:
+                            _etm(e, _cur_month_for_recalc)
+                        except Exception:
+                            pass
+
+        # Allocation to'liq bog'lanmagan to'lovlar — faqat shular uchun ensure
         for e in active_list:
             if not getattr(e, "is_active", False):
                 continue
-            if e.id in _existing_tm_enr_ids:
-                _group_price = int(getattr(getattr(e, "group", None), "kurs_narxi", 0) or 0)
-                _has_custom = (
-                    e.student_payable_amount is not None
-                    or e.kurs_narhi != _group_price
-                )
-                # To'lov bor lekin allocation to'liq emas bo'lsa ham _etm chaqiramiz
-                if not _has_custom and e.id not in _unlinked_pay_ids:
-                    continue
+            if e.id not in _unlinked_pay_ids:
+                continue
             try:
                 _etm(e, _cur_month_for_recalc)
             except Exception:
@@ -3179,27 +3205,26 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
-    # ── BARCHA O'QUVCHILAR: O'TGAN OYLAR UCHUN LAZY RECALCULATION ──────────────
-    # Muammo: fee jadval/transfer asosida yozilgan, lekin haqiqiy davomat
-    # olinmagan → davomat=0 bo'lsa fee=0 qilish kerak.
-    # MUHIM: Filter oralig'idan TASHQARI oylar ham (oxirgi 3 oy) tekshiriladi —
-    # default (joriy oy) filtrda ham eski noto'g'ri data tuzatilsin.
+    # ── CHIQARILGAN O'QUVCHILAR: O'TGAN OYLAR FANTOM QARZ TOZALASH ───────────
+    # FAQAT inactive/soft-deleted enrollment'lar uchun:
+    # davomat 0 bo'lsa fee=0 (guruhdan chiqarilgach qolib ketgan fantom qarz).
+    # FAOL o'quvchilarga tegilmaydi — o'tgan oy qarzi (davomat kiritilmagan bo'lsa
+    # ham) sahifa ochilganda o'chib ketmasin.
     _past_months_set = {m for m in period_months if m < _cur_month_for_recalc}
     _back = _cur_month_for_recalc
     for _ in range(3):
         _back = (_back - timedelta(days=1)).replace(day=1)
         _past_months_set.add(_back)
     _past_months = sorted(_past_months_set)
-    if _past_months and enrollment_list:
+    _inactive_only = [e for e in enrollment_list if getattr(e, "_is_unenrolled", False)
+                      or not getattr(e, "is_active", True)
+                      or getattr(e, "is_deleted", False)]
+    if _past_months and _inactive_only:
         from education.services.tuition import tuition_month_fee_field as _tff
         from django.db.models import Count as _Cnt
         _fee_fld = _tff()
-        _all_enr_map = {e.id: e for e in enrollment_list}
+        _inactive_map = {e.id: e for e in _inactive_only}
 
-        # Himoyalangan reason'lar: ensure_tuition_month bilan bir xil to'plam.
-        # Bularni auto-recalc 0 ga TUSHIRMASLIGI kerak — aks holda qo'lda
-        # kiritilgan / to'g'ri oyga ko'chirilgan qarz (davomat yozilmagan bo'lsa)
-        # keyingi sahifa ochilganda yana o'chib ketardi.
         _protected_recalc_q = (
             _Q(deleted_reason="manual_cleared")
             | _Q(deleted_reason__startswith="cleanup_")
@@ -3209,10 +3234,9 @@ def qarzdorlar_home(request):
         )
         for _pm in _past_months:
             try:
-                # Fee>0 bo'lgan va himoyalanmagan TM larni topamiz (aktiv+inactive)
                 _past_tms = list(
                     TuitionMonth.objects.filter(
-                        enrollment_id__in=list(_all_enr_map.keys()),
+                        enrollment_id__in=list(_inactive_map.keys()),
                         month=_pm,
                         is_deleted=False,
                     ).exclude(
@@ -3224,10 +3248,10 @@ def qarzdorlar_home(request):
 
                 _pm_end = month_last_day(_pm)
                 _sg_pairs = [
-                    (_all_enr_map[tm.enrollment_id].student_id,
-                     _all_enr_map[tm.enrollment_id].group_id)
+                    (_inactive_map[tm.enrollment_id].student_id,
+                     _inactive_map[tm.enrollment_id].group_id)
                     for tm in _past_tms
-                    if tm.enrollment_id in _all_enr_map
+                    if tm.enrollment_id in _inactive_map
                 ]
                 if not _sg_pairs:
                     continue
@@ -3235,7 +3259,6 @@ def qarzdorlar_home(request):
                 _student_ids = list({p[0] for p in _sg_pairs})
                 _group_ids = list({p[1] for p in _sg_pairs})
 
-                # Davomat soni (barcha status — shu jumladan sababli)
                 _att_any = {
                     (r["student_id"], r["group_id"]): r["cnt"]
                     for r in Attendance.objects.filter(
@@ -3246,14 +3269,22 @@ def qarzdorlar_home(request):
                     ).values("student_id", "group_id").annotate(cnt=_Cnt("id"))
                 }
 
-                # Davomat=0 → fee=0 (batch): aktiv va inactive uchun ham
+                # To'lov bor TM larni 0 qilmaymiz (hisob-kitob buzilmasin)
+                _paid_tm_ids = set(
+                    PaymentAllocation.objects.filter(
+                        tuition_month_id__in=[tm.id for tm in _past_tms],
+                        payment__is_deleted=False,
+                    ).values_list("tuition_month_id", flat=True).distinct()
+                )
+
                 _zero_ids = [
                     tm.id
                     for tm in _past_tms
-                    if tm.enrollment_id in _all_enr_map
+                    if tm.id not in _paid_tm_ids
+                    and tm.enrollment_id in _inactive_map
                     and _att_any.get((
-                        _all_enr_map[tm.enrollment_id].student_id,
-                        _all_enr_map[tm.enrollment_id].group_id,
+                        _inactive_map[tm.enrollment_id].student_id,
+                        _inactive_map[tm.enrollment_id].group_id,
                     ), 0) == 0
                 ]
                 if _zero_ids:
@@ -3261,8 +3292,12 @@ def qarzdorlar_home(request):
             except Exception:
                 pass
 
+    # Faqat HAQIQIY TuitionMonth; lesson_count N+1 o'chirilgan (list PERF)
     debt_snapshots = calculate_enrollment_debt_snapshots(
-        enrollment_list, period_months
+        enrollment_list,
+        period_months,
+        synthesize_past_virtual=False,
+        include_lesson_counts=False,
     )
 
     # ── JAMI QARZ (QARZ ustuni) — TANLANGAN OY(LAR) bo'yicha ─────────────────
@@ -3295,6 +3330,7 @@ def qarzdorlar_home(request):
                 tuition_month_id__in=[x[0] for x in _tm_fee_rows],
                 tuition_month__is_deleted=False,
                 payment__is_deleted=False,
+                is_deleted=False,
             )
             .values("tuition_month_id")
             .annotate(paid=_SumTot("amount"))
@@ -3314,16 +3350,15 @@ def qarzdorlar_home(request):
 
     # _total_debt_enrs — chart_snapshots (line below) uchun kerak.
     # active non-deferred + inactive enrollments (search/group filtersiz).
-    _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
-
-    # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
-    # YAGONA MANBA: center_month_debt_summary — Director dashboard ham AYNAN shu
-    # funksiyani ishlatadi, shuning uchun ikkala raqam 100% bir xil bo'ladi.
+    # ─── JAMI QARZ (markaz KPI) ──────────────────────────────────────────────
+    # Search/group filteriga bog'liq bo'lmagan markaz jami — dashboard bilan bir xil.
+    # Jadvaldagi filtered_debt alohida (pastda) hisoblanadi.
     try:
         from education.services.tuition import center_month_debt_summary as _cmds
-        total_center_debt, _ = _cmds(center, period_months)
+        total_center_debt_kpi, _ = _cmds(center, period_months)
     except Exception:
-        total_center_debt = 0
+        total_center_debt_kpi = 0
+    total_center_debt = total_center_debt_kpi
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
     student_map = {}   # {student_id: row_dict}
@@ -3331,18 +3366,22 @@ def qarzdorlar_home(request):
     for e in enrollment_list:
         sid  = e.student_id
         snapshot = debt_snapshots.get(e.id, {})
-        # QARZ = o'quvchining BARCHA to'lanmagan oylari yig'indisi (breakdown
-        # "Jami qarz" bilan aynan bir xil), faqat tanlangan oy emas.
-        debt = int(enr_total_debt.get(e.id, snapshot.get("debt", 0)) or 0)
+        # QARZ = faqat haqiqiy TuitionMonth (enr_total_debt). Virtual fallback yo'q —
+        # aks holda DB da TM bo'lmasa ham o'quvchi "qarzdor" bo'lib chiqardi.
+        debt = int(enr_total_debt.get(e.id, 0) or 0)
         _e_unenrolled = getattr(e, "_is_unenrolled", False)
         if _e_unenrolled and debt <= 0:
             continue
         f    = int(snapshot.get("total_fee", 0) or 0)
         p    = int(snapshot.get("total_paid", 0) or 0)
-        # lesson_count: jadval bo'yicha haqiqiy dars soni (12 yoki 13).
-        # Hisob-kitob denominatori har doim 12 (tuition.py da belgilangan).
+        # lesson_count: list PERF rejimida oy_dars_soni taxmini (snapshot)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
-        enr_credit = int(snapshot.get("credit_balance", 0) or 0)
+        # credit_balance enrollment maydonidan (snapshot faqat cumulative da to'ldiriladi)
+        enr_credit = int(
+            snapshot.get("credit_balance")
+            if snapshot.get("credit_balance") is not None
+            else (getattr(e, "credit_balance", 0) or 0)
+        )
         # debt endi kumulativ (o'tgan oylarni ham o'z ichiga oladi) — "O'tgan"
         # satrini alohida ko'rsatmaymiz, aks holda ikki marta sanaladi.
         prev_unpaid = 0
@@ -3441,15 +3480,13 @@ def qarzdorlar_home(request):
                 if row["teacher_share_only_payment_enrollment_id"] is None:
                     row["teacher_share_only_payment_enrollment_id"] = e.id
 
-    # ─── GROUP LABEL ─────────────────────────────────────────────────────────
+    # ─── GROUP LABEL + credit netting + display ──────────────────────────────
     for r in student_map.values():
-        # QARZ ustuni = o'quvchining guruhlari bo'yicha qarz yig'indisi (per-enrollment,
-        # netlanmasdan) — diagramma va "Jami qarz" header bilan aynan bir xil.
-        # r["debt"] yuqorida enr_total_debt'dan yig'ilgan; bu yerda qayta yozilmaydi.
         if r["primary_debt_enrollment"] is not None:
             r["enrollment"] = r["primary_debt_enrollment"]
             r["group"] = r["primary_debt_enrollment"].group
             r["staff"] = getattr(r["group"], "oqituvchi", None)
+            # start_date allaqachon preload qilingan — qayta query yo'q
             r["start_date"] = enrollment_start_date(r["primary_debt_enrollment"])
         r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else "—"
         r["lesson_pattern_label"] = ", ".join(r["lesson_pattern_names"]) if r["lesson_pattern_names"] else "—"
@@ -3465,7 +3502,17 @@ def qarzdorlar_home(request):
         )
         if r["teacher_share_only_unpaid_count"] > 1:
             r["teacher_share_only_payment_enrollment_id"] = None
-        r["payment_amount"] = r["teacher_share_only_debt"] if r["has_teacher_share_only"] else r["debt"]
+
+        # Hisobdagi avans (credit) qarzdan ayiriladi — to'lov summasi aniq
+        gross_debt = int(r["debt"] or 0)
+        credit = int(r.get("credit_balance") or 0)
+        r["gross_debt"] = gross_debt
+        r["debt"] = max(0, gross_debt - credit) if credit > 0 else gross_debt
+        r["debt_display"] = _format_money_exact(r["debt"])
+        r["credit_display"] = _format_money_exact(credit) if credit else ""
+
+        pay_base = r["teacher_share_only_debt"] if r["has_teacher_share_only"] else r["debt"]
+        r["payment_amount"] = pay_base
         r["payment_scope"] = "teacher_share_only" if r["has_teacher_share_only"] else "student_total"
         debt_enrollment_ids = r.get("debt_enrollment_ids") or []
         r["payment_enrollment_id"] = debt_enrollment_ids[0] if len(debt_enrollment_ids) == 1 else None
@@ -3540,31 +3587,13 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
-    # Jami qarz: jadvaldagi ma'lumotlar bilan izchil (arxivlangan guruhlar chiqarib tashlangan),
-    # status filteri qo'llangan, lekin min/max qarz filterlari qo'llanmagan.
-    total_center_debt = sum(
-        r["debt"] for r in all_rows
-        if r.get("group_names") and r["debt"] > 0 and _matches_status_filter(r)
-    )
+    # total_debt (KPI) = center_month_debt_summary — search/group filterisiz.
+    total_center_debt = int(total_center_debt_kpi or 0)
 
-    # Chart: Jami qarz bilan bir xil enrollments (_total_debt_enrs) ishlatamiz.
-    # preload_group_schedules allaqachon yuqorida enrollment_list uchun chaqirilgan,
-    # lekin _total_debt_enrs yangi guruhlarni o'z ichiga olishi mumkin — yangilash.
-    from education.services.tuition import preload_group_schedules as _pgs2
-    _pgs2({e.group_id for e in _total_debt_enrs if e.group_id})
-    preload_enrollment_history_starts(_total_debt_enrs)
-    chart_snapshots = calculate_enrollment_debt_snapshots(
-        _total_debt_enrs,
-        chart_months,
-    )
-    graph_map = {chart_month: 0 for chart_month in chart_months}
-    for snapshot in chart_snapshots.values():
-        month_details = snapshot.get("months", {})
-        for chart_month in chart_months:
-            graph_map[chart_month] += int(
-                month_details.get(chart_month, {}).get("debt", 0) or 0
-            )
-    chart_series = [graph_map[month] for month in chart_months]
+    # Chart: 2–3 SQL (N×12 snapshot o'rniga) — haqiqiy TM qarzlari
+    from education.services.tuition import center_month_debt_series as _cmds_series
+    graph_map = _cmds_series(center, chart_months)
+    chart_series = [int(graph_map.get(month, 0) or 0) for month in chart_months]
     chart_labels = [_human_month_label(month) for month in chart_months]
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
     selected_period_label = _human_period_label(selected_from, selected_to)
@@ -4092,7 +4121,12 @@ def _get_payment_dashboard_data(request):
     today = timezone.localdate()
     cur_month_start = today.replace(day=1)
 
-    base_payment_qs = Payment.objects.filter(center=center) if center else Payment.objects.none()
+    # SoftDelete default manager odatda is_deleted=False; aniq qilamiz.
+    base_payment_qs = (
+        Payment.objects.filter(center=center, is_deleted=False)
+        if center
+        else Payment.objects.none()
+    )
     total_income = base_payment_qs.aggregate(s=Sum("summa"))["s"] or 0
 
     q = (request.GET.get("q") or "").strip()
@@ -4269,7 +4303,15 @@ def _get_payment_dashboard_data(request):
     )
 
     pay_qs = pay_qs.order_by("-paid_date", "-id")
+    # Prefetch bilan bir marta yuklash (N+1 yo'q). Student tartibi = so'nggi to'lov.
     filtered_payments = list(pay_qs)
+    _ordered_student_ids = []
+    _seen_sid = set()
+    for _p in filtered_payments:
+        if _p.student_id not in _seen_sid:
+            _seen_sid.add(_p.student_id)
+            _ordered_student_ids.append(_p.student_id)
+
     uz_month_map = UZ_MONTH_NAMES
     grouped_rows = {}
 
@@ -4401,17 +4443,32 @@ def _get_payment_dashboard_data(request):
 
         display_rows.append(row)
 
-    groups = Group.objects.filter(is_archived=False)
+    # Tartib: so'nggi to'lov sanasi bo'yicha (yuqoridagi _ordered_student_ids)
+    _row_by_sid = {r["student"].id: r for r in display_rows if r.get("student")}
+    display_rows = [_row_by_sid[sid] for sid in _ordered_student_ids if sid in _row_by_sid]
+
+    groups = Group.objects.filter(is_archived=False, is_deleted=False).only(
+        "id", "nom", "center_id", "oqituvchi_id", "category_obj_id"
+    )
     if center:
         groups = groups.filter(center=center)
 
-    teachers_qs = User.objects.filter(role="teacher", is_active=True)
+    teachers_qs = User.objects.filter(role="teacher", is_active=True, is_archived=False).only(
+        "id", "ism", "familya", "email", "center_id"
+    )
     if center:
         teachers_qs = teachers_qs.filter(center=center)
 
     courses = Category.objects.all().only("id", "name")
+    if center and hasattr(Category, "center_id"):
+        try:
+            courses = courses.filter(center=center)
+        except Exception:
+            pass
 
-    staffs = User.objects.filter(role__in=["manager", "admin", "director"], is_active=True)
+    staffs = User.objects.filter(
+        role__in=["manager", "admin", "director"], is_active=True, is_archived=False
+    ).only("id", "ism", "familya", "email", "center_id")
     if center:
         staffs = staffs.filter(center=center)
 
@@ -4808,44 +4865,64 @@ def get_payment_details(request):
     
     if tuition_month_id:
         allocs = PaymentAllocation.objects.filter(
-            tuition_month_id=tuition_month_id
-        ).select_related('payment', 'payment__student', 'payment__group', 'payment__created_by')
+            tuition_month_id=tuition_month_id,
+            is_deleted=False,
+            payment__is_deleted=False,
+        ).select_related(
+            "payment",
+            "payment__student",
+            "payment__group",
+            "payment__group__oqituvchi",
+            "payment__created_by",
+        )
     elif student_id and group_id:
         allocs = PaymentAllocation.objects.filter(
             payment__student_id=student_id,
-            payment__group_id=group_id
-        ).select_related('payment', 'payment__student', 'payment__group', 'payment__created_by')
+            payment__group_id=group_id,
+            is_deleted=False,
+            payment__is_deleted=False,
+        ).select_related(
+            "payment",
+            "payment__student",
+            "payment__group",
+            "payment__group__oqituvchi",
+            "payment__created_by",
+        )
     else:
-        return JsonResponse({'ok': False, 'error': 'Missing identifiers'}, status=400)
+        return JsonResponse({"ok": False, "error": "Missing identifiers"}, status=400)
 
-    if not allocs.exists():
-        return JsonResponse({'ok': True, 'payments': [], 'total_sum': 0})
+    alloc_list = list(allocs.order_by("-payment__paid_date", "-id"))
+    if not alloc_list:
+        return JsonResponse({"ok": True, "payments": [], "total_sum": 0})
 
-    first = allocs.first()
+    first = alloc_list[0]
     data = []
     total = 0
-    for a in allocs.order_by('-payment__paid_date', '-id'):
+    for a in alloc_list:
         total += a.amount
+        pay = a.payment
         data.append({
-            'id': a.payment.id,
-            'amount': a.amount,
-            'cash_amount': a.payment.cash_amount,
-            'card_amount_som': a.payment.card_amount_som,
-            'date': a.payment.paid_date.strftime("%d.%m.%Y"),
-            'raw_date': a.payment.paid_date.strftime("%Y-%m-%d"),
-            'time': a.payment.paid_time.strftime("%H:%M") if a.payment.paid_time else "--:--",
-            'method': a.payment.get_payment_type_display(),
-            'staff': a.payment.created_by.get_full_name() if a.payment.created_by else '—',
-            'note': a.payment.note or ''
+            "id": pay.id,
+            "amount": a.amount,
+            "cash_amount": pay.cash_amount,
+            "card_amount_som": pay.card_amount_som,
+            "date": pay.paid_date.strftime("%d.%m.%Y") if pay.paid_date else "",
+            "raw_date": pay.paid_date.strftime("%Y-%m-%d") if pay.paid_date else "",
+            "time": pay.paid_time.strftime("%H:%M") if pay.paid_time else "--:--",
+            "method": pay.get_payment_type_display(),
+            "staff": pay.created_by.get_full_name() if pay.created_by else "—",
+            "note": pay.note or "",
         })
 
+    group = first.payment.group
+    teacher = getattr(group, "oqituvchi", None) if group else None
     return JsonResponse({
-        'ok': True,
-        'student_name': first.payment.student.get_full_name(),
-        'group_name': first.payment.group.nom,
-        'teacher_name': first.payment.group.oqituvchi.get_full_name() if first.payment.group.oqituvchi else "—",
-        'total_sum': total,
-        'payments': data
+        "ok": True,
+        "student_name": first.payment.student.get_full_name() if first.payment.student else "—",
+        "group_name": group.nom if group else "—",
+        "teacher_name": teacher.get_full_name() if teacher else "—",
+        "total_sum": total,
+        "payments": data,
     })
 
 
@@ -4873,28 +4950,43 @@ def student_payments_pdf(request):
     if not enrollment:
         return HttpResponse("Enrollment topilmadi", status=404)
 
-    payments_qs = Payment.objects.filter(enrollment=enrollment).select_related('created_by').order_by('paid_date', 'paid_time')
-    
-    total_paid = payments_qs.aggregate(s=Sum('summa'))['s'] or 0
-    
-    # Calculate total expected fee from TuitionMonths
-    tms = TuitionMonth.objects.filter(enrollment=enrollment).order_by('month')
-    total_expected = tms.aggregate(s=Sum('fee_amount'))['s'] or 0
-    
-    # Balance calculations
+    payments_qs = (
+        Payment.objects.filter(enrollment=enrollment, is_deleted=False)
+        .select_related("created_by")
+        .order_by("paid_date", "paid_time")
+    )
+
+    total_paid = payments_qs.aggregate(s=Sum("summa"))["s"] or 0
+
+    tms = list(
+        TuitionMonth.objects.filter(enrollment=enrollment, is_deleted=False).order_by("month")
+    )
+    total_expected = sum(int(tm.fee_amount or 0) for tm in tms)
+
     remaining_debt = max(0, total_expected - total_paid)
     overpayment = max(0, total_paid - total_expected)
 
-    # Monthly breakdown
+    # PERF: barcha allocation'lar 1 query
+    tm_ids = [tm.id for tm in tms]
+    paid_by_tm = {
+        r["tuition_month_id"]: int(r["s"] or 0)
+        for r in PaymentAllocation.objects.filter(
+            tuition_month_id__in=tm_ids,
+            is_deleted=False,
+            payment__is_deleted=False,
+        ).values("tuition_month_id").annotate(s=Sum("amount"))
+    } if tm_ids else {}
+
     monthly_data = []
     for tm in tms:
-        paid_amount = tm.allocations.aggregate(s=Sum('amount'))['s'] or 0
+        paid_amount = paid_by_tm.get(tm.id, 0)
+        fee = int(tm.fee_amount or 0)
         monthly_data.append({
-            'month': tm.month,
-            'fee': tm.fee_amount,
-            'paid': paid_amount,
-            'debt': max(0, tm.fee_amount - paid_amount),
-            'overpaid': max(0, paid_amount - tm.fee_amount),
+            "month": tm.month,
+            "fee": fee,
+            "paid": paid_amount,
+            "debt": max(0, fee - paid_amount),
+            "overpaid": max(0, paid_amount - fee),
         })
 
     context = {
@@ -5289,10 +5381,14 @@ def create_group_for_category(request, category_id):
 @login_required
 def guruhlar(request):
     rows = (
-        Group.objects.select_related("center", "oqituvchi")
+        Group.objects.filter(is_archived=False, is_deleted=False)
+        .select_related("center", "oqituvchi", "category_obj")
         .annotate(
-            student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
-            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
+            student_count=Count(
+                "enrollments",
+                filter=Q(enrollments__is_active=True, enrollments__is_deleted=False),
+            ),
+            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField())),
         )
         .order_by("nom")
     )
@@ -5318,7 +5414,7 @@ def guruhlar_it(request):
 def group_detail(request, pk: int):
     from core.tenant import get_request_center
     center = get_request_center(request)
-    qs = Group.objects.all()
+    qs = Group.objects.select_related("oqituvchi", "center", "category_obj", "support_teacher")
     if center:
         qs = qs.filter(center=center)
     g = get_object_or_404(qs, pk=pk)
@@ -9376,11 +9472,14 @@ def group_list(request):
     Barcha guruhlar ro'yxati.
     """
     rows = (
-        Group.objects
+        Group.objects.filter(is_archived=False, is_deleted=False)
         .select_related("center", "oqituvchi", "category_obj")
         .annotate(
-            student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
-            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
+            student_count=Count(
+                "enrollments",
+                filter=Q(enrollments__is_active=True, enrollments__is_deleted=False),
+            ),
+            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField())),
         )
         .order_by("-id")
     )

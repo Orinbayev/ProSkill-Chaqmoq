@@ -1870,13 +1870,33 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         .values(y=F("date_joined__year"), m=F("date_joined__month"))
         .annotate(cnt=Count("id"))
     }
-    _arch_map = {
-        (r["y"], r["m"]): r["cnt"]
-        for r in students_history_qs
+    # Chiqishlar: deleted_at YOKI archived_at. Legacy (is_archived, sana yo'q)
+    # → joriy oyga yoziladi (eski ma'lumotlar uchun).
+    _arch_map = {}
+    for r in (
+        students_history_qs
         .filter(deleted_at__date__range=(chart_start, chart_end))
         .values(y=F("deleted_at__year"), m=F("deleted_at__month"))
         .annotate(cnt=Count("id"))
-    }
+    ):
+        _arch_map[(r["y"], r["m"])] = _arch_map.get((r["y"], r["m"]), 0) + int(r["cnt"] or 0)
+    for r in (
+        students_history_qs
+        .filter(is_archived=True, archived_at__date__range=(chart_start, chart_end))
+        .filter(Q(deleted_at__isnull=True) | ~Q(deleted_at__date__range=(chart_start, chart_end)))
+        .values(y=F("archived_at__year"), m=F("archived_at__month"))
+        .annotate(cnt=Count("id"))
+    ):
+        _arch_map[(r["y"], r["m"])] = _arch_map.get((r["y"], r["m"]), 0) + int(r["cnt"] or 0)
+    _legacy_left = students_history_qs.filter(
+        is_archived=True,
+        archived_at__isnull=True,
+        deleted_at__isnull=True,
+    ).count()
+    if _legacy_left:
+        _arch_map[(today.year, today.month)] = (
+            _arch_map.get((today.year, today.month), 0) + int(_legacy_left)
+        )
 
     if branch is None:
         month_pairs = [(ms, me) for ms, me, _ in months_list]
@@ -2631,6 +2651,9 @@ def director_boshqaruv_api(request):
             branch = None
 
     from core.perf_cache import TTL_LONG, perf_cache_get_or_set, versioned_cache_key
+    import sys
+    # Testlarda cache izolyatsiyasi buzilmasin
+    _skip_cache = any("test" in str(a) for a in sys.argv)
     # 15 daqiqa cache — cold miss 1000+ query / 5–15s; Render threadlarni band qilmasin.
     _cache_key = versioned_cache_key(
         "boshqaruv_api",
@@ -2643,6 +2666,7 @@ def director_boshqaruv_api(request):
         _cache_key,
         lambda: _boshqaruv_payload(center, d_from, d_to, branch=branch),
         ttl=TTL_LONG,
+        skip_cache=_skip_cache,
     )
     return JsonResponse(data)
 

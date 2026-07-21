@@ -63,8 +63,15 @@ def active_enrollments_for_center(center):
 def tuition_months_for_center(center, target_month: date | None = None):
     current_month = month_start(target_month)
     fee_field = tuition_month_fee_field()
+    # O'chirilgan to'lovlar paid ga kirmasin
     paid_expr = Coalesce(
-        Sum("allocations__amount", filter=Q(allocations__is_deleted=False)),
+        Sum(
+            "allocations__amount",
+            filter=Q(
+                allocations__is_deleted=False,
+                allocations__payment__is_deleted=False,
+            ),
+        ),
         0,
     )
 
@@ -74,6 +81,7 @@ def tuition_months_for_center(center, target_month: date | None = None):
             is_deleted=False,
             enrollment__is_active=True,
             enrollment__is_deleted=False,
+            enrollment__is_deferred=False,
             enrollment__student__is_archived=False,
             enrollment__group__is_archived=False,
             enrollment__group__is_deleted=False,
@@ -126,7 +134,20 @@ def get_center_month_income(center, target_month: date | None = None) -> int:
 
 
 def get_center_debtors_count(center, target_month: date | None = None) -> int:
-    return month_debtors_qs(center, target_month).count()
+    """Noyob qarzdor o'quvchilar soni — qarzdorlar KPI bilan bir xil manba."""
+    try:
+        from education.services.tuition import center_month_debt_summary, month_first_day
+
+        mon = month_first_day(target_month or timezone.localdate())
+        _, count = center_month_debt_summary(center, [mon])
+        return int(count or 0)
+    except Exception:
+        return (
+            month_debtors_qs(center, target_month)
+            .values("enrollment__student_id")
+            .distinct()
+            .count()
+        )
 
 
 def get_center_zero_payment_count(center, target_month: date | None = None) -> int:

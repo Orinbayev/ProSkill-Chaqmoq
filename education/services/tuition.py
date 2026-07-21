@@ -103,6 +103,35 @@ def month_range_starts(start_date: date, end_date: date) -> list[date]:
     return months
 
 
+def _center_debt_tm_queryset(center, months, branch=None):
+    """Active non-deferred + inactive, non-archived groups — qarzdorlar KPI scope."""
+    from django.db.models import Q as _Q
+    from education.models import TuitionMonth as _TM
+
+    qs = (
+        _TM.objects.filter(
+            enrollment__group__center=center,
+            enrollment__group__is_archived=False,
+            enrollment__group__is_deleted=False,
+            month__in=list(months),
+            is_deleted=False,
+        ).filter(
+            _Q(
+                enrollment__is_active=True,
+                enrollment__is_deferred=False,
+                enrollment__student__is_archived=False,
+            )
+            | _Q(
+                enrollment__is_active=False,
+                enrollment__student__is_archived=False,
+            )
+        )
+    )
+    if branch:
+        qs = qs.filter(enrollment__group__branch=branch)
+    return qs
+
+
 def center_month_debt_summary(center, months, branch=None):
     """
     Markazning tanlangan oy(lar) uchun jami qarzi va qarzdorlar sonini
@@ -122,28 +151,13 @@ def center_month_debt_summary(center, months, branch=None):
     Returns: (jami_qarz: int, qarzdorlar_soni: int)
     """
     from collections import defaultdict
-    from django.db.models import Q as _Q, Sum as _Sum
-    from education.models import TuitionMonth as _TM, PaymentAllocation as _PA
+    from django.db.models import Sum as _Sum
+    from education.models import PaymentAllocation as _PA
 
     ff = tuition_month_fee_field()
-    tm_q = (
-        _TM.objects.filter(
-            enrollment__group__center=center,
-            enrollment__group__is_archived=False,
-            enrollment__group__is_deleted=False,
-            month__in=list(months),
-            is_deleted=False,
-        ).filter(
-            _Q(enrollment__is_active=True, enrollment__is_deferred=False,
-               enrollment__student__is_archived=False)
-            | _Q(enrollment__is_active=False,
-                 enrollment__student__is_archived=False)
-        )
-    )
-    if branch:
-        tm_q = tm_q.filter(enrollment__group__branch=branch)
-
-    tm_rows = list(tm_q.values("id", "enrollment__student_id", ff))
+    tm_rows = list(_center_debt_tm_queryset(center, months, branch=branch).values(
+        "id", "enrollment__student_id", ff
+    ))
     if not tm_rows:
         return 0, 0
 
@@ -154,6 +168,7 @@ def center_month_debt_summary(center, months, branch=None):
             tuition_month_id__in=tm_ids,
             tuition_month__is_deleted=False,
             payment__is_deleted=False,
+            is_deleted=False,
         ).values("tuition_month_id").annotate(paid=_Sum("amount"))
     }
 
@@ -165,6 +180,44 @@ def center_month_debt_summary(center, months, branch=None):
             total += d
             per_student[r["enrollment__student_id"]] += d
     return total, len(per_student)
+
+
+def center_month_debt_series(center, months, branch=None) -> dict:
+    """
+    Oyma-oy qarz yig'indisi (chart uchun). 2–3 SQL so'rov — snapshot N×M emas.
+
+    Returns: {month_date: debt_int} — months ro'yxatidagi har bir oy uchun kalit.
+    """
+    from django.db.models import Sum as _Sum
+    from education.models import PaymentAllocation as _PA
+
+    month_list = [month_first_day(m) for m in months]
+    series = {m: 0 for m in month_list}
+    if not month_list:
+        return series
+
+    ff = tuition_month_fee_field()
+    tm_rows = list(
+        _center_debt_tm_queryset(center, month_list, branch=branch).values("id", "month", ff)
+    )
+    if not tm_rows:
+        return series
+
+    paid_map = {
+        r["tuition_month_id"]: int(r["paid"] or 0)
+        for r in _PA.objects.filter(
+            tuition_month_id__in=[r["id"] for r in tm_rows],
+            tuition_month__is_deleted=False,
+            payment__is_deleted=False,
+            is_deleted=False,
+        ).values("tuition_month_id").annotate(paid=_Sum("amount"))
+    }
+    for r in tm_rows:
+        mon = r["month"]
+        if mon not in series:
+            continue
+        series[mon] += max(0, int(r[ff] or 0) - paid_map.get(r["id"], 0))
+    return series
 
 
 def parse_month_str(s: str) -> Optional[date]:
@@ -384,6 +437,16 @@ def enrollment_last_billable_date(enrollment: Enrollment) -> Optional[date]:
                     .first()
                 )
                 result = history.end_date if history else None
+            except Exception:
+                result = None
+
+    # Soft-delete: last_lesson_date/history yo'q bo'lsa deleted_at sanasini clamp qilamiz —
+    # chiqarilgandan keyingi davomat fantom qarz yaratmasin.
+    if not result and getattr(enrollment, "is_deleted", False):
+        deleted_at = getattr(enrollment, "deleted_at", None)
+        if deleted_at is not None:
+            try:
+                result = deleted_at.date() if hasattr(deleted_at, "date") else deleted_at
             except Exception:
                 result = None
 
@@ -1257,6 +1320,7 @@ def calculate_enrollment_debt_snapshots(
     virtual_missing_months: Optional[Iterable[date]] = None,
     cumulative_up_to: Optional[date] = None,
     synthesize_past_virtual: bool = True,
+    include_lesson_counts: bool = True,
 ) -> dict[int, dict]:
     """
     Read-only qarzdorlik snapshoti.
@@ -1268,6 +1332,9 @@ def calculate_enrollment_debt_snapshots(
     Mavjud TuitionMonth bo'lsa, saqlangan fee ishlatiladi. Rekord bo'lmasa,
     faqat xotirada prorated fee hisoblanadi; DBga yozilmaydi.
     virtual_missing_months berilsa, virtual fee faqat shu oylar uchun ishlaydi.
+
+    include_lesson_counts=False: tuition_month_lesson_count chaqirilmaydi
+    (ro'yxat/chart PERF — N×M query oldini oladi).
     """
     enrollment_list = [enrollment for enrollment in enrollments if getattr(enrollment, "id", None)]
     month_list = [month_first_day(month) for month in months]
@@ -1321,6 +1388,7 @@ def calculate_enrollment_debt_snapshots(
                 tuition_month_id__in=tuition_month_ids,
                 tuition_month__is_deleted=False,
                 payment__is_deleted=False,
+                is_deleted=False,
             )
             .values("tuition_month__enrollment_id", "tuition_month__month")
             .annotate(paid=Coalesce(Sum("amount"), 0))
@@ -1328,7 +1396,7 @@ def calculate_enrollment_debt_snapshots(
             key = (row["tuition_month__enrollment_id"], row["tuition_month__month"])
             paid_map[key] = int(row["paid"] or 0)
 
-    today_month_first = date.today().replace(day=1)
+    today_month_first = timezone.localdate().replace(day=1)
 
     for enrollment in enrollment_list:
         enrollment_snapshot = snapshots[enrollment.id]
@@ -1357,7 +1425,11 @@ def calculate_enrollment_debt_snapshots(
                         fee = int(prorated_monthly_fee(enrollment, month) or 0)
             paid = int(paid_map.get(key, 0) or 0)
             debt = max(0, fee - paid)
-            lesson_count = tuition_month_lesson_count(enrollment, month)
+            if include_lesson_counts:
+                lesson_count = tuition_month_lesson_count(enrollment, month)
+            else:
+                # List/chart: dars soni UI uchun taxminiy (oy_dars_soni) — N+1 yo'q
+                lesson_count = int(getattr(getattr(enrollment, "group", None), "oy_dars_soni", 0) or 0) or 12
 
             enrollment_snapshot["total_fee"] += fee
             enrollment_snapshot["total_paid"] += paid
@@ -1762,7 +1834,11 @@ def get_month_paid(enrollment_or_tm: Union[Enrollment, TuitionMonth], month: Opt
         if not tm:
             return 0
 
-    s = PaymentAllocation.objects.filter(tuition_month=tm).aggregate(s=Sum("amount"))["s"] or 0
+    s = PaymentAllocation.objects.filter(
+        tuition_month=tm,
+        is_deleted=False,
+        payment__is_deleted=False,
+    ).aggregate(s=Sum("amount"))["s"] or 0
     return int(s)
 
 

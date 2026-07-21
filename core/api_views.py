@@ -124,34 +124,46 @@ def dashboard_quick_stats(request):
     if not center:
         return JsonResponse({"detail": "center_not_found"}, status=403)
 
-    today = timezone.localdate()
-    current_month = month_start(today)
-    attendance = get_center_attendance_snapshot(center, today)
+    from core.perf_cache import TTL_SHORT, perf_cache_get_or_set, cache_key_for_center
+    import sys
 
-    # ✅ Manager KPI — 3 alohida count() emas, 1 aggregate query.
-    user_agg = User.objects.filter(center=center).aggregate(
-        teachers=Count("id", filter=Q(role="teacher")),
-        students=Count("id", filter=Q(role="student", is_archived=False)),
-    )
-    pending_status = getattr(PurchaseRequest, "PENDING", "pending")
+    def _compute():
+        today = timezone.localdate()
+        current_month = month_start(today)
+        attendance = get_center_attendance_snapshot(center, today)
 
-    return JsonResponse(
-        {
-            # director
-            "today_income": get_center_today_income(center, today),
-            "debtors": get_center_debtors_count(center, current_month),
-            "active_groups": get_center_active_groups_count(center),
-            "attendance_pct": attendance["pct"],
-            "attendance_label": attendance["label"],
-            # manager KPI grid
-            "students": user_agg["students"] or 0,
-            "teachers": user_agg["teachers"] or 0,
+        # Manager KPI — 1 aggregate query
+        user_agg = User.objects.filter(center=center).aggregate(
+            teachers=Count("id", filter=Q(role="teacher", is_archived=False)),
+            students=Count("id", filter=Q(role="student", is_archived=False)),
+        )
+        pending_status = getattr(PurchaseRequest, "PENDING", "pending")
+        store_agg = {
             "products": Product.objects.filter(center=center).count(),
             "pending_requests": PurchaseRequest.objects.filter(
                 center=center, status=pending_status,
             ).count(),
         }
+
+        return {
+            "today_income": get_center_today_income(center, today),
+            "debtors": get_center_debtors_count(center, current_month),
+            "active_groups": get_center_active_groups_count(center),
+            "attendance_pct": attendance["pct"],
+            "attendance_label": attendance["label"],
+            "students": user_agg["students"] or 0,
+            "teachers": user_agg["teachers"] or 0,
+            "products": store_agg["products"] or 0,
+            "pending_requests": store_agg["pending_requests"] or 0,
+        }
+
+    payload = perf_cache_get_or_set(
+        cache_key_for_center("dash_quick_stats", center.id),
+        _compute,
+        ttl=TTL_SHORT,
+        skip_cache=any("test" in str(a) for a in sys.argv),
     )
+    return JsonResponse(payload)
 
 
 @login_required

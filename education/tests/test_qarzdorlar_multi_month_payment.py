@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import (
     Enrollment,
     Group,
@@ -48,6 +49,7 @@ class QarzdorlarMultiMonthPaymentTests(TestCase):
         self.prev_month = _prev_month_start(self.today)
 
         self.center = Center.objects.create(name="MM Center", slug="mm-center", features={"finance": True})
+        activate_center(self.center)
         self.manager = User.objects.create_user(
             email="manager@mm.test",
             password="testpass123",

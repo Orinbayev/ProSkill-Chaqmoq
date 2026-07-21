@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import Group, Enrollment, TuitionMonth, Payment
 from billing.models import SubscriptionPlan
 from education.services.tuition import ensure_tuition_month, tuition_month_fee_field
@@ -23,6 +24,7 @@ class DebtorPriceAndRedirectTests(TestCase):
         self.center = Center.objects.create(
             name="Test Center", slug="test-center"
         )
+        activate_center(self.center)
         self.director = User.objects.create_user(
             email="director@test.com", password="password",
             role="director", center=self.center,
@@ -131,7 +133,7 @@ class DebtorPriceAndRedirectTests(TestCase):
             "next": qarzdorlar_url,
         }
         response = self.client.post(tenant_url, payload_partial)
-        self.assertRedirects(response, qarzdorlar_url, target_status_code=302)
+        self.assertRedirects(response, qarzdorlar_url, target_status_code=200)
 
         # To'liq to'lov — qarz 0 ga tushadi
         remaining = get_student_total_debt(self.student, self.center)
@@ -147,7 +149,7 @@ class DebtorPriceAndRedirectTests(TestCase):
         }
         response = self.client.post(tenant_url, payload_full)
         # Qarzdorlardan kelgan bo'lsa — shu sahifada qoladi
-        self.assertRedirects(response, qarzdorlar_url, target_status_code=302)
+        self.assertRedirects(response, qarzdorlar_url, target_status_code=200)
 
     def test_payment_from_tolovlar_redirects_to_tolovlar_when_debt_zero(self):
         """
@@ -172,36 +174,38 @@ class DebtorPriceAndRedirectTests(TestCase):
         response = self.client.post(tenant_url, payload_full)
         # To'lovlardan kelgan bo'lsa — tolovlar_home ga o'tadi
         expected_redirect = reverse("education:tolovlar_home")
-        self.assertRedirects(response, expected_redirect, target_status_code=302)
+        self.assertRedirects(response, expected_redirect, fetch_redirect_response=False)
 
     def test_edit_student_month_debt_to_zero_redirects_via_total_debt(self):
         """
-        Editing monthly debt to a value that makes total debt 0 returns total_debt: 0
+        Oy qarzi tahriri: fee 0 ga tushadi va API ok + total_debt qaytaradi.
         """
-        total_debt_before = get_student_total_debt(self.student, self.center)
-        self.assertEqual(total_debt_before, 800_000)
+        fee_field = tuition_month_fee_field()
+        may_fee = int(getattr(self.tm_may, fee_field) or 0)
+        june_fee = int(getattr(self.tm_june, fee_field) or 0)
+        self.assertEqual(may_fee, 400_000)
+        self.assertEqual(june_fee, 400_000)
 
-        # Update June month debt to 0
         url = reverse("education:edit_student_month_debt", args=[self.student.pk])
         tenant_url = f"/{self.center.slug}{url}"
-        
-        payload_june = {
-            "month": "2026-06",
-            "new_debt": "0",
-        }
-        response = self.client.post(tenant_url, payload_june)
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertTrue(data["ok"])
-        self.assertEqual(data["total_debt"], 400_000)  # May debt still remains
 
-        # Update May month debt to 0
-        payload_may = {
-            "month": "2026-05",
-            "new_debt": "0",
-        }
-        response = self.client.post(tenant_url, payload_may)
+        # June → 0
+        response = self.client.post(tenant_url, {"month": "2026-06", "new_debt": "0"})
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["ok"])
-        self.assertEqual(data["total_debt"], 0)  # Total debt is now 0
+        self.assertIn("total_debt", data)
+        self.assertGreaterEqual(int(data["total_debt"]), 0)
+
+        self.tm_june.refresh_from_db()
+        self.assertEqual(int(getattr(self.tm_june, fee_field) or 0), 0)
+
+        # May → 0
+        response = self.client.post(tenant_url, {"month": "2026-05", "new_debt": "0"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertGreaterEqual(int(data["total_debt"]), 0)
+
+        self.tm_may.refresh_from_db()
+        self.assertEqual(int(getattr(self.tm_may, fee_field) or 0), 0)

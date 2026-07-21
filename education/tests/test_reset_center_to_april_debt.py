@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Center, User
+from core.test_utils import activate_center
 from education.models import Enrollment, Group, Payment, PaymentAllocation, TuitionMonth
 from education.services.reset_center_debt_service import verify_center_single_month_debt
 
@@ -15,7 +16,9 @@ class ResetCenterToAprilDebtCommandTests(TestCase):
         self.target_month = date(2026, 4, 1)
 
         self.center = Center.objects.create(name="Test Center", slug="test")
+        activate_center(self.center)
         self.other_center = Center.objects.create(name="Other Center", slug="other")
+        activate_center(self.other_center)
 
         self.manager = User.objects.create_user(
             email="manager@test.local",
