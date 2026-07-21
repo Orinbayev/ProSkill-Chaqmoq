@@ -183,11 +183,11 @@ def _monthly_snapshot_for_center(center, m_start):
 def _bulk_monthly_turnover(center, months):
     """
     months: list of (m_start, m_end) tuples.
-    Returns dict {(year, month): int_total} for ALL months in span,
-    using a fixed number of queries (5 — independent of months count).
+    Returns dict {(year, month): int_total}.
 
-    Priority: active_total > snapshot > deleted_total. Identical to the
-    single-month helper but vectorised.
+    YAGONA KASSA ASOSI (KPI daromad bilan bir xil):
+      Payment.summa guruhlangan paid_date oyi bo'yicha.
+    Snapshot faqat shu oyda live to'lov umuman bo'lmasa fallback.
     """
     if not months:
         return {}
@@ -196,73 +196,33 @@ def _bulk_monthly_turnover(center, months):
     keys = [(m[0].year, m[0].month) for m in months]
     result = {key: 0 for key in keys}
 
-    def _bucket(rows, value_field):
-        out = {key: 0 for key in keys}
-        for row in rows:
-            m = row["_m"]
-            if m is None:
-                continue
-            key = (m.year, m.month)
-            if key in out:
-                out[key] += int(row[value_field] or 0)
-        return out
-
-    # 1) Active allocations
-    active_alloc = _bucket(
-        _payment_allocations_for_center(center)
-        .filter(tuition_month__month__range=(span_start, span_end))
-        .annotate(_m=TruncMonth("tuition_month__month"))
-        .values("_m").annotate(total=Sum("amount")),
-        "total",
-    )
-
-    # 2) Active unallocated payments
-    active_unalloc = _bucket(
+    cash_rows = (
         _payments_for_center(center)
-        .filter(paid_date__range=(span_start, span_end), allocations__isnull=True)
+        .filter(paid_date__range=(span_start, span_end), is_deleted=False)
         .annotate(_m=TruncMonth("paid_date"))
-        .values("_m").annotate(total=Sum("summa")),
-        "total",
+        .values("_m")
+        .annotate(total=Sum("summa"))
     )
-
-    # 3) Snapshots — single query, indexed lookup
-    snapshot_map = {}
-    snap_qs = MonthlyFinanceSnapshot.objects.filter(
-        financial_month__center=center,
-        financial_month__year__in={k[0] for k in keys},
-        financial_month__month__in={k[1] for k in keys},
-    ).values("financial_month__year", "financial_month__month", "total_income")
-    for row in snap_qs:
-        snapshot_map[(row["financial_month__year"], row["financial_month__month"])] = int(row["total_income"] or 0)
-
-    # 4) Deleted allocations
-    deleted_alloc = _bucket(
-        _deleted_payment_allocations_for_center(center)
-        .filter(tuition_month__month__range=(span_start, span_end))
-        .annotate(_m=TruncMonth("tuition_month__month"))
-        .values("_m").annotate(total=Sum("amount")),
-        "total",
-    )
-
-    # 5) Deleted unallocated payments
-    deleted_unalloc = _bucket(
-        _deleted_payments_for_center(center)
-        .filter(paid_date__range=(span_start, span_end), allocations__isnull=True)
-        .annotate(_m=TruncMonth("paid_date"))
-        .values("_m").annotate(total=Sum("summa")),
-        "total",
-    )
-
-    for key in keys:
-        active_total = active_alloc[key] + active_unalloc[key]
-        if active_total:
-            result[key] = active_total
+    for row in cash_rows:
+        m = row["_m"]
+        if m is None:
             continue
-        snap = snapshot_map.get(key, 0)
-        if snap:
-            result[key] = snap
-            continue
-        result[key] = deleted_alloc[key] + deleted_unalloc[key]
+        key = (m.year, m.month)
+        if key in result:
+            result[key] = int(row["total"] or 0)
+
+    # Bo'sh oylar uchun yopilgan oy snapshot (agar live 0)
+    empty_keys = [k for k, v in result.items() if not v]
+    if empty_keys:
+        snap_qs = MonthlyFinanceSnapshot.objects.filter(
+            financial_month__center=center,
+            financial_month__year__in={k[0] for k in empty_keys},
+            financial_month__month__in={k[1] for k in empty_keys},
+        ).values("financial_month__year", "financial_month__month", "total_income")
+        for row in snap_qs:
+            key = (row["financial_month__year"], row["financial_month__month"])
+            if key in result and not result[key]:
+                result[key] = int(row["total_income"] or 0)
 
     return result
 
@@ -323,40 +283,24 @@ def _bulk_monthly_expenses(center, months):
 
 
 def _monthly_turnover_for_center(center, m_start, m_end):
-    """
-    Oy kesimidagi aylanma:
-    1. Allocation mavjud bo'lsa, to'lovni aynan tegishli oyga yozamiz.
-    2. Allocation yo'q legacy paymentlar bo'lsa, paid_date bo'yicha fallback qilamiz.
-    """
-    allocated_total = int(
-        _payment_allocations_for_center(center)
-        .filter(tuition_month__month__range=(m_start, m_end))
-        .aggregate(s=Sum("amount"))["s"] or 0
-    )
-    unallocated_total = int(
+    """Oy kesimidagi kassa aylanmasi — paid_date (KPI bilan bir xil)."""
+    active_total = int(
         _payments_for_center(center)
-        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
-        .aggregate(s=Sum("summa"))["s"] or 0
+        .filter(paid_date__range=(m_start, m_end), is_deleted=False)
+        .aggregate(s=Sum("summa"))["s"]
+        or 0
     )
-    active_total = allocated_total + unallocated_total
     if active_total:
         return active_total
-
     snapshot = _monthly_snapshot_for_center(center, m_start)
     if snapshot and snapshot.total_income:
         return int(snapshot.total_income or 0)
-
-    deleted_allocated_total = int(
-        _deleted_payment_allocations_for_center(center)
-        .filter(tuition_month__month__range=(m_start, m_end))
-        .aggregate(s=Sum("amount"))["s"] or 0
-    )
-    deleted_unallocated_total = int(
+    return int(
         _deleted_payments_for_center(center)
-        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
-        .aggregate(s=Sum("summa"))["s"] or 0
+        .filter(paid_date__range=(m_start, m_end))
+        .aggregate(s=Sum("summa"))["s"]
+        or 0
     )
-    return deleted_allocated_total + deleted_unallocated_total
 
 
 def _monthly_expenses_for_center(center, m_start, m_end):
@@ -395,35 +339,22 @@ def _center_expenses_for_center(center):
     return CenterExpense.objects.filter(center=center)
 
 
-def _teacher_compensation(center, d_from, d_to):
-    att_map = {
-        (row["group_id"], row["student_id"]): row["cnt"]
-        for row in Attendance.objects.filter(
-            group__center=center,
-            date__range=(d_from, d_to),
-        ).filter(_attendance_present_filter())
-        .values("group_id", "student_id")
-        .annotate(cnt=Count("id"))
-    }
-
-    total = 0
-    enrollments = Enrollment.objects.filter(
-        group__center=center,
-        is_active=True,
-        student__is_archived=False,
-    ).select_related("group")
-    for enr in enrollments:
-        present_count = att_map.get((enr.group_id, enr.student_id), 0)
-        if not present_count:
-            continue
-        lessons = enr.group.oy_dars_soni or 12
-        fee = enr.kurs_narhi or enr.group.kurs_narxi or 0
-        teacher_pct = enr.oqituvchi_foiz or enr.group.oqituvchi_foiz or 0
-        if lessons <= 0 or fee <= 0 or teacher_pct <= 0:
-            continue
-        per_lesson_share = (fee * teacher_pct / 100) / lessons
-        total += per_lesson_share * present_count
-    return int(round(total))
+def _teacher_compensation(center, d_from, d_to, branch=None):
+    """
+    O'qituvchi maoshi — yagona manba: TeacherIncome (davomat signal).
+    Boshqaruv KPI va moliya dashboard bir xil raqam ko'rsatadi.
+    """
+    try:
+        from education.models import TeacherIncome
+    except Exception:
+        return 0
+    qs = TeacherIncome.objects.filter(
+        center=center,
+        attendance__date__range=(d_from, d_to),
+    )
+    if branch is not None:
+        qs = qs.filter(group__branch=branch)
+    return int(qs.aggregate(s=Sum("amount"))["s"] or 0)
 
 
 def _payment_type_breakdown(pay_qs):
@@ -445,16 +376,13 @@ def _financial_payload(center, d_from, d_to):
         return cached
 
     period = _period_stats(d_from, d_to)
-    pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to))
+    pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to), is_deleted=False)
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     pay_count = pay_qs.count()
     avg_pay = int(revenue / pay_count) if pay_count else 0
 
-    legacy_exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
-    center_exp_qs = _center_expenses_for_center(center).filter(date__range=(d_from, d_to))
-    legacy_expenses = int(legacy_exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
-    center_expenses = int(center_exp_qs.aggregate(s=Sum("amount"))["s"] or 0)
-    expenses = legacy_expenses + center_expenses
+    # Xarajat + o'qituvchi maoshi — boshqaruv bilan bir xil SoT
+    expenses = int(_monthly_expenses_for_center(center, d_from, d_to) or 0)
     teacher_comp = _teacher_compensation(center, d_from, d_to)
     total_cost = expenses + teacher_comp
     net_profit = revenue - total_cost
@@ -1740,36 +1668,18 @@ def _deleted_payment_allocations_for_scope(center, branch=None):
 
 
 def _monthly_turnover_for_scope(center, m_start, m_end, branch=None):
-    allocated_total = int(
-        _payment_allocations_for_scope(center, branch)
-        .filter(tuition_month__month__range=(m_start, m_end))
-        .aggregate(s=Sum("amount"))["s"] or 0
-    )
-    unallocated_total = int(
+    """Kassa aylanmasi (paid_date) — markaz KPI/chart bilan bir xil basis."""
+    active_total = int(
         _payments_for_scope(center, branch)
-        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
-        .aggregate(s=Sum("summa"))["s"] or 0
+        .filter(paid_date__range=(m_start, m_end), is_deleted=False)
+        .aggregate(s=Sum("summa"))["s"]
+        or 0
     )
-    active_total = allocated_total + unallocated_total
     if active_total:
         return active_total
-
     if branch is None:
-        snapshot = _monthly_snapshot_for_center(center, m_start)
-        if snapshot and snapshot.total_income:
-            return int(snapshot.total_income or 0)
-
-    deleted_allocated_total = int(
-        _deleted_payment_allocations_for_scope(center, branch)
-        .filter(tuition_month__month__range=(m_start, m_end))
-        .aggregate(s=Sum("amount"))["s"] or 0
-    )
-    deleted_unallocated_total = int(
-        _deleted_payments_for_scope(center, branch)
-        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
-        .aggregate(s=Sum("summa"))["s"] or 0
-    )
-    return deleted_allocated_total + deleted_unallocated_total
+        return _monthly_turnover_for_center(center, m_start, m_end)
+    return 0
 
 
 def _boshqaruv_payload(center, d_from, d_to, branch=None):
@@ -1780,38 +1690,36 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     present_filter = _attendance_present_filter()
 
     # ── O'quvchilar ────────────────────────────────────────────
+    from core.dashboard_metrics import count_active_students as _count_active_students
+
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
     students_history_qs = User.all_objects.filter(center=center, role="student")
-    active_enroll = Enrollment.objects.filter(
-        group__center=center,
-        is_active=True,
-        student__is_archived=False,
-        group__is_archived=False,
-        group__is_deleted=False,
-    )
     if branch:
         students_qs = students_qs.filter(enrollments__group__branch=branch).distinct()
         students_history_qs = students_history_qs.filter(enrollments__group__branch=branch).distinct()
-        active_enroll = active_enroll.filter(group__branch=branch)
 
     total_students = students_qs.count()
-    active_students = active_enroll.values("student").distinct().count()
+    # Yagona SoT: faol enrollment asosida
+    from core.dashboard_metrics import active_enrollments_for_center as _aefc_main
+    active_enroll = _aefc_main(center, branch=branch)
+    active_students = active_enroll.values("student_id").distinct().count()
     new_this_month = students_qs.filter(date_joined__date__range=(d_from, d_to)).count()
 
-    # ── Daromad ────────────────────────────────────────────────
-    pay_qs = _payments_for_scope(center, branch).filter(paid_date__range=(d_from, d_to))
+    # ── Daromad (kassa: paid_date) ─────────────────────────────
+    pay_qs = _payments_for_scope(center, branch).filter(paid_date__range=(d_from, d_to), is_deleted=False)
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     pay_count = pay_qs.count()
 
-    exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
-    expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
-    net_profit = revenue - expenses  # teacher_salary_total keyin ayiriladi
+    # Xarajat = legacy Expense + CenterExpense (chart bilan bir xil)
+    expenses = int(_monthly_expenses_for_center(center, d_from, d_to) or 0)
+    net_profit = revenue - expenses
 
     # Oldingi davr
     period = _period_stats(d_from, d_to)
     prev_rev = int(
         _payments_for_scope(center, branch).filter(
-            paid_date__range=(period["prev_from"], period["prev_to"])
+            paid_date__range=(period["prev_from"], period["prev_to"]),
+            is_deleted=False,
         ).aggregate(s=Sum("summa"))["s"] or 0
     )
     prev_students = students_qs.filter(
@@ -2042,51 +1950,109 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         cat_labels = ["IT", "Til kurslari"]
         cat_counts = [active_students // 2, active_students - active_students // 2]
 
-    # ── Chart 7: To'lov holati (donut + kategoriya breakdown) ─────────
-    # To'liq, to'lanmagan va qisman to'lovlar alohida ko'rsatiladi.
+    # ── Chart 7: To'lov holati — Qarzdorlar bilan bir xil: TM fee − allocation ──
+    # Oy = d_to oyi (qarz KPI bilan bir xil).
     pay_toliq = pay_tolamagan = pay_qisman = 0
     pay_category_map = {}
+    from django.db.models import Sum as _Sum
+    from education.models import TuitionMonth as _TM, PaymentAllocation as _PA
+    from education.services.tuition import (
+        month_first_day as _mfd_pay,
+        tuition_month_fee_field as _tm_ff,
+    )
+
+    _pay_month = _mfd_pay(d_to)
+    _fee_f = _tm_ff()
     enrollments_all = list(
         active_enroll.select_related("group", "group__category_obj")
     )
-    student_group_pairs = [
-        (e.student_id, e.group_id, e.kurs_narhi or e.group.kurs_narxi or 0)
-        for e in enrollments_all
-    ]
+    enr_ids_pay = [e.id for e in enrollments_all]
+    enr_by_id = {e.id: e for e in enrollments_all}
 
-    # Joriy oy uchun to'lovlarni batch olamiz
-    from django.db.models import Sum as _Sum
-    pay_map = {}
-    if student_group_pairs:
-        pay_rows = list(
-            _payments_for_scope(center, branch).filter(
-                paid_date__range=(d_from, d_to),
+    tm_rows_pay = list(
+        _TM.objects.filter(
+            enrollment_id__in=enr_ids_pay,
+            month=_pay_month,
+            is_deleted=False,
+        ).values("id", "enrollment_id", _fee_f)
+    ) if enr_ids_pay else []
+
+    paid_by_tm = {}
+    if tm_rows_pay:
+        paid_by_tm = {
+            r["tuition_month_id"]: int(r["paid"] or 0)
+            for r in _PA.objects.filter(
+                tuition_month_id__in=[t["id"] for t in tm_rows_pay],
+                is_deleted=False,
+                payment__is_deleted=False,
             )
-            .values("student_id", "group_id")
-            .annotate(total=_Sum("summa"))
-        )
-        for row in pay_rows:
-            pay_map[(row["student_id"], row["group_id"])] = int(row["total"] or 0)
+            .values("tuition_month_id")
+            .annotate(paid=_Sum("amount"))
+        }
 
-    for enr in enrollments_all:
-        student_id = enr.student_id
-        group_id = enr.group_id
-        fee = enr.kurs_narhi or enr.group.kurs_narxi or 0
+    # TM yo'q enrollment: period to'lovlari fallback (kurs_narhi bilan)
+    paid_by_enr_fallback = {}
+    _enr_without_tm = set(enr_ids_pay) - {t["enrollment_id"] for t in tm_rows_pay}
+    if _enr_without_tm:
+        for row in (
+            _payments_for_scope(center, branch)
+            .filter(
+                paid_date__range=(d_from, d_to),
+                is_deleted=False,
+                enrollment_id__in=list(_enr_without_tm),
+            )
+            .values("enrollment_id")
+            .annotate(total=_Sum("summa"))
+        ):
+            paid_by_enr_fallback[row["enrollment_id"]] = int(row["total"] or 0)
+
+    seen_enr_for_status = set()
+    for tm in tm_rows_pay:
+        enr = enr_by_id.get(tm["enrollment_id"])
+        if not enr:
+            continue
+        fee = int(tm[_fee_f] or 0)
         if fee <= 0:
             continue
-        paid = pay_map.get((student_id, group_id), 0)
+        paid = int(paid_by_tm.get(tm["id"], 0) or 0)
+        seen_enr_for_status.add(enr.id)
         category_name = (
             getattr(getattr(enr.group, "category_obj", None), "name", None)
             or enr.group.get_category_display()
             or "Boshqa"
         )
-        bucket = pay_category_map.setdefault(category_name, {
-            "name": category_name,
-            "total": 0,
-            "paid": 0,
-            "unpaid": 0,
-            "partial": 0,
-        })
+        bucket = pay_category_map.setdefault(
+            category_name,
+            {"name": category_name, "total": 0, "paid": 0, "unpaid": 0, "partial": 0},
+        )
+        bucket["total"] += 1
+        if paid >= fee:
+            pay_toliq += 1
+            bucket["paid"] += 1
+        elif paid > 0:
+            pay_qisman += 1
+            bucket["partial"] += 1
+        else:
+            pay_tolamagan += 1
+            bucket["unpaid"] += 1
+
+    for enr_id in _enr_without_tm:
+        enr = enr_by_id.get(enr_id)
+        if not enr:
+            continue
+        fee = int(enr.kurs_narhi or getattr(enr.group, "kurs_narxi", 0) or 0)
+        if fee <= 0:
+            continue
+        paid = int(paid_by_enr_fallback.get(enr_id, 0) or 0)
+        category_name = (
+            getattr(getattr(enr.group, "category_obj", None), "name", None)
+            or enr.group.get_category_display()
+            or "Boshqa"
+        )
+        bucket = pay_category_map.setdefault(
+            category_name,
+            {"name": category_name, "total": 0, "paid": 0, "unpaid": 0, "partial": 0},
+        )
         bucket["total"] += 1
         if paid >= fee:
             pay_toliq += 1
@@ -2374,33 +2340,31 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
         total_debt = 0
         total_debtors = 0
 
-    # ── O'qituvchi maoshi (oylik chiqim qismi) ─────────────────────
-    teacher_salary_total = 0
-    try:
-        from education.models import TeacherIncome
-        ti_qs = TeacherIncome.objects.filter(
-            center=center, attendance__date__range=(d_from, d_to)
-        )
-        if branch:
-            ti_qs = ti_qs.filter(group__branch=branch)
-        teacher_salary_total = int(ti_qs.aggregate(s=Sum("amount"))["s"] or 0)
-    except Exception:
-        teacher_salary_total = 0
+    # ── O'qituvchi maoshi — _teacher_compensation (TeacherIncome SoT) ──
+    teacher_salary_total = int(
+        _teacher_compensation(center, d_from, d_to, branch=branch) or 0
+    )
 
     # ── Oldingi davr KPI deltalari (har bir karta uchun %) ─────────
     _pf, _pt = period["prev_from"], period["prev_to"]
 
-    # Sof foyda — oldingi davr (teacher_salary ham keyin ayiriladi)
+    # Sof foyda — oldingi davr (xarajat = Expense + CenterExpense)
     try:
-        prev_exp_qs = _expenses_for_center(center).filter(sana__date__range=(_pf, _pt))
-        prev_expenses_val = int(prev_exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
+        prev_expenses_val = int(_monthly_expenses_for_center(center, _pf, _pt) or 0)
     except Exception:
         prev_expenses_val = 0
     prev_net_profit = prev_rev - prev_expenses_val
 
-    # Aktiv o'quvchilar — oldingi davr oxiriga snapshot
+    # Aktiv o'quvchilar — oldingi davr oxirida mavjud enrollment (date_joined emas)
     try:
-        prev_active_students = students_qs.filter(date_joined__date__lte=_pt).count()
+        from core.dashboard_metrics import active_enrollments_for_center as _aefc
+        prev_active_students = (
+            _aefc(center, branch=branch)
+            .filter(created_at__date__lte=_pt)
+            .values("student_id")
+            .distinct()
+            .count()
+        )
     except Exception:
         prev_active_students = 0
 
@@ -2426,18 +2390,10 @@ def _boshqaruv_payload(center, d_from, d_to, branch=None):
     except Exception:
         prev_total_debt = 0
 
-    # O'qituvchi maoshi — oldingi davr
-    prev_teacher_salary = 0
-    try:
-        from education.models import TeacherIncome
-        prev_ti_qs = TeacherIncome.objects.filter(
-            center=center, attendance__date__range=(_pf, _pt)
-        )
-        if branch:
-            prev_ti_qs = prev_ti_qs.filter(group__branch=branch)
-        prev_teacher_salary = int(prev_ti_qs.aggregate(s=Sum("amount"))["s"] or 0)
-    except Exception:
-        prev_teacher_salary = 0
+    # O'qituvchi maoshi — oldingi davr (xuddi shu SoT)
+    prev_teacher_salary = int(
+        _teacher_compensation(center, _pf, _pt, branch=branch) or 0
+    )
 
     # Hodimlar (oldingi davr boshigacha bo'lganlar — snapshot)
     try:

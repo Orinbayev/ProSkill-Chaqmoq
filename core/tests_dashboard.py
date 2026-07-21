@@ -342,7 +342,11 @@ class CenterAnalyticsServiceTests(TestCase):
         current_month_left = data["charts"]["monthly_left"][-1]
         self.assertGreaterEqual(current_month_left, 1)
 
-    def test_boshqaruv_api_monthly_turnover_uses_payment_allocations_for_history(self):
+    def test_boshqaruv_api_monthly_turnover_uses_cash_paid_date(self):
+        """
+        Kassa asosi: paid_date oyi. Allocation boshqa oyga yozilsa ham
+        chart to'lov sanasi oyiga tushadi (KPI daromad bilan bir xil).
+        """
         history_month = (self.today.replace(day=1) - timedelta(days=90)).replace(day=1)
         history_tuition, _ = TuitionMonth.objects.get_or_create(
             center=self.center,
@@ -376,8 +380,10 @@ class CenterAnalyticsServiceTests(TestCase):
         history_label = UZ_MONTHS[history_month.month]
         current_label = UZ_MONTHS[self.today.month]
 
-        self.assertEqual(turnover[labels.index(current_label)], 1_500_000)
-        self.assertGreaterEqual(turnover[labels.index(history_label)], 900_000)
+        # 1_500_000 base (setUp) + 900_000 bugun to'langan
+        self.assertEqual(turnover[labels.index(current_label)], 2_400_000)
+        # Tarixiy oyga allocation bor, lekin kassa chart paid_date ishlatadi
+        self.assertEqual(turnover[labels.index(history_label)], 0)
 
     def test_boshqaruv_api_returns_payment_breakdown_by_category(self):
         language_category = Category.objects.create(center=self.center, name="Language")
@@ -392,11 +398,27 @@ class CenterAnalyticsServiceTests(TestCase):
         )
         language_student = self._student("student.language@test.com", "Lola", "Lang")
         language_enrollment = self._enroll(language_student, language_group, 400_000)
-        TuitionMonth.objects.create(
+        language_tm = TuitionMonth.objects.create(
             center=self.center,
             enrollment=language_enrollment,
             month=self.today.replace(day=1),
             fee_amount=400_000,
+        )
+
+        # TM-asosli donut: to'lovlarni joriy oy TM ga allocation qilamiz
+        from education.models import PaymentAllocation, TuitionMonth as TM
+        mon = self.today.replace(day=1)
+        tm_a = TM.objects.get(enrollment=self.enrollment_a, month=mon)
+        tm_b = TM.objects.get(enrollment=self.enrollment_b, month=mon)
+        tm_c = TM.objects.get(enrollment=self.enrollment_c, month=mon)
+        # a: to'liq (600k fee, 600k+ alloc), c: qisman (500k), b: 0, language: 0
+        pay_a = Payment.objects.filter(enrollment=self.enrollment_a, paid_date=self.today).first()
+        pay_c = Payment.objects.filter(enrollment=self.enrollment_c).first()
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_a, tuition_month=tm_a, amount=600_000
+        )
+        PaymentAllocation.objects.create(
+            center=self.center, payment=pay_c, tuition_month=tm_c, amount=500_000
         )
 
         response = self.client.get(reverse("core:director_boshqaruv_api"))

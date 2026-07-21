@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboard_boshqaruv.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard_boshqaruv.css' %}?v=20260721-att-compact">
 {% endblock %}
 
 {% block content %}
@@ -259,20 +259,26 @@
 
       </div>
 
-      <!-- ═══════════ KUNLIK DAVOMAT NAZORATI ═══════════ -->
-      <section class="bq-att" id="bqAttMonitor" style="display:none;">
-        <div class="bq-att__head">
-          <div class="bq-att__title">
-            <span class="bq-att__ico"><i class="fa-solid fa-clipboard-user"></i></span>
-            <div>
-              <div class="bq-att__title-txt">Kunlik davomat nazorati</div>
-              <div class="bq-att__sub" id="bqAttSub">Bugun jadval bo'yicha darslar</div>
+      <!-- ═══════════ KUNLIK DAVOMAT NAZORATI (ixcham) ═══════════ -->
+      <section class="bq-att-c" id="bqAttMonitor" style="display:none;" aria-label="Kunlik davomat nazorati">
+        <div class="bq-att-c__bar">
+          <div class="bq-att-c__left">
+            <i class="fa-solid fa-clipboard-user bq-att-c__ico"></i>
+            <div class="bq-att-c__titles">
+              <strong>Kunlik davomat</strong>
+              <span id="bqAttSub">Bugun</span>
             </div>
+            <div class="bq-att-c__chips" id="bqAttChips"></div>
           </div>
-          <div class="bq-att__chips" id="bqAttChips"></div>
+          <button type="button" class="bq-att-c__toggle" id="bqAttToggle" aria-expanded="false" title="Ro‘yxat">
+            <span id="bqAttListHint"></span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
         </div>
-        <div class="bq-att__list" id="bqAttList"></div>
-        <div class="bq-att__unsched" id="bqAttUnsched"></div>
+        <div class="bq-att-c__body" id="bqAttBody" hidden>
+          <div class="bq-att-c__list" id="bqAttList"></div>
+          <div class="bq-att-c__unsched" id="bqAttUnsched"></div>
+        </div>
       </section>
 
       <!-- ═══════════ CHARTS COLLAPSE TOGGLE ═══════════ -->
@@ -2439,66 +2445,113 @@ function renderAttendanceMonitor(data){
   const sum = (data && data.summary) || {};
   if(!rows.length && !unsched.length){ sec.style.display='none'; return; }
   sec.style.display='';
-  const mk=(cls,ico,label,val)=>`<span class="bq-att-chip bq-att-chip--${cls}"><i class="fa-solid ${ico}"></i> ${val} ${label}</span>`;
-  const chips=document.getElementById('bqAttChips');
-  if(chips) chips.innerHTML =
-    mk('all','fa-layer-group','guruh', sum.scheduled||0) +
-    mk('ok','fa-circle-check','qilingan', sum.taken||0) +
-    mk('miss','fa-triangle-exclamation','unutilgan', sum.missing||0) +
-    mk('pend','fa-clock','kutilmoqda', sum.pending||0) +
-    ((sum.unscheduled||0) ? mk('uns','fa-gear','jadvalsiz', sum.unscheduled) : '');
-  const statusMeta={
-    missing:{cls:'miss',label:'Davomat qilinmagan!',ico:'fa-triangle-exclamation'},
-    pending:{cls:'pend',label:'Kutilmoqda',ico:'fa-clock'},
-    taken:{cls:'ok',label:'Davomat qilingan',ico:'fa-circle-check'},
+
+  const scheduled = sum.scheduled || rows.length || 0;
+  const taken = sum.taken || 0;
+  const missing = sum.missing || 0;
+  const pending = sum.pending || 0;
+  const unschN = sum.unscheduled || unsched.length || 0;
+
+  const sub = document.getElementById('bqAttSub');
+  if(sub){
+    const d = (data && data.date) ? data.date.split('-').reverse().join('.') : '';
+    sub.textContent = d ? d : 'Bugun';
+  }
+
+  const chip = (cls, val, label) =>
+    `<span class="bq-att-c-chip bq-att-c-chip--${cls}"><b>${val}</b> ${label}</span>`;
+  const chips = document.getElementById('bqAttChips');
+  if(chips){
+    chips.innerHTML =
+      chip('all', scheduled, 'guruh') +
+      chip('ok', taken, 'ok') +
+      chip('miss', missing, 'unutilgan') +
+      chip('pend', pending, 'kutilmoqda') +
+      (unschN ? chip('uns', unschN, 'jadvalsiz') : '');
+  }
+
+  const hint = document.getElementById('bqAttListHint');
+  if(hint){
+    if(missing) hint.textContent = missing + ' unutilgan';
+    else if(pending) hint.textContent = pending + ' kutilmoqda';
+    else if(rows.length) hint.textContent = taken + '/' + scheduled;
+    else hint.textContent = unschN ? unschN + ' jadvalsiz' : '';
+  }
+
+  // Auto-open if there are missing attendances
+  const body = document.getElementById('bqAttBody');
+  const toggle = document.getElementById('bqAttToggle');
+  if(body && toggle && missing > 0){
+    body.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    sec.classList.add('is-open');
+  }
+
+  if(toggle && !toggle._bqBound){
+    toggle._bqBound = true;
+    toggle.addEventListener('click', () => {
+      const open = body && !body.hidden;
+      if(body) body.hidden = open;
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      sec.classList.toggle('is-open', !open);
+    });
+  }
+
+  const statusMeta = {
+    missing: { cls: 'miss', label: 'Unutilgan', ico: 'fa-triangle-exclamation' },
+    pending: { cls: 'pend', label: 'Kutilmoqda', ico: 'fa-clock' },
+    taken:   { cls: 'ok',   label: 'Qilingan',   ico: 'fa-check' },
   };
-  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const list=document.getElementById('bqAttList');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+
+  const list = document.getElementById('bqAttList');
   if(!list) return;
-  list.innerHTML = rows.map(r=>{
-    const m=statusMeta[r.status]||statusMeta.pending;
-    let detail='';
-    if(r.status==='taken'){
-      detail=`<div class="bq-att-row__stats">
-        <span class="bq-att-stat bq-att-stat--p">${r.present} keldi</span>
-        ${r.late?`<span class="bq-att-stat bq-att-stat--l">${r.late} kech</span>`:''}
-        ${r.absent_excused?`<span class="bq-att-stat bq-att-stat--e">${r.absent_excused} sababli</span>`:''}
-        ${r.absent_unexcused?`<span class="bq-att-stat bq-att-stat--u">${r.absent_unexcused} sababsiz</span>`:''}
-      </div>`;
-      if(r.absentees && r.absentees.length){
-        detail+=`<div class="bq-att-row__abs">`+r.absentees.map(a=>{
-          const t=a.status.indexOf('unexcused')>=0?'u':(a.status==='late'?'l':'e');
-          return `<span class="bq-att-abs bq-att-abs--${t}">${esc(a.name)} · ${esc(a.status_label)}</span>`;
-        }).join('')+`</div>`;
+
+  if(!rows.length){
+    list.innerHTML = '<div class="bq-att-c__empty">Bugun jadval bo‘yicha dars yo‘q</div>';
+  } else {
+    const ordered = rows.slice().sort((a,b)=>{
+      const o = { missing: 0, pending: 1, taken: 2 };
+      return (o[a.status] ?? 9) - (o[b.status] ?? 9);
+    });
+    list.innerHTML = ordered.map(r => {
+      const m = statusMeta[r.status] || statusMeta.pending;
+      let right = `<span class="bq-att-c-tag bq-att-c-tag--${m.cls}"><i class="fa-solid ${m.ico}"></i> ${m.label}</span>`;
+      if(r.status === 'taken'){
+        right = `<span class="bq-att-c-mini">
+          <em class="p">${r.present||0}</em>
+          ${r.late ? `<em class="l">${r.late}k</em>` : ''}
+          ${r.absent_unexcused ? `<em class="u">${r.absent_unexcused}s</em>` : ''}
+          ${r.absent_excused ? `<em class="e">${r.absent_excused}s</em>` : ''}
+        </span>` + right;
       }
-    } else {
-      detail=`<div class="bq-att-row__note">${m.label}</div>`;
-    }
-    return `<div class="bq-att-row bq-att-row--${m.cls}">
-      <div class="bq-att-row__main">
-        <div class="bq-att-row__badge"><i class="fa-solid ${m.ico}"></i></div>
-        <div class="bq-att-row__info">
-          <div class="bq-att-row__grp">${esc(r.group_name)}</div>
-          <div class="bq-att-row__meta">${esc(r.teacher_name)} · ${esc(r.start_time)}${r.room?(' · '+esc(r.room)):''}</div>
-        </div>
-      </div>
-      <div class="bq-att-row__detail">${detail}</div>
-    </div>`;
-  }).join('');
-  const uEl=document.getElementById('bqAttUnsched');
+      return `<div class="bq-att-c-row bq-att-c-row--${m.cls}">
+        <span class="bq-att-c-row__t">${esc(r.start_time || '—')}</span>
+        <span class="bq-att-c-row__g">${esc(r.group_name)}</span>
+        <span class="bq-att-c-row__m">${esc(r.teacher_name)}</span>
+        ${right}
+      </div>`;
+    }).join('');
+  }
+
+  const uEl = document.getElementById('bqAttUnsched');
   if(uEl){
     if(unsched.length){
-      const SCHED_BASE='{% url "education:group_schedule_manage" 999999 %}';
-      const SCHED=(gid)=>SCHED_BASE.replace('999999', gid);
-      uEl.innerHTML=
-        '<button type="button" class="bq-att-unsched__toggle" onclick="this.parentElement.classList.toggle(\'open\')">'+
-          '<span class="bq-att-unsched__toggle-l"><i class="fa-solid fa-gear"></i> '+unsched.length+' guruh jadvalsiz — sozlash uchun bosing</span>'+
-          '<i class="fa-solid fa-chevron-down bq-att-unsched__chev"></i>'+
-        '</button>'+
-        '<div class="bq-att-unsched__body">'+
-        unsched.map(u=>`<a class="bq-att-unsched__item" href="${SCHED(u.group_id)}"><span class="bq-att-unsched__nm">${esc(u.group_name)} · ${esc(u.teacher_name)}</span><span class="bq-att-unsched__btn"><i class="fa-solid fa-calendar-plus"></i> Belgilash</span></a>`).join('')+
-        '</div>';
-    } else { uEl.innerHTML=''; }
+      const SCHED_BASE = '{% url "education:group_schedule_manage" 999999 %}';
+      const SCHED = (gid) => SCHED_BASE.replace('999999', gid);
+      uEl.innerHTML =
+        `<div class="bq-att-c-uns">
+          <span class="bq-att-c-uns__lbl"><i class="fa-solid fa-gear"></i> ${unsched.length} jadvalsiz</span>
+          <div class="bq-att-c-uns__links">` +
+        unsched.map(u =>
+          `<a href="${SCHED(u.group_id)}" title="${esc(u.teacher_name)}">${esc(u.group_name)}</a>`
+        ).join('') +
+        `</div></div>`;
+    } else {
+      uEl.innerHTML = '';
+    }
   }
 }
 

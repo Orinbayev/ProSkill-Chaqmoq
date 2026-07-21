@@ -49,14 +49,35 @@ def attendance_for_center(center):
     )
 
 
-def active_enrollments_for_center(center):
-    return Enrollment.objects.filter(
-        center=center,
+def active_enrollments_for_center(center, branch=None):
+    """
+    Faol o'quvchi SoT: active enrollment + student/group not archived/deleted.
+    """
+    from django.db.models import Q as _Q
+
+    qs = Enrollment.objects.filter(
         is_active=True,
         is_deleted=False,
         student__is_archived=False,
         group__is_archived=False,
         group__is_deleted=False,
+    ).filter(
+        _Q(center=center)
+        | _Q(center__isnull=True, group__center=center)
+        | _Q(center__isnull=True, student__center=center)
+    )
+    if branch is not None:
+        qs = qs.filter(group__branch=branch)
+    return qs
+
+
+def count_active_students(center, branch=None) -> int:
+    """Noyob faol o'quvchilar soni — barcha dashboard/API bir xil."""
+    return (
+        active_enrollments_for_center(center, branch=branch)
+        .values("student_id")
+        .distinct()
+        .count()
     )
 
 

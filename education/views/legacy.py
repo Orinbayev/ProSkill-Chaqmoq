@@ -308,65 +308,13 @@ def _student_enrollment_catalog(enrollments: list[Enrollment]) -> dict:
 
 
 def get_student_total_debt(student, center=None) -> int:
-    from django.db.models import Q as _Q
-    from django.utils import timezone
-    from education.models import Enrollment, TuitionMonth
-    _center_q = (
-        _Q(center=center)
-        | _Q(center__isnull=True, group__center=center)
-        | _Q(center__isnull=True, student__center=center)
-    )
-    active_enrs = list(
-        Enrollment.objects.filter(
-            student=student,
-            is_active=True,
-            student__is_archived=False,
-            group__is_archived=False,
-            group__is_deleted=False,
-        ).filter(_center_q)
-    )
-    _inactive_enr_ids = (
-        TuitionMonth.objects
-        .filter(
-            enrollment__student=student,
-            enrollment__is_active=False,
-            is_deleted=False,
-            enrollment__student__is_archived=False,
-            enrollment__group__is_archived=False,
-            enrollment__group__is_deleted=False,
-        )
-        .values_list("enrollment_id", flat=True)
-        .distinct()
-    )
-    inactive_enrs = list(
-        Enrollment.objects.filter(
-            id__in=_inactive_enr_ids,
-            student__is_archived=False,
-            group__is_archived=False,
-            group__is_deleted=False,
-        ).filter(_center_q)
-    )
-    all_enrs = active_enrs + inactive_enrs
-    if not all_enrs:
-        return 0
+    """
+    O'quvchi ochiq qarzi — yagona manba: student_open_debt_total
+    (barcha oylar TM, credit ayirilgan, guruhlar o'rtasida netlanmaydi).
+    """
+    from education.services.tuition import student_open_debt_total
 
-    today = timezone.localdate()
-    selected_from = today.replace(day=1)
-    selected_to = today
-    from education.services.tuition import month_range_starts, calculate_enrollment_debt_snapshots
-    period_months = month_range_starts(selected_from, selected_to)
-
-    snapshots = calculate_enrollment_debt_snapshots(
-        all_enrs, period_months, cumulative_up_to=selected_to,
-        # O'tgan oyga TuitionMonth yozuvi bo'lmasa avtomatik (virtual) qarz
-        # yozilmaydi — faqat haqiqiy yozuvlar hisoblanadi.
-        synthesize_past_virtual=False,
-    )
-    total_debt = 0
-    for snap in snapshots.values():
-        total_debt += int(snap.get("debt", 0) or 0)
-        total_debt += int(snap.get("previous_unpaid", 0) or 0)
-    return total_debt
+    return int(student_open_debt_total(student, center=center) or 0)
 
 
 
@@ -2772,19 +2720,22 @@ def group_month_attendance(request, group_id):
             a = att_map.get((student.id, d))
             if not a:
                 status = "none"
-            elif getattr(a, "present", False):
-                status = "present"
+            elif (
+                getattr(a, "status", None) == "present"
+                or getattr(a, "present", False)
+                or getattr(a, "forced", False)
+            ):
+                # Dashboard present_filter bilan bir xil: present | forced = kelgan
+                if getattr(a, "forced", False) and not getattr(a, "present", False) and getattr(a, "status", None) != "present":
+                    status = "forced"
+                    forced_count += 1
+                else:
+                    status = "present"
                 present_count += 1
             elif getattr(a, "status", None) == "absent_excused":
-                # Sababli kelmagan — pul yozilmaydi
                 status = "absent_excused"
-                forced_count += 1
-            elif getattr(a, "forced", False):
-                # Eski "forced" yozuvlar — ko'rsatish uchun saqlanadi
-                status = "forced"
-                forced_count += 1
+                absent_count += 1
             else:
-                # Sababsiz kelmagan — pul yoziladi
                 status = "absent"
                 absent_count += 1
 
@@ -4122,11 +4073,12 @@ def _get_payment_dashboard_data(request):
     cur_month_start = today.replace(day=1)
 
     # SoftDelete default manager odatda is_deleted=False; aniq qilamiz.
-    base_payment_qs = (
-        Payment.objects.filter(center=center, is_deleted=False)
-        if center
-        else Payment.objects.none()
-    )
+    # Legacy center=null to'lovlar ham (dashboard bilan bir xil scope)
+    if center:
+        from core.dashboard_metrics import payments_for_center as _pfc
+        base_payment_qs = _pfc(center).filter(is_deleted=False)
+    else:
+        base_payment_qs = Payment.objects.none()
     total_income = base_payment_qs.aggregate(s=Sum("summa"))["s"] or 0
 
     q = (request.GET.get("q") or "").strip()

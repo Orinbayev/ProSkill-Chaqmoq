@@ -458,13 +458,24 @@ def _center_month_attendance_rate(center: Center, start: date, end: date) -> flo
 
 
 def _center_total_debt(center: Center, *, as_of: date | None = None) -> int:
-    student_ids = list(
-        Enrollment.objects.filter(center=center, is_active=True)
-        .values_list("student_id", flat=True)
-        .distinct()
-    )
-    debt_map, _ = _student_debt_snapshot(center, student_ids, as_of=as_of)
-    return int(sum(debt_map.values()))
+    """
+    Markaz qarzi — Qarzdorlar / boshqaruv KPI bilan bir xil manba.
+    """
+    try:
+        from education.services.tuition import center_month_debt_summary, month_first_day
+        from django.utils import timezone as _tz
+
+        day = as_of or _tz.localdate()
+        total, _ = center_month_debt_summary(center, [month_first_day(day)])
+        return int(total or 0)
+    except Exception:
+        student_ids = list(
+            Enrollment.objects.filter(center=center, is_active=True)
+            .values_list("student_id", flat=True)
+            .distinct()
+        )
+        debt_map, _ = _student_debt_snapshot(center, student_ids, as_of=as_of)
+        return int(sum(debt_map.values()))
 
 
 def get_student_full_info(center_id, query, *, viewer=None, limit: int = 10, as_of: date | None = None) -> dict:

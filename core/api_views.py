@@ -248,10 +248,18 @@ def manager_dashboard_api(request):
     prev_from_d = prev_to_d - timedelta(days=period_days - 1)
 
     # ── KPI ─────────────────────────────────────────────────────────
+    from core.dashboard_metrics import active_enrollments_for_center, count_active_students
+
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
-    # Tanlangan davr oxiridagi aktiv o'quvchilar (snapshot)
-    active_students = students_qs.filter(date_joined__date__lte=d_to).count()
-    prev_active_students = students_qs.filter(date_joined__date__lte=prev_to_d).count()
+    # Yagona SoT: faol enrollment (date_joined emas)
+    active_students = count_active_students(center)
+    prev_active_students = (
+        active_enrollments_for_center(center)
+        .filter(created_at__date__lte=prev_to_d)
+        .values("student_id")
+        .distinct()
+        .count()
+    )
 
     new_this_month = students_qs.filter(
         date_joined__date__range=(d_from, d_to)

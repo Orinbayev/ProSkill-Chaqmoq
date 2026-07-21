@@ -182,6 +182,73 @@ def center_month_debt_summary(center, months, branch=None):
     return total, len(per_student)
 
 
+def student_open_debt_total(student, center=None) -> int:
+    """
+    O'quvchining ochiq qarzi (barcha oylar, haqiqiy TM).
+    Har guruh alohida: max(0, sum(fee-paid) - credit_balance).
+    To'lov modal / redirect / bot uchun yagona manba.
+    """
+    from django.db.models import Sum as _Sum
+
+    center_q = Q()
+    if center is not None:
+        center_q = (
+            Q(center=center)
+            | Q(center__isnull=True, group__center=center)
+            | Q(center__isnull=True, student__center=center)
+        )
+
+    enrs = list(
+        Enrollment.all_objects.filter(
+            student=student,
+            student__is_archived=False,
+            group__is_archived=False,
+            group__is_deleted=False,
+        )
+        .filter(center_q)
+        .filter(Q(is_active=True) | Q(is_active=False) | Q(is_deleted=True))
+        .only("id", "credit_balance")
+    )
+    if not enrs:
+        return 0
+
+    enr_ids = [e.id for e in enrs]
+    fee_field = tuition_month_fee_field()
+    today_mk = timezone.localdate().strftime("%Y-%m")
+    tm_rows = list(
+        TuitionMonth.objects.filter(
+            enrollment_id__in=enr_ids,
+            is_deleted=False,
+        ).values_list("id", "enrollment_id", "month", fee_field)
+    )
+    if not tm_rows:
+        return 0
+
+    paid_map = {
+        r["tuition_month_id"]: int(r["paid"] or 0)
+        for r in PaymentAllocation.objects.filter(
+            tuition_month_id__in=[t[0] for t in tm_rows],
+            is_deleted=False,
+            payment__is_deleted=False,
+        )
+        .values("tuition_month_id")
+        .annotate(paid=_Sum("amount"))
+    }
+    gross_by_enr: dict[int, int] = {}
+    for tmid, enrid, mon, fee in tm_rows:
+        if mon.strftime("%Y-%m") > today_mk and paid_map.get(tmid, 0) == 0:
+            continue
+        d = max(0, int(fee or 0) - paid_map.get(tmid, 0))
+        if d:
+            gross_by_enr[enrid] = gross_by_enr.get(enrid, 0) + d
+
+    credit_map = {e.id: int(getattr(e, "credit_balance", 0) or 0) for e in enrs}
+    total = 0
+    for enrid, gross in gross_by_enr.items():
+        total += max(0, gross - credit_map.get(enrid, 0))
+    return int(total)
+
+
 def center_month_debt_series(center, months, branch=None) -> dict:
     """
     Oyma-oy qarz yig'indisi (chart uchun). 2–3 SQL so'rov — snapshot N×M emas.
