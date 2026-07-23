@@ -2,7 +2,9 @@ services:
   - type: web
     name: ProSkill-Chaqmoq
     env: python
-    plan: starter
+    # Standard = 2GB / 1 CPU ($25). Dashboard'da upgrade qilingan — bu yerda ham
+    # 'standard' turishi shart, aks holda blueprint sync 'starter'ga qaytaradi.
+    plan: standard
     region: frankfurt
     
     # ==================== BUILD COMMAND ====================
@@ -28,8 +30,12 @@ services:
       - key: TELEGRAM_BOT_ENABLED
         value: "true"
 
+      # $25 Standard (2GB / 1 CPU): bot + 2 gunicorn worker bemalol sig'adi.
+      # 2 worker = biri recycle/band bo'lganda ikkinchisi javob beradi ->
+      # recycle-502, saturation-502 va cold-start starvation yo'qoladi.
+      # (Metrics'da memory bemalol bo'lsa, keyin 3'ni ham sinash mumkin.)
       - key: WEB_CONCURRENCY
-        value: "1"
+        value: "2"
 
       # Free tier: 2 thread yetarli emas edi — SuperAdmin markaz yaratish kabi
       # uzunroq POST'lar healthcheck bilan to'qnashib qotib qolar edi.
