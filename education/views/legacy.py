@@ -11588,7 +11588,7 @@ def student_exam_report(request, student_id: int):
     if viewer.role not in ("student", "parent", "teacher", "director", "manager") and not viewer.is_superuser:
         return HttpResponseForbidden("Ruxsat yo'q.")
 
-    from education.models import ExamResult
+    from education.models import ExamResult, CertificateRecord
     from education.services.exam_service import get_student_exam_summary
     from education.services.ranking_service import get_student_academic_summaries
 
@@ -11642,7 +11642,7 @@ def month_preview(request):
 
     enrollments_qs = (
         Enrollment.objects
-        .select_related("student", "group")
+        .select_related("student", "group", "center", "group__center")
         .filter(is_active=True, student__is_archived=False, group__is_archived=False, group__is_deleted=False)
     )
     if center:
@@ -11650,10 +11650,18 @@ def month_preview(request):
     if group_id:
         enrollments_qs = enrollments_qs.filter(group_id=group_id)
 
+    enrollment_list = list(enrollments_qs)
+
+    # PERF: har enrollment uchun alohida GroupSchedule / StudentGroupHistory
+    # so'rovi qilinmasin — qarzdorlar sahifasidagi bilan bir xil preload.
+    preload_enrollment_history_starts(enrollment_list)
+    from education.services.tuition import preload_group_schedules
+    preload_group_schedules({e.group_id for e in enrollment_list if e.group_id})
+
     existing_tm = {
         tm.enrollment_id: tm
         for tm in TuitionMonth.all_objects.filter(
-            enrollment__in=enrollments_qs, month=m_start, is_deleted=False
+            enrollment__in=enrollment_list, month=m_start, is_deleted=False
         )
     }
 
@@ -11662,12 +11670,12 @@ def month_preview(request):
     total_prorated = 0
     total_reconciled = 0
 
-    for enr in enrollments_qs:
+    for enr in enrollment_list:
         tm = existing_tm.get(enr.id)
         current_fee = int(getattr(tm, fee_field, 0) or 0) if tm else 0
         prorated = int(prorated_monthly_fee(enr, m_start) or 0)
-        reconciled = int(attendance_based_fee(enr, m_start) or 0)
         billable = billable_attendance_count(enr, m_start)
+        reconciled = int(attendance_based_fee(enr, m_start, _billable=billable) or 0)
 
         start_d = enrollment_start_date(enr)
         period_start = max(start_d, m_start)

@@ -975,16 +975,20 @@ def prorated_monthly_fee(enrollment: Enrollment, month: date) -> int:
     )
 
 
-def attendance_based_fee(enrollment: Enrollment, month: date) -> int:
+def attendance_based_fee(enrollment: Enrollment, month: date, _billable=None) -> int:
     """
     Haqiqiy davomatga qarab to'lov summasini hisoblaydi (reconcile uchun).
     fee = min(billable_lessons × per_lesson, effective_student_payable_amount)
+
+    _billable: chaqiruvchi billable_attendance_count'ni allaqachon hisoblab bergan
+    bo'lsa (bir xil enrollment+oy uchun 2-marta COUNT qilinmasin), shu uzatiladi.
+    None bo'lsa — eski xatti-harakat: ichkarida qayta hisoblanadi.
     """
     effective_price = effective_student_payable_amount(enrollment)
     if effective_price <= 0:
         return 0
 
-    billable = billable_attendance_count(enrollment, month)
+    billable = _billable if _billable is not None else billable_attendance_count(enrollment, month)
     billing = calculate_student_month_billing(
         effective_price,
         _monthly_lessons_count(enrollment),
