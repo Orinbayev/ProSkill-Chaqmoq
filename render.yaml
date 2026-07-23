@@ -36,10 +36,12 @@ services:
       - key: GUNICORN_THREADS
         value: "4"
 
-      # Markaz yaratish: parol xeshlash + subscription sync + feature sync
-      # Starter CPU'da 60s yetarli (subscription cache + fast-path redirect bilan).
+      # Og'ir hisobot sahifalari (qarzdorlar / finance month-preview) ko'p
+      # o'quvchili markazda sekin bo'lishi mumkin. 60s o'rniga 120s: worker
+      # timeout -> 502 o'rniga sekin-lekin-natija qaytaradi. Markaz yaratish
+      # (parol xeshlash + subscription/feature sync) ham bemalol sig'adi.
       - key: GUNICORN_TIMEOUT
-        value: "60"
+        value: "120"
 
       # Worker recycle kamroq bo'lsin — har 500 requestda restart 502 berardi.
       - key: GUNICORN_MAX_REQUESTS
