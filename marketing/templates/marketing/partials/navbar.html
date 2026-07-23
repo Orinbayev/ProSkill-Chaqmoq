@@ -20,10 +20,37 @@
             <div class="mobile-action-row">
                 <a class="btn btn-primary btn-block" href="{{ site_content.primary_cta_url }}">{{ site_content.primary_cta_text }}</a>
                 <a class="btn btn-dark btn-block" href="/hisob/login/">{{ ui.menu_login }}</a>
+                <div class="chq-dl-mobile" aria-label="Kompyuterga yuklab olish">
+                    <div class="chq-dl-mobile__head"><i class="bi bi-laptop" aria-hidden="true"></i> Kompyuterga yuklab olish</div>
+                    <a class="chq-dl-mobile__link" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Windows-Setup.exe"><i class="bi bi-windows" aria-hidden="true"></i> Windows (Setup)</a>
+                    <a class="chq-dl-mobile__link" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Windows-Portable.exe"><i class="bi bi-windows" aria-hidden="true"></i> Windows (Portativ)</a>
+                    <a class="chq-dl-mobile__link" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Mac.dmg"><i class="bi bi-apple" aria-hidden="true"></i> macOS (.dmg)</a>
+                </div>
             </div>
         </nav>
 
         <div class="nav-actions">
+            <div class="chq-dl" data-chq-dl>
+                <button type="button" class="chq-dl__btn" data-chq-dl-toggle aria-haspopup="true" aria-expanded="false" title="Kompyuterga yuklab olish">
+                    <i class="bi bi-download" aria-hidden="true"></i>
+                    <span class="chq-dl__label">Yuklab olish</span>
+                </button>
+                <div class="chq-dl__menu" role="menu" hidden>
+                    <div class="chq-dl__head"><i class="bi bi-laptop" aria-hidden="true"></i> Kompyuterga o'rnatib ishlatish</div>
+                    <a class="chq-dl__item" role="menuitem" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Windows-Setup.exe">
+                        <i class="bi bi-windows" aria-hidden="true"></i>
+                        <span>Windows<small>O'rnatuvchi (Setup) · tavsiya etiladi</small></span>
+                    </a>
+                    <a class="chq-dl__item" role="menuitem" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Windows-Portable.exe">
+                        <i class="bi bi-windows" aria-hidden="true"></i>
+                        <span>Windows<small>Portativ (o'rnatishsiz ishlaydi)</small></span>
+                    </a>
+                    <a class="chq-dl__item" role="menuitem" href="https://github.com/Orinbayev/chaqmoq-downloads/releases/download/v1.0/ChaqmoqApp-Mac.dmg">
+                        <i class="bi bi-apple" aria-hidden="true"></i>
+                        <span>macOS<small>.dmg fayli</small></span>
+                    </a>
+                </div>
+            </div>
             <a class="nav-demo-link" href="{{ routes.demo }}">{{ ui.menu_demo }}</a>
             <a class="btn btn-dark nav-login-btn" href="/hisob/login/">{{ ui.menu_login }}</a>
         </div>
@@ -35,3 +62,77 @@
         </button>
     </div>
 </header>
+
+<style>
+/* ── Kompyuterga yuklab olish (desktop dropdown) ─────────────────── */
+.chq-dl { position: relative; display: inline-flex; }
+.chq-dl__btn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .5rem .9rem; border-radius: 999px; cursor: pointer;
+    font: inherit; font-weight: 600; font-size: .9rem; line-height: 1;
+    color: #1f2937; background: #fffbeb;
+    border: 1.5px solid #fcd34d; transition: background .15s, border-color .15s, transform .1s;
+}
+.chq-dl__btn:hover { background: #fef3c7; border-color: #f59e0b; }
+.chq-dl__btn:active { transform: translateY(1px); }
+.chq-dl__btn .bi-download { color: #d97706; font-size: 1.05rem; }
+.chq-dl__menu {
+    position: absolute; top: calc(100% + 10px); right: 0; z-index: 1200;
+    min-width: 268px; padding: 8px; border-radius: 14px;
+    background: #fff; border: 1px solid #eceff3;
+    box-shadow: 0 18px 44px rgba(15,23,42,.16);
+}
+.chq-dl__menu[hidden] { display: none; }
+.chq-dl__head {
+    display: flex; align-items: center; gap: .4rem;
+    padding: 6px 10px 10px; font-size: .72rem; font-weight: 700;
+    letter-spacing: .02em; text-transform: uppercase; color: #94a3b8;
+}
+.chq-dl__item {
+    display: flex; align-items: center; gap: .7rem;
+    padding: 10px 10px; border-radius: 10px; text-decoration: none;
+    color: #1f2937; transition: background .12s;
+}
+.chq-dl__item:hover { background: #f8fafc; }
+.chq-dl__item .bi { font-size: 1.35rem; color: #334155; width: 1.4rem; text-align: center; }
+.chq-dl__item span { display: flex; flex-direction: column; font-weight: 600; font-size: .92rem; }
+.chq-dl__item small { font-weight: 500; font-size: .76rem; color: #94a3b8; margin-top: 2px; }
+
+/* ── Mobil (menyu ichida) ─────────────────────────────────────────── */
+.chq-dl-mobile { margin-top: 10px; padding-top: 12px; border-top: 1px solid #eceff3; }
+.chq-dl-mobile__head {
+    display: flex; align-items: center; gap: .4rem; margin-bottom: 8px;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .02em; color: #94a3b8;
+}
+.chq-dl-mobile__link {
+    display: flex; align-items: center; gap: .55rem;
+    padding: 10px 12px; margin-bottom: 6px; border-radius: 10px;
+    background: #f8fafc; color: #1f2937; text-decoration: none;
+    font-weight: 600; font-size: .9rem;
+}
+.chq-dl-mobile__link .bi { font-size: 1.1rem; color: #334155; }
+/* Mobil blok faqat mobil menyuda; desktop dropdown faqat kata ekranda */
+@media (max-width: 991px) { .chq-dl { display: none; } }
+@media (min-width: 992px) { .chq-dl-mobile { display: none; } }
+</style>
+
+<script>
+(function () {
+    var root = document.querySelector('[data-chq-dl]');
+    if (!root) return;
+    var btn = root.querySelector('[data-chq-dl-toggle]');
+    var menu = root.querySelector('.chq-dl__menu');
+    if (!btn || !menu) return;
+    function close() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    function toggle(e) {
+        e.preventDefault(); e.stopPropagation();
+        var open = menu.hidden;
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    btn.addEventListener('click', toggle);
+    document.addEventListener('click', function (e) { if (!root.contains(e.target)) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+</script>
