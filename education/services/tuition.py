@@ -1575,7 +1575,7 @@ def _auto_create_zero_payment(enrollment, month: date) -> None:
         pass
 
 
-def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None, _month_closed=None) -> TuitionMonth:
+def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None, _month_closed=None, _existing_tm=None) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
     Fee = prorated_monthly_fee (qisman oyni hisobga oladi, cheat-proof).
@@ -1587,14 +1587,20 @@ def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_i
     fee = int(prorated_monthly_fee(enrollment, month) or 0)
     fee_field = tuition_month_fee_field()
 
-    tm, created = TuitionMonth.all_objects.get_or_create(
-        enrollment=enrollment,
-        month=month,
-        defaults={
-            "center": getattr(enrollment, "center", None),
-            fee_field: fee,
-        },
-    )
+    if _existing_tm is not None:
+        # Chaqiruvchi bu enrollment+oy uchun mavjud (o'chirilmagan) TM ni oldindan
+        # yuklab bergan — har enrollment uchun qayta get_or_create SELECT qilmaymiz.
+        # created=False (mavjud yozuv). Faqat o'chirilmagan TM uzatilishi shart.
+        tm, created = _existing_tm, False
+    else:
+        tm, created = TuitionMonth.all_objects.get_or_create(
+            enrollment=enrollment,
+            month=month,
+            defaults={
+                "center": getattr(enrollment, "center", None),
+                fee_field: fee,
+            },
+        )
     # Quyidagi sabablar bilan o'chirilgan yoki saqlangan oylar saqlanmesiga kerak:
     # - "manual_cleared": foydalanuvchi ataylab o'chirgan
     # - "cleanup_*": reset skriptlari tozalagan (reset_june_debts.py va boshqalar)

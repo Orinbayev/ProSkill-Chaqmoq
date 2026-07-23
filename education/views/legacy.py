@@ -3068,13 +3068,17 @@ def qarzdorlar_home(request):
     if _active_ids:
         from education.models import TuitionMonth as _TM, Payment as _Pay, PaymentAllocation as _PA
         from django.db.models import Sum as _Sum
-        _existing_tm_enr_ids = set(
-            _TM.objects.filter(
+        # PERF: TM obyektlarini map qilib olamiz — _etm loopida har enrollment
+        # uchun qayta get_or_create SELECT qilinmasin (_existing_tm bilan uzatiladi).
+        _existing_tm_map = {
+            tm.enrollment_id: tm
+            for tm in _TM.objects.filter(
                 enrollment_id__in=_active_ids,
                 month=_cur_month_for_recalc,
                 is_deleted=False,
-            ).values_list("enrollment_id", flat=True)
-        )
+            )
+        }
+        _existing_tm_enr_ids = set(_existing_tm_map.keys())
         # To'lov bor lekin allocation yo'q YOKI yetarli emas → _etm chaqirilsin
         _pay_enr_ids = set(
             _Pay.objects.filter(
@@ -3134,6 +3138,7 @@ def qarzdorlar_home(request):
                 _etm(
                     e, _cur_month_for_recalc,
                     _month_closed=_mc_current if getattr(e, "center_id", None) == center.id else None,
+                    _existing_tm=_existing_tm_map.get(e.id),
                 )
             except Exception:
                 pass
