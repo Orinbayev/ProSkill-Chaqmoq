@@ -55,8 +55,15 @@ else
   GUNICORN_THREADS="${GUNICORN_THREADS:-4}"
   GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-60}"
   GUNICORN_GRACEFUL_TIMEOUT="${GUNICORN_GRACEFUL_TIMEOUT:-30}"
-  # Kam worker restart = kam 502. 500 past edi — worker recycle paytida gateway xatosi.
+  # 1 worker uchun har recycle'da Django qayta yuklanadi (~5-10s) = 502 oynasi.
+  # Dashboard'da GUNICORN_MAX_REQUESTS=500 qo'yilgan edi — juda tez-tez recycle
+  # (~har 500 so'rovda) → foydalanuvchi tasodifiy bo'limlarda 502 ko'radi.
+  # Shu sabab pastki chegara 2000: env undan past bo'lsa ham 2000'ga ko'tariladi.
   GUNICORN_MAX_REQUESTS="${GUNICORN_MAX_REQUESTS:-2000}"
+  if [ "${GUNICORN_MAX_REQUESTS}" -lt 2000 ] 2>/dev/null; then
+    echo "⚙️  GUNICORN_MAX_REQUESTS=${GUNICORN_MAX_REQUESTS} juda past — 2000'ga ko'tarildi (1-worker recycle 502'ni kamaytirish)."
+    GUNICORN_MAX_REQUESTS=2000
+  fi
   GUNICORN_MAX_REQUESTS_JITTER="${GUNICORN_MAX_REQUESTS_JITTER:-100}"
   GUNICORN_KEEPALIVE="${GUNICORN_KEEPALIVE:-5}"
 
@@ -67,10 +74,14 @@ else
   # exec ishlatmaymiz: trap botni to'g'ri o'chirsin; gunicorn foreground.
   start_bot_delayed
 
+  # --preload: ilova master jarayonda bir marta yuklanadi; worker recycle/qayta
+  # ishga tushishda fork qilinadi (Django qayta import qilinmaydi) → reboot ~<1s,
+  # 1-worker recycle 502 oynasi deyarli yo'qoladi.
   python3 -m gunicorn config.wsgi:application \
     --bind "0.0.0.0:$PORT" \
     --workers "$WEB_CONCURRENCY" \
     --threads "$GUNICORN_THREADS" \
+    --preload \
     --timeout "$GUNICORN_TIMEOUT" \
     --graceful-timeout "$GUNICORN_GRACEFUL_TIMEOUT" \
     --keep-alive "$GUNICORN_KEEPALIVE" \
