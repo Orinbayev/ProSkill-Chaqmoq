@@ -242,35 +242,69 @@ html[data-role-theme="light"] .uv-parent-status--unlinked { background: rgba(239
 
 /* Amallar dropdown */
 .uv-actions-btn {
-  padding: 6px 14px; border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 11px;
   border: 1px solid var(--uv-border); background: var(--uv-card2);
-  font-size: .78rem; font-weight: 700; color: var(--uv-text);
-  cursor: pointer; transition: background .15s;
-  position: relative;
+  font-family: inherit; font-size: .78rem; font-weight: 700; color: var(--uv-text);
+  cursor: pointer; position: relative; line-height: 1;
+  transition: background .18s, border-color .18s, color .18s;
 }
-.uv-actions-btn:hover { background: rgba(255,255,255,.08); }
-html[data-role-theme="light"] .uv-actions-btn:hover { background: rgba(0,0,0,.05); }
+.uv-actions-btn:hover {
+  background: var(--uv-acc2); border-color: rgba(245,158,11,.35); color: var(--uv-accent);
+}
+.uv-actions-btn i { font-size: .6rem; transition: transform .22s ease; opacity: .7; }
+.uv-actions-btn.is-open { background: var(--uv-acc2); border-color: rgba(245,158,11,.4); color: var(--uv-accent); }
+.uv-actions-btn.is-open i { transform: rotate(180deg); opacity: 1; }
+
 .uv-drop {
-  position: absolute; right: 0; top: calc(100% + 6px);
-  min-width: 180px; border-radius: 14px; padding: 6px;
+  position: absolute; right: 0; top: calc(100% + 8px);
+  min-width: 216px; border-radius: 16px; padding: 7px;
   background: var(--uv-bg1); border: 1px solid var(--uv-border);
-  box-shadow: 0 12px 32px rgba(0,0,0,.4);
+  box-shadow: 0 18px 44px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35);
   z-index: 500; display: none;
+  transform-origin: top right;
 }
-html[data-role-theme="light"] .uv-drop { background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
-.uv-drop.open { display: block; }
+html[data-role-theme="light"] .uv-drop {
+  background: #fff; border-color: rgba(148,163,184,.22);
+  box-shadow: 0 14px 36px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.06);
+}
+.uv-drop.open { display: block; animation: uvDropIn .16s cubic-bezier(.16,1,.3,1); }
+@keyframes uvDropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* button + a bir xil ko'rinsin — brauzer default button stilini to'liq o'chiramiz */
 .uv-drop-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 12px; border-radius: 9px;
-  font-size: .8rem; font-weight: 600; color: var(--uv-text);
-  text-decoration: none; cursor: pointer;
-  transition: background .13s;
+  -webkit-appearance: none; appearance: none;
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; margin: 0; box-sizing: border-box;
+  padding: 10px 12px; border: 0; border-radius: 11px;
+  background: transparent;
+  font-family: inherit; font-size: .81rem; font-weight: 600; line-height: 1.2;
+  color: var(--uv-text); text-align: left; text-decoration: none;
+  white-space: nowrap; cursor: pointer;
+  transition: background .15s, color .15s;
 }
-.uv-drop-item:hover { background: rgba(245,158,11,.1); color: var(--uv-accent); }
-html[data-role-theme="light"] .uv-drop-item:hover { background: rgba(245,158,11,.08); }
-.uv-drop-item i { color: var(--uv-muted); width: 16px; text-align: center; }
-.uv-drop-item:hover i { color: var(--uv-accent); }
-.uv-drop-hr { height: 1px; background: var(--uv-border2); margin: 4px 0; }
+.uv-drop-item + .uv-drop-item { margin-top: 2px; }
+.uv-drop-item i {
+  flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .78rem; color: var(--uv-muted);
+  background: var(--uv-card2); border: 1px solid var(--uv-border2);
+  transition: background .15s, color .15s, border-color .15s;
+}
+html[data-role-theme="light"] .uv-drop-item i { background: #f1f5f9; }
+.uv-drop-item:hover { background: var(--uv-acc2); color: var(--uv-accent); }
+.uv-drop-item:hover i {
+  background: rgba(245,158,11,.18); color: var(--uv-accent); border-color: rgba(245,158,11,.3);
+}
+.uv-drop-item:active { transform: scale(.985); }
+.uv-drop-item:focus-visible { outline: 2px solid var(--uv-accent); outline-offset: -2px; }
+/* Qarz yozish — doim amber urg'u */
+.uv-drop-item--warn i { color: var(--uv-accent); background: var(--uv-acc2); border-color: rgba(245,158,11,.25); }
+.uv-drop-hr { height: 1px; background: var(--uv-border2); margin: 6px 4px; }
 
 /* Info rows */
 .uv-info-body { padding: 6px 0; }
@@ -635,16 +669,16 @@ html[data-role-theme="light"] .uv-hero-stat strong { color: #1e293b; }
           <div class="uv-info-head-title"><i class="fa-solid fa-id-card-clip"></i> Shaxsiy ma'lumotlar</div>
           {% if request.user.role != 'parent' %}
           <div style="position:relative">
-            <button class="uv-actions-btn" onclick="toggleUvDrop(this)">
-              Amallar <i class="fa-solid fa-chevron-down" style="font-size:.65rem;margin-left:4px"></i>
+            <button class="uv-actions-btn" type="button" onclick="toggleUvDrop(this)">
+              Amallar <i class="fa-solid fa-chevron-down"></i>
             </button>
             <div class="uv-drop">
               {% if u.role == 'student' %}
-              <button class="uv-drop-item" onclick="closeAllDrops(); openStudentEditDrawer({{ u.id }})">
+              <button type="button" class="uv-drop-item" onclick="closeAllDrops(); openStudentEditDrawer({{ u.id }})">
                 <i class="fa-solid fa-pen"></i> Tahrirlash
               </button>
-              <button class="uv-drop-item" onclick="closeAllDrops(); openManualDebt({{ u.id }}, '{{ u.get_full_name|escapejs }}')">
-                <i class="fa-solid fa-hand-holding-dollar" style="color:#f59e0b"></i> Qarz yozish
+              <button type="button" class="uv-drop-item uv-drop-item--warn" onclick="closeAllDrops(); openManualDebt({{ u.id }}, '{{ u.get_full_name|escapejs }}')">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Qarz yozish
               </button>
               {% elif u.role == 'parent' %}
               <a class="uv-drop-item" href="{% url 'core:parent_edit' u.id %}">
@@ -656,11 +690,11 @@ html[data-role-theme="light"] .uv-hero-stat strong { color: #1e293b; }
               </a>
               {% endif %}
               <div class="uv-drop-hr"></div>
-              <button class="uv-drop-item" onclick="document.getElementById('uvPassModal').classList.add('uv-modal-open')">
+              <button type="button" class="uv-drop-item" onclick="document.getElementById('uvPassModal').classList.add('uv-modal-open')">
                 <i class="fa-solid fa-key"></i> Parolni o'zgartirish
               </button>
               {% if magic_login_url %}
-              <button class="uv-drop-item" onclick="document.getElementById('uvMagicModal').classList.add('uv-modal-open')">
+              <button type="button" class="uv-drop-item" onclick="document.getElementById('uvMagicModal').classList.add('uv-modal-open')">
                 <i class="fa-solid fa-link"></i> Kirish havolasi
               </button>
               {% endif %}
@@ -1289,10 +1323,12 @@ html[data-role-theme="light"] .plm-link-input { background: #f8fafc; border-colo
 <script>
 function toggleUvDrop(btn) {
   const drop = btn.nextElementSibling;
-  drop.classList.toggle("open");
+  const opened = drop.classList.toggle("open");
+  btn.classList.toggle("is-open", opened);
   document.addEventListener("click", function close(e) {
     if (!btn.contains(e.target) && !drop.contains(e.target)) {
       drop.classList.remove("open");
+      btn.classList.remove("is-open");
       document.removeEventListener("click", close);
     }
   });
@@ -1300,6 +1336,7 @@ function toggleUvDrop(btn) {
 
 function closeAllDrops() {
   document.querySelectorAll(".uv-drop.open").forEach(d => d.classList.remove("open"));
+  document.querySelectorAll(".uv-actions-btn.is-open").forEach(b => b.classList.remove("is-open"));
 }
 
 function uvScrollTo(id) {
