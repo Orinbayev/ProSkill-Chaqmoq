@@ -2285,4 +2285,8 @@ html[data-role-theme="light"] .seu-enr-empty { color: #94a3b8; }
   {% include "core/includes/teacher_delete_modal_include.html" %}
 {% endif %}
 
+{% if user_kind == 'students' %}
+  {% include "core/includes/manual_debt_modal.html" %}
+{% endif %}
+
 {% endblock %}

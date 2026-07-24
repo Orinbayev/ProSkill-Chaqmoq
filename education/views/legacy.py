@@ -6924,9 +6924,23 @@ def group_bulk_remove(request, pk):
     if not ids:
         return JsonResponse({"ok": False, "msg": "ID kelmagan."})
 
-    qs = Enrollment.objects.filter(id__in=ids, group=g)
-    count = qs.count()
-    qs.delete()
+    # ✅ SOFT chiqarish (hard delete EMAS). Enrollment o'chsa TuitionMonth (qarz)
+    # CASCADE o'chib ketardi va o'quvchi qarzdorlardan butunlay yo'qolardi.
+    # EnrollmentService.remove_student is_active=False + last_lesson_date qo'yadi —
+    # qarz (chiqqan sanagacha prorated) va davomat saqlanib qoladi, o'quvchi
+    # qarzdorlar bo'limida qolaveradi.
+    from education.services.enrollment_service import EnrollmentService
+    enrollments = list(
+        Enrollment.objects.filter(id__in=ids, group=g, is_active=True)
+        .select_related("student", "group")
+    )
+    count = 0
+    for enr in enrollments:
+        try:
+            EnrollmentService.remove_student(enr.student, enr.group)
+            count += 1
+        except Exception:
+            pass
 
     return JsonResponse({"ok": True, "deleted": count})
 
@@ -7507,13 +7521,15 @@ def all_groups_overview(request):
     today = timezone.localdate()
     month_start = today.replace(day=1)
 
-    qs = Group.objects.filter(is_archived=False, is_deleted=False)
+    # ── Status: "archived" -> arxivlangan guruhlar; aks holda faol guruhlar ──
+    status = (request.GET.get("status") or "all").strip().lower()
+    show_archived = status == "archived"
+    qs = Group.objects.filter(is_archived=show_archived, is_deleted=False)
     if center:
         qs = qs.filter(center=center)
 
     # ── Filter qiymatlari ──
     q_text = (request.GET.get("q") or "").strip()
-    status = (request.GET.get("status") or "all").strip().lower()
     cat_id = (request.GET.get("category") or "").strip()
     teacher_id = (request.GET.get("teacher") or "").strip()
     sort_key = (request.GET.get("sort") or "fill").strip().lower()
@@ -11999,6 +12015,141 @@ def edit_student_month_debt(request, student_id):
     saved_debt = max(0, saved_fee - saved_paid)
     total_debt = get_student_total_debt(student, center)
     return JsonResponse({"ok": True, "fee": saved_fee, "paid": saved_paid, "debt": saved_debt, "total_debt": total_debt})
+
+
+# ============================================================
+# Qo'lda qarz yozish (o'quvchini qarzdorlarga qo'shish)
+# ============================================================
+
+@login_required
+def student_debt_form_data(request, student_id):
+    """
+    Qo'lda qarz yozish modali uchun ma'lumot: o'quvchining guruhlari (enrollment),
+    har biri uchun to'liq kurs narxi va taxminiy 1-dars narxi (yordamchi hisob).
+    """
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+    center = get_active_center(request)
+    from django.db.models import Q as _Qd
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+    student = get_object_or_404(user_qs, id=student_id)
+    _center_q = (
+        _Qd(center=center)
+        | _Qd(center__isnull=True, group__center=center)
+        | _Qd(center__isnull=True, student__center=center)
+    ) if center else _Qd()
+    enr_qs = (
+        Enrollment.all_objects.filter(student=student).filter(_center_q)
+        .select_related("group").order_by("-is_active", "group__nom")
+    )
+    from education.services.tuition import (
+        effective_student_payable_amount, _monthly_lessons_count,
+    )
+    rows = []
+    for e in enr_qs:
+        full = int(effective_student_payable_amount(e) or 0)
+        monthly = int(_monthly_lessons_count(e) or 0)
+        per_lesson = int(round(full / monthly)) if monthly > 0 else 0
+        rows.append({
+            "enrollment_id": e.id,
+            "group_name": getattr(getattr(e, "group", None), "nom", "") or "—",
+            "is_active": bool(getattr(e, "is_active", False)),
+            "full_price": full,
+            "monthly_lessons": monthly,
+            "per_lesson": per_lesson,
+        })
+    return JsonResponse({"ok": True, "student": student.get_full_name(), "enrollments": rows})
+
+
+@require_POST
+@login_required
+def add_student_manual_debt(request, student_id):
+    """
+    Qo'lda qarz yozish — o'quvchini qarzdorlar bo'limiga qo'shadi.
+    Tanlangan enrollment (guruh) + oy uchun qarzni o'rnatadi va himoyalaydi
+    (deleted_reason="user_edit" -> avtomatik qayta hisoblanmaydi).
+    Frontend YAKUNIY summani yuboradi: dars soni faqat yordamchi, yoki to'liq
+    kurs narxi -> ikkalasi ham oxirida 'amount' bo'lib keladi.
+    POST: enrollment_id (ixtiyoriy, 1 ta bo'lsa avto), month="2026-07", amount=250000
+    """
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q."}, status=403)
+
+    center = get_active_center(request)
+    from django.db.models import Q as _Qd
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+    student = get_object_or_404(user_qs, id=student_id)
+
+    _center_q = (
+        _Qd(center=center)
+        | _Qd(center__isnull=True, group__center=center)
+        | _Qd(center__isnull=True, student__center=center)
+    ) if center else _Qd()
+    enr_qs = Enrollment.all_objects.filter(student=student).filter(_center_q).select_related("group")
+
+    # --- Enrollment (guruh) tanlash ---
+    enr_id = (request.POST.get("enrollment_id") or "").strip()
+    if enr_id:
+        enrollment = enr_qs.filter(id=enr_id).first()
+        if not enrollment:
+            return JsonResponse({"ok": False, "error": "Guruh (enrollment) topilmadi."}, status=404)
+    else:
+        active = list(enr_qs.filter(is_active=True))
+        pick = active if active else list(enr_qs)
+        if len(pick) == 1:
+            enrollment = pick[0]
+        elif not pick:
+            return JsonResponse({"ok": False, "error": "O'quvchi hech qanday guruhda emas."}, status=400)
+        else:
+            return JsonResponse({"ok": False, "error": "Bir nechta guruh bor — guruhni tanlang."}, status=400)
+
+    # --- Oy ---
+    month_str = (request.POST.get("month") or "").strip()
+    try:
+        month_date = date(int(month_str[:4]), int(month_str[5:7]), 1)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri oy formati."}, status=400)
+    cur_month = timezone.localdate().replace(day=1)
+    if month_date > cur_month:
+        return JsonResponse({"ok": False, "error": "Kelajakdagi oy uchun qarz yozib bo'lmaydi (u avtomatik hisoblanadi)."}, status=400)
+
+    # --- Summa (yakuniy qarz) ---
+    try:
+        amount = int(Decimal((request.POST.get("amount") or "0").strip() or "0"))
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Noto'g'ri summa."}, status=400)
+    if amount <= 0:
+        return JsonResponse({"ok": False, "error": "Summa 0 dan katta bo'lishi kerak."}, status=400)
+
+    fee_field = tuition_month_fee_field()
+    with transaction.atomic():
+        tm, created = TuitionMonth.all_objects.get_or_create(
+            enrollment=enrollment, month=month_date,
+            defaults={"center": getattr(enrollment, "center", None) or center, fee_field: 0},
+        )
+        # O'chirilgan (is_deleted) TM bo'lsa tiklaymiz
+        if getattr(tm, "is_deleted", False):
+            tm.is_deleted = False
+            tm.deleted_at = None
+        # Shu TM uchun to'langan summa -> qarz = fee - paid bo'lishi uchun fee = amount + paid
+        paid = PaymentAllocation.objects.filter(
+            tuition_month=tm, is_deleted=False, payment__is_deleted=False
+        ).aggregate(s=Sum("amount"))["s"] or 0
+        setattr(tm, fee_field, amount + int(paid))
+        tm.deleted_reason = "user_edit"  # himoya: qarzdorlar reconcile buni tegmaydi
+        tm.save()
+
+    return JsonResponse({
+        "ok": True,
+        "debt": amount,
+        "month": month_str,
+        "group": getattr(getattr(enrollment, "group", None), "nom", "") or "",
+        "student": student.get_full_name(),
+    })
 
 
 # ============================================================

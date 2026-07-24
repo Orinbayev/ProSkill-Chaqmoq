@@ -643,6 +643,9 @@ html[data-role-theme="light"] .uv-hero-stat strong { color: #1e293b; }
               <button class="uv-drop-item" onclick="closeAllDrops(); openStudentEditDrawer({{ u.id }})">
                 <i class="fa-solid fa-pen"></i> Tahrirlash
               </button>
+              <button class="uv-drop-item" onclick="closeAllDrops(); openManualDebt({{ u.id }}, '{{ u.get_full_name|escapejs }}')">
+                <i class="fa-solid fa-hand-holding-dollar" style="color:#f59e0b"></i> Qarz yozish
+              </button>
               {% elif u.role == 'parent' %}
               <a class="uv-drop-item" href="{% url 'core:parent_edit' u.id %}">
                 <i class="fa-solid fa-pen"></i> Tahrirlash
@@ -1315,6 +1318,7 @@ function uvScrollTo(id) {
 
 {% if u.role == 'student' and request.user.role != 'parent' %}
 {% include "core/includes/student_edit_drawer_include.html" %}
+{% include "core/includes/manual_debt_modal.html" %}
 {% endif %}
 
 {% endblock %}

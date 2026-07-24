@@ -1,0 +1,221 @@
+{% comment %}
+Qo'lda qarz yozish modali (o'quvchini qarzdorlarga qo'shish).
+Ishlatish: sahifaga {% include 'core/includes/manual_debt_modal.html' %} qo'ying,
+tugmada onclick="openManualDebt(STUDENT_ID, 'F.I.Sh')" chaqiring.
+Backend: education:student_debt_form_data (GET) + education:add_student_manual_debt (POST).
+{% endcomment %}
+<div class="md-overlay" id="mdOverlay" hidden>
+  <div class="md-card" role="dialog" aria-modal="true" aria-labelledby="mdTitle">
+    <div class="md-head">
+      <div class="md-head__ttl">
+        <span class="md-head__ico"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+        <div>
+          <div class="md-head__t" id="mdTitle">Qarz yozish</div>
+          <div class="md-head__s" id="mdStudentName">—</div>
+        </div>
+      </div>
+      <button type="button" class="md-x" id="mdClose" aria-label="Yopish"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="md-body" id="mdBody">
+      <!-- Guruh -->
+      <label class="md-field">
+        <span class="md-lbl">Guruh</span>
+        <select class="md-input" id="mdGroup"></select>
+      </label>
+
+      <!-- Oy -->
+      <label class="md-field">
+        <span class="md-lbl">Oy</span>
+        <input type="month" class="md-input" id="mdMonth">
+        <span class="md-hint">Qaysi oy uchun qarz yoziladi (kelajak oy tanlab bo'lmaydi)</span>
+      </label>
+
+      <!-- Rejim -->
+      <div class="md-field">
+        <span class="md-lbl">Qarz turi</span>
+        <div class="md-tabs">
+          <button type="button" class="md-tab is-active" data-mode="lessons"><i class="fa-solid fa-list-ol"></i> Dars soni bo'yicha</button>
+          <button type="button" class="md-tab" data-mode="full"><i class="fa-solid fa-coins"></i> To'liq kurs narxi</button>
+        </div>
+      </div>
+
+      <!-- Rejim A: dars soni -->
+      <label class="md-field" id="mdLessonsWrap">
+        <span class="md-lbl">Dars soni</span>
+        <input type="number" class="md-input" id="mdLessons" min="0" step="1" placeholder="Masalan: 5">
+        <span class="md-hint" id="mdPerLessonHint">1 dars ≈ —</span>
+      </label>
+
+      <!-- Summa (yakuniy qarz) -->
+      <label class="md-field">
+        <span class="md-lbl">Qarz summasi (so'm)</span>
+        <input type="text" inputmode="numeric" class="md-input md-input--amount" id="mdAmount" placeholder="0">
+        <span class="md-hint" id="mdAmountHint">Kerak bo'lsa summani qo'lda o'zgartiring</span>
+      </label>
+
+      <div class="md-msg" id="mdMsg" hidden></div>
+    </div>
+
+    <div class="md-foot">
+      <button type="button" class="md-btn md-btn--ghost" id="mdCancel">Bekor qilish</button>
+      <button type="button" class="md-btn md-btn--save" id="mdSave"><i class="fa-solid fa-check"></i> Qarz yozish</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.md-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.6);backdrop-filter:blur(3px);}
+.md-overlay[hidden]{display:none;}
+.md-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#141b2b;border:1px solid rgba(148,163,184,.14);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.5);color:#e2e8f0;animation:mdIn .2s ease;}
+@keyframes mdIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.md-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid rgba(148,163,184,.1);}
+.md-head__ttl{display:flex;align-items:center;gap:11px;}
+.md-head__ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,.15);color:#fbbf24;font-size:1rem;}
+.md-head__t{font-size:1.02rem;font-weight:700;color:#f1f5f9;}
+.md-head__s{font-size:.8rem;color:#94a3b8;margin-top:1px;}
+.md-x{background:rgba(148,163,184,.08);border:none;color:#94a3b8;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:.95rem;transition:.15s;}
+.md-x:hover{background:rgba(239,68,68,.18);color:#f87171;}
+.md-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;}
+.md-field{display:flex;flex-direction:column;gap:6px;}
+.md-lbl{font-size:.78rem;font-weight:600;color:#cbd5e1;}
+.md-input{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:11px;border:1.5px solid rgba(148,163,184,.18);background:rgba(148,163,184,.06);color:#f1f5f9;font-size:.92rem;font-family:inherit;transition:border-color .15s,background .15s;}
+.md-input:focus{outline:none;border-color:#fbbf24;background:rgba(148,163,184,.1);}
+.md-input--amount{font-size:1.15rem;font-weight:700;letter-spacing:.02em;}
+.md-hint{font-size:.72rem;color:#94a3b8;}
+.md-tabs{display:flex;gap:8px;}
+.md-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:11px;border:1.5px solid rgba(148,163,184,.18);background:transparent;color:#94a3b8;font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s;}
+.md-tab:hover{background:rgba(148,163,184,.08);}
+.md-tab.is-active{border-color:#fbbf24;background:rgba(245,158,11,.14);color:#fbbf24;}
+.md-msg{padding:10px 12px;border-radius:10px;font-size:.82rem;font-weight:500;}
+.md-msg[hidden]{display:none;}
+.md-msg--err{background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+.md-msg--ok{background:rgba(34,197,94,.14);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+.md-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid rgba(148,163,184,.1);}
+.md-btn{padding:10px 16px;border-radius:11px;border:none;font-weight:700;font-size:.86rem;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px;}
+.md-btn--ghost{background:rgba(148,163,184,.1);color:#cbd5e1;}
+.md-btn--ghost:hover{background:rgba(148,163,184,.18);}
+.md-btn--save{background:#f59e0b;color:#1a1206;}
+.md-btn--save:hover{background:#fbbf24;}
+.md-btn--save:disabled{opacity:.55;cursor:not-allowed;}
+/* ── LIGHT ── */
+html[data-role-theme="light"] .md-card{background:#ffffff;border-color:#e5e9f0;color:#1e293b;box-shadow:0 30px 70px rgba(15,23,42,.18);}
+html[data-role-theme="light"] .md-head{border-bottom-color:#eef1f6;}
+html[data-role-theme="light"] .md-head__t{color:#0f172a;}
+html[data-role-theme="light"] .md-head__s,html[data-role-theme="light"] .md-hint{color:#64748b;}
+html[data-role-theme="light"] .md-x{background:#f1f5f9;color:#64748b;}
+html[data-role-theme="light"] .md-lbl{color:#334155;}
+html[data-role-theme="light"] .md-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
+html[data-role-theme="light"] .md-input:focus{background:#fff;border-color:#f59e0b;}
+html[data-role-theme="light"] .md-tab{border-color:#e2e8f0;color:#64748b;}
+html[data-role-theme="light"] .md-tab.is-active{color:#b45309;background:rgba(245,158,11,.12);border-color:#f59e0b;}
+html[data-role-theme="light"] .md-foot{border-top-color:#eef1f6;}
+html[data-role-theme="light"] .md-btn--ghost{background:#f1f5f9;color:#475569;}
+</style>
+
+<script>
+(function(){
+  var TENANT = "{{ request_center.slug|default:''|escapejs }}";
+  var CSRF = "{{ csrf_token }}";
+  function tp(path){ return TENANT ? "/"+TENANT+path : path; }
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){ n=Math.max(0,Math.round(Number(n)||0)); return n.toLocaleString('uz-UZ').replace(/,/g,' '); }
+  function unfmt(s){ return parseInt(String(s||'').replace(/[^\d]/g,''),10)||0; }
+
+  var state = { studentId:null, mode:'lessons', groups:[] };
+
+  function setMsg(text, kind){
+    var m=$('mdMsg'); if(!text){ m.hidden=true; return; }
+    m.hidden=false; m.textContent=text; m.className='md-msg md-msg--'+(kind||'err');
+  }
+  function selectedGroup(){
+    var id=parseInt($('mdGroup').value,10);
+    return state.groups.find(function(g){return g.enrollment_id===id;}) || null;
+  }
+  function updateHints(){
+    var g=selectedGroup();
+    $('mdPerLessonHint').textContent = g ? ("1 dars ≈ "+fmt(g.per_lesson)+" so'm  ·  to'liq kurs: "+fmt(g.full_price)+" so'm") : "1 dars ≈ —";
+  }
+  function recompute(){
+    var g=selectedGroup(); if(!g) return;
+    if(state.mode==='lessons'){
+      var n=parseInt($('mdLessons').value,10)||0;
+      $('mdAmount').value = fmt(n * g.per_lesson);
+    } else {
+      $('mdAmount').value = fmt(g.full_price);
+    }
+  }
+  function setMode(mode){
+    state.mode=mode;
+    document.querySelectorAll('.md-tab').forEach(function(t){ t.classList.toggle('is-active', t.dataset.mode===mode); });
+    $('mdLessonsWrap').style.display = (mode==='lessons') ? '' : 'none';
+    recompute();
+  }
+
+  window.openManualDebt = function(studentId, studentName){
+    state.studentId = studentId;
+    $('mdStudentName').textContent = studentName || '';
+    $('mdOverlay').hidden = false;
+    setMsg('');
+    $('mdSave').disabled = true;
+    $('mdGroup').innerHTML = '<option>Yuklanmoqda...</option>';
+    $('mdLessons').value=''; $('mdAmount').value='';
+    // joriy oy default
+    var now=new Date(); $('mdMonth').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    $('mdMonth').max = $('mdMonth').value;
+    setMode('lessons');
+    fetch(tp('/talim/api/student/'+studentId+'/debt-form/'), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok){ setMsg(d.error||'Xatolik'); return; }
+        state.groups = d.enrollments || [];
+        if(!state.groups.length){ $('mdGroup').innerHTML='<option>Guruh yo‘q</option>'; setMsg("O'quvchi hech qanday guruhda emas."); return; }
+        $('mdGroup').innerHTML = state.groups.map(function(g){
+          return '<option value="'+g.enrollment_id+'">'+g.group_name+(g.is_active?'':' (chiqarilgan)')+'</option>';
+        }).join('');
+        updateHints(); recompute();
+        $('mdSave').disabled=false;
+      })
+      .catch(function(){ setMsg('Ma’lumot yuklanmadi.'); });
+  };
+
+  function closeModal(){ $('mdOverlay').hidden = true; }
+
+  function save(){
+    setMsg('');
+    var g=selectedGroup(); if(!g){ setMsg('Guruhni tanlang.'); return; }
+    var amount=unfmt($('mdAmount').value);
+    if(amount<=0){ setMsg("Summa 0 dan katta bo'lishi kerak."); return; }
+    var month=$('mdMonth').value;
+    if(!month){ setMsg('Oyni tanlang.'); return; }
+    $('mdSave').disabled=true;
+    var body=new URLSearchParams();
+    body.append('enrollment_id', g.enrollment_id);
+    body.append('month', month);
+    body.append('amount', amount);
+    fetch(tp('/talim/api/student/'+state.studentId+'/manual-debt/'), {
+      method:'POST',
+      headers:{'X-CSRFToken':CSRF,'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},
+      body:body.toString(),
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d.ok){ setMsg(d.error||'Saqlanmadi.'); $('mdSave').disabled=false; return; }
+      setMsg('✓ '+fmt(d.debt)+" so'm qarz yozildi ("+d.group+", "+d.month+").",'ok');
+      setTimeout(function(){ closeModal(); if(typeof window.mdAfterSave==='function') window.mdAfterSave(d); }, 1100);
+    }).catch(function(){ setMsg('Server xatosi.'); $('mdSave').disabled=false; });
+  }
+
+  function mdInit(){
+    if(!$('mdOverlay')) return;
+    $('mdClose').addEventListener('click', closeModal);
+    $('mdCancel').addEventListener('click', closeModal);
+    $('mdOverlay').addEventListener('click', function(e){ if(e.target===$('mdOverlay')) closeModal(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('mdOverlay').hidden) closeModal(); });
+    document.querySelectorAll('.md-tab').forEach(function(t){ t.addEventListener('click', function(){ setMode(t.dataset.mode); }); });
+    $('mdGroup').addEventListener('change', function(){ updateHints(); recompute(); });
+    $('mdLessons').addEventListener('input', recompute);
+    $('mdAmount').addEventListener('input', function(){ var v=unfmt(this.value); this.value = v ? fmt(v) : ''; });
+    $('mdSave').addEventListener('click', save);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', mdInit); else mdInit();
+})();
+</script>

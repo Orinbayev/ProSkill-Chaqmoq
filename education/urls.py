@@ -183,6 +183,9 @@ urlpatterns += [
     path("tuition-month/<int:tm_id>/edit-fee/", views.edit_tuition_month_fee, name="edit_tuition_month_fee"),
     # Oylik umumiy qarzni o'rnatish (barcha guruhlar uchun)
     path("api/student/<int:student_id>/month-debt/", views.edit_student_month_debt, name="edit_student_month_debt"),
+    # Qo'lda qarz yozish (o'quvchini qarzdorlarga qo'shish): modal ma'lumoti + saqlash
+    path("api/student/<int:student_id>/debt-form/", views.student_debt_form_data, name="student_debt_form_data"),
+    path("api/student/<int:student_id>/manual-debt/", views.add_student_manual_debt, name="add_student_manual_debt"),
     # Kelajak oylik yozuvni o'chirish
     path("api/student/<int:student_id>/month-delete/", views.delete_student_month, name="delete_student_month"),
     # Oylik to'lovlarni bekor qilish — oy to'liq qarzga qaytadi
