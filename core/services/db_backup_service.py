@@ -836,9 +836,35 @@ def create_database_backups(
             summary["backed_up"] += 1
             logger.info("✅ Global DB backup yaratildi: %s", artifact.path.name)
         except Exception as exc:
-            summary["failed"] += 1
-            summary["errors"].append({"scope": "global", "error": str(exc)})
-            logger.error("❌ Global DB backup xatoligi:\n%s", traceback.format_exc())
+            # pg_dump topilmasa (Render'da postgresql-client bo'lmasligi mumkin) yoki
+            # boshqa xato bo'lsa -> Django fixture (dumpdata gzip) fallback bilan
+            # baribir to'liq DB backup yaratamiz va yuboramiz.
+            logger.warning(
+                "Global pg_dump backup muvaffaqiyatsiz (%s) — Django fixture fallback urinilmoqda.",
+                exc,
+            )
+            try:
+                fb_path = backup_full_database_fixture(reason=str(exc))
+                artifact = BackupArtifact(
+                    path=fb_path,
+                    scope="global",
+                    label="Umumiy/global DB backup (Django fixture — pg_dump yo'q)",
+                    kind="fixture_gz",
+                )
+                summary["artifacts"].append(artifact.to_dict())
+                summary["files"].append(str(artifact.path))
+                summary["full_backup_file"] = str(artifact.path)
+                summary["backed_up"] += 1
+                logger.info("✅ Global DB backup (fixture fallback) yaratildi: %s", fb_path.name)
+            except Exception as exc2:
+                summary["failed"] += 1
+                summary["errors"].append(
+                    {"scope": "global", "error": f"pg_dump: {exc} | fixture fallback: {exc2}"}
+                )
+                logger.error(
+                    "❌ Global DB backup + fixture fallback ham muvaffaqiyatsiz:\n%s",
+                    traceback.format_exc(),
+                )
 
     centers: list[Center] = []
     if include_centers:
