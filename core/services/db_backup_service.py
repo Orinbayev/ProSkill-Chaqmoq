@@ -1032,30 +1032,56 @@ def _caption_for_artifact(artifact: BackupArtifact | dict[str, Any]) -> str:
         center_name = artifact.center_name
         center_slug = artifact.center_slug
 
-    date_label = _backup_date_label()
+    now = _backup_now()
+    date_label = _backup_date_label(now)
+    time_label = now.strftime("%H:%M")
+    try:
+        size_label = _format_file_size(path)
+    except Exception:
+        size_label = "—"
+    sep = "━━━━━━━━━━━━━━━━━━━━"
+
     if scope == "global":
         return (
-            "🗄️ Global database backup\n"
-            f"📅 Sana: {date_label}\n"
-            f"📁 Fayl: {path.name}\n"
-            f"🔢 Tur: {kind}"
+            "🌐 CHAQMOQAPP — TO'LIQ BAZA\n"
+            f"{sep}\n"
+            f"📅 Sana: {date_label} · {time_label}\n"
+            "🗂 Turi: To'liq platforma bazasi\n"
+            "        (barcha markazlar + umumiy ma'lumot)\n"
+            "🔁 Kunlik backup\n"
+            "🔒 To'liq — boshidan oxirigacha\n"
+            f"💾 Hajmi: {size_label}\n"
+            f"📁 {path.name}"
         )
     if scope == "center":
+        _cname = (center_name or center_slug or "Markaz").upper()
         return (
-            "📦 Markaz database backup\n"
-            f"🏢 Markaz: {center_name} ({center_slug})\n"
-            f"📅 Sana: {date_label}\n"
-            f"📁 Fayl: {path.name}\n"
-            f"🔢 Tur: {kind}"
+            f"🏢 {_cname}\n"
+            f"{sep}\n"
+            f"📅 Sana: {date_label} · {time_label}\n"
+            f"🗂 Turi: Markaz bazasi ({center_slug})\n"
+            "🔁 Kunlik backup\n"
+            "🔒 To'liq markaz ma'lumoti\n"
+            f"💾 Hajmi: {size_label}\n"
+            f"📁 {path.name}"
         )
     if scope == "all":
         return (
-            "🗜️ Barcha database backuplar\n"
-            f"📅 Sana: {date_label}\n"
-            f"📁 Fayl: {path.name}\n"
-            "Ichida global va har bir markaz backup fayli alohida."
+            "🗜 BARCHA BAZALAR — ARXIV\n"
+            f"{sep}\n"
+            f"📅 Sana: {date_label} · {time_label}\n"
+            "🗂 Ichida: to'liq baza + har bir markaz alohida\n"
+            "🔁 Kunlik backup\n"
+            f"💾 Hajmi: {size_label}\n"
+            f"📁 {path.name}"
         )
-    return f"{label}\n📁 Fayl: {path.name}\n🔢 Tur: {kind}"
+    return (
+        f"{label or 'Database backup'}\n"
+        f"{sep}\n"
+        f"📅 Sana: {date_label} · {time_label}\n"
+        f"💾 Hajmi: {size_label}\n"
+        f"📁 {path.name}"
+    )
 
 
 def _artifact_from_dict(data: dict[str, Any]) -> BackupArtifact:
@@ -1267,7 +1293,13 @@ def send_database_backups_to_telegram(
 
     try:
         if notify_start:
-            send_text_to_telegram("⏳ Database backup tayyorlanmoqda...")
+            _ns = _backup_now()
+            send_text_to_telegram(
+                "📦 CHAQMOQAPP — DATABASE BACKUP\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"📅 {_backup_date_label(_ns)} · {_ns.strftime('%H:%M')}\n"
+                "⏳ Bazalar tayyorlanmoqda..."
+            )
 
         backup_summary = create_database_backups(
             center_slugs=center_slugs,
@@ -1356,7 +1388,16 @@ def send_database_backups_to_telegram(
             if notify_error:
                 send_text_to_telegram(f"❌ Backup yuborilmadi: {summary['fatal_error']}")
         elif notify_finish:
-            send_text_to_telegram(f"✅ Database backup yuborildi. Sana: {backup_summary.get('date')}")
+            _nf = _backup_now()
+            _full_ok = "✅ bor" if summary.get("full_backup_file") else "❌ yo'q"
+            _sent_n = len(summary.get("sent_files", [])) or summary.get("sent", 0)
+            send_text_to_telegram(
+                "✅ BACKUP YAKUNLANDI\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"📅 {_backup_date_label(_nf)} · {_nf.strftime('%H:%M')}\n"
+                f"🌐 To'liq platforma bazasi: {_full_ok}\n"
+                f"📤 Jami yuborildi: {_sent_n} ta fayl"
+            )
 
     except Exception as exc:
         summary["failed"] += 1
