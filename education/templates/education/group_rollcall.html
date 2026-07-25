@@ -1,6 +1,50 @@
 {% extends 'base.html' %}
 {% block content %}
 
+{% if prev_reminder %}
+<div class="rc-rem-overlay" id="rcRem">
+  <div class="rc-rem">
+    <div class="rc-rem__ico"><i class="fa-solid fa-bolt"></i></div>
+    <h3 class="rc-rem__t">Oldingi darsda chaqmoq berilmagan!</h3>
+    <p class="rc-rem__s">
+      <b>{{ prev_reminder.date|date:'d.m.Y' }}</b> kungi darsda kelgan, lekin chaqmoq berilmagan
+      <b>{{ prev_reminder.count }} ta</b> o'quvchi bor. Avval ularga darsga kelgani uchun chaqmoq bering,
+      keyin bugungi davomatni oling.
+    </p>
+    <div class="rc-rem__list">
+      {% for s in prev_reminder.students %}
+      <span class="rc-rem__chip"><i class="fa-solid fa-user"></i> {{ s.familya }} {{ s.ism }}</span>
+      {% endfor %}
+    </div>
+    <div class="rc-rem__actions">
+      <a class="rc-rem__btn rc-rem__btn--primary" href="?date={{ prev_reminder.date|date:'Y-m-d' }}">
+        <i class="fa-solid fa-bolt"></i> Oldingi darsga o'tib chaqmoq berish
+      </a>
+      <button type="button" class="rc-rem__btn rc-rem__btn--ghost" onclick="document.getElementById('rcRem').style.display='none'">
+        Baribir davom etish
+      </button>
+    </div>
+  </div>
+</div>
+<style>
+.rc-rem-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.72);backdrop-filter:blur(3px);}
+.rc-rem{width:100%;max-width:460px;background:#0b1226;border:1px solid rgba(245,158,11,.35);border-radius:18px;padding:24px 22px;box-shadow:0 30px 70px rgba(0,0,0,.6);text-align:center;color:#e5e7eb;animation:rcIn .22s ease;}
+@keyframes rcIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.rc-rem__ico{width:52px;height:52px;margin:0 auto 12px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,.16);color:#facc15;font-size:1.4rem;}
+.rc-rem__t{margin:0 0 8px;font-size:1.12rem;font-weight:800;color:#facc15;}
+.rc-rem__s{margin:0 0 14px;font-size:.88rem;line-height:1.55;color:#cbd5e1;}
+.rc-rem__list{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-height:180px;overflow-y:auto;margin-bottom:18px;}
+.rc-rem__chip{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:.8rem;font-weight:600;}
+.rc-rem__chip i{color:#94a3b8;font-size:.72rem;}
+.rc-rem__actions{display:flex;flex-direction:column;gap:9px;}
+.rc-rem__btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 16px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer;border:none;text-decoration:none;transition:.15s;}
+.rc-rem__btn--primary{background:#f59e0b;color:#1a1206;}
+.rc-rem__btn--primary:hover{background:#facc15;}
+.rc-rem__btn--ghost{background:rgba(255,255,255,.08);color:#cbd5e1;}
+.rc-rem__btn--ghost:hover{background:rgba(255,255,255,.14);}
+</style>
+{% endif %}
+
 <style>
   :root {
     --bg0: #050812;

@@ -137,6 +137,39 @@ class Ledger(models.Model):
         total = history_qs.aggregate(total=Coalesce(Sum("points"), 0))["total"]
         return int(total or 0)
 
+    @staticmethod
+    def daily_limit_check(student_id, center, ball, on_date=None):
+        """
+        Kunlik limit tekshiruvi — HAR O'QUVCHI uchun bir kunda:
+          center.max_daily_lightning = max (+) olishi mumkin bo'lgan chaqmoq
+          center.max_daily_deduction = max (−) yo'qotishi mumkin bo'lgan chaqmoq
+          0 = cheksiz.
+        Bugungi barcha (+)/(−) yozuvlar (o'yin/avto/o'qituvchi) yig'indisi hisobga olinadi.
+        Return (allowed: bool, remaining: int|None, limit: int|None).
+          limit=None -> cheksiz -> allowed=True.
+        """
+        try:
+            ball = int(ball or 0)
+        except (TypeError, ValueError):
+            return True, None, None
+        if not center or ball == 0:
+            return True, None, None
+        is_plus = ball > 0
+        limit = int(getattr(center, "max_daily_lightning" if is_plus else "max_daily_deduction", 0) or 0)
+        if limit <= 0:
+            return True, None, None  # cheksiz
+        from django.utils import timezone as _tz
+        from django.db.models import Sum as _Sum
+        day = on_date or _tz.localdate()
+        qs = Ledger.objects.filter(student_id=student_id, sana__date=day)
+        if is_plus:
+            used = int(qs.filter(ball__gt=0).aggregate(s=_Sum("ball"))["s"] or 0)
+        else:
+            used = abs(int(qs.filter(ball__lt=0).aggregate(s=_Sum("ball"))["s"] or 0))
+        remaining = max(0, limit - used)
+        return (abs(ball) <= remaining), remaining, limit
+
+
 class LightningHistory(models.Model):
     SOURCE_CHOICES = (
         ("attendance", "Davomat"),

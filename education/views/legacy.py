@@ -8014,6 +8014,42 @@ def transfer_student_view(request, enrollment_id: int):
 
 
 
+def _previous_lesson_unrewarded(group, before_date):
+    """
+    Guruhning 'before_date' dan oldingi ENG YAQIN darsi (Attendance sanasi)ni topib,
+    o'sha darsda KELGAN (present) lekin o'sha kuni CHAQMOQ (musbat) berilmagan
+    o'quvchilarni qaytaradi.
+    Return: {"date": prev_date, "students": [User...], "count": n} yoki None.
+    """
+    from chaqmoq.models import Ledger
+    prev_date = (
+        Attendance.objects.filter(group=group, date__lt=before_date)
+        .order_by("-date").values_list("date", flat=True).first()
+    )
+    if not prev_date:
+        return None
+    present_ids = list(
+        Attendance.objects.filter(group=group, date=prev_date)
+        .filter(Q(present=True) | Q(status="present") | Q(forced=True))
+        .values_list("student_id", flat=True)
+    )
+    if not present_ids:
+        return None
+    # O'sha kuni musbat chaqmoq olgan o'quvchilar (istalgan guruh — takror nag qilmaslik uchun)
+    rewarded_ids = set(
+        Ledger.objects.filter(
+            student_id__in=present_ids, ball__gt=0, sana__date=prev_date
+        ).values_list("student_id", flat=True)
+    )
+    unrewarded_ids = [sid for sid in present_ids if sid not in rewarded_ids]
+    if not unrewarded_ids:
+        return None
+    students = list(
+        User.objects.filter(id__in=unrewarded_ids).order_by("familya", "ism")
+    )
+    return {"date": prev_date, "students": students, "count": len(students)}
+
+
 # ---------- (ixtiyoriy) alohida Davomat/Chaqmoq sahifasi ----------
 @login_required
 def group_rollcall(request, pk):
@@ -8096,10 +8132,14 @@ def group_rollcall(request, pk):
         messages.success(request, f"Saqlash tugadi. {saved} ta chaqmoq yozildi.")
         return redirect(f"{request.path}?date={the_date.isoformat()}")
 
+    # Oldingi darsda kelgan (present) lekin chaqmoq berilmagan o'quvchilar — eslatma
+    prev_reminder = _previous_lesson_unrewarded(g, the_date)
+
     return render(
         request,
         "education/group_rollcall.html",
-        {"g": g, "date": the_date.isoformat(), "students": students, "rules": rules},
+        {"g": g, "date": the_date.isoformat(), "students": students, "rules": rules,
+         "prev_reminder": prev_reminder},
     )
 
 @login_required

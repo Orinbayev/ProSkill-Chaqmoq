@@ -4293,11 +4293,26 @@ def mobile_teacher_group_students(request, group_id: int):
             "attendance_status": status,
         })
 
+    # Oldingi darsda kelgan (present) lekin chaqmoq berilmagan o'quvchilar — eslatma
+    prev_reminder = None
+    try:
+        from education.views.legacy import _previous_lesson_unrewarded
+        _rem = _previous_lesson_unrewarded(group, att_date)
+        if _rem:
+            prev_reminder = {
+                "date": _rem["date"].isoformat(),
+                "count": _rem["count"],
+                "students": [{"id": s.id, "name": s.get_full_name()} for s in _rem["students"]],
+            }
+    except Exception:
+        prev_reminder = None
+
     return JsonResponse({
         "ok": True,
         "group": _serialize_group(group),
         "date": att_date.isoformat(),
         "students": students,
+        "prev_reminder": prev_reminder,
     })
 
 
@@ -4454,6 +4469,16 @@ def mobile_teacher_award_chaqmoq(request):
             ball_val = -abs(rule.min_baho)
         else:
             ball_val = abs(rule.max_baho)
+
+    # Kunlik limit tekshiruvi (har o'quvchi uchun) — max_daily_lightning / deduction
+    allowed, remaining, limit = Ledger.daily_limit_check(student.id, center, ball_val)
+    if not allowed:
+        _act = "olishi" if ball_val > 0 else "yo'qotishi"
+        return _json_error(
+            f"Kunlik limit: bu o'quvchi bugun ko'pi bilan {limit} chaqmoq {_act} mumkin. "
+            f"Bugun qolgan: {remaining}.",
+            status=400,
+        )
 
     led = Ledger.objects.create(
         student=student,

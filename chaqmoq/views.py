@@ -459,6 +459,19 @@ def berish(request):
             tanlangan_sana = timezone.now()
 
 
+        # 🔹 Kunlik limit tekshiruvi (tanlangan sana bo'yicha, har o'quvchi uchun)
+        _allowed, _remaining, _limit = Ledger.daily_limit_check(
+            student.id, center, signed, on_date=tanlangan_sana.date()
+        )
+        if not _allowed:
+            _act = "olishi" if signed > 0 else "yo'qotishi"
+            messages.error(
+                request,
+                f"Kunlik limit: {student.ism} {tanlangan_sana.date()} kuni ko'pi bilan "
+                f"{_limit} chaqmoq {_act} mumkin. Qolgan: {_remaining}.",
+            )
+            return redirect(f"{request.path}?group={selected_gid or ''}")
+
         # 🔹 Yangi chaqmoq yozuvi
         Ledger.objects.create(
             student=student,
