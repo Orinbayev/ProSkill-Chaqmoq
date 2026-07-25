@@ -39,10 +39,10 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(Command("db", "backup_now"))
+@router.message(Command("db", "dbb", "backup_now"))
 async def manual_backup_command(message: types.Message) -> None:
     """
-    /db – shu zahoti backup yaratadi va ruxsat berilgan Telegram guruhga yuboradi.
+    /db, /dbb – shu zahoti backup yaratadi va ruxsat berilgan Telegram guruhga yuboradi.
     """
     chat_id = getattr(getattr(message, "chat", None), "id", None)
     user_id = getattr(getattr(message, "from_user", None), "id", None)
