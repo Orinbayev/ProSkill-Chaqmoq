@@ -50,6 +50,7 @@ urlpatterns = [
     # Notifications
     path('notifications/', views.notifications_view, name="notifications"),
     path('notifications/read/', views.notifications_mark_read, name="notifications_mark_read"),
+    path('notifications/read-one/<int:pk>/', views.notification_read_one, name="notification_read_one"),
     path('notifications/preferences/', views.notification_preferences_view, name="notification_preferences"),
     path('notifications/api/read-all/', api_views.notifications_mark_read_api, name='notifications_mark_read_api'),
     path('api/churn/summary/', api_views.churn_api_summary, name='churn_api_summary'),

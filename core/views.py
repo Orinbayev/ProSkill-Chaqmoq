@@ -2413,6 +2413,14 @@ def notifications_mark_read(request):
     messages.success(request, "Barcha xabarlar o‘qildi deb belgilandi.")
     return redirect("core:notifications")
 
+
+@login_required
+def notification_read_one(request, pk):
+    """Bitta xabarni o'qildi deb belgilaydi (xabar modalda ochilganda)."""
+    if request.method == "POST":
+        Notification.objects.filter(recipient=request.user, pk=pk).update(is_read=True)
+    return JsonResponse({"ok": True})
+
 @login_required
 def notification_broadcast(request):
     # Only Directors/Managers

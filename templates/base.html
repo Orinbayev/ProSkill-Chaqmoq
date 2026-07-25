@@ -627,7 +627,9 @@
       {% if latest_notifications %}
       <div class="d-flex flex-column gap-2" id="notificationList">
         {% for n in latest_notifications %}
-        <div class="ns-item {% if not n.is_read %}unread{% endif %}">
+        <div class="ns-item {% if not n.is_read %}unread{% endif %}" data-id="{{ n.id }}"
+             data-type="{{ n.type }}" onclick="openNotifDetail(this)" style="cursor:pointer"
+             title="To'liq o'qish uchun bosing">
           <div
             class="ns-icon {% if n.type == 'coin' %}text-warning bg-warning-subtle{% elif n.type == 'purchase' %}text-success bg-success-subtle{% elif n.type == 'broadcast' %}text-primary bg-primary-subtle{% else %}text-secondary bg-secondary-subtle{% endif %}">
             {% if n.type == 'coin' %}<i class="bi bi-lightning-fill"></i>
@@ -640,7 +642,7 @@
               <span class="ns-title">{{ n.title }}</span>
               <span class="ns-time">{{ n.created_at|date:"d.m H:i"}}</span>
             </div>
-            <p class="ns-msg mb-1">{{ n.message|striptags }}</p>
+            <p class="ns-msg mb-1" data-full="{{ n.message|striptags }}">{{ n.message|striptags }}</p>
           </div>
         </div>
         {% endfor %}
@@ -660,6 +662,62 @@
       <a href="{% url 'core:notifications' %}" class="btn btn-primary w-50 btn-sm">Barchasi</a>
     </div>
   </div>
+
+  <!-- 🔔 XABAR TO'LIQ O'QISH MODALI (barcha panellar uchun) -->
+  <div id="notifDetailOverlay" class="notif-detail-overlay" onclick="if(event.target===this)closeNotifDetail()">
+    <div class="notif-detail" role="dialog" aria-modal="true">
+      <div class="notif-detail__head">
+        <span class="notif-detail__ico" id="notifDetailIco"><i class="bi bi-bell"></i></span>
+        <div class="notif-detail__hd">
+          <h5 class="notif-detail__title" id="notifDetailTitle">—</h5>
+          <span class="notif-detail__time" id="notifDetailTime"></span>
+        </div>
+        <button type="button" class="notif-detail__x" onclick="closeNotifDetail()" aria-label="Yopish"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="notif-detail__body" id="notifDetailBody"></div>
+    </div>
+  </div>
+  <style>
+    .notif-detail-overlay{position:fixed;inset:0;z-index:6000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.62);backdrop-filter:blur(3px);}
+    .notif-detail-overlay.open{display:flex;}
+    .notif-detail{width:100%;max-width:470px;max-height:82vh;display:flex;flex-direction:column;background:#0f172a;border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 30px 70px rgba(0,0,0,.55);color:#e5e7eb;animation:ndIn .2s ease;}
+    @keyframes ndIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+    .notif-detail__head{display:flex;align-items:flex-start;gap:12px;padding:18px;border-bottom:1px solid rgba(255,255,255,.08);}
+    .notif-detail__ico{width:42px;height:42px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);font-size:1.15rem;}
+    .notif-detail__hd{flex:1;min-width:0;}
+    .notif-detail__title{margin:0;font-size:1.05rem;font-weight:700;color:#fff;word-break:break-word;}
+    .notif-detail__time{font-size:.76rem;color:#94a3b8;}
+    .notif-detail__x{background:rgba(255,255,255,.08);border:none;color:#94a3b8;width:32px;height:32px;border-radius:9px;cursor:pointer;flex-shrink:0;}
+    .notif-detail__x:hover{background:rgba(239,68,68,.2);color:#fca5a5;}
+    .notif-detail__body{padding:18px;overflow-y:auto;font-size:.95rem;line-height:1.65;color:#cbd5e1;white-space:pre-wrap;word-break:break-word;}
+    html[data-role-theme="light"] .notif-detail{background:#fff;border-color:#e5e9f0;color:#1e293b;box-shadow:0 30px 70px rgba(15,23,42,.18);}
+    html[data-role-theme="light"] .notif-detail__head{border-bottom-color:#eef1f6;}
+    html[data-role-theme="light"] .notif-detail__title{color:#0f172a;}
+    html[data-role-theme="light"] .notif-detail__time{color:#64748b;}
+    html[data-role-theme="light"] .notif-detail__x{background:#f1f5f9;color:#64748b;}
+    html[data-role-theme="light"] .notif-detail__body{color:#334155;}
+  </style>
+  <script>
+    function openNotifDetail(item){
+      var g=function(s){var e=item.querySelector(s);return e?(e.getAttribute('data-full')||e.textContent||'').trim():'';};
+      document.getElementById('notifDetailTitle').textContent = g('.ns-title') || 'Xabar';
+      document.getElementById('notifDetailTime').textContent  = g('.ns-time');
+      document.getElementById('notifDetailBody').textContent   = g('.ns-msg');
+      var srcIco=item.querySelector('.ns-icon'), ico=document.getElementById('notifDetailIco');
+      if(srcIco){ ico.className='notif-detail__ico '+srcIco.className.replace('ns-icon','').trim(); ico.innerHTML=srcIco.innerHTML; }
+      document.getElementById('notifDetailOverlay').classList.add('open');
+      var id=item.getAttribute('data-id');
+      if(id && item.classList.contains('unread')){
+        item.classList.remove('unread');
+        try{
+          var tok=(typeof getCsrfToken==='function')?getCsrfToken():'';
+          fetch('/notifications/read-one/'+id+'/', {method:'POST', headers:{'X-CSRFToken':tok,'X-Requested-With':'XMLHttpRequest'}});
+        }catch(e){}
+      }
+    }
+    function closeNotifDetail(){ var o=document.getElementById('notifDetailOverlay'); if(o) o.classList.remove('open'); }
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeNotifDetail(); });
+  </script>
 
   <div id="nsOverlay" onclick="toggleNotificationSidebar()" class="ns-overlay"></div>
 

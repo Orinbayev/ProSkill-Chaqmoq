@@ -116,6 +116,7 @@ class RoleBasedAccessMiddleware:
                 'accounts:profile',
                 'core:notifications',
                 'core:notifications_mark_read',
+                'core:notification_read_one',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
                 'core:game_hub',
@@ -153,6 +154,7 @@ class RoleBasedAccessMiddleware:
                 'core:toggle_child',
                 'core:notifications',
                 'core:notifications_mark_read',
+                'core:notification_read_one',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
                 # Parent panel APIs
@@ -175,6 +177,7 @@ class RoleBasedAccessMiddleware:
                 'core:profile',
                 'core:notifications',
                 'core:notifications_mark_read',
+                'core:notification_read_one',
                 'core:notification_preferences',
                 'core:notifications_mark_read_api',
                 # Guruh Chat
