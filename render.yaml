@@ -63,8 +63,13 @@ services:
       - key: BACKUP_SCHEDULER_ENABLED
         value: "false"
 
+      # Kunlik DB backup'ni DOIM ishlab turgan bot jarayonidan yuboramiz
+      # (18:00 Asia/Tashkent, BACKUP_SEND_TIME + BACKUP_TIMEZONE bo'yicha).
+      # Bu Render cron servisiga bog'liq emas -> ishonchliroq. Agar alohida
+      # 'daily-center-backup' cron ham faol bo'lsa -> ikki marta yuboradi,
+      # o'shanda cron'ni o'chiring (bittasi yetarli).
       - key: BOT_BACKUP_SCHEDULER_ENABLED
-        value: "false"
+        value: "true"
       
       - key: BOT_INTERNAL_API_URL
         value: http://localhost:8080
