@@ -232,9 +232,13 @@ def connect_parent_by_token_api(request):
                 "linked_at_display": timezone.localtime(linked_at).strftime("%d.%m.%Y %H:%M") if linked_at else "",
             }
         )
-    except Exception:
+    except Exception as exc:
         logger.exception("connect_parent_by_token_api failed")
-        return JsonResponse({"ok": False, "error": "Internal server error"}, status=500)
+        # DIAGNOSTIKA (vaqtinchalik): aniq xato matnini qaytaramiz — sabab topilgach olib tashlanadi.
+        return JsonResponse(
+            {"ok": False, "error": f"Server xatosi: {type(exc).__name__}: {exc}"[:300]},
+            status=500,
+        )
 
 @csrf_exempt
 def unlink_telegram_api(request):
