@@ -374,7 +374,14 @@ CLICK_COMPLETE_URL = "/click/complete/"
 
 # Telegram bot for payment notifications (official Telegram API via aiogram)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
-TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "YOUR_BOT").lstrip("@")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "ChaqmoqApp_Student_Bot").lstrip("@")
+# Family bot (ota-ona / o'quvchi paneli). Ota-ona ulanish linki AYNAN shu botga
+# boradi, chunki to'liq ota-ona paneli (farzand ma'lumotlari, sayt login/parol)
+# Family botда joylashgan. Agar alohida env berilmasa — asosiy username ishlatiladi.
+TELEGRAM_BOT_USERNAME_FAMILY = os.getenv(
+    "TELEGRAM_BOT_USERNAME_FAMILY",
+    os.getenv("TELEGRAM_FAMILY_BOT_USERNAME", TELEGRAM_BOT_USERNAME),
+).lstrip("@")
 TELEGRAM_GROUP_ID = os.getenv("TELEGRAM_GROUP_ID", os.getenv("BACKUP_GROUP_ID", ""))
 TELEGRAM_BACKUP_CHAT_ID = os.getenv(
     "TELEGRAM_BACKUP_CHAT_ID",

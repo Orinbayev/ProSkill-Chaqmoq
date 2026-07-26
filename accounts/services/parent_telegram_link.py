@@ -30,10 +30,18 @@ class ParentLinkInvite:
 
 
 def _bot_username() -> str:
-    username = str(getattr(settings, "TELEGRAM_BOT_USERNAME", "") or "").strip()
-    if username.startswith("@"):
-        username = username[1:]
-    return username or "YOUR_BOT"
+    """Ota-ona ulanish linki uchun bot username.
+
+    Ota-ona paneli (farzand ma'lumotlari + sayt login/parol) Family botда, shuning
+    uchun link AYNAN Family botga yo'naltiriladi. Avval TELEGRAM_BOT_USERNAME_FAMILY,
+    keyin oddiy TELEGRAM_BOT_USERNAME, oxirida esa xavfsiz default ishlatiladi —
+    hech qachon "YOUR_BOT" (yaroqsiz link) qaytmaydi.
+    """
+    for attr in ("TELEGRAM_BOT_USERNAME_FAMILY", "TELEGRAM_BOT_USERNAME"):
+        username = str(getattr(settings, attr, "") or "").strip().lstrip("@")
+        if username and username.upper() != "YOUR_BOT":
+            return username
+    return "ChaqmoqApp_Student_Bot"
 
 
 def _build_parent_link(token: str) -> str:

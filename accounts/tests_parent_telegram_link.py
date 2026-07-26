@@ -11,7 +11,11 @@ from accounts.services.parent_telegram_link import (
 )
 
 
-@override_settings(TELEGRAM_BOT_USERNAME="chaqmoq_test_bot", API_SECRET="x" * 40)
+@override_settings(
+    TELEGRAM_BOT_USERNAME="chaqmoq_test_bot",
+    TELEGRAM_BOT_USERNAME_FAMILY="chaqmoq_test_bot",
+    API_SECRET="x" * 40,
+)
 class ParentTelegramLinkTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(name="Parent Link Center", slug="parent-link-center")
@@ -65,6 +69,13 @@ class ParentTelegramLinkTests(TestCase):
         first_token = ParentTelegramLinkToken.objects.get(token=first.token)
         self.assertLessEqual(first_token.expires_at, timezone.now())
         self.assertNotEqual(first.token, second.token)
+
+    @override_settings(TELEGRAM_BOT_USERNAME="YOUR_BOT", TELEGRAM_BOT_USERNAME_FAMILY="")
+    def test_link_never_uses_placeholder_bot(self):
+        """'YOUR_BOT' placeholder ('You Bot') hech qachon linkga tushmasligi kerak."""
+        invite = create_parent_telegram_invite(student=self.student, created_by=self.admin)
+        self.assertNotIn("YOUR_BOT", invite.link)
+        self.assertIn("https://t.me/ChaqmoqApp_Student_Bot?start=parent_", invite.link)
 
     def test_bot_api_consumes_parent_token(self):
         invite = create_parent_telegram_invite(student=self.student, created_by=self.admin)

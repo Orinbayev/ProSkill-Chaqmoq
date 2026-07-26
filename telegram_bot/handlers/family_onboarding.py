@@ -9,6 +9,7 @@ import re
 
 from aiogram import F, Router, types
 from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters.command import CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -21,6 +22,7 @@ from aiogram.types import (
 
 from keyboards.menu import get_family_menu
 from services.api_client import (
+    connect_parent_link_api,
     family_add_child_api,
     family_confirm_link_api,
     family_find_by_phone_api,
@@ -138,12 +140,85 @@ def _try_parse_phone(text: str) -> str | None:
     return None
 
 
+# ─── Ota-ona ulanish linki (deep-link: /start parent_<token>) ────────────────
+async def _handle_parent_deeplink(message: types.Message, state: FSMContext, token: str) -> bool:
+    """Direktor/Manager panelidagi \"Ota-ona bilan ulash\" linkini qayta ishlaydi.
+
+    Ota-ona linkni bosib botga kirishi bilan token consume qilinadi, ota-ona
+    profiliga bog'lanadi va TO'LIQ ota-ona paneli ochiladi (farzand ma'lumotlari,
+    davomat, to'lov, hamda \"🔑 Saytga login\" orqali sayt/app uchun login-parol).
+
+    True — deep-link ishlab bo'lindi (start oqimini davom ettirish shart emas).
+    """
+    lang = get_lang(message.from_user.id)
+    token = (token or "").strip()
+    if not token:
+        return False
+
+    status_code, response = await connect_parent_link_api(
+        token=token,
+        telegram_id=str(message.from_user.id),
+        telegram_username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name,
+    )
+    response = response or {}
+
+    if status_code == 200 and response.get("ok"):
+        parent = response.get("parent") or {}
+        student = response.get("student") or {}
+        await state.set_data({
+            "role": "parent",
+            "parent_user_id": parent.get("id"),
+            "current_user_id": parent.get("id"),
+            "current_user_email": parent.get("email"),
+            "current_user_role": "parent",
+            "current_user_name": parent.get("full_name") or parent.get("email"),
+        })
+        await state.set_state(None)
+        child_name = student.get("full_name") or "Farzandingiz"
+        center = student.get("center") or "—"
+        await message.answer(
+            "✅ <b>Ota-ona paneli ochildi</b>\n\n"
+            f"👨‍👩‍👧 Farzand: <b>{child_name}</b>\n"
+            f"🏫 Markaz: <b>{center}</b>\n\n"
+            "Endi quyidagi menyu orqali farzandingiz haqida to'liq ma'lumot olishingiz "
+            "mumkin: davomat, to'lovlar, balans va o'qituvchi bilan bog'lanish.\n\n"
+            "🔑 <b>Saytga login</b> tugmasi orqali sayt va mobil ilova uchun "
+            "login-parol olishingiz mumkin.",
+            reply_markup=get_family_menu("parent", lang),
+            parse_mode="HTML",
+        )
+        return True
+
+    # Xatolik — aniq sabab bilan xabar berib, oddiy onboarding'ga o'tkazamiz
+    error_text = response.get("error") or "Link noto'g'ri yoki muddati tugagan."
+    await message.answer(
+        "❌ <b>Ota-onani ulab bo'lmadi</b>\n\n"
+        f"{error_text}\n\n"
+        "Iltimos, markaz admini yuborgan yangi linkdan foydalaning yoki quyidan "
+        "telefon raqamingiz orqali kiring.",
+        parse_mode="HTML",
+    )
+    return False
+
+
 # ─── /start → til tanlash ────────────────────────────────────────────────────
 @router.message(CommandStart())
-async def family_start(message: types.Message, state: FSMContext):
+async def family_start(message: types.Message, state: FSMContext, command: CommandObject = None):
     await state.clear()
     tg_id = message.from_user.id
-    # Allaqachon ro'yxatdan o'tgan (bog'langan) bo'lsa — TIL SO'RAMAYMIZ, to'g'ridan-to'g'ri menyu.
+
+    # 1) Ota-ona ulanish deep-link (parent_<token>) — birinchi navbatda tekshiramiz.
+    start_param = ((command.args if command else "") or "").strip()
+    if start_param.startswith("parent_"):
+        token = start_param.split("parent_", 1)[1].strip()
+        handled = await _handle_parent_deeplink(message, state, token)
+        if handled:
+            return
+        # Ulab bo'lmagan bo'lsa — pastdagi oddiy oqim davom etadi (til/telefon).
+
+    # 2) Allaqachon ro'yxatdan o'tgan (bog'langan) bo'lsa — TIL SO'RAMAYMIZ, to'g'ridan-to'g'ri menyu.
     status_code, response = await get_user_status_api(str(tg_id))
     linked = (
         status_code == 200
