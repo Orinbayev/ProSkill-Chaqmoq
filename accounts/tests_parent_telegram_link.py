@@ -77,6 +77,30 @@ class ParentTelegramLinkTests(TestCase):
         self.assertNotIn("YOUR_BOT", invite.link)
         self.assertIn("https://t.me/ChaqmoqApp_Student_Bot?start=parent_", invite.link)
 
+    def test_consume_works_when_student_has_no_center(self):
+        """center=None (nullable) — consume xatosiz ishlashi kerak.
+
+        Regressiya: ilgari select_related('student__center') PostgreSQL'da
+        'FOR UPDATE cannot be applied to the nullable side of an outer join'
+        xatosini berardi. Endi select_related olib tashlangan.
+        """
+        student_no_center = User.objects.create_user(
+            email="student-no-center@test.uz",
+            password="pass",
+            role="student",
+            center=None,
+            ism="Nur",
+            familya="Xoliq",
+        )
+        invite = create_parent_telegram_invite(student=student_no_center, created_by=self.admin)
+        result = consume_parent_telegram_invite(
+            raw_token=invite.token,
+            telegram_id="95001",
+            telegram_username="nur_parent",
+        )
+        self.assertEqual(result["student"]["id"], student_no_center.id)
+        self.assertEqual(result["student"]["center"], "")
+
     def test_bot_api_consumes_parent_token(self):
         invite = create_parent_telegram_invite(student=self.student, created_by=self.admin)
         response = self.client.post(

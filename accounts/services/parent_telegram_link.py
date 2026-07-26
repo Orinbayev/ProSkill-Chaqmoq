@@ -211,9 +211,12 @@ def consume_parent_telegram_invite(
 
     now = timezone.now()
     with transaction.atomic():
+        # DIQQAT: bu yerda select_related("student__center") ISHLATMAYMIZ.
+        # center (null=True) LEFT OUTER JOIN yaratadi va PostgreSQL
+        # "FOR UPDATE cannot be applied to the nullable side of an outer join"
+        # xatosini beradi. student baribir pastda alohida qayta olinadi.
         link_token = (
             ParentTelegramLinkToken.objects.select_for_update()
-            .select_related("student", "student__center")
             .filter(token=token_value)
             .first()
         )
