@@ -26,6 +26,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Eksport-shifrlash deklaratsiyasi. Ilova o'z shifrlash algoritmini
+	     ishlatmaydi: serverga ulanish HTTPS (OS ichidagi TLS), maxfiy
+	     ma'lumot esa flutter_secure_storage orqali iOS Keychain'da saqlanadi —
+	     ikkalasi ham Apple OSning o'zi. Shu sabab «exempt».
+	     Bu kalit bo'lsa, har yuklashda App Store Connect savol bermaydi. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil rasmini tanlash uchun foto kutubxonaga ruxsat kerak bo‘ladi.</string>
 	<key>NSCameraUsageDescription</key>
