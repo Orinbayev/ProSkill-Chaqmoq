@@ -144,6 +144,7 @@ urlpatterns = [
 
     # === 🧍‍♂️ O‘QUVCHILAR ===
     path("student/<int:student_id>/", views.student_detail, name="student_detail"),
+    path("student/<int:student_id>/holat/", views.student_status, name="student_status"),
     path("student/<int:student_id>/exam-report/", views.student_exam_report, name="student_exam_report"),
     path("kiritish/<int:enrollment_id>/transfer/", views.transfer_student_view, name="transfer_student"),
     path("kiritish/<int:pk>/olib-tashlash/", views.enrollment_remove, name="enrollment_remove"),

@@ -36,6 +36,9 @@ from education.views.exam_hub import (  # noqa: F401
     exam_annual_grades,
     exam_questions,
 )
+from education.views.student_status import (  # noqa: F401
+    student_status,
+)
 
 # Legacy monolit — to'liq orqaga moslik (urls, tests, ichki importlar).
 from education.views.legacy import *  # noqa: F403, F401

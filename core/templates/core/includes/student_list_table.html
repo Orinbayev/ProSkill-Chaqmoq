@@ -69,6 +69,7 @@
                 <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
                 {% elif user_kind == 'students' %}
                 <button onclick="openStudentEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
+                <a href="{% url 'education:student_status' u.id %}"><i class="fa-solid fa-chart-pie" style="color:var(--amber,#f59e0b)"></i> Holat</a>
                 <button type="button" onclick="openManualDebt({{ u.id }}, '{{ u.get_full_name|escapejs }}')"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--amber,#f59e0b)"></i> Qarz yozish</button>
                 {% else %}
                 <a href="{% url 'core:user_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>

@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% block title %}{{ student.ism }} {{ student.familya }} — Holat | ChaqmoqApp{% endblock %}
+{% block body_class %}student-status-page sst-page{% endblock %}
+{% block content %}
+<style>
+  /* ============================================================
+     O'QUVCHI HOLATI — bo'lim kesimida to'liq tarix
+     Dark birlamchi + to'liq light mode.
+     ============================================================ */
+  .sst {
+    --sst-bg: radial-gradient(circle at 10% -12%, rgba(59, 130, 246, .10), transparent 40%),
+              radial-gradient(circle at 95% -8%, rgba(245, 158, 11, .10), transparent 38%),
+              linear-gradient(180deg, #060d1d, #0a1428 60%, #07111f);
+    --sst-surface: rgba(13, 22, 41, .78);
+    --sst-surface-2: rgba(17, 27, 49, .82);
+    --sst-soft: rgba(255, 255, 255, .03);
+    --sst-border: rgba(148, 163, 184, .14);
+    --sst-border-strong: rgba(148, 163, 184, .26);
+    --sst-text: #e6ecf5;
+    --sst-text-soft: #b6c1d4;
+    --sst-muted: #7c8ba6;
+    --sst-accent: #f5c84c;
+    --sst-accent-strong: #f59e0b;
+    --sst-accent-ink: #1a1304;
+    --sst-green: #22c55e;
+    --sst-red: #ef4444;
+    --sst-orange: #fb923c;
+    --sst-blue: #60a5fa;
+    --sst-violet: #a78bfa;
+    --sst-shadow-sm: 0 2px 6px rgba(0, 0, 0, .18);
+    --sst-shadow-md: 0 8px 24px rgba(0, 0, 0, .22);
+    --sst-radius: 14px;
+    --sst-radius-sm: 10px;
+    --sst-radius-lg: 18px;
+
+    background: var(--sst-bg);
+    color: var(--sst-text);
+    min-height: calc(100vh - 60px);
+    padding: 14px clamp(12px, 2vw, 22px) 40px;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html[data-role-theme="light"] body.student-status-page,
+  html[data-role-theme="light"] body.student-status-page .layout,
+  html[data-role-theme="light"] body.student-status-page .app-shell,
+  html[data-role-theme="light"] body.student-status-page .main-content,
+  html[data-role-theme="light"] body.student-status-page .content-shell { background: #f0f3f9 !important; }
+  html[data-role-theme="light"] body.student-status-page .app-shell::before { display: none !important; }
+
+  html[data-role-theme="light"] body.student-status-page .sst {
+    --sst-bg: #f0f3f9;
+    --sst-surface: #ffffff;
+    --sst-surface-2: #ffffff;
+    --sst-soft: rgba(15, 23, 42, .03);
+    --sst-border: rgba(15, 23, 42, .09);
+    --sst-border-strong: rgba(15, 23, 42, .16);
+    --sst-text: #0f172a;
+    --sst-text-soft: #475569;
+    --sst-muted: #6b7a90;
+    --sst-accent: #d97706;
+    --sst-accent-strong: #b45309;
+    --sst-accent-ink: #fffbeb;
+    --sst-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+    --sst-shadow-md: 0 8px 22px rgba(15, 23, 42, .08);
+  }
+
+  .sst *, .sst *::before, .sst *::after { box-sizing: border-box; }
+  .sst a { text-decoration: none; }
+
+  .sst-card {
+    background: var(--sst-surface);
+    border: 1px solid var(--sst-border);
+    border-radius: var(--sst-radius);
+    box-shadow: var(--sst-shadow-sm);
+  }
+
+  /* ───────── TOPBAR ───────── */
+  .sst-top {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; flex-wrap: wrap;
+  }
+  .sst-back {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    background: var(--sst-soft); border: 1px solid var(--sst-border);
+    color: var(--sst-text-soft); transition: .16s;
+  }
+  .sst-back:hover { color: var(--sst-accent); border-color: var(--sst-accent); }
+  .sst-avatar {
+    width: 52px; height: 52px; border-radius: 15px; flex: none;
+    display: grid; place-items: center; font-weight: 800; font-size: 18px;
+    background: linear-gradient(135deg, var(--sst-accent), var(--sst-accent-strong));
+    color: var(--sst-accent-ink); letter-spacing: .5px;
+  }
+  .sst-ident { min-width: 0; flex: 1 1 240px; }
+  .sst-ident h1 {
+    margin: 0; font-size: 21px; font-weight: 750; letter-spacing: -.015em;
+    color: var(--sst-text); overflow-wrap: anywhere;
+  }
+  .sst-ident .sst-sub {
+    margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 6px 12px;
+    font-size: 12.5px; color: var(--sst-muted);
+  }
+  .sst-top-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+  .sst-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 13px; border-radius: 10px; font-size: 12.5px; font-weight: 650;
+    background: var(--sst-soft); border: 1px solid var(--sst-border);
+    color: var(--sst-text-soft); transition: .16s;
+  }
+  .sst-btn:hover { color: var(--sst-text); border-color: var(--sst-border-strong); }
+  .sst-btn.is-accent {
+    background: linear-gradient(135deg, var(--sst-accent), var(--sst-accent-strong));
+    border-color: transparent; color: var(--sst-accent-ink);
+  }
+
+  .sst-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .sst-pill.ok { background: rgba(34, 197, 94, .14); color: var(--sst-green); border-color: rgba(34, 197, 94, .3); }
+  .sst-pill.off { background: rgba(148, 163, 184, .14); color: var(--sst-muted); border-color: var(--sst-border-strong); }
+  .sst-pill.bad { background: rgba(239, 68, 68, .14); color: var(--sst-red); border-color: rgba(239, 68, 68, .3); }
+  .sst-pill.warn { background: rgba(251, 146, 60, .14); color: var(--sst-orange); border-color: rgba(251, 146, 60, .3); }
+  .sst-pill.info { background: rgba(96, 165, 250, .14); color: var(--sst-blue); border-color: rgba(96, 165, 250, .3); }
+
+  /* ───────── KPI ───────── */
+  .sst-kpis {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  }
+  .sst-kpi { padding: 12px 14px; display: grid; gap: 3px; align-content: start; }
+  .sst-kpi .k-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--sst-muted);
+  }
+  .sst-kpi .k-value { font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: var(--sst-text); }
+  .sst-kpi .k-value small { font-size: 12px; font-weight: 650; color: var(--sst-muted); margin-left: 3px; }
+  .sst-kpi .k-hint { font-size: 11.5px; color: var(--sst-muted); }
+  .sst-kpi.is-hero { border-color: rgba(245, 200, 76, .35); background: linear-gradient(160deg, rgba(245, 200, 76, .12), var(--sst-surface) 60%); }
+  .sst-kpi.is-hero .k-value { color: var(--sst-accent); font-size: 26px; }
+  .t-green { color: var(--sst-green) !important; }
+  .t-red { color: var(--sst-red) !important; }
+  .t-orange { color: var(--sst-orange) !important; }
+  .t-muted { color: var(--sst-muted) !important; }
+
+  /* ───────── VERDICT ───────── */
+  .sst-verdict { padding: 12px 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .sst-verdict h2 {
+    margin: 0; font-size: 13px; font-weight: 750; color: var(--sst-text);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .sst-verdict .v-note { font-size: 11.5px; color: var(--sst-muted); flex: 1 1 220px; }
+  .sst-signal {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 650;
+    border: 1px solid var(--sst-border); background: var(--sst-soft); color: var(--sst-text-soft);
+  }
+  .sst-signal[data-level="good"] { border-color: rgba(34, 197, 94, .35); color: var(--sst-green); background: rgba(34, 197, 94, .1); }
+  .sst-signal[data-level="ok"] { border-color: rgba(251, 146, 60, .35); color: var(--sst-orange); background: rgba(251, 146, 60, .1); }
+  .sst-signal[data-level="bad"] { border-color: rgba(239, 68, 68, .35); color: var(--sst-red); background: rgba(239, 68, 68, .1); }
+
+  /* ───────── SECTION ───────── */
+  .sst-section { overflow: hidden; }
+  .sst-section__head {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 13px 16px; border-bottom: 1px solid var(--sst-border);
+    background: linear-gradient(180deg, var(--sst-soft), transparent);
+  }
+  .sst-section__icon {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    display: grid; place-items: center; font-size: 20px;
+    background: var(--sst-soft); border: 1px solid var(--sst-border);
+  }
+  .sst-section__title { min-width: 0; flex: 1 1 200px; }
+  .sst-section__title h2 { margin: 0; font-size: 17px; font-weight: 750; color: var(--sst-text); }
+  .sst-section__title p { margin: 3px 0 0; font-size: 12px; color: var(--sst-muted); }
+
+  .sst-metrics {
+    display: grid; gap: 1px; background: var(--sst-border);
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    border-bottom: 1px solid var(--sst-border);
+  }
+  .sst-metric { background: var(--sst-surface); padding: 10px 14px; display: grid; gap: 2px; }
+  .sst-metric .m-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--sst-muted); }
+  .sst-metric .m-value { font-size: 15.5px; font-weight: 750; color: var(--sst-text); }
+  .sst-metric .m-value small { font-size: 11.5px; font-weight: 600; color: var(--sst-muted); }
+
+  /* ───────── GROUP ACCORDION ───────── */
+  .sst-groups { display: grid; }
+  .sst-group { border-top: 1px solid var(--sst-border); }
+  .sst-group:first-child { border-top: none; }
+  .sst-group > summary {
+    list-style: none; cursor: pointer; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    transition: background .16s;
+  }
+  .sst-group > summary::-webkit-details-marker { display: none; }
+  .sst-group > summary:hover { background: var(--sst-soft); }
+  .sst-group__chev { color: var(--sst-muted); transition: transform .18s; flex: none; }
+  .sst-group[open] > summary .sst-group__chev { transform: rotate(90deg); }
+  .sst-group__name { font-weight: 700; font-size: 14.5px; color: var(--sst-text); }
+  .sst-group__meta { margin: 2px 0 0; font-size: 11.5px; color: var(--sst-muted); display: flex; gap: 4px 10px; flex-wrap: wrap; }
+  .sst-group__head-main { flex: 1 1 220px; min-width: 0; }
+  .sst-group__quick { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .sst-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border-radius: 8px; font-size: 11.5px; font-weight: 650;
+    background: var(--sst-soft); border: 1px solid var(--sst-border); color: var(--sst-text-soft);
+    white-space: nowrap;
+  }
+  .sst-group__body { padding: 0 16px 16px; }
+
+  /* ───────── TABS ───────── */
+  .sst-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; margin-bottom: 12px;
+    background: var(--sst-soft); border: 1px solid var(--sst-border); border-radius: 12px; }
+  .sst-tab {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    padding: 7px 13px; border-radius: 9px; font-size: 12.5px; font-weight: 650;
+    color: var(--sst-muted); transition: .16s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sst-tab:hover { color: var(--sst-text); }
+  .sst-tab.is-active { background: var(--sst-surface); color: var(--sst-accent); box-shadow: var(--sst-shadow-sm); }
+  .sst-tab .tab-count {
+    font-size: 10.5px; font-weight: 750; padding: 1px 6px; border-radius: 999px;
+    background: var(--sst-border); color: var(--sst-text-soft);
+  }
+  .sst-panel { display: none; }
+  .sst-panel.is-active { display: block; }
+
+  /* ───────── TABLE ───────── */
+  .sst-tablewrap { overflow-x: auto; border: 1px solid var(--sst-border); border-radius: var(--sst-radius-sm); }
+  .sst-table { width: 100%; border-collapse: collapse; font-size: 12.8px; min-width: 560px; }
+  .sst-table th {
+    text-align: left; padding: 9px 12px; font-size: 10.5px; font-weight: 750;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--sst-muted);
+    background: var(--sst-soft); border-bottom: 1px solid var(--sst-border); white-space: nowrap;
+  }
+  .sst-table td { padding: 9px 12px; border-bottom: 1px solid var(--sst-border); color: var(--sst-text-soft); vertical-align: top; }
+  .sst-table tbody tr:last-child td { border-bottom: none; }
+  .sst-table tbody tr:hover td { background: var(--sst-soft); }
+  .sst-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sst-table .strong { color: var(--sst-text); font-weight: 700; }
+
+  .sst-dl {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--sst-soft); border: 1px solid var(--sst-border);
+    color: var(--sst-text-soft); transition: .16s;
+  }
+  .sst-dl:hover { color: var(--sst-accent-ink); background: var(--sst-accent); border-color: transparent; }
+
+  .sst-points { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* ───────── DAVOMAT ───────── */
+  .sst-month { border: 1px solid var(--sst-border); border-radius: var(--sst-radius-sm); margin-bottom: 10px; overflow: hidden; }
+  .sst-month:last-child { margin-bottom: 0; }
+  .sst-month__head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 12px; background: var(--sst-soft); border-bottom: 1px solid var(--sst-border);
+  }
+  .sst-month__name { font-weight: 700; font-size: 13px; color: var(--sst-text); }
+  .sst-month__stats { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  .sst-days { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; }
+  .sst-day {
+    display: grid; place-items: center; gap: 0;
+    min-width: 42px; padding: 6px 4px; border-radius: 9px;
+    border: 1px solid var(--sst-border); background: var(--sst-soft);
+    font-size: 13px; font-weight: 750; color: var(--sst-text-soft);
+    cursor: default;
+  }
+  .sst-day span { font-size: 9px; font-weight: 700; letter-spacing: .02em; opacity: .8; }
+  .sst-day[data-state="present"] { background: rgba(34, 197, 94, .14); border-color: rgba(34, 197, 94, .34); color: var(--sst-green); }
+  .sst-day[data-state="late"] { background: rgba(96, 165, 250, .14); border-color: rgba(96, 165, 250, .34); color: var(--sst-blue); }
+  .sst-day[data-state="excused"] { background: rgba(251, 146, 60, .14); border-color: rgba(251, 146, 60, .34); color: var(--sst-orange); }
+  .sst-day[data-state="unexcused"], .sst-day[data-state="absent"] { background: rgba(239, 68, 68, .14); border-color: rgba(239, 68, 68, .34); color: var(--sst-red); }
+  .sst-day[data-state="forced"] { background: rgba(167, 139, 250, .14); border-color: rgba(167, 139, 250, .34); color: var(--sst-violet); }
+
+  .sst-legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--sst-muted); margin-bottom: 10px; }
+  .sst-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+  .sst-empty { padding: 22px 14px; text-align: center; color: var(--sst-muted); font-size: 12.5px; }
+  .sst-page-empty { padding: 60px 20px; text-align: center; }
+  .sst-page-empty .e-icon { font-size: 40px; margin-bottom: 10px; opacity: .5; }
+
+  @media (max-width: 640px) {
+    .sst { padding: 10px 10px 32px; }
+    .sst-top-actions { margin-left: 0; width: 100%; }
+    .sst-kpi .k-value { font-size: 19px; }
+  }
+</style>
+
+<div class="sst">
+
+  <!-- ═══════════ TOPBAR ═══════════ -->
+  <div class="sst-card sst-top">
+    <a href="{% url 'core:stat_students' %}" class="sst-back" title="O'quvchilar ro'yxatiga qaytish">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div class="sst-avatar">{{ student.ism|slice:":1"|upper }}{{ student.familya|slice:":1"|upper }}</div>
+    <div class="sst-ident">
+      <h1>{{ student.ism }} {{ student.familya }}</h1>
+      <div class="sst-sub">
+        {% if student.is_archived %}
+          <span class="sst-pill off"><i class="fa-solid fa-box-archive"></i> Arxivlangan</span>
+        {% else %}
+          <span class="sst-pill ok"><i class="fa-solid fa-circle-check"></i> Faol o'quvchi</span>
+        {% endif %}
+        {% if student.telefon1 %}<span><i class="fa-solid fa-phone"></i> {{ student.telefon1 }}</span>{% endif %}
+        {% if totals.first_date %}
+          <span><i class="fa-solid fa-calendar-day"></i>
+            {{ totals.first_date|date:"d.m.Y" }} —
+            {% if totals.last_date %}{{ totals.last_date|date:"d.m.Y" }}{% else %}hozirgacha{% endif %}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="sst-top-actions">
+      <a href="{% url 'core:user_view' student.id %}" class="sst-btn"><i class="fa-solid fa-eye"></i> Ko'rish</a>
+      <a href="{% url 'education:student_detail' student.id %}" class="sst-btn"><i class="fa-solid fa-chart-line"></i> Batafsil tahlil</a>
+    </div>
+  </div>
+
+  {% if not has_data %}
+    <div class="sst-card sst-page-empty">
+      <div class="e-icon">🗂️</div>
+      <div style="font-weight:700; color:var(--sst-text); margin-bottom:4px;">Hozircha tarix yo'q</div>
+      <div style="font-size:12.5px; color:var(--sst-muted);">
+        Bu o'quvchi hali biror guruhga qo'shilmagan yoki davomat/to'lov/chaqmoq yozuvlari mavjud emas.
+      </div>
+    </div>
+  {% else %}
+
+  <!-- ═══════════ KPI ═══════════ -->
+  <div class="sst-kpis">
+    <div class="sst-card sst-kpi is-hero">
+      <div class="k-label">Chaqmoq balansi</div>
+      <div class="k-value">⚡ {{ totals.balance }}</div>
+      <div class="k-hint">
+        <span class="t-green">+{{ totals.plus }}</span> olgan ·
+        <span class="t-red">−{{ totals.minus }}</span> yo'qotgan
+      </div>
+    </div>
+    <div class="sst-card sst-kpi">
+      <div class="k-label">Bo'limlar</div>
+      <div class="k-value">{{ totals.sections_count }}<small>ta yo'nalish</small></div>
+      <div class="k-hint">{{ totals.groups_count }} ta guruh · {{ totals.active_groups }} tasi faol</div>
+    </div>
+    <div class="sst-card sst-kpi">
+      <div class="k-label">O'qish davri</div>
+      <div class="k-value">{{ totals.months_count }}<small>oy</small></div>
+      <div class="k-hint">
+        {% if totals.first_date %}{{ totals.first_date|date:"m.Y" }} —
+          {% if totals.last_date %}{{ totals.last_date|date:"m.Y" }}{% else %}hozir{% endif %}
+        {% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="sst-card sst-kpi">
+      <div class="k-label">Jami to'lov</div>
+      <div class="k-value">{{ totals.paid_text }}<small>so'm</small></div>
+      <div class="k-hint">{{ totals.payments_count }} ta to'lov qaydi</div>
+    </div>
+    <div class="sst-card sst-kpi">
+      <div class="k-label">Qarzdorlik</div>
+      <div class="k-value {% if totals.debt %}t-red{% else %}t-green{% endif %}">{{ totals.debt_text }}<small>so'm</small></div>
+      <div class="k-hint">Yozilgan: {{ totals.fee_text }} so'm</div>
+    </div>
+    <div class="sst-card sst-kpi">
+      <div class="k-label">Davomat</div>
+      <div class="k-value">{{ totals.attendance.rate }}<small>%</small></div>
+      <div class="k-hint">
+        <span class="t-green">{{ totals.attendance.attended }}</span> keldi ·
+        <span class="t-red">{{ totals.attendance.missed }}</span> qoldirdi
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ QAROR SIGNALLARI ═══════════ -->
+  <div class="sst-card sst-verdict">
+    <h2><i class="fa-solid fa-store" style="color:var(--sst-accent)"></i> Do'kon uchun qaror signallari</h2>
+    <span class="sst-signal" data-level="{% if verdict.balance > 0 %}good{% elif verdict.balance < 0 %}bad{% endif %}">
+      <i class="fa-solid fa-bolt"></i> Ishlatish mumkin: {{ verdict.balance }} chaqmoq
+    </span>
+    <span class="sst-signal" data-level="{{ verdict.attendance_level }}">
+      <i class="fa-solid fa-user-check"></i> {{ verdict.attendance_text }} ({{ totals.attendance.rate }}%)
+    </span>
+    <span class="sst-signal" data-level="{{ verdict.payment_level }}">
+      <i class="fa-solid fa-wallet"></i> {{ verdict.payment_text }}
+    </span>
+    <span class="v-note">Bu ko'rsatkichlar qarorni avtomatik qabul qilmaydi — mahsulotni berish/bermaslikni siz hal qilasiz.</span>
+  </div>
+
+  <!-- ═══════════ BO'LIMLAR ═══════════ -->
+  {% for section in sections %}
+  <div class="sst-card sst-section">
+    <div class="sst-section__head">
+      <div class="sst-section__icon">{{ section.icon }}</div>
+      <div class="sst-section__title">
+        <h2>{{ section.name }}</h2>
+        <p>{{ section.groups_count }} ta guruh ·
+          {% if section.start_date %}{{ section.start_date|date:"d.m.Y" }} —
+            {% if section.end_date %}{{ section.end_date|date:"d.m.Y" }}{% else %}hozirgacha{% endif %}
+          {% else %}sana ko'rsatilmagan{% endif %}
+        </p>
+      </div>
+      {% if section.is_active %}
+        <span class="sst-pill ok"><i class="fa-solid fa-circle-play"></i> Hozir o'qiyapti</span>
+      {% else %}
+        <span class="sst-pill off"><i class="fa-solid fa-flag-checkered"></i> Tugatgan</span>
+      {% endif %}
+    </div>
+
+    <div class="sst-metrics">
+      <div class="sst-metric">
+        <div class="m-label">O'qigan davri</div>
+        <div class="m-value">{{ section.months_count }} <small>oy</small></div>
+      </div>
+      <div class="sst-metric">
+        <div class="m-label">Chaqmoq (sof)</div>
+        <div class="m-value {% if section.net > 0 %}t-green{% elif section.net < 0 %}t-red{% endif %}">⚡ {{ section.net }}</div>
+      </div>
+      <div class="sst-metric">
+        <div class="m-label">Olgan / Yo'qotgan</div>
+        <div class="m-value"><span class="t-green">+{{ section.plus }}</span> <small>/</small> <span class="t-red">−{{ section.minus }}</span></div>
+      </div>
+      <div class="sst-metric">
+        <div class="m-label">To'lagan</div>
+        <div class="m-value">{{ section.paid_text }} <small>so'm</small></div>
+      </div>
+      <div class="sst-metric">
+        <div class="m-label">Qarz</div>
+        <div class="m-value {% if section.debt %}t-red{% else %}t-green{% endif %}">{{ section.debt_text }} <small>so'm</small></div>
+      </div>
+      <div class="sst-metric">
+        <div class="m-label">Davomat</div>
+        <div class="m-value">{{ section.att.rate }}% <small>({{ section.att.attended }}/{{ section.att.total }})</small></div>
+      </div>
+    </div>
+
+    <div class="sst-groups">
+      {% for g in section.groups %}
+      <details class="sst-group" {% if section.groups|length == 1 or g.is_active %}open{% endif %}>
+        <summary>
+          <i class="fa-solid fa-chevron-right sst-group__chev"></i>
+          <div class="sst-group__head-main">
+            <div class="sst-group__name">{{ g.name }}</div>
+            <div class="sst-group__meta">
+              <span><i class="fa-solid fa-chalkboard-user"></i> {{ g.teacher }}</span>
+              <span><i class="fa-regular fa-calendar"></i>
+                {% if g.start_date %}{{ g.start_date|date:"d.m.Y" }}{% else %}—{% endif %} →
+                {% if g.end_date %}{{ g.end_date|date:"d.m.Y" }}{% else %}hozirgacha{% endif %}
+              </span>
+              <span><i class="fa-regular fa-clock"></i> {{ g.months_count }} oy</span>
+            </div>
+          </div>
+          <div class="sst-group__quick">
+            {% if g.is_active %}
+              <span class="sst-pill ok">Faol</span>
+            {% else %}
+              <span class="sst-pill off">{{ g.status_label }}</span>
+            {% endif %}
+            <span class="sst-chip">⚡ <b class="{% if g.chaqmoq.net > 0 %}t-green{% elif g.chaqmoq.net < 0 %}t-red{% endif %}">{{ g.chaqmoq.net }}</b></span>
+            <span class="sst-chip"><i class="fa-solid fa-wallet"></i> {{ g.payments.total_text }}</span>
+            <span class="sst-chip"><i class="fa-solid fa-user-check"></i> {{ g.attendance.stats.rate }}%</span>
+          </div>
+        </summary>
+
+        <div class="sst-group__body">
+          <div class="sst-tabs" role="tablist">
+            <button type="button" class="sst-tab is-active" data-tab="pay-{{ g.id }}">
+              <i class="fa-solid fa-receipt"></i> To'lovlar <span class="tab-count">{{ g.payments.count }}</span>
+            </button>
+            <button type="button" class="sst-tab" data-tab="mon-{{ g.id }}">
+              <i class="fa-solid fa-calendar-check"></i> Oylik hisob <span class="tab-count">{{ g.tuition.rows|length }}</span>
+            </button>
+            <button type="button" class="sst-tab" data-tab="chq-{{ g.id }}">
+              <i class="fa-solid fa-bolt"></i> Chaqmoq <span class="tab-count">{{ g.chaqmoq.count }}</span>
+            </button>
+            <button type="button" class="sst-tab" data-tab="att-{{ g.id }}">
+              <i class="fa-solid fa-user-check"></i> Davomat <span class="tab-count">{{ g.attendance.stats.total }}</span>
+            </button>
+          </div>
+
+          <!-- ── TO'LOVLAR ── -->
+          <div class="sst-panel is-active" id="panel-pay-{{ g.id }}">
+            {% if g.payments.rows %}
+            <div class="sst-tablewrap">
+              <table class="sst-table">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th class="num">Summa</th>
+                    <th>Turi</th>
+                    <th>Qaysi oy uchun</th>
+                    <th>Kim qabul qildi</th>
+                    <th style="text-align:right">Chek</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in g.payments.rows %}
+                  <tr>
+                    <td class="strong">
+                      {{ p.date|date:"d.m.Y" }}
+                      {% if p.time %}<div style="font-size:11px; color:var(--sst-muted);">{{ p.time|time:"H:i" }}</div>{% endif %}
+                    </td>
+                    <td class="num strong">{{ p.amount_text }} so'm</td>
+                    <td>
+                      <span class="sst-chip">{{ p.type_label }}</span>
+                      {% if p.cash and p.card %}
+                      <div style="font-size:11px; color:var(--sst-muted); margin-top:3px;">
+                        Naqd: {{ p.cash_text }} · Karta: {{ p.card_text }}
+                      </div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% for m in p.covered_months %}
+                        <div>{{ m }}</div>
+                      {% empty %}
+                        <span class="t-muted">Oyga biriktirilmagan</span>
+                      {% endfor %}
+                      {% if p.note %}<div style="font-size:11px; color:var(--sst-muted); margin-top:3px;">“{{ p.note }}”</div>{% endif %}
+                    </td>
+                    <td>{{ p.created_by|default:"—" }}</td>
+                    <td style="text-align:right">
+                      <a class="sst-dl" href="{{ p.receipt_url }}" target="_blank" rel="noopener"
+                         title="{{ p.date|date:'d.m.Y' }} chekini yuklab olish">
+                        <i class="fa-solid fa-download"></i>
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="strong">Jami</td>
+                    <td class="num strong">{{ g.payments.total_text }} so'm</td>
+                    <td colspan="4"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {% else %}
+            <div class="sst-empty">Bu guruh bo'yicha to'lov qaydi yo'q.</div>
+            {% endif %}
+          </div>
+
+          <!-- ── OYLIK HISOB ── -->
+          <div class="sst-panel" id="panel-mon-{{ g.id }}">
+            {% if g.tuition.rows %}
+            <div class="sst-tablewrap">
+              <table class="sst-table" style="min-width:460px">
+                <thead>
+                  <tr>
+                    <th>Oy</th>
+                    <th class="num">Yozilgan</th>
+                    <th class="num">To'langan</th>
+                    <th class="num">Qarz</th>
+                    <th>Holat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in g.tuition.rows %}
+                  <tr>
+                    <td class="strong">{{ m.label }}</td>
+                    <td class="num">{{ m.fee_text }}</td>
+                    <td class="num t-green">{{ m.paid_text }}</td>
+                    <td class="num {% if m.debt %}t-red{% endif %}">{{ m.debt_text }}</td>
+                    <td>
+                      {% if m.status == 'paid' %}<span class="sst-pill ok">To'liq to'langan</span>
+                      {% elif m.status == 'partial' %}<span class="sst-pill warn">Qisman</span>
+                      {% else %}<span class="sst-pill bad">To'lanmagan</span>{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="strong">Jami</td>
+                    <td class="num strong">{{ g.tuition.fee_total_text }}</td>
+                    <td class="num strong t-green">{{ g.tuition.paid_total_text }}</td>
+                    <td class="num strong {% if g.tuition.debt_total %}t-red{% endif %}">{{ g.tuition.debt_total_text }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {% else %}
+            <div class="sst-empty">Bu guruh bo'yicha oylik hisob yuritilmagan.</div>
+            {% endif %}
+          </div>
+
+          <!-- ── CHAQMOQ ── -->
+          <div class="sst-panel" id="panel-chq-{{ g.id }}">
+            {% if g.chaqmoq.entries %}
+            <div class="sst-tablewrap">
+              <table class="sst-table" style="min-width:520px">
+                <thead>
+                  <tr>
+                    <th style="width:110px">Sana</th>
+                    <th>Sabab / qoida</th>
+                    <th class="num" style="width:110px">Chaqmoq</th>
+                    <th style="width:34%">Kim berdi / ayirdi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for e in g.chaqmoq.entries %}
+                  <tr>
+                    <td class="strong">{{ e.date|date:"d.m.Y" }}</td>
+                    <td>{{ e.reason }}</td>
+                    <td class="num sst-points {% if e.is_plus %}t-green{% else %}t-red{% endif %}">
+                      {% if e.is_plus %}+{% endif %}{{ e.points }}
+                    </td>
+                    <td>
+                      {{ e.given_by }}
+                      {% if e.is_auto %}<span class="sst-pill info" style="margin-left:4px">avto</span>{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="strong">Jami</td>
+                    <td><span class="t-green">+{{ g.chaqmoq.plus }}</span> / <span class="t-red">−{{ g.chaqmoq.minus }}</span></td>
+                    <td class="num strong sst-points {% if g.chaqmoq.net > 0 %}t-green{% elif g.chaqmoq.net < 0 %}t-red{% endif %}">{{ g.chaqmoq.net }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {% else %}
+            <div class="sst-empty">Bu guruhda chaqmoq yozuvi yo'q.</div>
+            {% endif %}
+          </div>
+
+          <!-- ── DAVOMAT ── -->
+          <div class="sst-panel" id="panel-att-{{ g.id }}">
+            {% if g.attendance.months %}
+            <div class="sst-legend">
+              <span><i style="background:#22c55e"></i>Keldi</span>
+              <span><i style="background:#60a5fa"></i>Kech qoldi</span>
+              <span><i style="background:#fb923c"></i>Sababli</span>
+              <span><i style="background:#ef4444"></i>Sababsiz / kelmadi</span>
+              <span><i style="background:#a78bfa"></i>Dars yozilgan</span>
+            </div>
+            {% for m in g.attendance.months %}
+            <div class="sst-month">
+              <div class="sst-month__head">
+                <div class="sst-month__name">{{ m.label }}</div>
+                <div class="sst-month__stats">
+                  <span class="sst-chip t-green">Keldi: {{ m.stats.attended }}</span>
+                  <span class="sst-chip t-red">Qoldirdi: {{ m.stats.missed }}</span>
+                  <span class="sst-chip">Davomat: {{ m.stats.rate }}%</span>
+                </div>
+              </div>
+              <div class="sst-days">
+                {% for d in m.days %}
+                <div class="sst-day" data-state="{{ d.state }}" title="{{ d.date|date:'d.m.Y' }} — {{ d.label }}">
+                  {{ d.day }}
+                  <span>{{ d.dow }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="sst-empty">Bu guruhda davomat yozuvi yo'q.</div>
+            {% endif %}
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- ═══════════ UMUMIY CHAQMOQ (guruhsiz) ═══════════ -->
+  {% if general.count %}
+  <div class="sst-card sst-section">
+    <div class="sst-section__head">
+      <div class="sst-section__icon">⚡</div>
+      <div class="sst-section__title">
+        <h2>Umumiy chaqmoq</h2>
+        <p>Aniq guruhga bog'lanmagan yozuvlar — davomat jarimasi, to'lov intizomi bonusi va boshqalar</p>
+      </div>
+      <span class="sst-chip"><span class="t-green">+{{ general.plus }}</span> / <span class="t-red">−{{ general.minus }}</span></span>
+      <span class="sst-pill {% if general.net > 0 %}ok{% elif general.net < 0 %}bad{% else %}off{% endif %}">Sof: {{ general.net }}</span>
+    </div>
+    <div style="padding:14px 16px;">
+      <div class="sst-tablewrap">
+        <table class="sst-table" style="min-width:520px">
+          <thead>
+            <tr>
+              <th>Sana</th>
+              <th>Sabab / qoida</th>
+              <th>Guruh</th>
+              <th class="num">Chaqmoq</th>
+              <th>Kim berdi / ayirdi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in general.entries %}
+            <tr>
+              <td class="strong">{{ e.date|date:"d.m.Y" }}</td>
+              <td>{{ e.reason }}</td>
+              <td>{{ e.group_name|default:"—" }}</td>
+              <td class="num sst-points {% if e.is_plus %}t-green{% else %}t-red{% endif %}">
+                {% if e.is_plus %}+{% endif %}{{ e.points }}
+              </td>
+              <td>
+                {{ e.given_by }}
+                {% if e.is_auto %}<span class="sst-pill info" style="margin-left:4px">avto</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+
+<script>
+  (function () {
+    var root = document.querySelector('.sst');
+    if (!root) return;
+    root.addEventListener('click', function (ev) {
+      var tab = ev.target.closest('.sst-tab');
+      if (!tab || !root.contains(tab)) return;
+      var bar = tab.closest('.sst-tabs');
+      var body = tab.closest('.sst-group__body');
+      if (!bar || !body) return;
+      bar.querySelectorAll('.sst-tab').forEach(function (t) { t.classList.remove('is-active'); });
+      tab.classList.add('is-active');
+      body.querySelectorAll(':scope > .sst-panel').forEach(function (p) { p.classList.remove('is-active'); });
+      var target = body.querySelector('#panel-' + tab.dataset.tab);
+      if (target) target.classList.add('is-active');
+    });
+  })();
+</script>
+{% endblock %}
