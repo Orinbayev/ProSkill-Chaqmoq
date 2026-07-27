@@ -28,11 +28,20 @@ User = get_user_model()
 
 
 # ─── Tariflar (foydalanuvchi bergan narxlar) ───────────────────
+# (nom, narx, kun, jon_soni, jon_soat, oyin_qulf_soat, bonus_foiz, izoh)
+#
+# Bepul reja: 3 jon / 8 soat, o'yin 24 soatda ochiladi.
+# Tarif ikkala kutishni ham qisqartiradi — faqat jonni tezlashtirish
+# o'quvchiga deyarli hech narsa bermaydi (o'yinlar soni cheklangan).
 TARIFLAR = [
-    ("Boshlang'ich", 10_000, 7, 3, 10, "Har 10 soatda 3 ta jon"),
-    ("Standart", 15_000, 10, 3, 8, "Har 8 soatda 3 ta jon"),
-    ("Kuchli", 30_000, 15, 3, 5, "Har 5 soatda 3 ta jon"),
-    ("Maksimal", 50_000, 20, 3, 5, "Har 5 soatda 3 ta jon, 20 kun"),
+    ("Tezkor", 10_000, 7, 3, 5, 12, 0,
+     "Jonlar 5 soatda, o'yinlar 12 soatda ochiladi"),
+    ("Pro", 15_000, 7, 3, 2, 6, 25,
+     "Jonlar 2 soatda, o'yinlar 6 soatda + 25% chaqmoq"),
+    ("Pro oylik", 45_000, 30, 3, 2, 6, 25,
+     "Pro bilan bir xil, lekin bir oy — arzonroq chiqadi"),
+    ("Chempion", 30_000, 7, 5, 2, 4, 50,
+     "5 jon, o'yinlar 4 soatda + 50% chaqmoq"),
 ]
 
 # ─── 50 ta robot ───────────────────────────────────────────────
@@ -100,6 +109,106 @@ SAVOLLAR = {
         ("grandmother", "buvi", ["bobo", "ona", "xola"]),
         ("son", "o'g'il", ["qiz", "ota", "nabira"]),
     ],
+    "Hayvonlar (A1)": [
+        ("cat", "mushuk", ["it", "sichqon", "quyon"]),
+        ("dog", "it", ["mushuk", "bo'ri", "tulki"]),
+        ("horse", "ot", ["eshak", "sigir", "tuya"]),
+        ("cow", "sigir", ["qo'y", "echki", "ot"]),
+        ("sheep", "qo'y", ["echki", "sigir", "tovuq"]),
+        ("bird", "qush", ["baliq", "ari", "kapalak"]),
+        ("fish", "baliq", ["qush", "ilon", "qurbaqa"]),
+        ("bear", "ayiq", ["bo'ri", "sher", "tulki"]),
+        ("wolf", "bo'ri", ["ayiq", "it", "tulki"]),
+        ("rabbit", "quyon", ["sichqon", "mushuk", "olmaxon"]),
+        ("chicken", "tovuq", ["o'rdak", "g'oz", "kurka"]),
+        ("mouse", "sichqon", ["quyon", "mushuk", "kalamush"]),
+    ],
+    "Uy-ro'zg'or (A1)": [
+        ("table", "stol", ["stul", "shkaf", "karavot"]),
+        ("chair", "stul", ["stol", "divan", "eshik"]),
+        ("door", "eshik", ["deraza", "devor", "shift"]),
+        ("window", "deraza", ["eshik", "pol", "tom"]),
+        ("bed", "karavot", ["divan", "stol", "gilam"]),
+        ("kitchen", "oshxona", ["yotoqxona", "hammom", "zal"]),
+        ("spoon", "qoshiq", ["vilka", "pichoq", "likopcha"]),
+        ("knife", "pichoq", ["qoshiq", "vilka", "chelak"]),
+        ("plate", "likopcha", ["stakan", "qozon", "choynak"]),
+        ("cup", "piyola", ["likopcha", "qozon", "tovoq"]),
+    ],
+    "Maktab (A1)": [
+        ("book", "kitob", ["daftar", "ruchka", "sumka"]),
+        ("pen", "ruchka", ["qalam", "daftar", "kitob"]),
+        ("pencil", "qalam", ["ruchka", "o'chirg'ich", "chizg'ich"]),
+        ("teacher", "o'qituvchi", ["o'quvchi", "direktor", "ota-ona"]),
+        ("student", "o'quvchi", ["o'qituvchi", "do'st", "qo'shni"]),
+        ("lesson", "dars", ["tanaffus", "imtihon", "uy vazifa"]),
+        ("homework", "uy vazifasi", ["dars", "imtihon", "kitob"]),
+        ("school", "maktab", ["universitet", "bog'cha", "kutubxona"]),
+        ("blackboard", "doska", ["devor", "deraza", "stol"]),
+        ("exam", "imtihon", ["dars", "tanaffus", "bayram"]),
+    ],
+    "Ovqat (A1)": [
+        ("bread", "non", ["guruch", "sut", "go'sht"]),
+        ("water", "suv", ["sut", "choy", "sharbat"]),
+        ("milk", "sut", ["suv", "qatiq", "asal"]),
+        ("meat", "go'sht", ["baliq", "tuxum", "non"]),
+        ("rice", "guruch", ["un", "makkajo'xori", "no'xat"]),
+        ("egg", "tuxum", ["sut", "pishloq", "sariyog'"]),
+        ("salt", "tuz", ["shakar", "qalampir", "sirka"]),
+        ("sugar", "shakar", ["tuz", "asal", "un"]),
+        ("tea", "choy", ["qahva", "suv", "sut"]),
+        ("soup", "sho'rva", ["palov", "manti", "somsa"]),
+    ],
+    "Vaqt va kunlar (A2)": [
+        ("Monday", "dushanba", ["seshanba", "yakshanba", "juma"]),
+        ("Friday", "juma", ["shanba", "payshanba", "dushanba"]),
+        ("Sunday", "yakshanba", ["shanba", "juma", "seshanba"]),
+        ("morning", "ertalab", ["kechqurun", "tush", "kecha"]),
+        ("evening", "kechqurun", ["ertalab", "tush", "yarim tun"]),
+        ("yesterday", "kecha", ["bugun", "ertaga", "hozir"]),
+        ("tomorrow", "ertaga", ["kecha", "bugun", "keyin"]),
+        ("week", "hafta", ["oy", "yil", "kun"]),
+        ("month", "oy", ["hafta", "yil", "kun"]),
+        ("year", "yil", ["oy", "hafta", "asr"]),
+    ],
+    "Sifatlar (A2)": [
+        ("big", "katta", ["kichik", "uzun", "og'ir"]),
+        ("small", "kichik", ["katta", "keng", "baland"]),
+        ("fast", "tez", ["sekin", "og'ir", "yengil"]),
+        ("slow", "sekin", ["tez", "kuchli", "past"]),
+        ("hot", "issiq", ["sovuq", "iliq", "quruq"]),
+        ("cold", "sovuq", ["issiq", "iliq", "ho'l"]),
+        ("easy", "oson", ["qiyin", "og'ir", "uzoq"]),
+        ("difficult", "qiyin", ["oson", "yengil", "yaqin"]),
+        ("beautiful", "chiroyli", ["xunuk", "katta", "eski"]),
+        ("expensive", "qimmat", ["arzon", "yangi", "eski"]),
+        ("strong", "kuchli", ["kuchsiz", "uzun", "yumshoq"]),
+        ("clean", "toza", ["iflos", "quruq", "yangi"]),
+    ],
+    "Fe'llar (B1)": [
+        ("achieve", "erishmoq", ["yo'qotmoq", "qidirmoq", "kutmoq"]),
+        ("improve", "yaxshilamoq", ["buzmoq", "to'xtatmoq", "boshlamoq"]),
+        ("decide", "qaror qilmoq", ["shubhalanmoq", "unutmoq", "so'ramoq"]),
+        ("explain", "tushuntirmoq", ["so'ramoq", "yashirmoq", "eshitmoq"]),
+        ("suggest", "taklif qilmoq", ["rad etmoq", "buyurmoq", "so'ramoq"]),
+        ("prevent", "oldini olmoq", ["ruxsat bermoq", "yordam bermoq", "eslatmoq"]),
+        ("increase", "oshirmoq", ["kamaytirmoq", "saqlamoq", "yopmoq"]),
+        ("reduce", "kamaytirmoq", ["oshirmoq", "boshlamoq", "tugatmoq"]),
+        ("describe", "tasvirlamoq", ["yashirmoq", "so'ramoq", "hisoblamoq"]),
+        ("compare", "solishtirmoq", ["birlashtirmoq", "ajratmoq", "yopmoq"]),
+    ],
+    "Bo'shliqni to'ldiring (A2)": [
+        ("I ___ a student.", "am", ["is", "are", "be"]),
+        ("She ___ to school every day.", "goes", ["go", "going", "gone"]),
+        ("They ___ playing football now.", "are", ["is", "am", "be"]),
+        ("He ___ finished his homework.", "has", ["have", "had", "having"]),
+        ("We ___ TV yesterday.", "watched", ["watch", "watches", "watching"]),
+        ("There ___ many books here.", "are", ["is", "am", "was"]),
+        ("I ___ never been to London.", "have", ["has", "had", "am"]),
+        ("If it rains, I ___ stay home.", "will", ["would", "was", "am"]),
+        ("She is taller ___ me.", "than", ["then", "that", "as"]),
+        ("This book is ___ interesting.", "very", ["much", "many", "too much"]),
+    ],
 }
 
 YANGILIKLAR = [
@@ -140,12 +249,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("O'quvchi: oquvchi@chaqmoq.uz / chaqmoq123"))
 
         # ─── Tariflar ────────────────────────────────────────────
-        for tartib, (nom, narx, kun, jon, soat, izoh) in enumerate(TARIFLAR):
+        for tartib, (
+            nom, narx, kun, jon, soat, qulf, bonus, izoh
+        ) in enumerate(TARIFLAR):
             Tarif.objects.get_or_create(
                 nom=nom,
                 defaults={
                     "narx_som": narx, "kun": kun, "jon_soni": jon,
-                    "soat": soat, "izoh": izoh, "tartib": tartib,
+                    "soat": soat, "oyin_qulf_soat": qulf,
+                    "chaqmoq_bonus_foiz": bonus,
+                    "izoh": izoh, "tartib": tartib,
                 },
             )
         self.stdout.write(self.style.SUCCESS(f"Tariflar: {Tarif.objects.count()} ta"))
@@ -216,10 +329,13 @@ class Command(BaseCommand):
                 defaults={"daraja": daraja, "center": None},
             )
             for savol, togri, notogrilar in savollar:
+                # Gap ichida "___" bo'lsa — bu bo'shliqni to'ldirish savoli.
+                tur = Question.TUR_BOSHLIQ if "___" in savol else Question.TUR_TARJIMA
                 _, created = Question.objects.get_or_create(
                     savol=savol,
                     kategoriya=kategoriya,
                     defaults={
+                        "tur": tur,
                         "togri_javob": togri,
                         "notogri_1": notogrilar[0],
                         "notogri_2": notogrilar[1],

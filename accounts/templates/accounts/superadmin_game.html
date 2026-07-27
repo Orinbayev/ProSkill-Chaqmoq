@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Chaqmoq Game boshqaruvi — Chaqmoq{% endblock %}
+{% block body_class %}sa-shell{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
+{% endblock %}
+
+{% block content %}
+<style>
+  /* Tema-aware: dark (default) + light override — superadmin_bot bilan bir xil. */
+  .gm-wrap {
+    --c-card:#0d1836; --c-card2:#0a1430; --c-border:rgba(148,163,184,.14);
+    --c-text:#eaf1ff; --c-muted:#93a6c6; --c-head:#8ea3c4;
+    --c-shadow:0 10px 30px rgba(3,8,20,.35);
+    --c-ok-bg:rgba(34,197,94,.16); --c-ok-fg:#4ade80;
+    --c-warn-bg:rgba(245,158,11,.16); --c-warn-fg:#fbbf24;
+    --c-bad-bg:rgba(239,68,68,.16); --c-bad-fg:#f87171;
+    --c-input:#0a1430; --c-accent:#38bdf8;
+    padding: 0 0 48px;
+  }
+  html[data-role-theme="light"] .gm-wrap {
+    --c-card:#ffffff; --c-card2:#f8fafc; --c-border:#e6ebf2;
+    --c-text:#0f172a; --c-muted:#5b6b85; --c-head:#64748b;
+    --c-shadow:0 8px 24px rgba(15,23,42,.06);
+    --c-ok-bg:#dcfce7; --c-ok-fg:#15803d;
+    --c-warn-bg:#fef3c7; --c-warn-fg:#b45309;
+    --c-bad-bg:#fee2e2; --c-bad-fg:#b91c1c;
+    --c-input:#ffffff; --c-accent:#0284c7;
+  }
+
+  .gm-head { margin:4px 0 18px; }
+  .gm-head h1 { margin:0; font-size:22px; font-weight:800; color:var(--c-text); }
+  .gm-head p { margin:3px 0 0; color:var(--c-muted); font-size:13px; }
+
+  .gm-kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+  .gm-kpi { background:var(--c-card); border:1px solid var(--c-border); border-radius:16px; padding:14px 16px; box-shadow:var(--c-shadow); }
+  .gm-kpi__label { font-size:12px; color:var(--c-muted); font-weight:600; }
+  .gm-kpi__val { font-size:25px; font-weight:800; margin-top:4px; color:var(--c-text); }
+
+  .gm-tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .gm-tab { border:1px solid var(--c-border); background:var(--c-card); color:var(--c-muted);
+            border-radius:12px; padding:9px 16px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .gm-tab.is-on { background:var(--c-accent); border-color:var(--c-accent); color:#fff; }
+
+  .gm-panel { display:none; }
+  .gm-panel.is-on { display:block; }
+
+  .gm-card { background:var(--c-card); border:1px solid var(--c-border); border-radius:18px;
+             overflow:hidden; box-shadow:var(--c-shadow); }
+  .gm-card__head { display:flex; align-items:center; gap:12px; padding:14px 18px;
+                   border-bottom:1px solid var(--c-border); flex-wrap:wrap; }
+  .gm-card__head h2 { margin:0; font-size:15px; font-weight:800; color:var(--c-text); }
+  .gm-card__head p { margin:0; font-size:12.5px; color:var(--c-muted); }
+
+  table.gm-table { width:100%; border-collapse:collapse; }
+  .gm-table th { text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px;
+                 color:var(--c-head); font-weight:700; padding:11px 18px; background:var(--c-card2); }
+  .gm-table td { padding:12px 18px; border-top:1px solid var(--c-border); color:var(--c-text); font-size:13.5px; }
+  .gm-table tr:hover td { background:var(--c-card2); }
+
+  .gm-pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .gm-pill--ok { background:var(--c-ok-bg); color:var(--c-ok-fg); }
+  .gm-pill--warn { background:var(--c-warn-bg); color:var(--c-warn-fg); }
+  .gm-pill--bad { background:var(--c-bad-bg); color:var(--c-bad-fg); }
+
+  .gm-btn { border:1px solid var(--c-border); background:var(--c-card2); color:var(--c-text);
+            border-radius:10px; padding:7px 13px; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .gm-btn:hover { border-color:var(--c-accent); }
+  .gm-btn--primary { background:var(--c-accent); border-color:var(--c-accent); color:#fff; }
+  .gm-btn--danger { color:var(--c-bad-fg); }
+  .gm-btn[disabled] { opacity:.45; cursor:not-allowed; }
+
+  .gm-form { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; padding:16px 18px;
+             border-bottom:1px solid var(--c-border); }
+  .gm-form label { display:block; font-size:11.5px; font-weight:700; color:var(--c-muted); margin-bottom:4px; }
+  .gm-form input, .gm-form select {
+    width:100%; box-sizing:border-box; background:var(--c-input); color:var(--c-text);
+    border:1px solid var(--c-border); border-radius:10px; padding:9px 11px; font-size:13px;
+  }
+  .gm-form .gm-span2 { grid-column:span 2; }
+  .gm-form .gm-actions { grid-column:1/-1; display:flex; gap:8px; align-items:center; }
+
+  .gm-empty { padding:28px 18px; text-align:center; color:var(--c-muted); font-size:13.5px; }
+  .gm-note { font-size:12px; color:var(--c-muted); margin:10px 0 0; }
+
+  @media (max-width: 1000px) {
+    .gm-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .gm-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .gm-card { overflow-x:auto; }
+  }
+</style>
+
+<div class="gm-wrap">
+  <div class="gm-head">
+    <h1>Chaqmoq Game</h1>
+    <p>Do‘kon mahsulotlari, tarif to‘lovlari va o‘yinchilar limiti.
+       O‘yin chaqmog‘i o‘quv markazidagi chaqmoqdan butunlay alohida.</p>
+  </div>
+
+  <div class="gm-kpis">
+    <div class="gm-kpi"><div class="gm-kpi__label">O‘yinchilar</div><div class="gm-kpi__val">{{ totals.oyinchilar }}</div></div>
+    <div class="gm-kpi"><div class="gm-kpi__label">Kutayotgan to‘lov</div><div class="gm-kpi__val">{{ totals.kutayotgan }}</div></div>
+    <div class="gm-kpi"><div class="gm-kpi__label">Do‘kon mahsuloti</div><div class="gm-kpi__val">{{ totals.mahsulotlar }}</div></div>
+    <div class="gm-kpi"><div class="gm-kpi__label">Topshirilmagan sovg‘a</div><div class="gm-kpi__val">{{ totals.topshirilmagan }}</div></div>
+    <div class="gm-kpi"><div class="gm-kpi__label">Jami chaqmoq</div><div class="gm-kpi__val">{{ totals.chaqmoq|intcomma }}</div></div>
+  </div>
+
+  <div class="gm-tabs">
+    <button class="gm-tab is-on" data-panel="dokon">Do‘kon</button>
+    <button class="gm-tab" data-panel="tolovlar">To‘lovlar{% if totals.kutayotgan %} ({{ totals.kutayotgan }}){% endif %}</button>
+    <button class="gm-tab" data-panel="oyinchilar">O‘yinchilar</button>
+  </div>
+
+  <!-- ═══════════════ DO'KON ═══════════════ -->
+  <section class="gm-panel is-on" id="panel-dokon">
+    <div class="gm-card">
+      <div class="gm-card__head">
+        <h2>Yangi mahsulot</h2>
+        <p>O‘quvchilar chaqmoqqa sotib oladi. «Jon to‘plami» turida «Beradigan jon» to‘ldiriladi.</p>
+      </div>
+      <div class="gm-form" id="shop-form">
+        <div class="gm-span2">
+          <label>Nomi</label>
+          <input type="text" id="sf-nom" placeholder="Masalan: Chaqmoq ruchka">
+        </div>
+        <div class="gm-span2">
+          <label>Izoh</label>
+          <input type="text" id="sf-izoh" placeholder="Qisqa tavsif">
+        </div>
+        <div>
+          <label>Turi</label>
+          <select id="sf-tur">
+            {% for kalit, nom in mahsulot_turlari %}<option value="{{ kalit }}">{{ nom }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Narxi (chaqmoq)</label>
+          <input type="number" id="sf-narx" step="0.5" min="0.5" value="10">
+        </div>
+        <div>
+          <label>Beradigan jon</label>
+          <input type="number" id="sf-jon" min="0" value="0">
+        </div>
+        <div>
+          <label>Zaxira (−1 = cheksiz)</label>
+          <input type="number" id="sf-zaxira" value="-1">
+        </div>
+        <div>
+          <label>Tartib</label>
+          <input type="number" id="sf-tartib" min="0" value="0">
+        </div>
+        <div class="gm-actions">
+          <button class="gm-btn gm-btn--primary" id="sf-save">Qo‘shish</button>
+          <button class="gm-btn" id="sf-cancel" style="display:none">Bekor</button>
+          <span class="gm-note" id="sf-msg"></span>
+        </div>
+      </div>
+
+      <table class="gm-table">
+        <thead>
+          <tr><th>Mahsulot</th><th>Turi</th><th>Narxi</th><th>Zaxira</th><th>Xarid</th><th>Holat</th><th></th></tr>
+        </thead>
+        <tbody id="shop-rows">
+          {% for m in mahsulotlar %}
+          <tr data-id="{{ m.id }}"
+              data-nom="{{ m.nom }}" data-izoh="{{ m.izoh }}" data-tur="{{ m.tur }}"
+              data-narx="{{ m.narx_chaqmoq }}" data-jon="{{ m.beradigan_jon }}"
+              data-zaxira="{{ m.zaxira }}" data-tartib="{{ m.tartib }}">
+            <td><b>{{ m.nom }}</b>{% if m.izoh %}<div style="font-size:12px;opacity:.7">{{ m.izoh }}</div>{% endif %}</td>
+            <td>{{ m.get_tur_display }}</td>
+            <td><b>{{ m.narx_chaqmoq }} ⚡</b>{% if m.beradigan_jon %} <span style="opacity:.7">+{{ m.beradigan_jon }} jon</span>{% endif %}</td>
+            <td>{% if m.zaxira < 0 %}∞{% else %}{{ m.zaxira }}{% endif %}</td>
+            <td>{{ m.xarid_soni }}</td>
+            <td>
+              {% if m.faol %}<span class="gm-pill gm-pill--ok">Faol</span>
+              {% else %}<span class="gm-pill gm-pill--bad">Yashirin</span>{% endif %}
+            </td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="gm-btn js-edit">Tahrirlash</button>
+              <button class="gm-btn gm-btn--danger js-delete">O‘chirish</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="gm-empty">Hozircha mahsulot yo‘q. Yuqoridagi shakldan qo‘shing.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ TO'LOVLAR ═══════════════ -->
+  <section class="gm-panel" id="panel-tolovlar">
+    <div class="gm-card">
+      <div class="gm-card__head">
+        <h2>Tarif to‘lovlari</h2>
+        <p>O‘quvchi ilovadan so‘rov yuboradi va Telegramda to‘lovni kelishadi.
+           Pulni olganingizdan keyin «Tasdiqlash» bosing — tarif darhol yoqiladi.</p>
+      </div>
+      <table class="gm-table">
+        <thead>
+          <tr><th>#</th><th>O‘quvchi</th><th>Tarif</th><th>Summa</th><th>Usul</th><th>Sana</th><th>Holat</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for s in sorovlar %}
+          <tr data-sorov="{{ s.id }}">
+            <td>{{ s.id }}</td>
+            <td>
+              <b>{{ s.user.ism|default:s.user.email }}</b>
+              <div style="font-size:12px;opacity:.7">{{ s.center.name|default:"Markazsiz" }}</div>
+            </td>
+            <td>{{ s.tarif.nom }} <span style="opacity:.7">({{ s.tarif.kun }} kun)</span></td>
+            <td><b>{{ s.narx_som|intcomma }}</b> so‘m</td>
+            <td>{{ s.get_usul_display }}</td>
+            <td>{{ s.yaratilgan|date:"d.m.Y H:i" }}</td>
+            <td class="js-holat">
+              {% if s.holat == 'tolangan' %}<span class="gm-pill gm-pill--ok">To‘landi</span>
+              {% elif s.holat == 'bekor' %}<span class="gm-pill gm-pill--bad">Bekor</span>
+              {% else %}<span class="gm-pill gm-pill--warn">Kutilmoqda</span>{% endif %}
+            </td>
+            <td style="text-align:right;white-space:nowrap">
+              {% if s.holat == 'kutilmoqda' %}
+              <button class="gm-btn gm-btn--primary js-approve">Tasdiqlash</button>
+              <button class="gm-btn gm-btn--danger js-reject">Bekor</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="gm-empty">Hozircha to‘lov so‘rovi yo‘q.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ O'YINCHILAR ═══════════════ -->
+  <section class="gm-panel" id="panel-oyinchilar">
+    <div class="gm-card">
+      <div class="gm-card__head">
+        <h2>O‘yinchilar</h2>
+        <p>Xohlagan o‘quvchiga jon yoki chaqmoq qo‘shing, tarif sovg‘a qiling
+           yoki o‘yin qulflarini oching.</p>
+      </div>
+      <div class="gm-form">
+        <div class="gm-span2">
+          <label>Qidirish</label>
+          <input type="text" id="pl-search" placeholder="Ism yoki email…">
+        </div>
+        <div class="gm-actions">
+          <span class="gm-note" id="pl-msg"></span>
+        </div>
+      </div>
+      <table class="gm-table">
+        <thead>
+          <tr><th>O‘yinchi</th><th>Markaz</th><th>Chaqmoq</th><th>Jon</th><th>XP</th><th>Tarif</th><th>Limit ko‘tarish</th></tr>
+        </thead>
+        <tbody id="player-rows">
+          {% for p in oyinchilar %}
+          <tr data-profile="{{ p.id }}">
+            <td><b>{{ p.ism }}</b><div style="font-size:12px;opacity:.7">{{ p.email }}</div></td>
+            <td>{{ p.markaz }}</td>
+            <td class="js-chaqmoq"><b>{{ p.chaqmoq }} ⚡</b></td>
+            <td class="js-jon">{{ p.jon }} / {{ p.max_jon }}</td>
+            <td>{{ p.xp }}</td>
+            <td class="js-tarif">{% if p.tarif %}<span class="gm-pill gm-pill--ok">{{ p.tarif }}</span>{% else %}<span style="opacity:.6">Bepul</span>{% endif %}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="gm-btn js-grant" data-amal="jon">+3 jon</button>
+              <button class="gm-btn js-grant" data-amal="chaqmoq">+10 ⚡</button>
+              <button class="gm-btn js-grant" data-amal="qulf">Qulfni ochish</button>
+              <select class="js-tarif-select" style="max-width:150px;background:var(--c-input);color:var(--c-text);border:1px solid var(--c-border);border-radius:10px;padding:6px 8px;font-size:12.5px">
+                <option value="">Tarif sovg‘a…</option>
+                {% for t in tariflar %}<option value="{{ t.id }}">{{ t.nom }} ({{ t.kun }} kun)</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="gm-empty">O‘yinchi topilmadi.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+  async function post(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Xatolik yuz berdi');
+    return data;
+  }
+
+  // ─── Tablar ───────────────────────────────────────────────
+  document.querySelectorAll('.gm-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.gm-tab').forEach(t => t.classList.remove('is-on'));
+      document.querySelectorAll('.gm-panel').forEach(p => p.classList.remove('is-on'));
+      tab.classList.add('is-on');
+      document.getElementById('panel-' + tab.dataset.panel).classList.add('is-on');
+    });
+  });
+
+  // ─── Do'kon ───────────────────────────────────────────────
+  const f = {
+    nom: document.getElementById('sf-nom'), izoh: document.getElementById('sf-izoh'),
+    tur: document.getElementById('sf-tur'), narx: document.getElementById('sf-narx'),
+    jon: document.getElementById('sf-jon'), zaxira: document.getElementById('sf-zaxira'),
+    tartib: document.getElementById('sf-tartib'), msg: document.getElementById('sf-msg'),
+    save: document.getElementById('sf-save'), cancel: document.getElementById('sf-cancel'),
+  };
+  let tahrirId = 0;
+
+  function shaklniTozala() {
+    tahrirId = 0;
+    f.nom.value = ''; f.izoh.value = ''; f.narx.value = '10';
+    f.jon.value = '0'; f.zaxira.value = '-1'; f.tartib.value = '0';
+    f.save.textContent = 'Qo‘shish';
+    f.cancel.style.display = 'none';
+  }
+
+  f.cancel.addEventListener('click', () => { shaklniTozala(); f.msg.textContent = ''; });
+
+  f.save.addEventListener('click', async () => {
+    f.save.disabled = true;
+    f.msg.textContent = 'Saqlanmoqda…';
+    try {
+      const url = tahrirId
+        ? `/platform/game/shop/${tahrirId}/save/`
+        : '/platform/game/shop/save/';
+      await post(url, {
+        nom: f.nom.value, izoh: f.izoh.value, tur: f.tur.value,
+        narx_chaqmoq: f.narx.value, beradigan_jon: f.jon.value,
+        zaxira: f.zaxira.value, tartib: f.tartib.value, faol: true,
+      });
+      location.reload();
+    } catch (e) {
+      f.msg.textContent = e.message;
+      f.save.disabled = false;
+    }
+  });
+
+  document.querySelectorAll('.js-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tr = btn.closest('tr');
+      tahrirId = tr.dataset.id;
+      f.nom.value = tr.dataset.nom; f.izoh.value = tr.dataset.izoh;
+      f.tur.value = tr.dataset.tur; f.narx.value = tr.dataset.narx;
+      f.jon.value = tr.dataset.jon; f.zaxira.value = tr.dataset.zaxira;
+      f.tartib.value = tr.dataset.tartib;
+      f.save.textContent = 'Saqlash';
+      f.cancel.style.display = '';
+      f.nom.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  document.querySelectorAll('.js-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      if (!confirm(`«${tr.dataset.nom}» o‘chirilsinmi?`)) return;
+      btn.disabled = true;
+      try {
+        const d = await post(`/platform/game/shop/${tr.dataset.id}/delete/`);
+        if (d.xabar) alert(d.xabar);
+        location.reload();
+      } catch (e) { alert(e.message); btn.disabled = false; }
+    });
+  });
+
+  // ─── To'lovlar ────────────────────────────────────────────
+  function tolovAmali(btn, amal, savol) {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      if (!confirm(savol)) return;
+      btn.disabled = true;
+      try {
+        const d = await post(`/platform/game/payments/${tr.dataset.sorov}/`, { amal });
+        const pill = d.holat === 'tolangan'
+          ? '<span class="gm-pill gm-pill--ok">To‘landi</span>'
+          : '<span class="gm-pill gm-pill--bad">Bekor</span>';
+        tr.querySelector('.js-holat').innerHTML = pill;
+        tr.querySelectorAll('button').forEach(b => b.remove());
+      } catch (e) { alert(e.message); btn.disabled = false; }
+    });
+  }
+  document.querySelectorAll('.js-approve').forEach(b =>
+    tolovAmali(b, 'tasdiqlash', 'To‘lov qabul qilindi va tarif yoqilsinmi?'));
+  document.querySelectorAll('.js-reject').forEach(b =>
+    tolovAmali(b, 'bekor', 'So‘rov bekor qilinsinmi?'));
+
+  // ─── O'yinchilar ──────────────────────────────────────────
+  const plMsg = document.getElementById('pl-msg');
+
+  function holatniYangila(tr, holat) {
+    tr.querySelector('.js-chaqmoq').innerHTML = `<b>${holat.chaqmoq} ⚡</b>`;
+    tr.querySelector('.js-jon').textContent = `${holat.jon} / ${holat.max_jon}`;
+    tr.querySelector('.js-tarif').innerHTML = holat.tarif
+      ? `<span class="gm-pill gm-pill--ok">${holat.tarif}</span>`
+      : '<span style="opacity:.6">Bepul</span>';
+  }
+
+  function grantniUla(root) {
+    root.querySelectorAll('.js-grant').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const tr = btn.closest('tr');
+        const amal = btn.dataset.amal;
+        btn.disabled = true;
+        try {
+          const d = await post(`/platform/game/players/${tr.dataset.profile}/grant/`,
+            { amal, soni: 3, miqdor: 10 });
+          holatniYangila(tr, d.holat);
+          plMsg.textContent = d.xabar;
+        } catch (e) { alert(e.message); }
+        btn.disabled = false;
+      });
+    });
+
+    root.querySelectorAll('.js-tarif-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        if (!sel.value) return;
+        const tr = sel.closest('tr');
+        if (!confirm('Shu tarif sovg‘a qilinsinmi?')) { sel.value = ''; return; }
+        sel.disabled = true;
+        try {
+          const d = await post(`/platform/game/players/${tr.dataset.profile}/grant/`,
+            { amal: 'tarif', tarif_id: sel.value });
+          holatniYangila(tr, d.holat);
+          plMsg.textContent = d.xabar;
+        } catch (e) { alert(e.message); }
+        sel.disabled = false; sel.value = '';
+      });
+    });
+  }
+  grantniUla(document);
+
+  // Qidiruv — yozishdan keyin biroz kutib so'rov yuboramiz.
+  let taymer = null;
+  document.getElementById('pl-search').addEventListener('input', (e) => {
+    clearTimeout(taymer);
+    const q = e.target.value.trim();
+    taymer = setTimeout(async () => {
+      plMsg.textContent = 'Qidirilmoqda…';
+      try {
+        const res = await fetch(`/platform/game/players/search/?q=${encodeURIComponent(q)}`);
+        const d = await res.json();
+        const tbody = document.getElementById('player-rows');
+        tbody.innerHTML = d.oyinchilar.length
+          ? d.oyinchilar.map(p => `
+            <tr data-profile="${p.id}">
+              <td><b>${p.ism}</b><div style="font-size:12px;opacity:.7">${p.email}</div></td>
+              <td>${p.markaz}</td>
+              <td class="js-chaqmoq"><b>${p.chaqmoq} ⚡</b></td>
+              <td class="js-jon">${p.jon} / ${p.max_jon}</td>
+              <td>${p.xp}</td>
+              <td class="js-tarif">${p.tarif ? `<span class="gm-pill gm-pill--ok">${p.tarif}</span>` : '<span style="opacity:.6">Bepul</span>'}</td>
+              <td style="text-align:right;white-space:nowrap">
+                <button class="gm-btn js-grant" data-amal="jon">+3 jon</button>
+                <button class="gm-btn js-grant" data-amal="chaqmoq">+10 ⚡</button>
+                <button class="gm-btn js-grant" data-amal="qulf">Qulfni ochish</button>
+              </td>
+            </tr>`).join('')
+          : '<tr><td colspan="7" class="gm-empty">Hech kim topilmadi.</td></tr>';
+        grantniUla(tbody);
+        plMsg.textContent = `${d.oyinchilar.length} ta o‘yinchi`;
+      } catch (_) { plMsg.textContent = 'Qidiruv ishlamadi'; }
+    }, 350);
+  });
+})();
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@ from accounts import api_auth
 from accounts.auth_views import SecureLoginView
 from accounts.views import test_db, test_center
 from billing import click_views as billing_click_views
+from game import payments as game_payments
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from marketing import views as marketing_views
 from education import views as education_views
@@ -47,6 +48,11 @@ urlpatterns = [
     path('click/prepare/', billing_click_views.click_prepare, name='click_prepare'),
     path('click/complete/', billing_click_views.click_complete, name='click_complete'),
     path('click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
+
+    # O'yin tariflari — markaz obunasidan alohida webhook, chunki mavjud
+    # to'lov oqimi tirik pul bilan ishlaydi va unga tegmaslik xavfsizroq.
+    path('click/game/prepare/', game_payments.game_click_prepare, name='game_click_prepare'),
+    path('click/game/complete/', game_payments.game_click_complete, name='game_click_complete'),
     # Backward-compatible legacy callback paths.
     path('api/click/prepare/', billing_click_views.click_prepare, name='api_click_prepare'),
     path('api/click/complete/', billing_click_views.click_complete, name='api_click_complete'),

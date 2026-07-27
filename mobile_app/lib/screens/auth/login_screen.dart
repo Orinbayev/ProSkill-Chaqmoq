@@ -11,7 +11,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Login — premium ChaqmoqApp (Sky/Slate) + platform brand logo.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.onRoyxatdanOtish});
+
+  /// «Hisobim yo'q» — markazsiz o'yinchi sifatida ro'yxatdan o'tish.
+  final VoidCallback? onRoyxatdanOtish;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -339,6 +342,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   isLoading: isLoading,
                                   onPressed: _submit,
                                 ),
+                                if (widget.onRoyxatdanOtish != null) ...[
+                                  const SizedBox(height: 6),
+                                  TextButton(
+                                    onPressed: isLoading
+                                        ? null
+                                        : widget.onRoyxatdanOtish,
+                                    child: const Text(
+                                      'Hisobim yo‘q — o‘yin uchun ro‘yxatdan o‘tish',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

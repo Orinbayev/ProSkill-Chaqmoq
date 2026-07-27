@@ -350,6 +350,16 @@ LOGGING = {
     },
 }
 
+# ==================== CHAQMOQ GAME ====================
+# Google orqali ro'yxatdan o'tish uchun OAuth client ID'lar (vergul bilan).
+# iOS, Android va Web uchun alohida ID bo'ladi — hammasini shu yerga yozing.
+# Bo'sh bo'lsa Google tugmasi ilovada ko'rinmaydi.
+GOOGLE_OAUTH_CLIENT_IDS = os.getenv("GOOGLE_OAUTH_CLIENT_IDS", "")
+
+# Tarif sotib olmoqchi bo'lgan o'quvchi shu Telegram hisobiga yo'naltiriladi.
+# Ilova bu nomni serverdan oladi — o'zgarganda ilovani yangilash shart emas.
+GAME_SUPPORT_TELEGRAM = os.getenv("GAME_SUPPORT_TELEGRAM", "de_amirxon")
+
 # ==================== CLICK PAYMENT ====================
 CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "")
 CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "")

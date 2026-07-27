@@ -564,6 +564,17 @@ class User(SoftDeleteMixin, AbstractUser):
     # email ko‘rinishi (ixtiyoriy)
     gmail = models.EmailField(_("Gmail"), blank=True, default="")
 
+    # O‘quv markaziga bog‘liq bo‘lmagan, ilovani o‘zi o‘rnatib ro‘yxatdan
+    # o‘tgan o‘yinchi. Bunday foydalanuvchida davomat, to‘lov va qarzdorlik
+    # bo‘lmaydi — u faqat Chaqmoq Game bo‘limidan foydalanadi.
+    game_only = models.BooleanField(
+        _("Faqat o‘yin uchun ro‘yxatdan o‘tgan"), default=False, db_index=True
+    )
+    # Google orqali kirganda beriladigan barqaror identifikator.
+    google_sub = models.CharField(
+        _("Google hisob ID"), max_length=64, blank=True, default="", db_index=True
+    )
+
     # chaqmoq sistemi
     chaqmoq = models.PositiveIntegerField(default=0, verbose_name="Chaqmoq soni")
 

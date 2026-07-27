@@ -69,7 +69,20 @@ class _NavCell extends StatelessWidget {
         children: [
           Icon(item.icon, size: 22, color: color),
           const SizedBox(height: 3),
-          Text(item.label, style: DsType.micro(color)),
+          // Yorliq katakka sig'masa kichrayadi — tab soni ko'p bo'lgan
+          // panellarda (o'quvchi: 7 ta) matn qirqilib ketmasligi uchun.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                softWrap: false,
+                style: DsType.micro(color),
+              ),
+            ),
+          ),
         ],
       ),
     );

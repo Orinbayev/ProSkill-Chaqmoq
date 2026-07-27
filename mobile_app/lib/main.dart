@@ -7,6 +7,7 @@ import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/chaqmoq_history_provider.dart';
 import 'package:chaqmoq_mobile/providers/dashboard_provider.dart';
+import 'package:chaqmoq_mobile/providers/game_provider.dart';
 import 'package:chaqmoq_mobile/providers/groups_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
@@ -20,12 +21,17 @@ import 'package:chaqmoq_mobile/screens/shell/app_shell.dart';
 import 'package:chaqmoq_mobile/screens/director/data/director_provider.dart';
 import 'package:chaqmoq_mobile/screens/director/data/director_repository.dart';
 import 'package:chaqmoq_mobile/screens/director/director_app_shell.dart';
+import 'package:chaqmoq_mobile/screens/gameonly/game_only_shell.dart';
+import 'package:chaqmoq_mobile/screens/gameonly/game_profile_setup_screen.dart';
+import 'package:chaqmoq_mobile/screens/gameonly/game_register_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/student/student_app_shell.dart';
 import 'package:chaqmoq_mobile/screens/teacher/teacher_app_shell.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
+import 'package:chaqmoq_mobile/services/game_auth_service.dart';
+import 'package:chaqmoq_mobile/services/game_service.dart';
 import 'package:chaqmoq_mobile/services/leads_service.dart';
 import 'package:chaqmoq_mobile/services/teacher_service.dart';
 import 'package:chaqmoq_mobile/providers/teacher_provider.dart';
@@ -68,6 +74,8 @@ Future<void> main() async {
   final storeService = StoreService(apiClient);
   final parentDashboardService = ParentDashboardService(apiClient);
   final leadsService = LeadsService(apiClient);
+  final gameService = GameService(apiClient);
+  final gameAuthService = GameAuthService(apiClient);
 
   final authProvider = AuthProvider(authRepository: authRepository);
   apiClient.setUnauthorizedHandler(authProvider.handleUnauthorized);
@@ -90,6 +98,8 @@ Future<void> main() async {
       parentDashboardService: parentDashboardService,
       teacherService: teacherService,
       leadsService: leadsService,
+      gameService: gameService,
+      gameAuthService: gameAuthService,
     ),
   );
 }
@@ -113,6 +123,8 @@ class ChaqmoqApp extends StatelessWidget {
     required this.parentDashboardService,
     required this.teacherService,
     required this.leadsService,
+    required this.gameService,
+    required this.gameAuthService,
   });
 
   final ApiClient apiClient;
@@ -131,12 +143,15 @@ class ChaqmoqApp extends StatelessWidget {
   final ParentDashboardService parentDashboardService;
   final TeacherService teacherService;
   final LeadsService leadsService;
+  final GameService gameService;
+  final GameAuthService gameAuthService;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         Provider<StorageService>.value(value: storageService),
+        Provider<GameAuthService>.value(value: gameAuthService),
         Provider<ApiClient>.value(value: apiClient),
         Provider<ParentDashboardService>.value(value: parentDashboardService),
         Provider<DashboardService>.value(value: dashboardService),
@@ -181,6 +196,9 @@ class ChaqmoqApp extends StatelessWidget {
           create: (_) => LeadsProvider(service: leadsService),
         ),
         ChangeNotifierProvider(
+          create: (_) => GameProvider(service: gameService),
+        ),
+        ChangeNotifierProvider(
           create: (_) => TeacherProvider(service: teacherService),
         ),
       ],
@@ -208,6 +226,9 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  /// Ro'yxatdan o'tish ekrani ochiqmi (markazsiz o'yinchi uchun).
+  bool _royxatdanOtish = false;
+
   @override
   void initState() {
     super.initState();
@@ -229,15 +250,49 @@ class _AuthGateState extends State<AuthGate> {
       key = const ValueKey('auth-init');
       child = const _AuthInitScreen();
     } else if (!auth.isAuthenticated) {
-      key = const ValueKey('auth-login');
-      child = const LoginScreen();
+      // Ro'yxatdan o'tish yoki mavjud hisob bilan kirish — ikkalasi ham
+      // shu darvozadan o'tadi.
+      if (_royxatdanOtish) {
+        key = const ValueKey('auth-register');
+        child = GameRegisterScreen(
+          onLoginBosildi: () => setState(() => _royxatdanOtish = false),
+        );
+      } else {
+        key = const ValueKey('auth-login');
+        child = LoginScreen(
+          onRoyxatdanOtish: () => setState(() => _royxatdanOtish = true),
+        );
+      }
     } else if (auth.justAuthenticated) {
       // Briefly show a success splash so the user gets clear feedback that
       // login worked, then the gate fades into the home shell.
       key = const ValueKey('auth-success');
       child = const _AuthSuccessSplash();
     } else {
-      final role = auth.user?.role.trim().toLowerCase();
+      final user = auth.user!;
+
+      // Markazsiz o'yinchi: avval profilni to'ldiradi, keyin o'yin paneli.
+      if (user.gameOnly) {
+        if (!user.profilToliq) {
+          key = const ValueKey('game-setup');
+          child = GameProfileSetupScreen(
+            boshlangich: GameOyinchiProfil(
+              id: user.id,
+              email: user.email,
+              ism: user.firstName,
+              familya: user.lastName,
+              yosh: null,
+              toliq: false,
+              gameOnly: true,
+            ),
+          );
+          return _AuthGateSwitcher(childKey: key, child: child);
+        }
+        key = const ValueKey('home-game');
+        return _AuthGateSwitcher(childKey: key, child: const GameOnlyShell());
+      }
+
+      final role = user.role.trim().toLowerCase();
       if (role == 'parent') {
         key = const ValueKey('home-parent');
         child = const ParentAppShell();
@@ -276,6 +331,19 @@ class _AuthGateState extends State<AuthGate> {
       }
     }
 
+    return _AuthGateSwitcher(childKey: key, child: child);
+  }
+}
+
+/// Ekranlar orasidagi yumshoq o'tish — barcha marshrutlar shu orqali chiqadi.
+class _AuthGateSwitcher extends StatelessWidget {
+  const _AuthGateSwitcher({required this.childKey, required this.child});
+
+  final ValueKey<String> childKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 240),
       switchInCurve: Curves.easeOutCubic,
@@ -296,7 +364,7 @@ class _AuthGateState extends State<AuthGate> {
           ),
         );
       },
-      child: KeyedSubtree(key: key, child: child),
+      child: KeyedSubtree(key: childKey, child: child),
     );
   }
 }

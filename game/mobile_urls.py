@@ -7,7 +7,36 @@ urlpatterns = [
     # Ro'yxatdan o'tish (ChaqmoqApp hisobi bo'lmaganlar uchun).
     path("register/", mobile_api.game_register, name="game_register"),
 
+    # Google orqali kirish (markazsiz o'yinchi)
+    path("auth/google/", mobile_api.game_google_login, name="game_google_login"),
+    path("auth/profile/", mobile_api.game_profile_setup, name="game_profile_setup"),
+    path("me/", mobile_api.game_my_profile, name="game_my_profile"),
+
     path("home/", mobile_api.game_home, name="game_home"),
+
+    # O'yinlar katalogi — admin paneldagi o'yinlar shu yerdan keladi.
+    path("catalog/", mobile_api.game_catalog, name="game_catalog"),
+    path("play/<int:mode_id>/start/", mobile_api.game_play_start, name="game_play_start"),
+    path(
+        "play/session/<int:sessiya_id>/answer/",
+        mobile_api.game_session_answer,
+        name="game_session_answer",
+    ),
+    path(
+        "play/session/<int:sessiya_id>/finish/",
+        mobile_api.game_session_finish,
+        name="game_session_finish",
+    ),
+    path("play/history/", mobile_api.game_session_history, name="game_session_history"),
+
+    # Real duel — raqib qidirish navbati
+    path("queue/<int:navbat_id>/", mobile_api.game_queue_status, name="game_queue_status"),
+    path("queue/<int:navbat_id>/robot/", mobile_api.game_queue_robot, name="game_queue_robot"),
+    path("queue/<int:navbat_id>/cancel/", mobile_api.game_queue_cancel, name="game_queue_cancel"),
+
+    # Shikoyat va takliflar
+    path("feedback/", mobile_api.game_feedback_list, name="game_feedback_list"),
+    path("feedback/send/", mobile_api.game_feedback_send, name="game_feedback_send"),
 
     # Duel
     path("duel/start/", mobile_api.game_duel_start, name="game_duel_start"),
@@ -24,6 +53,8 @@ urlpatterns = [
     path("purchases/", mobile_api.game_purchases, name="game_purchases"),
 
     path("tariffs/", mobile_api.game_tariffs, name="game_tariffs"),
+    path("tariffs/<int:tarif_id>/buy/", mobile_api.game_tariff_buy, name="game_tariff_buy"),
+    path("tariffs/requests/", mobile_api.game_tariff_requests, name="game_tariff_requests"),
 
     # Profil
     path("profile/", mobile_api.game_profile, name="game_profile"),

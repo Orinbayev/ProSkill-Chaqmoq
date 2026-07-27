@@ -58,15 +58,21 @@ class ProfileService {
     return UserModel.fromJson(data['user'] as Map<String, dynamic>);
   }
 
+  /// Parolni yangilaydi.
+  ///
+  /// `currentPassword` **ixtiyoriy**: so'rov foydalanuvchi tokeni bilan
+  /// yuboriladi, ya'ni kim ekani allaqachon tasdiqlangan. Berilsa, server uni
+  /// baribir tekshiradi.
   Future<void> changePassword({
-    required String currentPassword,
+    String? currentPassword,
     required String newPassword,
     required String confirmPassword,
   }) async {
     await _apiClient.post(
       AppConfig.changePasswordPath,
       data: <String, dynamic>{
-        'current_password': currentPassword,
+        if (currentPassword != null && currentPassword.isNotEmpty)
+          'current_password': currentPassword,
         'new_password': newPassword,
         'confirm_password': confirmPassword,
       },

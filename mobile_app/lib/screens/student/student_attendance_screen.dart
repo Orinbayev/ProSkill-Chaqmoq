@@ -36,10 +36,14 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     super.didChangeDependencies();
     if (_hydrated) return;
     final user = context.read<AuthProvider>().user;
-    if (user != null) {
-      _hydrated = true;
+    if (user == null) return;
+    _hydrated = true;
+
+    // Build fazasida provider'ni xabardor qilib bo'lmaydi — kadrdan keyin.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<ChaqmoqHistoryProvider>().load();
-    }
+    });
   }
 
   @override

@@ -1,7 +1,7 @@
 name: chaqmoq_mobile
 description: "ChaqmoqApp mobile CRM"
 publish_to: 'none'
-version: 1.0.2+7
+version: 1.1.0+8
 
 environment:
   sdk: ^3.11.4
@@ -24,6 +24,7 @@ dependencies:
   image_picker: ^1.2.1
   timezone: ^0.11.0
   url_launcher: ^6.3.2
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

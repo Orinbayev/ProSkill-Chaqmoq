@@ -45,12 +45,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     super.didChangeDependencies();
     if (_hydrated) return;
     final user = context.read<AuthProvider>().user;
-    if (user != null) {
-      _hydrated = true;
+    if (user == null) return;
+    _hydrated = true;
+
+    // `didChangeDependencies` build fazasi ichida ishlaydi. Provider'ning
+    // `load()` metodi esa darhol `notifyListeners()` chaqiradi — bu esa
+    // "setState() called during build" xatosini beradi va widget daraxtini
+    // buzib, `_dependents.isEmpty` xatosi bilan qizil ekranga olib keladi.
+    // Shuning uchun yuklashni joriy kadrdan keyinga suramiz.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<DashboardProvider>().load(user);
       context.read<PaymentsProvider>().load(user);
       context.read<ChaqmoqHistoryProvider>().load();
-    }
+    });
   }
 
   Future<void> _refresh() async {

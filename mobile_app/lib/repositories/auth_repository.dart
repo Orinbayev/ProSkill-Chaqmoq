@@ -93,6 +93,49 @@ class AuthRepository {
     }
   }
 
+  /// O'yin uchun Google orqali olingan token bilan sessiya ochadi.
+  ///
+  /// Markazsiz o'yinchida `slug` bo'lmaydi — API'ga `X-Center-Slug`
+  /// yuborilmasa ham hammasi ishlaydi, chunki bunday foydalanuvchi faqat
+  /// o'yin endpointlariga murojaat qiladi.
+  Future<AuthSession> applyGameToken(String accessToken) async {
+    _apiClient.configure(accessToken: accessToken, slug: '');
+
+    final payload = await _apiClient.get(AppConfig.authStatusPath);
+    final user = UserModel.fromJson(jsonMap(payload['user']));
+
+    final session = AuthSession(
+      accessToken: accessToken,
+      slug: user.center?.slug ?? '',
+      user: user,
+    );
+    await _storageService.saveSession(session);
+    _apiClient.configure(
+      accessToken: session.accessToken,
+      slug: session.slug,
+    );
+    return session;
+  }
+
+  /// Sessiyani serverdan qayta o'qiydi (profil to'ldirilgandan keyin).
+  Future<AuthSession?> refreshSession(AuthSession joriy) async {
+    try {
+      final payload = await _apiClient.get(AppConfig.authStatusPath);
+      final userPayload = jsonMap(payload['user']);
+      if (userPayload.isEmpty) return joriy;
+
+      final session = AuthSession(
+        accessToken: joriy.accessToken,
+        slug: joriy.slug,
+        user: UserModel.fromJson(userPayload),
+      );
+      await _storageService.saveSession(session);
+      return session;
+    } catch (_) {
+      return joriy;
+    }
+  }
+
   Future<AuthSession> login({
     String? login,
     String? phoneNumber,

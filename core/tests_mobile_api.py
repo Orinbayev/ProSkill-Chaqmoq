@@ -646,6 +646,65 @@ class MobileAPITests(TestCase):
         self.parent.refresh_from_db()
         self.assertTrue(self.parent.check_password("newpass123"))
 
+    def test_change_password_without_current_password(self):
+        """Joriy parol so'ralmaydi — so'rov allaqachon foydalanuvchi nomidan
+        imzolangan. Ko'p o'quvchi eski parolini eslay olmaydi."""
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("auth/change-password/"),
+            data='{"new_password":"yangiparol123","confirm_password":"yangiparol123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.parent.refresh_from_db()
+        self.assertTrue(self.parent.check_password("yangiparol123"))
+
+    def test_change_password_still_checks_supplied_current_password(self):
+        """Joriy parol yuborilsa — u baribir tekshiriladi (eski mijozlar uchun)."""
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("auth/change-password/"),
+            data='{"current_password":"notogri","new_password":"yangiparol123",'
+            '"confirm_password":"yangiparol123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "invalid_current_password")
+        self.parent.refresh_from_db()
+        self.assertTrue(self.parent.check_password("testpass123"))
+
+    def test_change_password_rejects_short_password(self):
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("auth/change-password/"),
+            data='{"new_password":"qisqa","confirm_password":"qisqa"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "password_too_short")
+
+    def test_change_password_rejects_mismatch(self):
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("auth/change-password/"),
+            data='{"new_password":"yangiparol123","confirm_password":"boshqaparol123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "password_mismatch")
+
+    def test_change_password_keeps_session_alive(self):
+        """Parol o'zgargach foydalanuvchi tizimdan uchib ketmasligi kerak."""
+        self.client.force_login(self.parent)
+        self.client.post(
+            self._path("auth/change-password/"),
+            data='{"new_password":"yangiparol123","confirm_password":"yangiparol123"}',
+            content_type="application/json",
+        )
+        keyingi = self.client.get(self._path("auth/status/"))
+        self.assertEqual(keyingi.status_code, 200)
+        self.assertTrue(keyingi.json()["authenticated"])
+
     def test_parent_children_add_links_student_from_same_center(self):
         extra_student = User.objects.create_user(
             email="student.extra@mobile.test",

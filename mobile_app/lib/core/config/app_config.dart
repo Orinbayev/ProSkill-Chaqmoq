@@ -16,6 +16,24 @@ class AppConfig {
     defaultValue: 'proskill',
   );
 
+  // ─── Google orqali ro'yxatdan o'tish ────────────────────────
+  //
+  // Google Cloud Console'dan olinadi. Bo'sh bo'lsa ilovada Google tugmasi
+  // ko'rsatilmaydi — o'rniga «hozircha mavjud emas» xabari chiqadi.
+  //
+  //   GOOGLE_SERVER_CLIENT_ID — Web (server) client ID. Server ID tokenni
+  //                             shu ID bo'yicha tekshiradi. **Majburiy.**
+  //   GOOGLE_IOS_CLIENT_ID    — iOS client ID (faqat iOS uchun).
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  static const String googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+    defaultValue: '',
+  );
+
   static String get environmentName {
     final normalized = appEnv.trim().toLowerCase();
 

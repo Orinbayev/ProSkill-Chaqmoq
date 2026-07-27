@@ -11,6 +11,7 @@ from .views_superadmin import (
     toggle_center_bot,
 )
 from . import api_superadmin
+from . import views_game_admin
 from . import views_platform # New HTML Views
 from .views import test_db, test_center
 
@@ -26,6 +27,15 @@ platform_patterns = [
     path("center/<int:pk>/edit/", center_edit, name="center_edit"),
     path("center/<int:center_pk>/toggle-feature/", toggle_center_ui_feature, name="toggle_center_ui_feature"),
     path("bot/", superadmin_bot, name="superadmin_bot"),
+
+    # ─── Chaqmoq Game boshqaruvi ────────────────────────────────
+    path("game/", views_game_admin.superadmin_game, name="superadmin_game"),
+    path("game/shop/save/", views_game_admin.game_shop_save, name="game_shop_create"),
+    path("game/shop/<int:item_id>/save/", views_game_admin.game_shop_save, name="game_shop_save"),
+    path("game/shop/<int:item_id>/delete/", views_game_admin.game_shop_delete, name="game_shop_delete"),
+    path("game/payments/<int:sorov_id>/", views_game_admin.game_payment_action, name="game_payment_action"),
+    path("game/players/search/", views_game_admin.game_player_search, name="game_player_search"),
+    path("game/players/<int:profile_id>/grant/", views_game_admin.game_player_grant, name="game_player_grant"),
     path("center/<int:center_pk>/toggle-bot/", toggle_center_bot, name="toggle_center_bot"),
     path("centers/<int:pk>/manage/", views.center_manage, name="center_manage"),
     path("centers/<int:pk>/stats/", views.center_stats_view, name="center_stats"),

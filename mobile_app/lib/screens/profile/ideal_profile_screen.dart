@@ -312,10 +312,11 @@ class _IdealProfileScreenState extends State<IdealProfileScreen> {
   }
 
   Future<void> _openPasswordSheet() async {
-    final cur = TextEditingController();
     final neu = TextEditingController();
     final conf = TextEditingController();
     var obscure = true;
+    var saqlanmoqda = false;
+    String? xato;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -354,14 +355,13 @@ class _IdealProfileScreenState extends State<IdealProfileScreen> {
                       const SizedBox(height: 14),
                       Text('Parolni o‘zgartirish',
                           style: DsType.h3(ds.textPrimary)),
-                      const SizedBox(height: 16),
-                      DsTextField(
-                        label: 'Joriy parol',
-                        controller: cur,
-                        obscureText: obscure,
-                        hint: '••••••••',
+                      const SizedBox(height: 6),
+                      Text(
+                        'Yangi parolni ikki marta kiriting. Eski parolni '
+                        'eslashingiz shart emas.',
+                        style: DsType.small(ds.textMuted),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       DsTextField(
                         label: 'Yangi parol',
                         controller: neu,
@@ -375,6 +375,10 @@ class _IdealProfileScreenState extends State<IdealProfileScreen> {
                         obscureText: obscure,
                         hint: 'Yangi parolni takrorlang',
                       ),
+                      if (xato != null) ...[
+                        const SizedBox(height: 10),
+                        Text(xato!, style: DsType.small(ds.danger)),
+                      ],
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: () => setLocal(() => obscure = !obscure),
@@ -385,22 +389,52 @@ class _IdealProfileScreenState extends State<IdealProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       DsButton(
-                        label: 'Yangilash',
-                        onPressed: () async {
-                          try {
-                            await _service.changePassword(
-                              currentPassword: cur.text.trim(),
-                              newPassword: neu.text.trim(),
-                              confirmPassword: conf.text.trim(),
-                            );
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            _toast('Parol muvaffaqiyatli yangilandi');
-                          } on ApiException catch (e) {
-                            _toast(e.message);
-                          } catch (_) {
-                            _toast('Parolni o‘zgartirib bo‘lmadi');
-                          }
-                        },
+                        label: saqlanmoqda ? 'Saqlanmoqda…' : 'Yangilash',
+                        onPressed: saqlanmoqda
+                            ? null
+                            : () async {
+                                final yangi = neu.text.trim();
+                                final tasdiq = conf.text.trim();
+
+                                // Xatoni serverga bormasdan shu yerda aytamiz —
+                                // shunda javob darhol va tushunarli bo'ladi.
+                                final mahalliyXato = yangi.isEmpty || tasdiq.isEmpty
+                                    ? 'Ikkala maydonni ham to‘ldiring'
+                                    : yangi.length < 8
+                                    ? 'Parol kamida 8 ta belgidan iborat bo‘lsin'
+                                    : yangi != tasdiq
+                                    ? 'Parollar mos kelmadi'
+                                    : null;
+
+                                if (mahalliyXato != null) {
+                                  setLocal(() => xato = mahalliyXato);
+                                  return;
+                                }
+
+                                setLocal(() {
+                                  xato = null;
+                                  saqlanmoqda = true;
+                                });
+
+                                try {
+                                  await _service.changePassword(
+                                    newPassword: yangi,
+                                    confirmPassword: tasdiq,
+                                  );
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  _toast('Parol muvaffaqiyatli yangilandi');
+                                } on ApiException catch (e) {
+                                  setLocal(() {
+                                    xato = e.message;
+                                    saqlanmoqda = false;
+                                  });
+                                } catch (_) {
+                                  setLocal(() {
+                                    xato = 'Parolni o‘zgartirib bo‘lmadi';
+                                    saqlanmoqda = false;
+                                  });
+                                }
+                              },
                       ),
                     ],
                   ),
@@ -412,7 +446,6 @@ class _IdealProfileScreenState extends State<IdealProfileScreen> {
       },
     );
 
-    cur.dispose();
     neu.dispose();
     conf.dispose();
   }

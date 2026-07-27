@@ -1,8 +1,10 @@
 import 'package:chaqmoq_mobile/core/theme/student_tokens.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
+import 'package:chaqmoq_mobile/providers/game_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/screens/student/student_account_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_attendance_screen.dart';
+import 'package:chaqmoq_mobile/screens/student/game/game_hub_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_dashboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_leaderboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_notifications_screen.dart';
@@ -23,16 +25,20 @@ class StudentAppShell extends StatefulWidget {
 class _StudentAppShellState extends State<StudentAppShell> {
   int _currentIndex = 0;
 
-  // Tab order: Panel (0) | Davomat (1) | Reyting (2) | Do'kon (3) | To'lovlar (4) | Profil (5)
+  static const _gameTabIndex = 2;
+
+  // Tab order: Panel (0) | Davomat (1) | O'yin (2) | Reyting (3) | Do'kon (4) |
+  //            To'lovlar (5) | Profil (6)
   late final List<Widget> _screens = [
     StudentDashboardScreen(
-      onOpenPayments: () => _setTab(4),
+      onOpenPayments: () => _setTab(5),
       onOpenAttendance: () => _setTab(1),
-      onOpenLeaderboard: () => _setTab(2),
+      onOpenLeaderboard: () => _setTab(3),
       onOpenNotifications: _openNotifications,
-      onOpenProfile: () => _setTab(5),
+      onOpenProfile: () => _setTab(6),
     ),
     const StudentAttendanceScreen(),
+    const GameHubScreen(),
     const StudentLeaderboardScreen(),
     const StudentStoreScreen(),
     const StudentPaymentsScreen(),
@@ -51,6 +57,19 @@ class _StudentAppShellState extends State<StudentAppShell> {
   void _setTab(int index) {
     if (_currentIndex == index) return;
     setState(() => _currentIndex = index);
+
+    // Ekranlar IndexedStack ichida yashaydi, ya'ni `initState` faqat bir marta
+    // ishlaydi. O'yin bo'limiga qaytilganda jon/chaqmoq va katalog eskirgan
+    // bo'lishi mumkin (admin yangi o'yin qo'shgan bo'lsa ham) — shuning uchun
+    // tab ochilganda qayta so'raymiz.
+    if (index == _gameTabIndex) {
+      // `refresh()` darhol `notifyListeners()` chaqiradi — uni setState bilan
+      // bir kadrga tiqmaymiz, aks holda qayta qurish o'rtasida xabar ketadi.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<GameProvider>().refresh();
+      });
+    }
   }
 
   void _openNotifications() {
@@ -97,6 +116,11 @@ class _StudentAppShellState extends State<StudentAppShell> {
             label: 'Davomat',
             icon: Icons.fact_check_outlined,
             activeIcon: Icons.fact_check_rounded,
+          ),
+          AppStudentBottomNavItem(
+            label: 'O‘yin',
+            icon: Icons.sports_esports_outlined,
+            activeIcon: Icons.sports_esports_rounded,
           ),
           AppStudentBottomNavItem(
             label: 'Reyting',

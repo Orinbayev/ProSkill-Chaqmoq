@@ -180,6 +180,8 @@ class UserModel {
     this.email = '',
     this.joinedDate,
     this.avatarUrl = '',
+    this.gameOnly = false,
+    this.profilToliq = false,
   });
 
   final int id;
@@ -192,6 +194,14 @@ class UserModel {
   final String email;
   final DateTime? joinedDate;
   final String avatarUrl;
+
+  /// O'quv markaziga bog'liq bo'lmagan, ilovani o'zi o'rnatib ro'yxatdan
+  /// o'tgan o'yinchi. Bunday foydalanuvchiga davomat, to'lov va qarzdorlik
+  /// ko'rsatilmaydi — faqat O'yin, Reyting va Profil.
+  final bool gameOnly;
+
+  /// Ism/familya/yosh to'ldirilganmi.
+  final bool profilToliq;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final firstName = jsonString(json['ism']);
@@ -218,6 +228,8 @@ class UserModel {
       email: jsonString(json['email']),
       joinedDate: jsonDate(json['joined_date'] ?? json['date_joined']),
       avatarUrl: jsonString(json['avatar_url']),
+      gameOnly: json['game_only'] == true,
+      profilToliq: json['profil_toliq'] == true,
     );
   }
 
@@ -232,6 +244,8 @@ class UserModel {
     String? email,
     DateTime? joinedDate,
     String? avatarUrl,
+    bool? gameOnly,
+    bool? profilToliq,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -244,6 +258,8 @@ class UserModel {
       email: email ?? this.email,
       joinedDate: joinedDate ?? this.joinedDate,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      gameOnly: gameOnly ?? this.gameOnly,
+      profilToliq: profilToliq ?? this.profilToliq,
     );
   }
 
@@ -258,6 +274,8 @@ class UserModel {
     'email': email,
     'joined_date': joinedDate?.toIso8601String(),
     'avatar_url': avatarUrl,
+    'game_only': gameOnly,
+    'profil_toliq': profilToliq,
   };
 }
 

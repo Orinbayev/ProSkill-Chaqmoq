@@ -13,7 +13,12 @@ from decimal import Decimal
 from functools import wraps
 
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import (
+    authenticate,
+    login,
+    logout,
+    update_session_auth_hash,
+)
 from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
 from django.core.validators import validate_email
@@ -482,7 +487,13 @@ def _resolve_login_user(request, data: dict):
 
     clear_failed_login(request, identifier)
 
-    if not authenticated_user.is_superuser and getattr(authenticated_user, "center", None) is None:
+    # Markazsiz kirish faqat ikki holatda mumkin: superuser va **o'yin uchun
+    # ro'yxatdan o'tgan** foydalanuvchi (`game_only`). Ikkinchisida markaz
+    # bo'lmasligi normal holat — u faqat Chaqmoq Game bo'limidan foydalanadi.
+    markazsiz_ruxsat = authenticated_user.is_superuser or getattr(
+        authenticated_user, "game_only", False
+    )
+    if not markazsiz_ruxsat and getattr(authenticated_user, "center", None) is None:
         logger.info(
             "mobile_login outcome=center_required identifier=%s user_id=%s",
             masked_identifier or "-",
@@ -629,6 +640,11 @@ def _serialize_user(request, user: User) -> dict:
         "familya": user.familya,
         "otchestvo": user.otchestvo,
         "role": user.role,
+        # `game_only` — o'quv markaziga bog'liq bo'lmagan, ilovani o'zi
+        # o'rnatib ro'yxatdan o'tgan o'yinchi. Ilova shunga qarab boshqa
+        # panel ochadi (faqat O'yin, Reyting, Profil).
+        "game_only": bool(getattr(user, "game_only", False)),
+        "profil_toliq": bool((user.ism or "").strip() and user.birth_date),
         "avatar_url": _safe_media_url(request, user.avatar),
         "is_telegram_linked": user.is_telegram_linked,
         "telegram_username": user.telegram_username,
@@ -3538,17 +3554,33 @@ def mobile_auth_change_password(request):
     new_password = str(data.get("new_password") or "").strip()
     confirm_password = str(data.get("confirm_password") or "").strip()
 
-    if not current_password or not new_password or not confirm_password:
+    if not new_password or not confirm_password:
         return _mobile_json_error("Barcha maydonlarni to‘ldiring", code="missing_fields")
-    if not request.user.check_password(current_password):
+
+    # Joriy parol **ixtiyoriy**: so'rov allaqachon foydalanuvchi tokeni bilan
+    # imzolangan, ya'ni kim ekani tasdiqlangan. Ko'p o'quvchi eski parolini
+    # eslay olmagani uchun uni majburlash parolni umuman yangilay olmaslikka
+    # olib kelardi. Yuborilgan taqdirda esa baribir tekshiramiz — eski
+    # mijozlar va web oqimi o'zgarishsiz ishlayveradi.
+    if current_password and not request.user.check_password(current_password):
         return _mobile_json_error("Joriy parol noto‘g‘ri", code="invalid_current_password")
+
     if len(new_password) < 8:
         return _mobile_json_error("Yangi parol kamida 8 ta belgidan iborat bo‘lishi kerak", code="password_too_short")
     if new_password != confirm_password:
         return _mobile_json_error("Parollar mos kelmadi", code="password_mismatch")
 
     request.user.set_password(new_password)
+    # update_fields shart: `User.save()` to'liq saqlansa, stavka o'zgarishi
+    # signali butun davomatni qayta hisoblaydi (sekin va keraksiz).
     request.user.save(update_fields=["password"])
+
+    # Parol o'zgargach Django sessiya hash'i eskiradi va foydalanuvchi
+    # web sessiyasidan uchib ketardi. Mobil token ta'sirlanmaydi, lekin
+    # sessiya bilan kirgan bo'lsa uni saqlab qolamiz.
+    if request.session.session_key:
+        update_session_auth_hash(request, request.user)
+
     return JsonResponse({"ok": True, "message": "Parol muvaffaqiyatli yangilandi"})
 
 

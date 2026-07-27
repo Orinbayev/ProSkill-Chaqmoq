@@ -108,6 +108,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Google orqali olingan token bilan kirish.
+  Future<void> applyGameToken(String accessToken) async {
+    _state = ViewState.loading;
+    notifyListeners();
+    try {
+      _session = await _authRepository.applyGameToken(accessToken);
+      _sessionEpoch += 1;
+      _state = ViewState.success;
+      _armIgnoreUnauthorized();
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Profil to'ldirilgandan keyin sessiyani qayta o'qiydi.
+  Future<void> refreshSession() async {
+    final joriy = _session;
+    if (joriy == null) return;
+    _session = await _authRepository.refreshSession(joriy);
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     _state = ViewState.loading;
     notifyListeners();

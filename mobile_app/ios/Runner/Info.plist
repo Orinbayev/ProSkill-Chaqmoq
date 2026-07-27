@@ -79,5 +79,19 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Google Sign-In: iOS client ID'ning teskari ko'rinishi.
+	     Google oynasi yopilgach ilovaga shu sxema orqali qaytadi.
+	     Manba: Google Cloud → chaqmoqapp-oauth → Clients → ChaqmoqApp iOS. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.148087667821-abn0rsij76q4su5gt2ecuou36oumh5i2</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

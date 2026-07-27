@@ -11,17 +11,18 @@ from __future__ import annotations
 import random
 from decimal import Decimal
 
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 
+from .cooldowns import qulflangan_soniya, qulfni_yangila
 from .models import (
-    SAVOL_SONIYA,
     SAVOLLAR_SONI,
     Duel,
     DuelQuestion,
     GameProfile,
     Question,
-    chaqmoq_mukofoti,
+    chaqmoq_aniqlik_boyicha,
+    mukofotni_olchash,
 )
 
 # Ball: har to'g'ri javob uchun aniq 1 ball. Duel hisobi = to'g'ri javoblar soni.
@@ -35,6 +36,17 @@ XP_DURRANG = 25
 # Robot javob vaqti (ms) — odamnikiga o'xshash tarqalish.
 ROBOT_MIN_MS = 1800
 ROBOT_MAX_MS = 9000
+
+# ─── Real duel (PvP) ───────────────────────────────────────────
+
+# Raqib qidirish davomiyligi. Shu vaqt ichida odam topilmasa — robot.
+NAVBAT_KUTISH_SONIYA = 15
+
+# Navbatdagi yozuv shuncha soniyadan keyin eskirgan hisoblanadi (ilova yopilgan).
+NAVBAT_ESKIRISH_SONIYA = 25
+
+# Raqib duelni tashlab ketsa, shuncha daqiqadan keyin bor hisob bo'yicha yopiladi.
+PVP_KUTISH_DAQIQA = 6
 
 
 def profil_ol(user, center=None) -> GameProfile:
@@ -96,20 +108,41 @@ def _robot_javoblari(robot: GameProfile, soni: int) -> list[tuple[bool, int]]:
     ]
 
 
-def duel_boshla(user, center, raqib_id: int | None = None) -> tuple[Duel | None, str]:
+def duel_boshla(
+    user,
+    center,
+    raqib_id: int | None = None,
+    mode=None,
+) -> tuple[Duel | None, str]:
     """Yangi duel yaratadi. Xatolik bo'lsa (None, sabab) qaytaradi.
 
     `raqib_id` berilsa — o'sha robot bilan revansh (duel tarixidan "Qayta o'ynash").
     Berilmasa — tasodifiy robot tanlanadi.
+
+    `mode` — katalogdagi duel o'yini (GameMode). Berilsa savollar shu o'yin
+    to'plamlaridan olinadi va uzunligi/jon narxi ham o'shandan. Berilmasa eski
+    standart qoida ishlaydi (10 savol, 1 jon) — bu eski ilova versiyalari uchun.
     """
     profile = profil_ol(user, center)
 
-    if profile.joriy_jon <= 0:
+    if mode is not None and mode.faqat_pro and not profile.pro:
+        return None, "pro_kerak"
+
+    if mode is not None and qulflangan_soniya(profile, mode) > 0:
+        return None, "oyin_qulflangan"
+
+    jon_narxi = mode.jon_narxi if mode is not None else 1
+    if jon_narxi > 0 and profile.joriy_jon < jon_narxi:
         profile.save(update_fields=["jon", "jon_yangilangan", "jon_kuni"])
         return None, "jon_yoq"
 
-    savollar = _savollar_tanla(center)
-    if len(savollar) < SAVOLLAR_SONI:
+    kerakli = max(1, mode.savollar_soni) if mode is not None else SAVOLLAR_SONI
+    if mode is not None:
+        savollar = list(mode.savollar_qs().order_by("?")[:kerakli])
+    else:
+        savollar = _savollar_tanla(center, kerakli)
+
+    if len(savollar) < kerakli:
         return None, "savol_yetarli_emas"
 
     if raqib_id is not None:
@@ -123,12 +156,17 @@ def duel_boshla(user, center, raqib_id: int | None = None) -> tuple[Duel | None,
     if robot is None:
         return None, "raqib_yoq"
 
-    if not profile.jon_sarfla():
-        return None, "jon_yoq"
+    for _ in range(jon_narxi):
+        if not profile.jon_sarfla():
+            return None, "jon_yoq"
+
+    if mode is not None:
+        qulfni_yangila(profile, mode)
 
     duel = Duel.objects.create(
         oyinchi=user,
         center=center,
+        mode=mode,
         raqib=robot,
         raqib_nomi=robot.nomi,
     )
@@ -173,46 +211,147 @@ def javob_yoz(duel: Duel, tartib: int, tanlangan: str, sarflangan_ms: int) -> Du
     return dq
 
 
+def raqib_jami(duel: Duel, tartib: int) -> int:
+    """Raqibning **shu savolgacha** yig'gan bali.
+
+    Robot bilan: javoblari duel boshida hisoblab qo'yilgan, lekin ilovaga
+    bosqichma-bosqich ochiladi — aks holda birinchi javobdanoq yakuniy hisob
+    ko'rinib qolardi.
+
+    Odam bilan (PvP): juft dueldan **jonli** o'qiladi — raqib qaysi savolgacha
+    yetgan bo'lsa, o'shancha.
+    """
+    if duel.pvp and duel.juft_id:
+        manba = Duel.objects.get(pk=duel.juft_id).savollar
+        maydon = "olingan_ball"
+    else:
+        manba = duel.savollar
+        maydon = "raqib_ball"
+
+    return manba.filter(tartib__lte=tartib).aggregate(jami=Sum(maydon))["jami"] or 0
+
+
+def raqib_yakuniy_ball(duel: Duel) -> int:
+    """Raqibning hozirgi yakuniy bali."""
+    if duel.pvp and duel.juft_id:
+        return Duel.objects.get(pk=duel.juft_id).ball
+    return duel.raqib_ball
+
+
 def duel_yakunla(duel: Duel) -> dict:
-    """Duelni yakunlaydi: XP, chaqmoq beradi, robotning ham hisobini yuritadi."""
+    """Duelni yakunlaydi.
+
+    Chaqmoq **aniqlik** uchun beriladi va raqibga bog'liq emas — shuning uchun
+    darhol yoziladi. G'alaba/mag'lubiyat (va XP) esa raqibning hisobiga bog'liq:
+    robot bilan darhol ma'lum, odam bilan esa ikkalasi tugagach hisoblanadi.
+    """
     profile = profil_ol(duel.oyinchi, duel.center)
 
     if duel.holat == Duel.HOLAT_TUGAGAN:
+        _pvp_natijani_tekshir(duel)
+        duel.refresh_from_db()
         return _natija_dict(duel, profile)
 
-    if duel.ball > duel.raqib_ball:
-        duel.natija = Duel.NATIJA_GALABA
-        xp = XP_GALABA
-    elif duel.ball < duel.raqib_ball:
-        duel.natija = Duel.NATIJA_MAGLUBIYAT
-        xp = XP_MAGLUBIYAT
-    else:
-        duel.natija = Duel.NATIJA_DURRANG
-        xp = XP_DURRANG
+    chaqmoq = _duel_chaqmoq(duel, duel.togri_javoblar)
+    haqiqiy_chaqmoq = profile.chaqmoq_qosh(chaqmoq) if chaqmoq else Decimal("0.0")
 
-    # Chaqmoq — g'alaba emas, ANIQLIK uchun beriladi. Shunda mag'lub bo'lgan
-    # o'quvchi ham mehnati uchun mukofot oladi va tashlab ketmaydi.
-    chaqmoq = chaqmoq_mukofoti(duel.togri_javoblar)
-
-    duel.olingan_xp = xp
-    duel.olingan_chaqmoq = chaqmoq
+    duel.olingan_chaqmoq = haqiqiy_chaqmoq
     duel.holat = Duel.HOLAT_TUGAGAN
     duel.tugagan = timezone.now()
-    duel.save(
-        update_fields=["natija", "olingan_xp", "olingan_chaqmoq", "holat", "tugagan"]
-    )
+    duel.save(update_fields=["olingan_chaqmoq", "holat", "tugagan"])
 
-    profile.xp += xp
-    profile.hafta_xp += xp
-    profile.chaqmoq = (profile.chaqmoq or Decimal("0.0")) + chaqmoq
     profile.streak_yangila()
     profile.liga_yangila()
     profile.save()
 
-    # Robot ham reytingda yashaydi — u ham XP va chaqmoq yig'adi.
-    _robot_hisobini_yurit(duel)
+    if duel.pvp:
+        _pvp_natijani_tekshir(duel)
+    else:
+        _natijani_belgila(duel, duel.raqib_ball)
+        # Robot ham reytingda yashaydi — u ham XP va chaqmoq yig'adi.
+        _robot_hisobini_yurit(duel)
 
+    duel.refresh_from_db()
     return _natija_dict(duel, profile)
+
+
+def _natijani_belgila(duel: Duel, raqib_ball: int) -> None:
+    """G'alaba/mag'lubiyat/durrangni yozadi va XP beradi."""
+    if duel.natija:
+        return
+
+    galaba_xp = duel.mode.xp_mukofot if duel.mode else XP_GALABA
+    if duel.ball > raqib_ball:
+        duel.natija = Duel.NATIJA_GALABA
+        xp = galaba_xp
+    elif duel.ball < raqib_ball:
+        duel.natija = Duel.NATIJA_MAGLUBIYAT
+        xp = round(galaba_xp * XP_MAGLUBIYAT / XP_GALABA)
+    else:
+        duel.natija = Duel.NATIJA_DURRANG
+        xp = round(galaba_xp * XP_DURRANG / XP_GALABA)
+
+    duel.olingan_xp = xp
+    duel.raqib_ball = raqib_ball
+    duel.save(update_fields=["natija", "olingan_xp", "raqib_ball"])
+
+    profile = profil_ol(duel.oyinchi, duel.center)
+    profile.xp += xp
+    profile.hafta_xp += xp
+    profile.liga_yangila()
+    profile.save(update_fields=["xp", "hafta_xp", "liga"])
+
+
+def _pvp_natijani_tekshir(duel: Duel) -> None:
+    """Ikkala o'yinchi tugagan bo'lsa — ikkalasiga natija yozadi.
+
+    Bittasi tashlab ketgan bo'lsa, `PVP_KUTISH_DAQIQA` dan keyin bor hisob
+    bo'yicha yakunlanadi — aks holda duel abadiy ochiq qolardi.
+    """
+    juft = Duel.objects.filter(pk=duel.juft_id).first() if duel.juft_id else None
+    if juft is None:
+        # Juft yo'qolgan (o'chirilgan) — bor hisob bo'yicha yopamiz.
+        _natijani_belgila(duel, 0)
+        return
+
+    ikkalasi_tugagan = (
+        duel.holat == Duel.HOLAT_TUGAGAN and juft.holat == Duel.HOLAT_TUGAGAN
+    )
+    muddat_otdi = duel.boshlangan < timezone.now() - timezone.timedelta(
+        minutes=PVP_KUTISH_DAQIQA
+    )
+
+    if not (ikkalasi_tugagan or muddat_otdi):
+        return
+
+    _natijani_belgila(duel, juft.ball)
+    if juft.holat == Duel.HOLAT_TUGAGAN or muddat_otdi:
+        _natijani_belgila(juft, duel.ball)
+
+
+def pvp_kutayotganlarni_yakunla(user) -> None:
+    """Raqibi tugatgan (yoki tashlab ketgan) duellarni yopadi.
+
+    Katalog so'ralganda chaqiriladi — alohida cron kerak emas.
+    """
+    kutayotganlar = Duel.objects.filter(
+        oyinchi=user,
+        pvp=True,
+        natija="",
+        holat=Duel.HOLAT_TUGAGAN,
+    ).select_related("juft")[:20]
+    for duel in kutayotganlar:
+        _pvp_natijani_tekshir(duel)
+
+
+def _duel_chaqmoq(duel: Duel, togri: int) -> Decimal:
+    """Duel uzunligi katalogdan o'zgarishi mumkin — shuning uchun chaqmoq
+    aniqlik foizidan hisoblanadi. 10 savolli duelda natija eski qoida bilan
+    aynan bir xil chiqadi."""
+    jami = duel.savollar.count() or SAVOLLAR_SONI
+    baza = chaqmoq_aniqlik_boyicha(togri / jami)
+    koef = duel.mode.chaqmoq_koef if duel.mode else Decimal("1.0")
+    return mukofotni_olchash(baza, koef)
 
 
 def _robot_hisobini_yurit(duel: Duel) -> None:
@@ -231,7 +370,7 @@ def _robot_hisobini_yurit(duel: Duel) -> None:
 
     robot.xp += robot_xp
     robot.hafta_xp += robot_xp
-    robot.chaqmoq = (robot.chaqmoq or Decimal("0.0")) + chaqmoq_mukofoti(robot_togri)
+    robot.chaqmoq_qosh(_duel_chaqmoq(duel, robot_togri))
     robot.liga_yangila()
     robot.save(update_fields=["xp", "hafta_xp", "chaqmoq", "liga"])
 
@@ -243,8 +382,11 @@ def _natija_dict(duel: Duel, profile: GameProfile) -> dict:
         "ball": duel.ball,
         "raqib_ball": duel.raqib_ball,
         "raqib_nomi": duel.raqib_nomi,
+        "pvp": duel.pvp,
+        # PvP'da raqib hali o'ynayotgan bo'lsa natija keyinroq ma'lum bo'ladi.
+        "kutilmoqda": duel.pvp and not duel.natija,
         "togri_javoblar": duel.togri_javoblar,
-        "savollar_soni": SAVOLLAR_SONI,
+        "savollar_soni": duel.savollar.count() or SAVOLLAR_SONI,
         "olingan_xp": duel.olingan_xp,
         "olingan_chaqmoq": float(duel.olingan_chaqmoq),
         "jon": profile.joriy_jon,
