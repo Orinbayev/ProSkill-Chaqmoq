@@ -28,7 +28,7 @@ def superadmin_dashboard(request):
     from django.utils import timezone
     from datetime import timedelta
     from billing.models import SubscriptionOrder
-    from accounts.models import User
+    from accounts.models import BranchRequest, User
     from core.perf_cache import TTL_SHORT, TTL_MEDIUM, perf_cache_get_or_set
 
     now = timezone.now()
@@ -230,6 +230,11 @@ def superadmin_dashboard(request):
         # Dropdown choices
         'plans':    SubscriptionPlan.objects.filter(active=True).values_list('code', 'title'),
         'statuses': Center.STATUS_CHOICES,
+
+        # Sarlavhadagi "Filial so'rovlari" tugmasidagi raqam.
+        'kutilayotgan_filial_soni': BranchRequest.objects.filter(
+            status=BranchRequest.Status.PENDING
+        ).count(),
     }
 
     return render(request, 'accounts/superadmin_dashboard.html', context)

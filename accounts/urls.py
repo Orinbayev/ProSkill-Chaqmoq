@@ -11,6 +11,7 @@ from .views_superadmin import (
     toggle_center_bot,
 )
 from . import api_superadmin
+from . import views_branch_admin
 from . import views_game_admin
 from . import views_platform # New HTML Views
 from .views import test_db, test_center
@@ -27,6 +28,12 @@ platform_patterns = [
     path("center/<int:pk>/edit/", center_edit, name="center_edit"),
     path("center/<int:center_pk>/toggle-feature/", toggle_center_ui_feature, name="toggle_center_ui_feature"),
     path("bot/", superadmin_bot, name="superadmin_bot"),
+
+    # ─── Filial so'rovlari ──────────────────────────────────────
+    # Telegram bot ham shu so'rovlarni tasdiqlaydi; ikkalasi bitta
+    # servisni (accounts.services.branch_requests) chaqiradi.
+    path("filiallar/", views_branch_admin.superadmin_filiallar, name="superadmin_filiallar"),
+    path("filiallar/<int:sorov_id>/amal/", views_branch_admin.branch_request_action, name="branch_request_action"),
 
     # ─── Chaqmoq Game boshqaruvi ────────────────────────────────
     path("game/", views_game_admin.superadmin_game, name="superadmin_game"),

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import Branch, BranchRequest, Center, DirectorCenterAccess, ParentTelegramLinkToken, User
+from .services import branch_requests as branch_service
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
@@ -318,7 +319,53 @@ class DirectorCenterAccessAdmin(admin.ModelAdmin):
 
 @admin.register(BranchRequest)
 class BranchRequestAdmin(admin.ModelAdmin):
-    list_display = ("name", "requester", "parent_center", "status", "created_at")
+    """Filial so'rovlari.
+
+    `status` **ataylab** faqat o'qish uchun: uni qo'lda "approved" qilib
+    qo'yish markaz yaratmaydi va direktorga ruxsat bermaydi — filial
+    ro'yxatda ko'rinmay qoladi. Tasdiqlash faqat pastdagi amallar orqali,
+    ular `accounts.services.branch_requests` ni chaqiradi.
+    """
+
+    list_display = (
+        "name", "requester", "parent_center", "status",
+        "created_center", "created_at",
+    )
     list_filter = ("status",)
     search_fields = ("name", "requester__email", "parent_center__name")
-    readonly_fields = ("created_at", "reviewed_at")
+    readonly_fields = ("created_at", "reviewed_at", "status", "created_center")
+    actions = ("tasdiqlash", "rad_etish")
+
+    @admin.action(description="✅ Tasdiqlash (filial markazini yaratadi)")
+    def tasdiqlash(self, request, queryset):
+        yaratildi, xatolar = 0, []
+        for so_rov in queryset:
+            try:
+                markaz = branch_service.tasdiqla(so_rov, reviewer=request.user)
+            except branch_service.FilialXatosi as xato:
+                xatolar.append(f"{so_rov.name}: {xato}")
+            else:
+                yaratildi += 1
+                self.message_user(
+                    request,
+                    f"✅ «{markaz.name}» filiali yaratildi "
+                    f"(asosiy markaz: {markaz.parent_center}).",
+                    level=messages.SUCCESS,
+                )
+        if xatolar:
+            self.message_user(request, " | ".join(xatolar), level=messages.ERROR)
+        if not yaratildi and not xatolar:
+            self.message_user(request, "Hech narsa o'zgarmadi.", level=messages.WARNING)
+
+    @admin.action(description="❌ Rad etish")
+    def rad_etish(self, request, queryset):
+        xatolar = []
+        for so_rov in queryset:
+            try:
+                branch_service.rad_et(so_rov, reviewer=request.user)
+            except branch_service.FilialXatosi as xato:
+                xatolar.append(f"{so_rov.name}: {xato}")
+        if xatolar:
+            self.message_user(request, " | ".join(xatolar), level=messages.ERROR)
+        else:
+            self.message_user(request, "So'rov(lar) rad etildi.", level=messages.SUCCESS)

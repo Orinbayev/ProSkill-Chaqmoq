@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Filial so'rovlari — Chaqmoq{% endblock %}
+{% block body_class %}sa-shell{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
+{% endblock %}
+
+{% block content %}
+<style>
+  /* superadmin_game / superadmin_bot bilan bir xil tema o'zgaruvchilari */
+  .fl-wrap {
+    --c-card:#0d1836; --c-card2:#0a1430; --c-border:rgba(148,163,184,.14);
+    --c-text:#eaf1ff; --c-muted:#93a6c6; --c-head:#8ea3c4;
+    --c-shadow:0 10px 30px rgba(3,8,20,.35);
+    --c-ok-bg:rgba(34,197,94,.16); --c-ok-fg:#4ade80;
+    --c-warn-bg:rgba(245,158,11,.16); --c-warn-fg:#fbbf24;
+    --c-bad-bg:rgba(239,68,68,.16); --c-bad-fg:#f87171;
+    --c-input:#0a1430; --c-accent:#38bdf8;
+    padding: 0 0 48px;
+  }
+  html[data-role-theme="light"] .fl-wrap {
+    --c-card:#ffffff; --c-card2:#f8fafc; --c-border:#e6ebf2;
+    --c-text:#0f172a; --c-muted:#5b6b85; --c-head:#64748b;
+    --c-shadow:0 8px 24px rgba(15,23,42,.06);
+    --c-ok-bg:#dcfce7; --c-ok-fg:#15803d;
+    --c-warn-bg:#fef3c7; --c-warn-fg:#b45309;
+    --c-bad-bg:#fee2e2; --c-bad-fg:#b91c1c;
+    --c-input:#ffffff; --c-accent:#0284c7;
+  }
+
+  .fl-head { display:flex; align-items:center; justify-content:space-between;
+             gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .fl-title { font-size:23px; font-weight:800; color:var(--c-text); margin:0; }
+  .fl-sub { font-size:13px; color:var(--c-muted); margin:4px 0 0; }
+
+  .fl-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+             gap:12px; margin-bottom:22px; }
+  .fl-kpi { background:var(--c-card); border:1px solid var(--c-border);
+            border-radius:14px; padding:14px 16px; box-shadow:var(--c-shadow); }
+  .fl-kpi b { display:block; font-size:24px; font-weight:800; color:var(--c-text);
+              line-height:1.15; }
+  .fl-kpi span { font-size:12px; color:var(--c-muted); font-weight:600; }
+
+  .fl-search { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .fl-search input { flex:1; min-width:220px; background:var(--c-input);
+    border:1px solid var(--c-border); border-radius:11px; padding:10px 14px;
+    color:var(--c-text); font-size:14px; }
+  .fl-search button { background:var(--c-accent); border:0; border-radius:11px;
+    padding:10px 20px; font-weight:700; color:#04121f; cursor:pointer; }
+
+  .fl-card { background:var(--c-card); border:1px solid var(--c-border);
+    border-radius:16px; padding:0; box-shadow:var(--c-shadow); overflow:hidden; }
+
+  .fl-table-scroll { overflow-x:auto; }
+  table.fl-table { width:100%; border-collapse:collapse; min-width:860px; }
+  .fl-table th { text-align:left; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--c-head); font-weight:700;
+    padding:13px 16px; border-bottom:1px solid var(--c-border);
+    background:var(--c-card2); white-space:nowrap; }
+  .fl-table td { padding:14px 16px; font-size:13.5px; color:var(--c-text);
+    border-bottom:1px solid var(--c-border); vertical-align:top; }
+  .fl-table tr:last-child td { border-bottom:0; }
+  .fl-name { font-weight:700; }
+  .fl-dim { color:var(--c-muted); font-size:12px; }
+
+  .fl-badge { display:inline-block; padding:4px 10px; border-radius:999px;
+    font-size:11.5px; font-weight:700; white-space:nowrap; }
+  .fl-badge.pending  { background:var(--c-warn-bg); color:var(--c-warn-fg); }
+  .fl-badge.approved { background:var(--c-ok-bg);   color:var(--c-ok-fg); }
+  .fl-badge.rejected { background:var(--c-bad-bg);  color:var(--c-bad-fg); }
+
+  .fl-act { display:flex; gap:8px; flex-wrap:wrap; }
+  .fl-btn { border:0; border-radius:10px; padding:8px 14px; font-size:12.5px;
+    font-weight:700; cursor:pointer; white-space:nowrap; }
+  .fl-btn.ok  { background:var(--c-ok-bg);  color:var(--c-ok-fg); }
+  .fl-btn.bad { background:var(--c-bad-bg); color:var(--c-bad-fg); }
+  .fl-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+  .fl-empty { padding:48px 20px; text-align:center; color:var(--c-muted);
+    font-size:14px; }
+
+  .fl-toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--c-card); border:1px solid var(--c-border); color:var(--c-text);
+    padding:13px 22px; border-radius:12px; box-shadow:var(--c-shadow);
+    font-size:13.5px; font-weight:600; z-index:9999; display:none; max-width:90vw; }
+  .fl-toast.bad { border-color:var(--c-bad-fg); color:var(--c-bad-fg); }
+</style>
+
+<div class="fl-wrap">
+  <div class="fl-head">
+    <div>
+      <h1 class="fl-title">Filial so'rovlari</h1>
+      <p class="fl-sub">
+        Direktorlar yuborgan yangi filial arizalari. Tasdiqlansa — filial markazi
+        avtomatik yaratiladi va direktorga ruxsat beriladi.
+      </p>
+    </div>
+    <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sa-btn sa-btn-secondary">
+      <i class="bi bi-arrow-left"></i> Panelga qaytish
+    </a>
+  </div>
+
+  <div class="fl-kpis">
+    <div class="fl-kpi"><b>{{ kutilmoqda_soni }}</b><span>Kutilmoqda</span></div>
+    <div class="fl-kpi"><b>{{ tasdiqlangan_soni }}</b><span>Tasdiqlangan</span></div>
+    <div class="fl-kpi"><b>{{ rad_soni }}</b><span>Rad etilgan</span></div>
+    <div class="fl-kpi"><b>{{ jami_soni }}</b><span>Jami</span></div>
+  </div>
+
+  {% if nosoz_soni %}
+  <div class="fl-card" style="padding:14px 18px; margin-bottom:18px;
+       border-color:var(--c-bad-fg); color:var(--c-text); font-size:13.5px;">
+    <b>{{ nosoz_soni }} ta so'rov nosoz.</b>
+    Ular «tasdiqlangan» deb belgilangan, lekin filial markazi yaratilmagan —
+    bu Django admin'da <code>status</code> ni qo'lda o'zgartirishdan qolgan.
+    Jadvaldagi <b>«Markazni yaratish»</b> tugmasi bilan tuzatiladi.
+  </div>
+  {% endif %}
+
+  <form class="fl-search" method="get">
+    <input type="text" name="q" value="{{ qidiruv }}"
+           placeholder="Filial nomi, asosiy markaz yoki direktor email…">
+    <button type="submit">Qidirish</button>
+  </form>
+
+  <div class="fl-card">
+    <div class="fl-table-scroll">
+      <table class="fl-table">
+        <thead>
+          <tr>
+            <th>Filial</th>
+            <th>Asosiy markaz</th>
+            <th>So'rovchi</th>
+            <th>Sana</th>
+            <th>Holat</th>
+            <th>Amal</th>
+          </tr>
+        </thead>
+        <tbody id="fl-body"></tbody>
+      </table>
+    </div>
+    <div class="fl-empty" id="fl-empty" style="display:none;">
+      So'rov topilmadi.
+    </div>
+  </div>
+</div>
+
+<div class="fl-toast" id="fl-toast"></div>
+
+{{ sorovlar_json|json_script:"fl-data" }}
+<script>
+(function () {
+  const sorovlar = JSON.parse(document.getElementById('fl-data').textContent);
+  const body  = document.getElementById('fl-body');
+  const empty = document.getElementById('fl-empty');
+  const toast = document.getElementById('fl-toast');
+
+  // CSRF: Django cookie'dan olinadi (base.html'da forma bo'lmasligi mumkin).
+  function csrf() {
+    const m = document.cookie.match(/(^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  function xabar(matn, yomon) {
+    toast.textContent = matn;
+    toast.classList.toggle('bad', !!yomon);
+    toast.style.display = 'block';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.display = 'none'; }, 4000);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function qator(s) {
+    const tr = document.createElement('tr');
+    tr.dataset.id = s.id;
+
+    let amal = '';
+    if (s.nosoz) {
+      // Tasdiqlangan deb turibdi, lekin markaz yo'q — bir bosishda tuzatiladi.
+      amal = `<div class="fl-act">
+                <button class="fl-btn ok" data-amal="tasdiqla">Markazni yaratish</button>
+              </div>`;
+    } else if (s.holat === 'pending') {
+      amal = `<div class="fl-act">
+                <button class="fl-btn ok"  data-amal="tasdiqla">Tasdiqlash</button>
+                <button class="fl-btn bad" data-amal="rad_et">Rad etish</button>
+              </div>`;
+    } else if (s.holat === 'approved') {
+      amal = `<span class="fl-dim">${esc(s.yaratilgan_markaz || 'markaz yaratilgan')}</span>`;
+    } else {
+      amal = `<span class="fl-dim">${esc(s.rad_sababi || '—')}</span>`;
+    }
+
+    const belgi = s.nosoz
+      ? `<span class="fl-badge rejected" title="Markaz yaratilmagan">Nosoz</span>`
+      : `<span class="fl-badge ${esc(s.holat)}">${esc(s.holat_matni)}</span>`;
+
+    tr.innerHTML = `
+      <td>
+        <div class="fl-name">${esc(s.nom)}</div>
+        <div class="fl-dim">${esc(s.manzil)} · ${esc(s.telefon)}</div>
+      </td>
+      <td>${esc(s.asosiy_markaz)}</td>
+      <td>
+        <div>${esc(s.sorovchi)}</div>
+        <div class="fl-dim">${esc(s.sorovchi_email)}</div>
+      </td>
+      <td class="fl-dim">${esc(s.sana)}</td>
+      <td>${belgi}</td>
+      <td>${amal}</td>`;
+    return tr;
+  }
+
+  function chiz() {
+    body.innerHTML = '';
+    sorovlar.forEach(s => body.appendChild(qator(s)));
+    empty.style.display = sorovlar.length ? 'none' : 'block';
+  }
+
+  body.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('.fl-btn');
+    if (!btn) return;
+
+    const tr   = btn.closest('tr');
+    const id   = tr.dataset.id;
+    const amal = btn.dataset.amal;
+    const s    = sorovlar.find(x => String(x.id) === String(id));
+
+    let sabab = '';
+    if (amal === 'rad_et') {
+      sabab = prompt('Rad etish sababi (ixtiyoriy):') || '';
+    } else if (!confirm(
+      s.nosoz
+        ? `«${s.nom}» tasdiqlangan, lekin markazi yo'q. Hozir yaratilsinmi?`
+        : `«${s.nom}» filiali yaratilsinmi?`
+    )) {
+      return;
+    }
+
+    tr.querySelectorAll('.fl-btn').forEach(b => b.disabled = true);
+
+    try {
+      const javob = await fetch(`{% url 'platform_global:superadmin_filiallar' %}${id}/amal/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ amal, sabab }),
+      });
+      const natija = await javob.json();
+
+      if (!natija.ok) {
+        xabar(natija.error || 'Xatolik', true);
+        tr.querySelectorAll('.fl-btn').forEach(b => b.disabled = false);
+        return;
+      }
+
+      Object.assign(s, natija.sorov);
+      tr.replaceWith(qator(s));
+      xabar(natija.xabar);
+    } catch (e) {
+      xabar('Tarmoq xatosi', true);
+      tr.querySelectorAll('.fl-btn').forEach(b => b.disabled = false);
+    }
+  });
+
+  chiz();
+})();
+</script>
+{% endblock %}

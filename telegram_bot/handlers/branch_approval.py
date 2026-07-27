@@ -26,12 +26,8 @@ try:
 except Exception as setup_error:
     logging.getLogger(__name__).error("Django setup xatosi branch_approval.py: %s", setup_error)
 
-from django.db import transaction  # noqa: E402
-from django.utils import timezone  # noqa: E402
-from django.utils.text import slugify  # noqa: E402
-
-from accounts.models import BotAdmin, BranchRequest, Center, DirectorCenterAccess  # noqa: E402
-from billing.models import CenterSubscription  # noqa: E402
+from accounts.models import BotAdmin, BranchRequest  # noqa: E402
+from accounts.services import branch_requests as branch_service  # noqa: E402
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -60,76 +56,32 @@ def _is_bot_admin(telegram_id: int | str) -> bool:
 
 @sync_to_async
 def _approve_branch_request(req_id: int):
-    with transaction.atomic():
-        try:
-            branch_request = BranchRequest.objects.select_related(
-                "requester",
-                "parent_center",
-            ).get(pk=req_id, status=BranchRequest.Status.PENDING)
-        except BranchRequest.DoesNotExist:
-            return False, "So'rov topilmadi yoki allaqachon ko'rib chiqilgan"
+    """Tasdiqlash. Mantiq `accounts.services.branch_requests` da — u yagona manba,
+    shu bilan Django admin va superadmin paneli ham bir xil ish qiladi."""
+    try:
+        branch_request = BranchRequest.objects.get(pk=req_id)
+    except BranchRequest.DoesNotExist:
+        return False, "So'rov topilmadi"
 
-        base_slug = slugify(branch_request.name)[:70] or f"markaz-{req_id}"
-        slug = base_slug
-        index = 2
-        while Center.objects.filter(slug=slug).exists():
-            slug = f"{base_slug}-{index}"
-            index += 1
+    try:
+        markaz = branch_service.tasdiqla(branch_request)
+    except branch_service.FilialXatosi as xato:
+        return False, str(xato)
 
-        # Root center — subscription shu yerdan olinadi
-        root_center = branch_request.parent_center.get_root_center()
-
-        new_center = Center.objects.create(
-            name=branch_request.name,
-            address=branch_request.address,
-            phone=branch_request.phone,
-            slug=slug,
-            plan=root_center.plan,           # Asosiy markaz tarifi
-            status=Center.STATUS_ACTIVE,
-            parent_center=root_center,        # ← ASOSIY: filial bog'lanishi
-        )
-
-        # Filial uchun alohida subscription KERAK EMAS.
-        # Agar Django signallari yoki boshqa joy avtomatik subscription yaratgan bo'lsa — o'chiramiz.
-        CenterSubscription.objects.filter(center=new_center).delete()
-
-        if getattr(branch_request.requester, "role", None) == "director":
-            access, created = DirectorCenterAccess.objects.get_or_create(
-                director=branch_request.requester,
-                center=new_center,
-                defaults={
-                    "is_active": True,
-                    "granted_by": None,
-                },
-            )
-            if not created and not access.is_active:
-                access.is_active = True
-                access.save(update_fields=["is_active"])
-
-        branch_request.status = BranchRequest.Status.APPROVED
-        branch_request.reviewed_at = timezone.now()
-        branch_request.created_center = new_center
-        branch_request.reject_reason = ""
-        branch_request.save(
-            update_fields=["status", "reviewed_at", "created_center", "reject_reason"]
-        )
-
-        return True, new_center.name
+    return True, markaz.name
 
 
 @sync_to_async
 def _reject_branch_request(req_id: int):
     try:
-        branch_request = BranchRequest.objects.get(
-            pk=req_id,
-            status=BranchRequest.Status.PENDING,
-        )
+        branch_request = BranchRequest.objects.get(pk=req_id)
     except BranchRequest.DoesNotExist:
         return False
 
-    branch_request.status = BranchRequest.Status.REJECTED
-    branch_request.reviewed_at = timezone.now()
-    branch_request.save(update_fields=["status", "reviewed_at"])
+    try:
+        branch_service.rad_et(branch_request)
+    except branch_service.FilialXatosi:
+        return False
     return True
 
 

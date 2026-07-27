@@ -30,6 +30,10 @@
             <a href="{% url 'platform_global:superadmin_bot' %}" class="sa-btn sa-btn-secondary">
                 <i class="bi bi-robot"></i> Telegram Bot
             </a>
+            <a href="{% url 'platform_global:superadmin_filiallar' %}" class="sa-btn sa-btn-secondary">
+                <i class="bi bi-diagram-3"></i> Filial so'rovlari{% if kutilayotgan_filial_soni %}
+                <span class="sa-badge-count">{{ kutilayotgan_filial_soni }}</span>{% endif %}
+            </a>
             <a href="{% url 'platform_global:superadmin_game' %}" class="sa-btn sa-btn-secondary">
                 <i class="bi bi-controller"></i> Chaqmoq Game
             </a>
