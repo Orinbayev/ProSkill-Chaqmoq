@@ -39,6 +39,12 @@ migrate_working_dir/
 # Symbolication related
 app.*.symbols
 
+# Release artefaktlari (IPA/AAB yig'ilganda hosil bo'ladi, repo'ga kerak emas)
+/Payload/
+/Symbols/
+*.aab
+*.ipa
+
 # Obfuscation related
 app.*.map.json
 

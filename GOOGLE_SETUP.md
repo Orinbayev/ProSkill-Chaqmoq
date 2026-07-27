@@ -21,7 +21,9 @@ Android debug SHA-1: `95:23:37:0F:4E:8C:70:78:55:7F:C5:8C:31:9A:A4:21:6D:D9:E6:D
 
 ## Kodga ulangan joylar
 
-- `.env.google.local` — lokal sinov uchun (gitignore'da)
+- `.env.google.local` — lokal sinov uchun. Repo'da turibdi: bu yerda faqat
+  **client ID**'lar bor, ular maxfiy emas (ilova ichiga ham kompilyatsiya
+  qilinadi). Client **secret** bu faylga hech qachon yozilmasin.
 
 - `mobile_app/ios/Runner/Info.plist` — `CFBundleURLTypes` ga iOS URL scheme qo'shilgan
 - Tekshiruv: `python manage.py google_tekshir`
