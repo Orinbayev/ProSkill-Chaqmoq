@@ -71,7 +71,10 @@ def superadmin_filiallar(request):
     kutilmoqda = [s for s in barchasi if s["holat"] == BranchRequest.Status.PENDING]
 
     return render(request, "accounts/superadmin_filiallar.html", {
-        "sorovlar_json": json.dumps(barchasi, ensure_ascii=False),
+        # DIQQAT: bu yerga `json.dumps(...)` BERILMAYDI. `json_script` filtri
+        # o'zi serializatsiya qiladi — tayyor satr berilsa ikki marta kodlanib,
+        # JS tomonda massiv o'rniga satr chiqadi va jadval bo'sh qoladi.
+        "sorovlar": barchasi,
         "kutilmoqda_soni": len(kutilmoqda),
         "nosoz_soni": sum(1 for s in barchasi if s["nosoz"]),
         "jami_soni": len(barchasi),

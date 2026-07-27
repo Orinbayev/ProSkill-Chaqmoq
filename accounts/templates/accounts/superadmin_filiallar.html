@@ -149,7 +149,7 @@
 
 <div class="fl-toast" id="fl-toast"></div>
 
-{{ sorovlar_json|json_script:"fl-data" }}
+{{ sorovlar|json_script:"fl-data" }}
 <script>
 (function () {
   const sorovlar = JSON.parse(document.getElementById('fl-data').textContent);

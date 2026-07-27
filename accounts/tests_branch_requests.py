@@ -158,6 +158,35 @@ class SuperadminFilialPanelTest(TestCase):
         self.assertContains(javob, "Yunusobod")
         self.assertEqual(javob.context["kutilmoqda_soni"], 1)
 
+    def test_json_script_massiv_qaytaradi(self):
+        """Jadvalni JS chizadi — `json_script` massiv berishi SHART.
+
+        Agar view `json.dumps(...)` natijasini bersa, filtr uni ikkinchi
+        marta kodlaydi va JS'da `JSON.parse` massiv o'rniga satr qaytaradi:
+        `forEach` yiqilib, jadval bo'sh qoladi (KPI raqamlari esa server
+        tomondan kelgani uchun to'g'ri ko'rinaveradi — shuning uchun bu
+        xato ko'zga tashlanmaydi).
+        """
+        import re
+
+        self.client.force_login(self.superadmin)
+        javob = self.client.get(reverse("platform_global:superadmin_filiallar"))
+        matn = javob.content.decode()
+
+        mos = re.search(
+            r'<script id="fl-data" type="application/json">(.*?)</script>',
+            matn, re.S,
+        )
+        self.assertIsNotNone(mos, "fl-data script bloki topilmadi")
+
+        malumot = json.loads(mos.group(1))
+        self.assertIsInstance(
+            malumot, list,
+            "json_script satr qaytardi — view'da json.dumps() ishlatilgan",
+        )
+        self.assertEqual(len(malumot), 1)
+        self.assertEqual(malumot[0]["nom"], "Yunusobod")
+
     def test_paneldan_tasdiqlash(self):
         self.client.force_login(self.superadmin)
         javob = self.client.post(
