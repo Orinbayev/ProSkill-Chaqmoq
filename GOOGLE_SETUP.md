@@ -1,23 +1,31 @@
 # Google orqali ro'yxatdan o'tish
 
-> **Holat: sozlangan va ishlayapti** (2026-07-27).
+> **Holat: to'liq sozlangan va production'da ishlayapti** (2026-07-27).
 >
-> Google Cloud loyihasi, rozilik ekrani va uchala client ID yaratilgan.
-> Quyida nima qilingani va qolgan qadamlar.
+> Loyiha, rozilik ekrani va 4 ta client ID yaratilgan; Render'ga qo'yilgan
+> va tekshirilgan. Qo'lda bajariladigan qadam qolmadi.
 
 ## Yaratilgan narsalar
 
 **Loyiha:** `chaqmoqapp-oauth` (number `148087667821`)
-**Rozilik ekrani:** App name `ChaqmoqApp` · External · Testing rejimi
-**Test user:** `pragrammeruzz@gmail.com`
+**Rozilik ekrani:** App name `ChaqmoqApp` · External · **In production**
+(ya'ni istalgan Google hisobi kira oladi; faqat `email`+`profile`
+so'ralgani uchun Google verifikatsiyasi talab qilinmaydi)
 
 | Client | Turi | ID |
 |---|---|---|
 | ChaqmoqApp Server | Web | `148087667821-8p742la98uta3suah4ogutp9dih1nvhn.apps.googleusercontent.com` |
 | ChaqmoqApp iOS | iOS (`uz.chaqmoq.chaqmoqMobile`) | `148087667821-abn0rsij76q4su5gt2ecuou36oumh5i2.apps.googleusercontent.com` |
 | ChaqmoqApp Android (debug) | Android (`uz.chaqmoq.chaqmoq_mobile`) | `148087667821-fav869onc3fs18up8rfqec5k6bq1ag7c.apps.googleusercontent.com` |
+| ChaqmoqApp Android (Play) | Android (`uz.chaqmoq.chaqmoq_mobile`) | `148087667821-3ohiqihofrubudt7mg1bohmovge4p0lf.apps.googleusercontent.com` |
 
-Android debug SHA-1: `95:23:37:0F:4E:8C:70:78:55:7F:C5:8C:31:9A:A4:21:6D:D9:E6:D2`
+Android SHA-1 lar:
+
+- debug (lokal sinov): `95:23:37:0F:4E:8C:70:78:55:7F:C5:8C:31:9A:A4:21:6D:D9:E6:D2`
+- Play App Signing (Play'dan o'rnatilganda ishlaydigani):
+  `8C:0A:E3:A5:0B:FC:07:2C:08:E2:40:0E:BF:62:0A:57:4C:29:42:8F`
+
+Ikkitasi alohida client, chunki bitta Android clientga ikkita SHA-1 sig'maydi.
 
 ## Kodga ulangan joylar
 
@@ -28,32 +36,26 @@ Android debug SHA-1: `95:23:37:0F:4E:8C:70:78:55:7F:C5:8C:31:9A:A4:21:6D:D9:E6:D
 - `mobile_app/ios/Runner/Info.plist` — `CFBundleURLTypes` ga iOS URL scheme qo'shilgan
 - Tekshiruv: `python manage.py google_tekshir`
 
-## Qolgan qadamlar
+## Render (bajarilgan)
 
-**1. Render'ga qo'yish** (production uchun majburiy)
-
-Render → ChaqmoqApp servisi → Environment → yangi o'zgaruvchi:
+`ProSkill-Chaqmoq` servisi → Environment → `GOOGLE_OAUTH_CLIENT_IDS`
+(4 ta ID, vergul bilan, bo'shliqsiz):
 
 ```
-GOOGLE_OAUTH_CLIENT_IDS=148087667821-8p742la98uta3suah4ogutp9dih1nvhn.apps.googleusercontent.com,148087667821-abn0rsij76q4su5gt2ecuou36oumh5i2.apps.googleusercontent.com,148087667821-fav869onc3fs18up8rfqec5k6bq1ag7c.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_IDS=148087667821-8p742la98uta3suah4ogutp9dih1nvhn.apps.googleusercontent.com,148087667821-abn0rsij76q4su5gt2ecuou36oumh5i2.apps.googleusercontent.com,148087667821-fav869onc3fs18up8rfqec5k6bq1ag7c.apps.googleusercontent.com,148087667821-3ohiqihofrubudt7mg1bohmovge4p0lf.apps.googleusercontent.com
 ```
 
-**2. Play Market uchun ikkinchi SHA-1**
+**Tashqaridan tekshirish** (Render Shell'siz):
 
-Hozirgi Android client faqat **debug** imzo bilan ishlaydi. Play Market'dan
-o'rnatilgan ilovada ishlashi uchun:
+```bash
+curl -s -X POST https://chaqmoqapp.uz/api/mobile/game/auth/google/ \
+  -H 'Content-Type: application/json' -d '{"id_token":"yaroqsiz"}'
+```
 
-- Play Console → ilova → *Setup → App integrity → App signing key certificate → SHA-1*
-- Google Cloud → `chaqmoqapp-oauth` → Clients → **yangi Android client** yarating
-  (bitta clientga ikkita SHA-1 sig'maydi), nomi: `ChaqmoqApp Android (Play)`
-- Yangi ID'ni ham `GOOGLE_OAUTH_CLIENT_IDS` ga qo'shing
+- `401 token_notogri` → sozlamalar joyida (server tokenni tekshirmoqda)
+- `503 google_sozlanmagan` → `GOOGLE_OAUTH_CLIENT_IDS` yetib bormagan
 
-**3. Production'ga chiqarish**
-
-Hozir **Testing** rejimida — faqat test users ro'yxatidagilar kira oladi (100 tagacha).
-Play Market'ga chiqarishdan oldin: *Audience → Publish app*.
-
-**4. Ilovani yig'ish**
+## Ilovani yig'ish
 
 ```bash
 flutter build ipa \
