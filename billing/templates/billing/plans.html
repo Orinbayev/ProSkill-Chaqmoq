@@ -2,7 +2,10 @@
 {% load humanize static %}
 {% load billing_extras %}
 {% block title %}Tariflar{% endblock %}
-{% block body_class %}billing-plans-page sa-fullpage{% endblock %}
+{# sa-fullpage sidebarni yashiradi — bu sahifa direktor/menejer uchun,
+   ular navigatsiyasiz qolib ketmasligi kerak. sa-shell: sidebar qoladi,
+   kontent esa keng bo'ladi. #}
+{% block body_class %}billing-plans-page sa-shell{% endblock %}
 
 {% block extra_css %}{{ block.super }}
 <link rel="stylesheet" href="{% static 'css/superadmin.css' %}?v=20260630-slate-v1">
@@ -311,6 +314,53 @@
     flex-grow: 1;
     font-weight: 500;
   }
+
+  /* Kartadagi imkoniyatlar ro'yxati.
+     Perks bo'lsa — bo'sh joyni caption emas, ro'yxat egallaydi,
+     shunda tugmalar barcha kartalarda bir tekisda qoladi. */
+  .plan-card:has(.plan-perks) .plan-caption {
+    flex-grow: 0;
+    margin-bottom: 14px;
+  }
+
+  .plan-perks {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 14px 0 0;
+    border-top: 1px dashed var(--border);
+    display: grid;
+    gap: 9px;
+    flex-grow: 1;
+    align-content: start;
+  }
+
+  .plan-perks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+
+  .plan-perks li i {
+    flex: none;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #22c55e;
+  }
+
+  .plan-perks .plan-perks-more {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+    padding-left: 22px;
+  }
+
+  html[data-role-theme="light"] body.billing-plans-page .plan-perks li { color: #334155; }
+  html[data-role-theme="light"] body.billing-plans-page .plan-perks { border-top-color: rgba(15, 23, 42, .12); }
+  html[data-role-theme="light"] body.billing-plans-page .plan-perks .plan-perks-more { color: #64748b; }
 
   /* Active plan indicator */
   .active-plan-badge {
@@ -1054,6 +1104,18 @@
             {% endif %}
           </div>
 
+          <!-- Shu tarifni ajratib turadigan imkoniyatlar -->
+          {% if p.highlights %}
+          <ul class="plan-perks">
+            {% for item in p.highlights %}
+            <li><i class="bi bi-check-lg"></i><span>{{ item }}</span></li>
+            {% endfor %}
+            {% if p.highlights_more %}
+            <li class="plan-perks-more">+ yana {{ p.highlights_more }} ta imkoniyat</li>
+            {% endif %}
+          </ul>
+          {% endif %}
+
           <!-- Action Buttons -->
           <div class="mt-auto">
             {% if code == sub.plan_code %}
@@ -1441,35 +1503,178 @@
   });
 </script>
 
-{% if feature_comparison %}
+{% if feature_comparison or core_features %}
 <style>
-  .fc-wrap{max-width:1000px;margin:26px auto 8px;padding:0 14px}
-  .fc-title{text-align:center;font-size:1.25rem;font-weight:700;margin-bottom:16px;color:var(--fc-fg,#0f172a)}
-  .fc-scroll{overflow-x:auto;border:1px solid #e8ebf2;border-radius:16px;background:#fff}
-  table.fc{border-collapse:collapse;width:100%;min-width:560px}
-  .fc th,.fc td{padding:10px 14px;border-bottom:1px solid #f1f4f9;text-align:center;font-size:.9rem}
-  .fc th.f,.fc td.f{text-align:left;position:sticky;left:0;background:#fff;font-weight:600;color:#0f172a;min-width:200px}
-  .fc thead th{background:#f8fafc;color:#334155;font-weight:700}
-  .fc thead th.f{background:#f8fafc}
-  .fc .cat td{background:#eef2f8;text-align:left;font-weight:700;color:#475569;text-transform:uppercase;font-size:.76rem;letter-spacing:.03em}
-  .fc .yes{color:#16a34a;font-size:1.05rem}
-  .fc .no{color:#cbd5e1}
-  @media (prefers-color-scheme:dark){
-    .fc-scroll,.fc td.f,.fc th.f,.fc thead th.f{background:#111827}
-    .fc thead th{background:#0b1220;color:#cbd5e1}
-    .fc .cat td{background:#1e293b;color:#cbd5e1}
-    .fc th,.fc td{border-color:#1e293b}
-    .fc-title,.fc td.f{color:#e5edf7}
+  /* ═══════════════════════════════════════════
+     TARIFLAR TAQQOSLASHI
+     Faqat tariflar bir-biridan FARQ qiladigan qatorlar.
+     Hamma tarifda bor imkoniyatlar pastda bir marta sanaladi.
+  ═══════════════════════════════════════════ */
+  .fc-wrap {
+    --fc-surface: rgba(15, 23, 42, 0.55);
+    --fc-head: rgba(2, 6, 23, 0.75);
+    --fc-cat: rgba(30, 41, 59, 0.6);
+    --fc-line: rgba(255, 255, 255, 0.07);
+    --fc-text: #e2e8f0;
+    --fc-muted: #94a3b8;
+
+    max-width: 1080px;
+    margin: 44px auto 8px;
+    padding: 0 14px;
+  }
+
+  html[data-role-theme="light"] body.billing-plans-page .fc-wrap {
+    --fc-surface: #ffffff;
+    --fc-head: #f8fafc;
+    --fc-cat: #eef2f8;
+    --fc-line: rgba(15, 23, 42, 0.08);
+    --fc-text: #0f172a;
+    --fc-muted: #64748b;
+  }
+
+  .fc-head-block { text-align: center; margin-bottom: 20px; }
+  .fc-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--fc-text);
+    margin: 0 0 6px;
+  }
+  .fc-sub {
+    font-size: 12.5px;
+    color: var(--fc-muted);
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .fc-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--fc-line);
+    border-radius: 18px;
+    background: var(--fc-surface);
+  }
+
+  table.fc { border-collapse: collapse; width: 100%; min-width: 620px; }
+
+  .fc th, .fc td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--fc-line);
+    text-align: center;
+    font-size: 13px;
+    color: var(--fc-text);
+  }
+  .fc tbody tr:last-child td { border-bottom: none; }
+
+  .fc th.f, .fc td.f {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background: var(--fc-surface);
+    font-weight: 600;
+    min-width: 230px;
+  }
+
+  .fc thead th {
+    position: sticky;
+    top: 0;
+    background: var(--fc-head);
+    font-weight: 800;
+    font-size: 12.5px;
+    white-space: nowrap;
+    z-index: 2;
+  }
+  .fc thead th.f { background: var(--fc-head); z-index: 3; }
+
+  /* Joriy tarif ustuni ajratib turadi */
+  .fc th.is-current, .fc td.is-current {
+    background: rgba(59, 130, 246, 0.10);
+    color: var(--fc-text);
+  }
+  .fc thead th.is-current { background: rgba(59, 130, 246, 0.18); }
+  .fc-current-tag {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: #60a5fa;
+    margin-top: 2px;
+  }
+
+  .fc .cat td {
+    background: var(--fc-cat);
+    text-align: left;
+    font-weight: 800;
+    color: var(--fc-muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .06em;
+    position: sticky;
+    left: 0;
+  }
+
+  .fc .yes { color: #22c55e; font-size: 15px; font-weight: 700; }
+  .fc .no { color: var(--fc-muted); opacity: .45; }
+
+  /* Hamma tarifda bor imkoniyatlar */
+  .fc-core {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--fc-line);
+    border-radius: 18px;
+    background: var(--fc-surface);
+  }
+  .fc-core-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--fc-text);
+    margin-bottom: 4px;
+  }
+  .fc-core-title i { color: #22c55e; }
+  .fc-core-note { font-size: 11.5px; color: var(--fc-muted); margin-bottom: 14px; font-weight: 500; }
+  .fc-core-list { display: flex; flex-wrap: wrap; gap: 7px; }
+  .fc-core-list span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--fc-line);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fc-muted);
+    white-space: nowrap;
+  }
+  .fc-core-list span::before { content: "✓"; color: #22c55e; font-weight: 800; }
+
+  @media (max-width: 640px) {
+    .fc-wrap { margin-top: 32px; }
+    .fc th, .fc td { padding: 10px 12px; font-size: 12.5px; }
+    .fc th.f, .fc td.f { min-width: 180px; }
   }
 </style>
+
 <div class="fc-wrap">
-  <div class="fc-title">Tariflar taqqoslashi</div>
+  <div class="fc-head-block">
+    <h2 class="fc-title">Tariflar taqqoslashi</h2>
+    <p class="fc-sub">Faqat tariflar bir-biridan farq qiladigan imkoniyatlar</p>
+  </div>
+
+  {% if feature_comparison %}
   <div class="fc-scroll">
     <table class="fc">
       <thead>
         <tr>
-          <th class="f">Xususiyat</th>
-          {% for p in plans %}<th>{{ p.title }}</th>{% endfor %}
+          <th class="f">Imkoniyat</th>
+          {% for p in plans %}
+          <th class="{% if p.code|upper == sub.plan_code %}is-current{% endif %}">
+            {{ p.title }}
+            {% if p.code|upper == sub.plan_code %}<span class="fc-current-tag">Joriy</span>{% endif %}
+          </th>
+          {% endfor %}
         </tr>
       </thead>
       <tbody>
@@ -1487,6 +1692,17 @@
       </tbody>
     </table>
   </div>
+  {% endif %}
+
+  {% if core_features %}
+  <div class="fc-core">
+    <div class="fc-core-title"><i class="bi bi-check-circle-fill"></i> Barcha tariflarda mavjud</div>
+    <div class="fc-core-note">Bu {{ core_features|length }} ta imkoniyat qaysi tarifni tanlashingizdan qat'i nazar ochiq.</div>
+    <div class="fc-core-list">
+      {% for name in core_features %}<span>{{ name }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}

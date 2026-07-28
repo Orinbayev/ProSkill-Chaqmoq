@@ -146,20 +146,58 @@ def plans(request):
         })
 
     # ── Data-driven feature taqqoslash (PlanFeature'dan, qattiq kod emas) ──
+    #
+    # Taqqoslash jadvalining maqsadi — tariflarni TANLASHGA yordam berish.
+    # Shuning uchun:
+    #   • hamma tarifda bir xil bo'lgan xususiyatlar jadvalga tushmaydi
+    #     (30 qator "✓ ✓ ✓ ✓" qaror uchun hech narsa bermaydi) — ular
+    #     pastda bitta ixcham ro'yxat bo'lib ko'rsatiladi;
+    #   • faqat tariflar bir-biridan FARQ qiladigan qatorlar qoladi;
+    #   • har bir tarif kartasida o'sha tarifning kuchli tomonlari chiqadi.
     from billing.models import PlanFeature as _PF
     _m2m = {p.id: set(p.plan_features.values_list("code", flat=True)) for p in plans}
+
+    # Category.choices'da bo'lmagan turkumlar ham bazada uchraydi
+    # (masalan 'schedule', 'staff') — ular xom kod bo'lib chiqib qolmasin.
     _cat_labels = dict(_PF.Category.choices)
+    _cat_labels.setdefault("schedule", "Dars jadvali va davomat")
+    _cat_labels.setdefault("staff", "Xodimlar")
+    _cat_labels.setdefault("billing", "To'lov va obuna")
+
     _groups = {}
+    core_features = []          # hamma tarifda bor — bir marta ro'yxat qilinadi
+    _highlights = {p.id: [] for p in plans}
+
     for f in _PF.objects.filter(is_active=True).order_by("category", "order", "name"):
         per_plan = [bool(f.is_core or f.code in _m2m.get(p.id, set())) for p in plans]
         if not any(per_plan):
             continue  # hech qaysi ochiq tarifda yo'q — ko'rsatmaymiz
+
+        label = f.name_uz or f.name
+
+        if all(per_plan):
+            core_features.append(label)
+            continue  # farq yo'q — taqqoslash jadvalida o'rni yo'q
+
+        for p, enabled in zip(plans, per_plan):
+            if enabled:
+                _highlights[p.id].append(label)
+
         _groups.setdefault(f.category, []).append({
-            "name": f.name_uz or f.name, "is_core": f.is_core, "per_plan": per_plan,
+            "name": label, "is_core": f.is_core, "per_plan": per_plan,
         })
+
     feature_comparison = [
-        {"label": _cat_labels.get(c, c), "features": rows} for c, rows in _groups.items()
+        {"label": _cat_labels.get(c, c.replace("_", " ").capitalize()), "features": rows}
+        for c, rows in _groups.items()
     ]
+
+    # Kartada ko'rsatiladigan kuchli tomonlar (faqat farqlovchilari)
+    HIGHLIGHT_LIMIT = 5
+    for p in plans:
+        items = _highlights.get(p.id, [])
+        p.highlights = items[:HIGHLIGHT_LIMIT]
+        p.highlights_more = max(0, len(items) - HIGHLIGHT_LIMIT)
 
     context = {
         "sub": ui,
@@ -171,6 +209,7 @@ def plans(request):
         "promo": promo,
         "pricing": pricing_map,
         "feature_comparison": feature_comparison,
+        "core_features": core_features,
     }
     return render(request, "billing/plans.html", context)
 
