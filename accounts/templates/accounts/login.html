@@ -5,12 +5,120 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/login-premium.css' %}?v=20260329-auth-premium-4">
+<style>
+  /* ── SODDA LOGIN ────────────────────────────────────────────────
+     Marketing bloklari (hero matn, KPI raqamlar) olib tashlandi.
+     Qolgani: markazda bitta karta + tepasida ChaqmoqApp brend bloki,
+     fonda brend sariq nuri — sahifa kimniki ekani darrov bilinadi. */
+  .auth-page.auth-simple {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background:
+      radial-gradient(620px 420px at 50% -8%, rgba(251, 191, 36, .20), transparent 70%),
+      linear-gradient(180deg, #fdfdfd 0%, #f1f4f9 100%);
+  }
+
+  /* theme-night'dan ustun turishi uchun ikkita klass bilan yoziladi */
+  .auth-page.auth-simple.theme-night {
+    background:
+      radial-gradient(620px 420px at 50% -8%, rgba(245, 158, 11, .22), transparent 70%),
+      linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  }
+
+  .auth-simple .auth-shell {
+    display: block;
+    width: min(420px, 100%);
+    min-height: 0;
+    padding-top: 0;
+    margin: 0 auto;
+  }
+
+  .auth-simple .auth-form-area {
+    display: block;
+    padding-top: 0;
+  }
+
+  .auth-simple .auth-card {
+    width: 100%;
+    border-radius: 20px;
+    padding: 30px 28px;
+  }
+
+  /* ── Brend bloki: markazda, kattaroq belgi ── */
+  .auth-simple .auth-card-head {
+    display: block;
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  .auth-simple .logo-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 13px;
+  }
+
+  .auth-simple .brand-mark {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    font-size: 27px;
+  }
+
+  .auth-simple .brand-name {
+    font-size: 26px;
+    letter-spacing: -0.03em;
+  }
+
+  .auth-simple .brand-tagline {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: #64748b;
+  }
+
+  .auth-page.auth-simple.theme-night .brand-tagline {
+    color: #94a3b8;
+  }
+
+  .auth-simple .brand-divider {
+    height: 1px;
+    margin: 20px 0 0;
+    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, .35), transparent);
+  }
+
+  .auth-simple .auth-card-foot {
+    margin-top: 18px;
+  }
+
+  /* ── Fon animatsiyasi (canvas) ──
+     Kartaning ORTIDA turadi va bosishlarni ushlamaydi. */
+  .auth-fx {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    display: block;
+  }
+
+  @media (max-width: 480px) {
+    .auth-simple .auth-card {
+      padding: 26px 20px;
+      border-radius: 18px;
+    }
+    .auth-simple .brand-name { font-size: 23px; }
+    .auth-simple .brand-mark { width: 46px; height: 46px; font-size: 24px; }
+  }
+</style>
 {% endblock %}
 
 {% block pre_layout %}
-<main class="auth-page" id="authPage">
-  <div class="auth-bg auth-bg-top" aria-hidden="true"></div>
-  <div class="auth-bg auth-bg-bottom" aria-hidden="true"></div>
+<main class="auth-page auth-simple" id="authPage">
+  <canvas class="auth-fx" id="authFx" aria-hidden="true"></canvas>
 
   <div class="auth-controls" aria-label="Sahifa boshqaruvlari">
     <div class="lang-pill-switch" role="group" aria-label="Tilni tanlash">
@@ -26,49 +134,16 @@
   </div>
 
   <div class="auth-shell">
-    <section class="auth-promo" aria-labelledby="promoTitle">
-      <span class="hero-announcement">
-        <span class="dot" aria-hidden="true"></span>
-        <span id="txt-hero-badge">Telegram integratsiyasi</span>
-      </span>
-
-      <h1 id="promoTitle">Markazingizni jadvaldan tizimga olib chiqing va daromad nazoratini kuchaytiring</h1>
-      <p class="auth-promo-subtitle" id="txt-hero-subtitle">
-        ChaqmoqApp o'quvchi boshqaruvi, davomat, moliya va filial monitoringini yagona boshqaruv panelida birlashtiradi.
-      </p>
-
-      <div class="promo-actions">
-        <a class="btn btn-dark" href="/demo/" id="txt-hero-cta-primary">Demo olish</a>
-        <a class="btn btn-light" href="/#pricing-plans" id="txt-hero-cta-secondary">Narxlarni ko'rish</a>
-      </div>
-
-      <div class="promo-benefits" aria-label="Asosiy afzalliklar">
-        <span><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span id="txt-benefit-1">7 kun bepul sinov</span></span>
-        <span><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span id="txt-benefit-2">Tez joriy qilish</span></span>
-        <span><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span id="txt-benefit-3">Telegram integratsiyasi</span></span>
-      </div>
-
-    </section>
-
     <section class="auth-form-area" aria-labelledby="txt-hello">
       <div class="auth-card">
         <div class="auth-card-head">
           <div class="logo-lockup" aria-label="ChaqmoqApp">
             <span class="brand-mark"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span>
-            <div>
-              <p class="brand-name">ChaqmoqApp</p>
-              <p class="brand-caption" id="txt-brand-caption">Premium boshqaruv platformasi</p>
-            </div>
+            <p class="brand-name">ChaqmoqApp</p>
           </div>
-
-          <span class="secure-pill">
-            <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
-            <span id="txt-secure">Himoyalangan</span>
-          </span>
+          <p class="brand-tagline" id="txt-brand-caption">Premium boshqaruv platformasi</p>
+          <div class="brand-divider" aria-hidden="true"></div>
         </div>
-
-        <h2 id="txt-hello">Xush kelibsiz!</h2>
-        <p class="auth-card-subtitle" id="txt-sign-in">Kirish uchun ma'lumotlaringizni kiriting</p>
 
         {% if messages %}
         <div class="flash-stack" role="status" aria-live="polite">
@@ -153,26 +228,6 @@
           </button>
         </form>
 
-        <section class="auth-insight" aria-label="Platforma natijalari">
-          <p class="auth-insight-title" id="txt-insight-title">Markazlar biz bilan o'smoqda</p>
-          <div class="auth-kpi-grid">
-            <article class="auth-kpi-card">
-              <strong id="txt-insight-1-value">+24%</strong>
-              <p id="txt-insight-1-label">Jarayon tezlashuvi</p>
-            </article>
-
-            <article class="auth-kpi-card">
-              <strong id="txt-insight-2-value">98%</strong>
-              <p id="txt-insight-2-label">To'lov intizomi</p>
-            </article>
-
-            <article class="auth-kpi-card">
-              <strong id="txt-insight-3-value">100%</strong>
-              <p id="txt-insight-3-label">Filial monitoringi</p>
-            </article>
-          </div>
-        </section>
-
         <div class="auth-card-foot">
           <a href="{% if request_center.slug %}/{{ request_center.slug }}/hisob/login/phone-kirish/{% else %}{% url 'phone_login_init' %}{% endif %}" class="btn btn-telegram" id="telegramBtn">
             <i class="bi bi-telegram" aria-hidden="true"></i>
@@ -189,4 +244,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/login-premium.js' %}?v=20260329-auth-premium-4"></script>
+<script src="{% static 'js/login-lightning.js' %}?v=20260728-fx-1" defer></script>
 {% endblock %}
