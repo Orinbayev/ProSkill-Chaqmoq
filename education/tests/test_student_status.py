@@ -309,6 +309,26 @@ class StudentStatusViewTests(TestCase):
         self.client.force_login(self.teacher)
         self.assertEqual(self.client.get(self.url).status_code, 403)
 
+    def test_students_list_menu_has_holat_link(self):
+        """O'quvchilar ro'yxatidagi 3-nuqta menyusida "Holat" tugmasi bo'lishi shart.
+
+        Ro'yxat ikki joyda chiziladi: sahifa ochilganda `core/stats_users.html`,
+        qidiruv/sahifalashda esa `core/includes/student_list_table.html`.
+        Ikkalasida ham havola bo'lishi kerak.
+        """
+        self.client.force_login(self.director)
+        list_url = f"/{self.center.slug}" + reverse("core:stat_students")
+
+        full_page = self.client.get(list_url)
+        self.assertEqual(full_page.status_code, 200)
+        self.assertContains(full_page, self.path)
+        self.assertContains(full_page, "Holat")
+
+        ajax_page = self.client.get(list_url, headers={"x-requested-with": "XMLHttpRequest"})
+        self.assertEqual(ajax_page.status_code, 200)
+        self.assertContains(ajax_page, self.path)
+        self.assertContains(ajax_page, "Holat")
+
     def test_other_center_student_is_not_found(self):
         """IDOR: boshqa markaz direktori bu o'quvchining holatini ko'ra olmaydi."""
         other = Center.objects.create(name="Other Center", slug="other-center")

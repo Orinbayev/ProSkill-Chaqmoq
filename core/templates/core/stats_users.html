@@ -722,6 +722,7 @@
                   <button type="button" onclick="closeAllMenus(); openStudentEditDrawer({{ u.id }})"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
                   {% endif %}
                   {% if user_kind == 'students' %}
+                  <a href="{% url 'education:student_status' u.id %}"><i class="fa-solid fa-chart-pie" style="color:var(--primary)"></i> Holat</a>
                   {% if current_status != 'archived' %}
                   <button onclick="archiveStudent('{{ u.id }}')" class="text-red">
                     <i class="fa-solid fa-box-archive"></i> Arxivlash
