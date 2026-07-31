@@ -3331,13 +3331,30 @@ def qarzdorlar_home(request):
     # active non-deferred + inactive enrollments (search/group filtersiz).
     _total_debt_enrs = list(active_enrs_qs.filter(is_deferred=False)) + list(inactive_enrs_qs)
 
-    # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
-    # YAGONA MANBA: center_month_debt_summary — Director dashboard ham AYNAN shu
-    # funksiyani ishlatadi, shuning uchun ikkala raqam 100% bir xil bo'ladi.
+    # ─── JAMI QARZ SUMMASI (BARCHA OYLAR) ────────────────────────────────────
+    # "Jami qarz" kartasi = markazning HAMMA to'lanmagan oylari yig'indisi —
+    # oy filtriga BOG'LIQ EMAS. Ilgari bu ham period_months bilan hisoblanardi,
+    # shuning uchun "Filter bo'yicha jami" bilan bir xil raqam chiqib, o'tgan
+    # oylardagi qarz umuman ko'rinmasdi.
+    #
+    # Kelajak oylar qo'shilmaydi (joriy oygacha) — ular hali to'lanishi shart
+    # emas va per-satr hisobda ham chiqarib tashlanadi.
+    total_center_debt = 0
     try:
         from education.services.tuition import center_month_debt_summary as _cmds
-        total_center_debt, _ = _cmds(center, period_months)
+        _all_debt_months = [
+            _m for _m in (
+                TuitionMonth.objects
+                .filter(enrollment__group__center=center, is_deleted=False)
+                .values_list("month", flat=True)
+                .distinct()
+            )
+            if _m and _m <= _cur_month_for_recalc
+        ]
+        if _all_debt_months:
+            total_center_debt, _ = _cmds(center, _all_debt_months)
     except Exception:
+        logger.exception("Qarzdorlar: jami qarz hisoblanmadi (center=%s)", getattr(center, "id", None))
         total_center_debt = 0
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
@@ -3553,14 +3570,14 @@ def qarzdorlar_home(request):
 
     display_rows = debtor_rows
 
+    # "Filter bo'yicha jami" — ekranda ko'rinayotgan satrlar yig'indisi
+    # (oy oralig'i + qidiruv + guruh + min/max + status filtrlari qo'llangan).
     filtered_debt   = sum(r["debt"] for r in display_rows)
 
-    # Jami qarz: jadvaldagi ma'lumotlar bilan izchil (arxivlangan guruhlar chiqarib tashlangan),
-    # status filteri qo'llangan, lekin min/max qarz filterlari qo'llanmagan.
-    total_center_debt = sum(
-        r["debt"] for r in all_rows
-        if r.get("group_names") and r["debt"] > 0 and _matches_status_filter(r)
-    )
+    # DIQQAT: total_center_debt bu yerda QAYTA HISOBLANMAYDI. U yuqorida
+    # (center_month_debt_summary orqali) barcha oylar bo'yicha hisoblangan va
+    # oy filtriga bog'liq emas — "Jami qarz" va "Filter bo'yicha jami"
+    # kartalari shu tufayli har xil raqam ko'rsatadi.
 
     # Chart: Jami qarz bilan bir xil enrollments (_total_debt_enrs) ishlatamiz.
     # preload_group_schedules allaqachon yuqorida enrollment_list uchun chaqirilgan,

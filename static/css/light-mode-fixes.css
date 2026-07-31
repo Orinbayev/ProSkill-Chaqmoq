@@ -1920,3 +1920,34 @@ html[data-role-theme="light"] body.game-questions-page .gq-card {
   border-color: rgba(0,0,0,.09) !important;
   color: #0f172a !important;
 }
+
+/* =====================================================================
+   23) CONFIRM MODAL (group_detail.html — #custom-confirm-*)
+   ---------------------------------------------------------------------
+   "O'quvchilarni chiqarish" tasdiqlash oynasi Tailwind bilan qattiq
+   dark yozilgan (bg-[#1e293b], text-white, text-slate-400). JS ish
+   paytida ok/icon className'ini qayta yozgani uchun ID bo'yicha
+   !important bilan override qilamiz.
+   ===================================================================== */
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-bg {
+  background: rgba(15, 23, 42, 0.32) !important;
+}
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-box {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-title {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-message {
+  color: var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-cancel {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border-strong) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.group-detail-page #custom-confirm-cancel:hover {
+  background: var(--lm-surface-3) !important;
+}
