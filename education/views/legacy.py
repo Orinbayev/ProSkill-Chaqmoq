@@ -6850,6 +6850,19 @@ def attendance_today(request, pk: int):
     e = get_object_or_404(Enrollment, id=enr_id, group=g)
     student = e.student
 
+    # Guruhdan chiqarilgan o'quvchiga chiqarilgan sanadan KEYIN davomat qilib
+    # bo'lmaydi. Aks holda qarz noto'g'ri chiqadi: chiqarilgan o'quvchi faqat
+    # last_lesson_date'gacha hisoblanadi, undan keyingi davomat esa "fantom"
+    # qarz yaratadi. Chiqarilgan sanagacha bo'lgan kunlar tahrirlanadi —
+    # eski xatoni tuzatish imkoni yopilmasin.
+    if not e.is_active:
+        left_on = e.last_lesson_date
+        if left_on is None or selected_date > left_on:
+            return JsonResponse({
+                "ok": False,
+                "error": "Bu o'quvchi guruhdan chiqarilgan — unga davomat qilib bo'lmaydi.",
+            }, status=400)
+
     removed_sum = 0
     removed_count = 0
     penalized = False
@@ -6940,7 +6953,10 @@ def group_bulk_remove(request, pk):
             EnrollmentService.remove_student(enr.student, enr.group)
             count += 1
         except Exception:
-            pass
+            logger.exception(
+                "Bulk remove failed for enrollment %s (student %s, group %s)",
+                enr.pk, enr.student_id, enr.group_id,
+            )
 
     return JsonResponse({"ok": True, "deleted": count})
 

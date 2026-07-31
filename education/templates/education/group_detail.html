@@ -618,6 +618,47 @@
   .tr-student.row-unexcused { background: rgba(239,68,68,0.07); }
   .tr-student.row-late      { background: rgba(245,158,11,0.07); }
 
+  /* Guruhdan chiqarilgan o'quvchi (is_active=False).
+     Shu oyda davomati bo'lgani uchun ro'yxatda qoladi — oy davomati va qarzi
+     ko'rinib tursin. Lekin u aktiv emas: davomat/ball/chiqarish amallari yopiq. */
+  .tr-student.row-removed {
+    background: rgba(148,163,184,0.10);
+    cursor: not-allowed;
+  }
+  .tr-student.row-removed .student-name,
+  .tr-student.row-removed .student-email,
+  .tr-student.row-removed .payment-dot {
+    opacity: 0.5;
+    filter: grayscale(1);
+  }
+  .tr-student.row-removed .student-name {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  /* Davomat va ball amallari yopiq — server ham rad etadi. */
+  .tr-student.row-removed .att-wrap,
+  .tr-student.row-removed .student-points-actions,
+  .tr-student.row-removed .point-badge {
+    opacity: 0.25;
+    filter: grayscale(1);
+    pointer-events: none;
+  }
+  .removed-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: rgba(100,116,139,0.18);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
   /* =========================
      POINTS UI
      ========================= */
@@ -1329,9 +1370,13 @@
         </thead>
         <tbody>
           {% for e in enrollments %}
-          <tr class="tr-student {% if e.student.attendance_status == 'absent_excused' %}row-excused{% elif e.student.attendance_status == 'absent_unexcused' %}row-unexcused{% elif e.student.attendance_status == 'late' %}row-late row-not-present{% elif not e.student.present_today %}row-not-present{% endif %}">
+          <tr class="tr-student {% if not e.is_active %}row-removed{% elif e.student.attendance_status == 'absent_excused' %}row-excused{% elif e.student.attendance_status == 'absent_unexcused' %}row-unexcused{% elif e.student.attendance_status == 'late' %}row-late row-not-present{% elif not e.student.present_today %}row-not-present{% endif %}">
             <td class="remove-col d-none text-center">
+              {% if e.is_active %}
               <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
+              {% else %}
+              <span class="opacity-30">—</span>
+              {% endif %}
             </td>
             <td class="text-center opacity-40 font-bold text-xs">{{ forloop.counter }}</td>
             <td>
@@ -1341,6 +1386,12 @@
                   aria-hidden="true"
                 ></span>
                 <a href="{% url 'education:student_detail' e.student.id %}" class="student-name">{{ e.student.ism }} {{ e.student.familya|default:"" }}</a>
+                {% if not e.is_active %}
+                <span class="removed-badge" title="Bu o'quvchi guruhdan chiqarilgan. Shu oydagi davomati va qarzi ko'rinib turishi uchun ro'yxatda qoldirilgan.">
+                  <i class="fa-solid fa-user-minus" aria-hidden="true"></i>
+                  Chiqarilgan{% if e.last_lesson_date %} · {{ e.last_lesson_date|date:"d.m.Y" }}{% endif %}
+                </span>
+                {% endif %}
               </span>
               <span class="student-email">{{ e.student.email|default:"email mavjud emas" }}</span>
             </td>
@@ -1375,7 +1426,7 @@
                   <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="pill-symbol">+</span></button>
                   <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="pill-symbol">−</span></button>
                 </div>
-                {% if can_transfer_student %}
+                {% if can_transfer_student and e.is_active %}
                 <a
                   href="{% url 'education:transfer_student' e.id %}"
                   class="pill-btn pill-btn-transfer"
@@ -2004,7 +2055,9 @@
             return;
           }
 
-          document.querySelectorAll(".att-seg").forEach(seg => {
+          // Guruhdan chiqarilganlar (.row-removed) chetda qoladi — server ham
+          // ularni belgilamaydi (attend_all_students faqat is_active=True).
+          document.querySelectorAll("tr:not(.row-removed) .att-seg").forEach(seg => {
             setRowStatusUI(seg, "present");
           });
 
@@ -2024,7 +2077,8 @@
         );
         if (!confirmed) return;
 
-        const segs = Array.from(document.querySelectorAll(".att-seg"));
+        // Guruhdan chiqarilganlarga davomat qilinmaydi (server ham rad etadi).
+        const segs = Array.from(document.querySelectorAll("tr:not(.row-removed) .att-seg"));
         let changed = 0;
 
         for (const seg of segs) {
@@ -2250,12 +2304,23 @@
             body: params.toString()
           });
           const data = await res.json();
-          if (data.ok) {
-            showToast("Tanlanganlar chiqarildi", "success");
-            location.reload();
-          } else {
+          if (!data.ok) {
             showToast(data.msg || "Xato", "error");
+            return;
           }
+          const removed = Number(data.deleted || 0);
+          const failed = selected.length - removed;
+          if (removed === 0) {
+            showToast("Hech kim chiqarilmadi — sahifani yangilab qayta urinib ko'ring", "error");
+            return;
+          }
+          showToast(
+            failed > 0
+              ? `${removed} ta chiqarildi, ${failed} tasida xato`
+              : `${removed} ta o'quvchi guruhdan chiqarildi`,
+            failed > 0 ? "error" : "success"
+          );
+          location.reload();
         } catch (err) {
           showToast("Server bilan aloqa yo'q", "error");
         }
