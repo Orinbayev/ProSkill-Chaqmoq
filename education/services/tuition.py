@@ -1575,6 +1575,30 @@ def _auto_create_zero_payment(enrollment, month: date) -> None:
         pass
 
 
+def auto_fee_raise_blocked_for_past_month(month: date, cur_fee: int, new_fee: int) -> bool:
+    """
+    AVTOMATIK qayta hisob o'TGAN oyning fee'sini KO'TARISHI mumkinmi?
+
+    Muammo: prorated_monthly_fee har doim BUGUNGI narx bilan hisoblanadi.
+    Narx o'zgartirilganda (sync_tuition_fee) yoki o'quvchi guruhga qayta
+    qo'shilganda (ensure_all_tuition_months_since_start) bu qiymat o'tgan
+    oylarga ham yozilardi. Natijada allaqachon to'liq to'langan — qarzi 0
+    bo'lgan — oyga birdan qarz paydo bo'lardi.
+
+    Qoida: o'tgan oy uchun avtomatik hisob fee'ni faqat PASAYTIRA oladi
+    (bu qarzni kamaytiradi, masalan davomat 0 bo'lsa fee 0 ga tushadi).
+    KO'TARISH faqat aniq amallar orqali bo'ladi:
+      - reconcile_tuition_month() — oy yakuni, davomat asosida
+      - qo'lda tahrirlash (edit_tuition_month_fee / edit_student_month_debt)
+      - yangi TuitionMonth yaratilishi (get_or_create defaults)
+
+    Joriy va kelajak oylarga ta'sir qilmaydi — ular odatdagidek hisoblanadi.
+    """
+    if new_fee <= cur_fee:
+        return False  # pasaytirish yoki o'zgarishsiz — har doim mumkin
+    return month_first_day(month) < month_first_day(timezone.localdate())
+
+
 def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_id=None, _month_closed=None, _existing_tm=None) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
@@ -1648,6 +1672,7 @@ def ensure_tuition_month(enrollment: Enrollment, month: date, _exclude_payment_i
     if (
         not _closed
         and cur_fee != fee
+        and not auto_fee_raise_blocked_for_past_month(month, cur_fee, fee)
     ):
         setattr(tm, fee_field, fee)
         update_fields.append(fee_field)
@@ -1833,7 +1858,12 @@ def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) ->
             _prorated_monthly_fee_from_amount(enrollment, tm.month, effective_amount) or 0
         )
         update_fields = []
-        if int(getattr(tm, fee_field, 0) or 0) != target_fee:
+        cur_fee = int(getattr(tm, fee_field, 0) or 0)
+        # Yangi narx o'TGAN oylarga RETROAKTIV yozilmaydi — to'langan oyga
+        # qarz paydo bo'lib qolmasin. Narx joriy oydan boshlab kuchga kiradi.
+        if cur_fee != target_fee and not auto_fee_raise_blocked_for_past_month(
+            tm.month, cur_fee, target_fee
+        ):
             setattr(tm, fee_field, target_fee)
             update_fields.append(fee_field)
         if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
@@ -1842,16 +1872,32 @@ def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) ->
         if update_fields:
             tm.save(update_fields=update_fields)
 
-    TuitionMonth.all_objects.update_or_create(
+    # start_month yozuvi mavjudligini ta'minlaymiz. Mavjud bo'lsa fee'ni faqat
+    # yuqoridagi qoida ruxsat bergandagina yangilaymiz (o'tgan oyni ko'tarmaymiz).
+    _start_fee = int(
+        _prorated_monthly_fee_from_amount(enrollment, start_month, effective_amount) or 0
+    )
+    _start_tm, _start_created = TuitionMonth.all_objects.get_or_create(
         enrollment=enrollment,
         month=start_month,
         defaults={
             "center": getattr(enrollment, "center", None),
-            fee_field: int(
-                _prorated_monthly_fee_from_amount(enrollment, start_month, effective_amount) or 0
-            ),
+            fee_field: _start_fee,
         },
     )
+    if not _start_created:
+        _start_cur = int(getattr(_start_tm, fee_field, 0) or 0)
+        _start_updates = []
+        if _start_cur != _start_fee and not auto_fee_raise_blocked_for_past_month(
+            start_month, _start_cur, _start_fee
+        ):
+            setattr(_start_tm, fee_field, _start_fee)
+            _start_updates.append(fee_field)
+        if not getattr(_start_tm, "center_id", None) and getattr(enrollment, "center_id", None):
+            _start_tm.center = enrollment.center
+            _start_updates.append("center")
+        if _start_updates:
+            _start_tm.save(update_fields=_start_updates)
 
 
 # =========================
