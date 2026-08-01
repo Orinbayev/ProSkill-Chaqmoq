@@ -18,6 +18,7 @@ from education.models import (
 )
 from education.services.enrollment_service import EnrollmentService
 from education.services.tuition import (
+    add_month,
     calculate_student_month_billing,
     effective_student_payable_amount,
     expected_lessons_in_period,
@@ -31,6 +32,18 @@ from education.services.tuition import (
 
 
 TRANSFER_ALLOWED_ROLES = {"admin", "director", "manager"}
+
+
+def max_transfer_date(today: date | None = None) -> date:
+    """
+    Ko'chirishni oldindan rejalashtirish oynasi: keyingi oy oxirigacha.
+
+    Kelajak sana kerak — masalan bugun 1-sana bo'lsa-yu, o'quvchi 5-sanadan
+    yangi guruhda o'qiy boshlasa. Cheksiz kelajakka ruxsat bermaymiz, aks holda
+    xato kiritilgan sana (mas. 2027) sezilmay qolib, hisob-kitobni buzadi.
+    """
+    today = today or timezone.localdate()
+    return month_last_day(add_month(month_first_day(today), 1))
 
 
 def user_can_transfer_student(user) -> bool:
@@ -204,8 +217,12 @@ def transfer_student_to_group(student, old_group, new_group, transfer_date, reas
         raise PermissionDenied("Sizda o'quvchini boshqa guruhga ko'chirish huquqi yo'q.")
     if not transfer_date:
         transfer_date = timezone.localdate()
-    if transfer_date > timezone.localdate():
-        raise ValidationError("Ko'chirish sanasi kelajakda bo'lishi mumkin emas.")
+    _max_date = max_transfer_date()
+    if transfer_date > _max_date:
+        raise ValidationError(
+            f"Ko'chirish sanasi juda uzoq kelajakda. Eng kech {_max_date.strftime('%d.%m.%Y')} "
+            "sanasini tanlash mumkin."
+        )
     if old_group.pk == new_group.pk:
         raise ValidationError("Yangi guruh eski guruh bilan bir xil bo'lishi mumkin emas.")
     if old_group.center_id != new_group.center_id:

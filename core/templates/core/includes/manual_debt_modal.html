@@ -135,15 +135,38 @@ html[data-role-theme="light"] .md-btn--ghost{background:#f1f5f9;color:#475569;}
   function updateHints(){
     var g=selectedGroup();
     $('mdPerLessonHint').textContent = g ? ("1 dars ≈ "+fmt(g.per_lesson)+" so'm  ·  to'liq kurs: "+fmt(g.full_price)+" so'm") : "1 dars ≈ —";
+    // Hozirgi qarzni ko'rsatamiz — foydalanuvchi nimani o'zgartirayotganini bilsin.
+    var hint=$('mdAmountHint');
+    if(g && Number(g.current_debt) > 0){
+      hint.textContent = "Hozirgi qarz: "+fmt(g.current_debt)+" so'm — o'zgartirib saqlasangiz shu summa yoziladi";
+    } else if(g){
+      hint.textContent = "Bu oyda qarz yo'q — yozgan summangiz qarz sifatida saqlanadi";
+    } else {
+      hint.textContent = "Kerak bo'lsa summani qo'lda o'zgartiring";
+    }
   }
   function recompute(){
     var g=selectedGroup(); if(!g) return;
     if(state.mode==='lessons'){
       var n=parseInt($('mdLessons').value,10)||0;
-      $('mdAmount').value = fmt(n * g.per_lesson);
+      // Dars soni kiritilmagan bo'lsa — hozirgi qarzni ko'rsatamiz (tuzatish uchun).
+      $('mdAmount').value = n > 0 ? fmt(n * g.per_lesson) : fmt(g.current_debt || 0);
     } else {
       $('mdAmount').value = fmt(g.full_price);
     }
+  }
+  function reloadForMonth(){
+    if(!state.studentId) return;
+    var month=$('mdMonth').value||'';
+    fetch(tp('/talim/api/student/'+state.studentId+'/debt-form/')+'?month='+encodeURIComponent(month),
+          {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok) return;
+        state.groups = d.enrollments || [];
+        updateHints(); recompute();
+      })
+      .catch(function(){});
   }
   function setMode(mode){
     state.mode=mode;
@@ -164,7 +187,8 @@ html[data-role-theme="light"] .md-btn--ghost{background:#f1f5f9;color:#475569;}
     var now=new Date(); $('mdMonth').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
     $('mdMonth').max = $('mdMonth').value;
     setMode('lessons');
-    fetch(tp('/talim/api/student/'+studentId+'/debt-form/'), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+    fetch(tp('/talim/api/student/'+studentId+'/debt-form/')+'?month='+encodeURIComponent($('mdMonth').value),
+          {headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();})
       .then(function(d){
         if(!d.ok){ setMsg(d.error||'Xatolik'); return; }
@@ -212,6 +236,8 @@ html[data-role-theme="light"] .md-btn--ghost{background:#f1f5f9;color:#475569;}
     document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('mdOverlay').hidden) closeModal(); });
     document.querySelectorAll('.md-tab').forEach(function(t){ t.addEventListener('click', function(){ setMode(t.dataset.mode); }); });
     $('mdGroup').addEventListener('change', function(){ updateHints(); recompute(); });
+    // Oy o'zgarsa — o'sha oyning hozirgi qarzini qayta yuklaymiz.
+    $('mdMonth').addEventListener('change', reloadForMonth);
     $('mdLessons').addEventListener('input', recompute);
     $('mdAmount').addEventListener('input', function(){ var v=unfmt(this.value); this.value = v ? fmt(v) : ''; });
     $('mdSave').addEventListener('click', save);

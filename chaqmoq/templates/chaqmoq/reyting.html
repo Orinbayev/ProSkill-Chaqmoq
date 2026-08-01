@@ -14,6 +14,94 @@
     --primary-glow: #38bdf8;
     --amber: #fbbf24;
     --radius: 14px;
+    /* Filtr va jadval elementlari uchun — light rejimda qayta aniqlanadi */
+    --surface-soft: rgba(0, 0, 0, 0.2);
+    --select-bg: rgba(0, 0, 0, 0.25);
+    --option-bg: #0f172a;
+    --focus-ring: rgba(59, 130, 246, 0.25);
+    --head-bg: rgba(255, 255, 255, 0.05);
+    --row-hover: rgba(255, 255, 255, 0.04);
+    --avatar-bg: rgba(59, 130, 246, 0.1);
+    --avatar-border: rgba(59, 130, 246, 0.2);
+  }
+
+  /* ═══════════ LIGHT MODE ═══════════ */
+  html[data-role-theme="light"] {
+    --bg-dark: #f6f7fb;
+    --bg-card: #ffffff;
+    --bg-hover: #f1f5f9;
+    --border: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --primary-glow: #1d4ed8;
+    --amber: #d97706;
+    --surface-soft: #f8fafc;
+    --select-bg: #ffffff;
+    --option-bg: #ffffff;
+    --focus-ring: rgba(37, 99, 235, 0.14);
+    --head-bg: #f8fafc;
+    --row-hover: #f8fafc;
+    --avatar-bg: #eff6ff;
+    --avatar-border: #bfdbfe;
+  }
+
+  html[data-role-theme="light"] body.ranking-page {
+    background: #f6f7fb;
+  }
+
+  html[data-role-theme="light"] .rb-card,
+  html[data-role-theme="light"] .rb-hero {
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    backdrop-filter: none;
+  }
+
+  html[data-role-theme="light"] .rb-title,
+  html[data-role-theme="light"] .rb-name-top,
+  html[data-role-theme="light"] .rb-rules__title {
+    color: var(--text-main);
+  }
+
+  html[data-role-theme="light"] .btn-home,
+  html[data-role-theme="light"] .rb-dd-btn,
+  html[data-role-theme="light"] .rb-input,
+  html[data-role-theme="light"] .pg a,
+  html[data-role-theme="light"] .pg span {
+    background: #ffffff;
+    color: var(--text-main);
+  }
+  html[data-role-theme="light"] .btn-home:hover,
+  html[data-role-theme="light"] .pg a:hover {
+    background: var(--bg-hover);
+  }
+
+  html[data-role-theme="light"] .rb-input input {
+    color: var(--text-main);
+  }
+  html[data-role-theme="light"] .rb-input input::placeholder {
+    color: #94a3b8;
+  }
+
+  html[data-role-theme="light"] .rb-dd-menu {
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  }
+
+  html[data-role-theme="light"] .pg .active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  html[data-role-theme="light"] .rb-dd-item.active {
+    color: #fff;
+  }
+  html[data-role-theme="light"] .rb-dd-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+  }
+  html[data-role-theme="light"] .rb-rules__empty,
+  html[data-role-theme="light"] .rb-rules__hint {
+    color: var(--text-muted);
   }
 
   * {
@@ -101,7 +189,7 @@
 
   .rb-toolbar {
     padding: 12px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-soft);
     border-bottom: 1px solid var(--border);
   }
 
@@ -114,7 +202,7 @@
   }
 
   .rb-input {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-soft);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 0 14px;
@@ -164,7 +252,7 @@
     height: 38px;
     padding: 0 14px;
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-soft);
     border: 1px solid var(--border);
     color: #fff;
     font-weight: 600;
@@ -180,7 +268,7 @@
     position: absolute;
     right: 0;
     top: 44px;
-    background: #0f172a;
+    background: var(--option-bg);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 6px;
@@ -211,6 +299,113 @@
     color: #fff;
   }
 
+  /* ===== QOIDA FILTRI (faqat teacher/manager/director) ===== */
+  .rb-rules {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+  }
+
+  .rb-rules__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .rb-rules__title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: .02em;
+  }
+  .rb-rules__title i {
+    color: var(--primary);
+    margin-right: 5px;
+  }
+
+  .rb-rules__active {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--primary-glow);
+  }
+  .rb-rules__hint,
+  .rb-rules__empty {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .rb-rules__form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .rb-select-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .rb-select {
+    width: 100%;
+    height: 40px;
+    padding: 0 38px 0 36px;
+    border-radius: 10px;
+    background: var(--select-bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color .16s ease, box-shadow .16s ease;
+  }
+  .rb-select:hover { border-color: var(--primary); }
+  .rb-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  .rb-select option {
+    background: var(--option-bg);
+    color: var(--text-main);
+  }
+
+  .rb-select-ico,
+  .rb-select-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 12px;
+  }
+  .rb-select-ico { left: 13px; color: var(--primary); }
+  .rb-select-arrow { right: 13px; color: var(--text-muted); font-size: 10px; }
+
+  .rb-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: var(--select-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all .16s ease;
+  }
+  .rb-clear:hover { color: var(--text-main); border-color: var(--primary); }
+
   /* ===== TABLE ===== */
   .rb-table {
     width: 100%;
@@ -223,7 +418,7 @@
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--head-bg);
     color: var(--text-muted);
     font-weight: 700;
     border-bottom: 1px solid var(--border);
@@ -244,7 +439,7 @@
   }
 
   .rb-tr-link:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--row-hover);
   }
 
   .rb-rank-cell {
@@ -273,8 +468,8 @@
     width: 34px;
     height: 34px;
     border-radius: 8px;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    background: var(--avatar-bg);
+    border: 1px solid var(--avatar-border);
     display: grid;
     place-items: center;
     font-weight: 700;
@@ -294,7 +489,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-soft);
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
     gap: 12px;
@@ -312,9 +507,9 @@
     display: grid;
     place-items: center;
     border-radius: 8px;
-    background: rgba(0,0,0,0.2);
+    background: var(--surface-soft);
     border: 1px solid var(--border);
-    color: #fff;
+    color: var(--text-main);
     text-decoration: none;
     font-weight: 700;
     font-size: 12.5px;
@@ -353,8 +548,6 @@
   }
 </style>
 
-</style>
-
 <div class="rb-wrap">
 
   <div class="rb-hero">
@@ -369,9 +562,49 @@
     </div>
   </div>
 
+  {% if can_filter_by_rule %}
+  <div class="rb-card rb-rules">
+    <div class="rb-rules__head">
+      <span class="rb-rules__title"><i class="fa-solid fa-filter"></i> Qoida bo‘yicha filtr</span>
+      {% if selected_rule %}
+        <span class="rb-rules__active">{{ selected_rule.nom }} bo‘yicha chaqmoq olganlar</span>
+      {% else %}
+        <span class="rb-rules__hint">Umumiy reyting — barcha chaqmoqlar</span>
+      {% endif %}
+    </div>
+    {% if rating_rules %}
+    <form class="rb-rules__form" method="get" id="ruleFilterForm">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="per_page" value="{{ per_page }}">
+      <input type="hidden" name="page" value="1">
+      <div class="rb-select-wrap">
+        <i class="fa-solid fa-bolt rb-select-ico"></i>
+        <select name="rule" id="ruleSelect" class="rb-select" aria-label="Qoida bo‘yicha filtr">
+          <option value="">Barcha qoidalar — umumiy reyting</option>
+          {% for rule in rating_rules %}
+          <option value="{{ rule.id }}" {% if selected_rule_id == rule.id %}selected{% endif %}>
+            {{ rule.nom }} ({{ rule.get_tur_display }})
+          </option>
+          {% endfor %}
+        </select>
+        <i class="fa-solid fa-chevron-down rb-select-arrow"></i>
+      </div>
+      {% if selected_rule_id %}
+      <a class="rb-clear" href="?q={{ q }}&per_page={{ per_page }}&page=1">
+        <i class="fa-solid fa-xmark"></i> Tozalash
+      </a>
+      {% endif %}
+    </form>
+    {% else %}
+    <span class="rb-rules__empty">Bu markazda hali qoida qo‘shilmagan.</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="rb-card">
     <div class="rb-toolbar">
       <form class="rb-form" method="get">
+        {% if selected_rule_id %}<input type="hidden" name="rule" value="{{ selected_rule_id }}">{% endif %}
         <div class="rb-input">
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki familiya bo‘yicha..." aria-label="Qidirish">
@@ -454,17 +687,17 @@
       </div>
       <div class="pg">
         {% if page_obj.has_previous %}
-        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}">‹</a>
+        <a href="?q={{ q }}&per_page={{ per_page }}{% if selected_rule_id %}&rule={{ selected_rule_id }}{% endif %}&page={{ page_obj.previous_page_number }}">‹</a>
         {% endif %}
         {% for p in page_window %}
         {% if p == page_obj.number %}
         <span class="active">{{ p }}</span>
         {% else %}
-        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+        <a href="?q={{ q }}&per_page={{ per_page }}{% if selected_rule_id %}&rule={{ selected_rule_id }}{% endif %}&page={{ p }}">{{ p }}</a>
         {% endif %}
         {% endfor %}
         {% if page_obj.has_next %}
-        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}">›</a>
+        <a href="?q={{ q }}&per_page={{ per_page }}{% if selected_rule_id %}&rule={{ selected_rule_id }}{% endif %}&page={{ page_obj.next_page_number }}">›</a>
         {% endif %}
       </div>
     </div>
@@ -529,6 +762,15 @@
     });
 
     document.addEventListener("click", closeMenu);
+
+    // Qoida tanlanishi bilan darhol filtrlaymiz — alohida tugma kerak emas.
+    const ruleSelect = document.getElementById("ruleSelect");
+    const ruleForm = document.getElementById("ruleFilterForm");
+    if (ruleSelect && ruleForm) {
+      ruleSelect.addEventListener("change", function () {
+        ruleForm.submit();
+      });
+    }
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeMenu();
     });

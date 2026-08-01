@@ -12119,9 +12119,46 @@ def student_debt_form_data(request, student_id):
     )
     from education.services.tuition import (
         effective_student_payable_amount, _monthly_lessons_count,
+        tuition_month_fee_field as _ff,
     )
+
+    # Tanlangan oy uchun HOZIRGI qarz — modal summani shu bilan to'ldiradi,
+    # foydalanuvchi noldan yozmasdan, mavjud qarzni tuzatib saqlaydi.
+    month_raw = (request.GET.get("month") or "").strip()
+    try:
+        month_date = date(int(month_raw[:4]), int(month_raw[5:7]), 1)
+    except Exception:
+        month_date = timezone.localdate().replace(day=1)
+
+    enrollments = list(enr_qs)
+    fee_field = _ff()
+    debt_map = {}
+    if enrollments:
+        _tm_rows = list(
+            TuitionMonth.objects.filter(
+                enrollment_id__in=[e.id for e in enrollments],
+                month=month_date,
+                is_deleted=False,
+            ).values_list("id", "enrollment_id", fee_field)
+        )
+        _paid_map = {}
+        if _tm_rows:
+            for _r in (
+                PaymentAllocation.objects
+                .filter(
+                    tuition_month_id__in=[x[0] for x in _tm_rows],
+                    tuition_month__is_deleted=False,
+                    payment__is_deleted=False,
+                )
+                .values("tuition_month_id")
+                .annotate(paid=Sum("amount"))
+            ):
+                _paid_map[_r["tuition_month_id"]] = int(_r["paid"] or 0)
+        for _tmid, _enrid, _fee in _tm_rows:
+            debt_map[_enrid] = max(0, int(_fee or 0) - _paid_map.get(_tmid, 0))
+
     rows = []
-    for e in enr_qs:
+    for e in enrollments:
         full = int(effective_student_payable_amount(e) or 0)
         monthly = int(_monthly_lessons_count(e) or 0)
         per_lesson = int(round(full / monthly)) if monthly > 0 else 0
@@ -12132,8 +12169,14 @@ def student_debt_form_data(request, student_id):
             "full_price": full,
             "monthly_lessons": monthly,
             "per_lesson": per_lesson,
+            "current_debt": int(debt_map.get(e.id, 0)),
         })
-    return JsonResponse({"ok": True, "student": student.get_full_name(), "enrollments": rows})
+    return JsonResponse({
+        "ok": True,
+        "student": student.get_full_name(),
+        "month": month_date.strftime("%Y-%m"),
+        "enrollments": rows,
+    })
 
 
 @require_POST

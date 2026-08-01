@@ -2,7 +2,7 @@
 {% load static %}
 {% block body_class %}users-stats-page{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}?v=20260801-group-category">
 {% endblock %}
 {% block content %}
 <style>
@@ -924,7 +924,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/student-drawer.js' %}"></script>
+<script src="{% static 'js/student-drawer.js' %}?v=20260801-group-category"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     if (!window.initStudentDrawer) return;

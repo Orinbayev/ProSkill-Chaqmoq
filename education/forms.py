@@ -483,6 +483,8 @@ class StudentGroupTransferForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        from education.services.student_transfer import max_transfer_date
+
         self.old_group = kwargs.pop("old_group")
         self.center = kwargs.pop("center", None) or self.old_group.center
         super().__init__(*args, **kwargs)
@@ -491,6 +493,13 @@ class StudentGroupTransferForm(forms.Form):
             .filter(center=self.center, is_archived=False, is_closed=False)
             .exclude(pk=self.old_group.pk)
             .order_by("nom")
+        )
+        # Kelajak sana ham mumkin (mas. 5-sanadan yangi guruhda boshlaydi),
+        # lekin brauzer tanlagichi ham keyingi oy oxiri bilan chegaralansin.
+        self.fields["transfer_date"].widget.attrs["max"] = max_transfer_date().isoformat()
+        self.fields["transfer_date"].help_text = (
+            "Shu sanadan boshlab o'quvchi yangi guruhda hisoblanadi. "
+            "Kelajak sanani ham tanlash mumkin."
         )
 
     def clean_new_group(self):
@@ -502,9 +511,17 @@ class StudentGroupTransferForm(forms.Form):
         return new_group
 
     def clean_transfer_date(self):
+        from education.services.student_transfer import max_transfer_date
+
         d = self.cleaned_data.get("transfer_date") or timezone.localdate()
-        if d > timezone.localdate():
-            raise forms.ValidationError("Ko'chirish sanasi kelajakda bo'lishi mumkin emas.")
+        # Kelajak sanaga ruxsat: o'quvchi mas. 5-sanadan yangi guruhda
+        # boshlashi mumkin. Chegara — service bilan bir xil (keyingi oy oxiri).
+        limit = max_transfer_date()
+        if d > limit:
+            raise forms.ValidationError(
+                f"Ko'chirish sanasi juda uzoq kelajakda. Eng kech "
+                f"{limit.strftime('%d.%m.%Y')} sanasini tanlash mumkin."
+            )
         return d
 
 

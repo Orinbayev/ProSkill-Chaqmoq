@@ -4,7 +4,7 @@
 {% block title %}Boshqaruv — {{ center.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}?v=20260801-group-category">
 <link rel="stylesheet" href="{% static 'css/dashboard_boshqaruv.css' %}">
 {% endblock %}
 
@@ -3424,10 +3424,28 @@ function initStudentDrawerGroupModal(){
   const priceTpl=form?.dataset.groupPriceTemplate||'';
   const opts=Array.from(selGrp.options)
     .filter(o=>o.value)
-    .map(o=>({value:o.value, label:o.text.trim()}));
+    .map(o=>({
+      value:o.value,
+      label:o.text.trim(),
+      catId:o.dataset.categoryId||'',
+      catName:o.dataset.category||'Boshqa',
+      catIcon:o.dataset.categoryIcon||''
+    }));
+
+  // Bo'limlar (Category) — guruhlardan yig'iladi, alohida so'rov kerak emas.
+  const categories=(function(){
+    const map=new Map();
+    opts.forEach(o=>{
+      const key=o.catId||('name:'+o.catName);
+      if(!map.has(key)) map.set(key,{key:key, name:o.catName, icon:o.catIcon, items:[]});
+      map.get(key).items.push(o);
+    });
+    return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'uz'));
+  })();
 
   let groups=[];   // [{value, label, price, date}]
   let pickedNow=null; // group highlighted in current modal session
+  let activeCat=null; // hozir ochilgan bo'lim (null = bo'limlar ro'yxati)
 
   // ── Modal DOM ──
   const ov=document.createElement('div');
@@ -3446,7 +3464,7 @@ function initStudentDrawerGroupModal(){
       '</div>'+
       '<div class="bq-gm__search-wrap">'+
         '<i class="fa-solid fa-magnifying-glass bq-gm__search-ico"></i>'+
-        '<input type="text" class="bq-gm__search-inp" id="bqGMSearch" placeholder="Guruh nomini yozing..." autocomplete="off">'+
+        '<input type="text" class="bq-gm__search-inp" id="bqGMSearch" placeholder="Yoki guruh nomini yozing..." autocomplete="off">'+
       '</div>'+
       '<div class="bq-gm__list-wrap"><div class="bq-gm__list" id="bqGMList"></div></div>'+
       '<div class="bq-gm__cascade" id="bqGMCascade" hidden>'+
@@ -3564,24 +3582,70 @@ function initStudentDrawerGroupModal(){
     });
   }
 
-  function showHint(){
-    gmList.innerHTML='<div class="bq-gm__empty bq-gm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing va Enter bosing</div>';
+  // Bo'limlar ro'yxati — modal ochilganda birinchi ko'rinadigan bosqich.
+  function renderCategories(){
+    activeCat=null;
+    gmList.innerHTML='';
+    if(!categories.length){
+      gmList.innerHTML='<div class="bq-gm__empty">Guruh topilmadi</div>';
+      return;
+    }
+    const head=document.createElement('div');
+    head.className='bq-gm__step-label';
+    head.textContent="Bo'lim tanlang";
+    gmList.appendChild(head);
+
+    categories.forEach(cat=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='bq-gm__item bq-gm__item--cat';
+      b.innerHTML=
+        '<span class="bq-gm__cat-name">'+
+          (cat.icon?'<span class="bq-gm__cat-ico">'+cat.icon+'</span>':'')+
+          cat.name+
+        '</span>'+
+        '<span class="bq-gm__cat-count">'+cat.items.length+' ta guruh</span>';
+      b.addEventListener('click',()=>renderCategoryGroups(cat));
+      gmList.appendChild(b);
+    });
+  }
+
+  // Tanlangan bo'limdagi BARCHA guruhlar (qidiruvsiz).
+  function renderCategoryGroups(cat){
+    activeCat=cat;
+    gmList.innerHTML='';
+    const back=document.createElement('button');
+    back.type='button';
+    back.className='bq-gm__back';
+    back.innerHTML='<i class="fa-solid fa-chevron-left"></i> Bo\'limlar';
+    back.addEventListener('click',renderCategories);
+    gmList.appendChild(back);
+
+    const head=document.createElement('div');
+    head.className='bq-gm__step-label';
+    head.textContent=cat.name;
+    gmList.appendChild(head);
+
+    appendGroupButtons(cat.items);
   }
 
   function refreshList(){
     const q=gmSearch.value.trim().toLowerCase();
-    if(q.length>=3){
-      const filtered=opts.filter(o=>o.label.toLowerCase().includes(q));
-      renderSearchResults(filtered);
-    } else if(q.length===0){
-      showHint();
+    if(q.length>0){
+      renderSearchResults(opts.filter(o=>o.label.toLowerCase().includes(q)));
+    } else if(activeCat){
+      renderCategoryGroups(activeCat);
+    } else {
+      renderCategories();
     }
   }
 
-  function renderSearchResults(items){
-    gmList.innerHTML='';
+  function appendGroupButtons(items){
     if(!items.length){
-      gmList.innerHTML='<div class="bq-gm__empty">Guruh topilmadi</div>';
+      const e=document.createElement('div');
+      e.className='bq-gm__empty';
+      e.textContent='Bu bo\'limda guruh yo\'q';
+      gmList.appendChild(e);
       return;
     }
     items.forEach(item=>{
@@ -3594,6 +3658,15 @@ function initStudentDrawerGroupModal(){
       else { b.addEventListener('click',()=>pickGroup(item)); }
       gmList.appendChild(b);
     });
+  }
+
+  function renderSearchResults(items){
+    gmList.innerHTML='';
+    if(!items.length){
+      gmList.innerHTML='<div class="bq-gm__empty">Guruh topilmadi</div>';
+      return;
+    }
+    appendGroupButtons(items);
   }
 
   function pickGroup(item){
@@ -3625,20 +3698,20 @@ function initStudentDrawerGroupModal(){
     gmCascade.hidden=true;
     gmConfirm.disabled=true;
     gmSearch.value='';
-    showHint();
-    setTimeout(()=>gmSearch.focus(),60);
+    // Qo'shgandan keyin o'sha bo'limda qolamiz — ketma-ket qo'shish qulay bo'lsin.
+    refreshList();
   }
 
   function openModal(){
     ov.hidden=false;
     document.body.style.overflow='hidden';
     pickedNow=null;
+    activeCat=null;
     gmCascade.hidden=true;
     gmConfirm.disabled=true;
     gmSearch.value='';
-    showHint();
+    renderCategories();
     renderAddedInModal();
-    setTimeout(()=>gmSearch.focus(),60);
   }
 
   function closeModal(){
@@ -3646,16 +3719,12 @@ function initStudentDrawerGroupModal(){
     document.body.style.overflow='';
   }
 
-  gmSearch.addEventListener('input',function(){
-    if(this.value.trim().length===0){ showHint(); clearPick(); }
-  });
+  // Qidiruv ixtiyoriy: birinchi harfdanoq ishlaydi, bo'shatilsa bo'limlarga qaytadi.
+  gmSearch.addEventListener('input',refreshList);
   gmSearch.addEventListener('keydown',function(e){
     if(e.key!=='Enter') return;
     e.preventDefault();
-    const q=this.value.trim().toLowerCase();
-    if(q.length<3) return;
-    const filtered=opts.filter(o=>o.label.toLowerCase().includes(q));
-    renderSearchResults(filtered);
+    refreshList();
   });
 
   openBtn.addEventListener('click',openModal);

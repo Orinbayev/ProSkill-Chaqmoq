@@ -101,6 +101,48 @@ def _student_detail_access_ids(request):
     return set()
 
 
+def _can_filter_rating_by_rule(user) -> bool:
+    """
+    Qoida bo'yicha filtrlash faqat xodimlar uchun.
+
+    O'quvchi va ota-ona reytingni ko'radi, lekin qaysi qoidadan qancha
+    chaqmoq berilganini ajratib ko'ra olmaydi.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    return getattr(user, "role", None) in {"teacher", "manager", "director"}
+
+
+def _rating_rules_for_center(center):
+    """Markazning qoidalari (+ barcha markazlar uchun umumiy qoidalar)."""
+    qs = Rule.objects.all()
+    if center:
+        qs = qs.filter(Q(center=center) | Q(center__isnull=True))
+    return list(qs.order_by("nom"))
+
+
+def _balances_for_rule(student_ids, rule_id, center=None):
+    """
+    FAQAT tanlangan qoida bo'yicha berilgan chaqmoqlar yig'indisi.
+
+    MUHIM: bu yerda LightningHistory fallback ISHLATILMAYDI — eski
+    LightningHistory yozuvlarida qoida bog'lanishi yo'q, ularni qo'shsak
+    "shu qoida bo'yicha" degan raqam yolg'on chiqardi.
+    """
+    if not student_ids:
+        return {}
+
+    qs = Ledger.objects.filter(student_id__in=student_ids, rule_id=rule_id)
+    if center:
+        qs = qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
+    return {
+        row["student_id"]: int(row["total"] or 0)
+        for row in qs.values("student_id").annotate(total=Coalesce(Sum("ball"), 0))
+    }
+
+
 def _get_balances_with_legacy_fallback(student_ids, center=None):
     """
     Balans manbasi: avval Ledger, agar umuman ledger yozuvi bo'lmasa LightningHistory fallback.
@@ -158,7 +200,25 @@ def reyting(request):
 
     students = list(students_qs.values("id", "ism", "familya"))
     student_ids = [row["id"] for row in students]
-    balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
+
+    # ── QOIDA BO'YICHA FILTR (faqat teacher / manager / director) ──────────
+    can_filter_by_rule = _can_filter_rating_by_rule(request.user)
+    rating_rules = _rating_rules_for_center(center) if can_filter_by_rule else []
+    allowed_rule_ids = {r.id for r in rating_rules}
+
+    selected_rule_id = None
+    if can_filter_by_rule:
+        raw_rule = (request.GET.get("rule") or "").strip()
+        if raw_rule.isdigit() and int(raw_rule) in allowed_rule_ids:
+            selected_rule_id = int(raw_rule)
+    selected_rule = next((r for r in rating_rules if r.id == selected_rule_id), None)
+
+    if selected_rule_id:
+        # Faqat shu qoida bo'yicha chaqmoq olganlar reytingga kiradi.
+        balance_map = _balances_for_rule(student_ids, selected_rule_id, center=center)
+        students = [row for row in students if row["id"] in balance_map]
+    else:
+        balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
 
     leaderboard_all = [
         {
@@ -213,6 +273,10 @@ def reyting(request):
         "per_page": per_page,
         "page_window": page_window,
         "is_search": is_search,   # ✅ template uchun
+        "can_filter_by_rule": can_filter_by_rule,
+        "rating_rules": rating_rules,
+        "selected_rule_id": selected_rule_id,
+        "selected_rule": selected_rule,
     }
     return render(request, "chaqmoq/reyting.html", ctx)
 

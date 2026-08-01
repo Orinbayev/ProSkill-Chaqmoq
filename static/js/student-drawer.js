@@ -395,10 +395,32 @@
 
     var priceTpl = form ? (form.dataset.groupPriceTemplate || '') : '';
     var opts = Array.from(selGrp.options).filter(function(o){ return o.value; })
-      .map(function(o){ return {value: o.value, label: o.text.trim()}; });
+      .map(function(o){
+        return {
+          value: o.value,
+          label: o.text.trim(),
+          catId: o.dataset.categoryId || '',
+          catName: o.dataset.category || 'Boshqa',
+          catIcon: o.dataset.categoryIcon || ''
+        };
+      });
+
+    // Bo'limlar (Category) — guruh option'laridan yig'iladi, qo'shimcha so'rovsiz.
+    var categories = (function(){
+      var map = new Map();
+      opts.forEach(function(o){
+        var key = o.catId || ('name:' + o.catName);
+        if (!map.has(key)) map.set(key, {key: key, name: o.catName, icon: o.catIcon, items: []});
+        map.get(key).items.push(o);
+      });
+      return Array.from(map.values()).sort(function(a, b){
+        return a.name.localeCompare(b.name, 'uz');
+      });
+    })();
 
     var groups = [];
     var pickedNow = null;
+    var activeCat = null; // null = bo'limlar ro'yxati ko'rinib turibdi
 
     // Modal DOM
     var ov = document.createElement('div');
@@ -417,7 +439,7 @@
         '</div>' +
         '<div class="bq-gm__search-wrap">' +
           '<i class="fa-solid fa-magnifying-glass bq-gm__search-ico"></i>' +
-          '<input type="text" class="bq-gm__search-inp" id="bqGMSearch_sd" placeholder="Guruh nomini yozing..." autocomplete="off">' +
+          '<input type="text" class="bq-gm__search-inp" id="bqGMSearch_sd" placeholder="Yoki guruh nomini yozing..." autocomplete="off">' +
         '</div>' +
         '<div class="bq-gm__list-wrap"><div class="bq-gm__list" id="bqGMList_sd"></div></div>' +
         '<div class="bq-gm__cascade" id="bqGMCascade_sd" hidden>' +
@@ -521,20 +543,71 @@
         });
       });
     }
-    function showHint() {
-      gmList.innerHTML = '<div class="bq-gm__empty bq-gm__hint"><i class="fa-solid fa-magnifying-glass"></i> Kamida 3 harf yozing</div>';
+    // 1-bosqich: bo'limlar ro'yxati
+    function renderCategories() {
+      activeCat = null;
+      gmList.innerHTML = '';
+      if (!categories.length) {
+        gmList.innerHTML = '<div class="bq-gm__empty">Guruh topilmadi</div>';
+        return;
+      }
+      var head = document.createElement('div');
+      head.className = 'bq-gm__step-label';
+      head.textContent = "Bo'lim tanlang";
+      gmList.appendChild(head);
+
+      categories.forEach(function(cat){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'bq-gm__item bq-gm__item--cat';
+        b.innerHTML =
+          '<span class="bq-gm__cat-name">' +
+            (cat.icon ? '<span class="bq-gm__cat-ico">' + cat.icon + '</span>' : '') +
+            cat.name +
+          '</span>' +
+          '<span class="bq-gm__cat-count">' + cat.items.length + ' ta guruh</span>';
+        b.addEventListener('click', function(){ renderCategoryGroups(cat); });
+        gmList.appendChild(b);
+      });
     }
+
+    // 2-bosqich: tanlangan bo'limdagi BARCHA guruhlar
+    function renderCategoryGroups(cat) {
+      activeCat = cat;
+      gmList.innerHTML = '';
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'bq-gm__back';
+      back.innerHTML = '<i class="fa-solid fa-chevron-left"></i> Bo\'limlar';
+      back.addEventListener('click', renderCategories);
+      gmList.appendChild(back);
+
+      var head = document.createElement('div');
+      head.className = 'bq-gm__step-label';
+      head.textContent = cat.name;
+      gmList.appendChild(head);
+
+      appendGroupButtons(cat.items);
+    }
+
     function refreshList() {
       var q = gmSearch.value.trim().toLowerCase();
-      if (q.length >= 3) {
+      if (q.length > 0) {
         renderSearchResults(opts.filter(function(o){ return o.label.toLowerCase().includes(q); }));
-      } else if (q.length === 0) {
-        showHint();
+      } else if (activeCat) {
+        renderCategoryGroups(activeCat);
+      } else {
+        renderCategories();
       }
     }
-    function renderSearchResults(items) {
-      gmList.innerHTML = '';
-      if (!items.length) { gmList.innerHTML = '<div class="bq-gm__empty">Guruh topilmadi</div>'; return; }
+    function appendGroupButtons(items) {
+      if (!items.length) {
+        var e = document.createElement('div');
+        e.className = 'bq-gm__empty';
+        e.textContent = 'Bu bo\'limda guruh yo\'q';
+        gmList.appendChild(e);
+        return;
+      }
       items.forEach(function(item){
         var alreadyAdded = groups.some(function(g){ return g.value === item.value; });
         var b = document.createElement('button');
@@ -545,6 +618,11 @@
         else { b.addEventListener('click', function(){ pickGroup(item); }); }
         gmList.appendChild(b);
       });
+    }
+    function renderSearchResults(items) {
+      gmList.innerHTML = '';
+      if (!items.length) { gmList.innerHTML = '<div class="bq-gm__empty">Guruh topilmadi</div>'; return; }
+      appendGroupButtons(items);
     }
     function pickGroup(item) {
       pickedNow = item;
@@ -564,25 +642,24 @@
       groups.push({value: pickedNow.value, label: pickedNow.label, price: gmPrice.value, date: gmDate.value});
       serialize(); renderChips(); renderAddedInModal();
       pickedNow = null; gmCascade.hidden = true; gmConfirm.disabled = true;
-      gmSearch.value = ''; showHint();
-      setTimeout(function(){ gmSearch.focus(); }, 60);
+      gmSearch.value = '';
+      // Qo'shgandan keyin o'sha bo'limda qolamiz — ketma-ket qo'shish qulay bo'lsin.
+      refreshList();
     }
     function openModal() {
       ov.hidden = false; document.body.style.overflow = 'hidden';
-      pickedNow = null; gmCascade.hidden = true; gmConfirm.disabled = true;
-      gmSearch.value = ''; showHint(); renderAddedInModal();
-      setTimeout(function(){ gmSearch.focus(); }, 60);
+      pickedNow = null; activeCat = null;
+      gmCascade.hidden = true; gmConfirm.disabled = true;
+      gmSearch.value = ''; renderCategories(); renderAddedInModal();
     }
     function closeModal() { ov.hidden = true; document.body.style.overflow = ''; }
 
-    gmSearch.addEventListener('input', function(){
-      if (this.value.trim().length === 0) { showHint(); clearPick(); }
-    });
+    // Qidiruv ixtiyoriy: birinchi harfdanoq ishlaydi, bo'shatilsa bo'limlarga qaytadi.
+    gmSearch.addEventListener('input', refreshList);
     gmSearch.addEventListener('keydown', function(e){
-      if (e.key !== 'Enter') return; e.preventDefault();
-      var q = this.value.trim().toLowerCase();
-      if (q.length < 3) return;
-      renderSearchResults(opts.filter(function(o){ return o.label.toLowerCase().includes(q); }));
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      refreshList();
     });
     openBtn.addEventListener('click', openModal);
     gmClose.addEventListener('click', closeModal);

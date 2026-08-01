@@ -17,6 +17,32 @@ from accounts.utils import normalize_phone
 User = get_user_model()
 Group = apps.get_model('education', 'Group')
 
+
+class GroupSelectWithCategory(forms.Select):
+    """
+    Guruh <option> lariga bo'lim (Category) ma'lumotini qo'shadi.
+
+    Drawer'dagi "Guruh qo'shish" oynasi avval BO'LIMlarni ko'rsatib, keyin
+    tanlangan bo'limdagi guruhlarni chiqaradi. Shu ma'lumot option'ning
+    o'zida kelsa, qo'shimcha AJAX so'rov kerak bo'lmaydi.
+    """
+
+    NO_CATEGORY_LABEL = "Boshqa"
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        group = getattr(value, "instance", None)
+        if group is not None:
+            category = getattr(group, "category_obj", None)
+            option["attrs"]["data-category-id"] = str(getattr(category, "id", "")) if category else ""
+            option["attrs"]["data-category"] = (
+                getattr(category, "name", "") or self.NO_CATEGORY_LABEL
+            ) if category else self.NO_CATEGORY_LABEL
+            option["attrs"]["data-category-icon"] = (
+                getattr(category, "icon", "") or ""
+            ) if category else ""
+        return option
+
 ROLE_CHOICES = (
     ("director", "Direktor"),
     ("student", "O‘quvchi"),
@@ -47,7 +73,8 @@ class AddUserForm(forms.ModelForm):
     group = forms.ModelChoiceField(
         queryset=Group.objects.none(),
         required=False,
-        label="Guruhni tanlang"
+        label="Guruhni tanlang",
+        widget=GroupSelectWithCategory,
     )
     kurs_narhi = forms.IntegerField(required=False, label="Kurs narxi")
     group_start_date = forms.DateField(
@@ -159,10 +186,12 @@ class AddUserForm(forms.ModelForm):
         # ✅ 3) Group field – faqat shu markaz guruhlari chiqsin
         if "group" in self.fields:
             if active_center:
+                # select_related: har option uchun alohida Category so'rovi
+                # bo'lmasin (GroupSelectWithCategory category_obj ni o'qiydi).
                 self.fields["group"].queryset = Group.objects.filter(
                     center=active_center,
                     is_archived=False
-                ).order_by("nom")
+                ).select_related("category_obj").order_by("nom")
             else:
                 self.fields["group"].queryset = Group.objects.none()
 

@@ -1109,18 +1109,19 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
         month_end = min(month_end, last_lesson)
     count = expected_lessons_in_period(enrollment, period_start, month_end)
 
-    # Manual rejim (center da "manual_oy_dars_soni" feature yoqilgan):
-    #   oy_dars_soni chegarasidan oshmaydi — masalan oy_dars_soni=8, iyunda 9 kun → 8.
-    # Standart rejim (feature o'chirilgan):
-    #   haqiqiy kalendar soni qaytariladi (12 dan oshishi mumkin).
-    #   O'qituvchi: 150k/12 × actual.  Masalan 13 dars → 162,500 so'm.
-    group = getattr(enrollment, "group", None)
-    center = getattr(group, "center", None) if group else None
-    if center:
-        from billing.services import center_has_feature
-        if center_has_feature(center, "manual_oy_dars_soni"):
-            return min(count, _monthly_lessons_count(enrollment))
-    return count
+    # OYLIK CHEGARA: bir oyda dars kunlari qaysi sanalarga to'g'ri kelishidan
+    # QAT'I NAZAR, standart oylik dars sonidan (odatda 12) oshmaydi.
+    #
+    # Kalendarda 13-14 ta dars kuni bo'lishi mumkin, lekin o'quvchi ham,
+    # o'qituvchi ham 12 dars bo'yicha hisoblanadi. TeacherIncome signali
+    # (education/signals.py) allaqachon aynan shu chegarani qo'llaydi —
+    # bu yerda chegaralamaslik ko'rsatiladigan dars soni bilan haqiqiy
+    # to'lov o'rtasida farq hosil qilardi (mas. "14 dars" ko'rinib, pul
+    # 12 dars uchun yozilardi).
+    #
+    # _monthly_lessons_count "manual_oy_dars_soni" feature'ini ham hisobga
+    # oladi: yoqilgan bo'lsa guruh oy_dars_soni, aks holda 12.
+    return min(count, _monthly_lessons_count(enrollment))
 
 
 def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:

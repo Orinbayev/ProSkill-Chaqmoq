@@ -315,7 +315,7 @@
 
   .sac-selected-item {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 10px;
     min-height: 60px;
@@ -337,6 +337,94 @@
     margin: 3px 0 0;
     color: var(--sac-muted);
     font-size: 12px;
+  }
+
+  /* ── Qo'shilish sanasi ──────────────────────────────────────────────── */
+  .sac-datebar {
+    padding: 12px 16px 14px;
+    border-top: 1px solid #eef2f7;
+    background: #f8fafc;
+  }
+
+  .sac-datebar__label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sac-text);
+  }
+
+  .sac-datebar__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+  }
+
+  .sac-datechip {
+    padding: 7px 13px;
+    border: 1px solid var(--sac-border);
+    border-radius: 100px;
+    background: #fff;
+    color: var(--sac-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease, color .14s ease;
+  }
+  .sac-datechip:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  .sac-datechip.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+
+  .sac-dateinput {
+    padding: 7px 11px;
+    border: 1px solid var(--sac-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--sac-text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .sac-dateinput:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .sac-datebar__hint {
+    margin: 8px 0 0;
+    color: var(--sac-muted);
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  .sac-selected-item__date {
+    padding: 5px 9px;
+    border: 1px solid var(--sac-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--sac-text);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .sac-selected-item__date.is-custom {
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+
+  @media (max-width: 560px) {
+    .sac-datebar__controls { gap: 6px; }
+    .sac-dateinput { flex: 1 1 140px; }
   }
 
   .sac-footer {
@@ -478,6 +566,22 @@
             <p class="sac-panel__hint">Qo'shishdan oldin shu yerda tekshirasiz.</p>
           </div>
         </div>
+
+        <div class="sac-datebar" id="date-bar" hidden>
+          <div class="sac-datebar__label">
+            <i class="fa-regular fa-calendar-days"></i>
+            Qaysi sanadan qo'shilsin?
+          </div>
+          <div class="sac-datebar__controls">
+            <button type="button" class="sac-datechip" data-date-preset="today">Bugun</button>
+            <button type="button" class="sac-datechip" data-date-preset="month">Oy boshi</button>
+            <input type="date" id="bulk-start-date" class="sac-dateinput">
+          </div>
+          <p class="sac-datebar__hint">
+            Barcha tanlanganlarga shu sana qo'llanadi. Kerak bo'lsa pastda har biriga alohida sana qo'ying.
+          </p>
+        </div>
+
         <div id="selected-list" class="sac-selected-list">
           <div class="sac-empty">Hozircha tanlangan o'quvchi yo'q.</div>
         </div>
@@ -531,10 +635,59 @@
     return String(student.id);
   }
 
+  /* ── Qo'shilish sanasi ──────────────────────────────────────────────────
+     Umumiy sana barcha tanlanganlarga qo'llanadi (default = bugun), lekin
+     har bir o'quvchiga alohida sana ham qo'yish mumkin. Alohida qo'yilgani
+     umumiy sana o'zgarganda ustidan yozilmaydi. */
+  const dateBar = document.getElementById('date-bar');
+  const bulkDateInput = document.getElementById('bulk-start-date');
+  const customDates = new Map(); // studentId -> 'YYYY-MM-DD'
+
+  function toISO(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+  const TODAY_ISO = toISO(new Date());
+  const MONTH_START_ISO = (function () {
+    const d = new Date();
+    d.setDate(1);
+    return toISO(d);
+  })();
+
+  bulkDateInput.value = TODAY_ISO;
+  bulkDateInput.max = TODAY_ISO; // kelajak sana qo'shishga yo'l qo'ymaymiz
+
+  function startDateFor(student) {
+    return customDates.get(selectedKey(student)) || bulkDateInput.value || TODAY_ISO;
+  }
+
+  function syncDateChips() {
+    document.querySelectorAll('[data-date-preset]').forEach((chip) => {
+      const target = chip.dataset.datePreset === 'today' ? TODAY_ISO : MONTH_START_ISO;
+      chip.classList.toggle('is-active', bulkDateInput.value === target);
+    });
+  }
+
+  document.querySelectorAll('[data-date-preset]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      bulkDateInput.value = chip.dataset.datePreset === 'today' ? TODAY_ISO : MONTH_START_ISO;
+      syncDateChips();
+      renderSelected();
+    });
+  });
+
+  bulkDateInput.addEventListener('change', () => {
+    if (!bulkDateInput.value) bulkDateInput.value = TODAY_ISO;
+    syncDateChips();
+    renderSelected();
+  });
+
   function updateFooter() {
     const count = selectedStudents.size;
     selectedCount.textContent = count;
     submitButton.disabled = count === 0;
+    dateBar.hidden = count === 0;
   }
 
   function createChip(text, modifier = '') {
@@ -666,6 +819,23 @@
       content.appendChild(name);
       content.appendChild(phone);
 
+      const key = selectedKey(student);
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'sac-selected-item__date' + (customDates.has(key) ? ' is-custom' : '');
+      dateInput.value = startDateFor(student);
+      dateInput.max = TODAY_ISO;
+      dateInput.title = `${student.full_name} — qo'shilish sanasi`;
+      dateInput.setAttribute('aria-label', `${student.full_name} qo'shilish sanasi`);
+      dateInput.addEventListener('change', () => {
+        if (!dateInput.value || dateInput.value === bulkDateInput.value) {
+          customDates.delete(key);
+        } else {
+          customDates.set(key, dateInput.value);
+        }
+        renderSelected();
+      });
+
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'sac-btn sac-btn--remove';
@@ -675,6 +845,7 @@
 
       row.appendChild(avatar);
       row.appendChild(content);
+      row.appendChild(dateInput);
       row.appendChild(remove);
       selectedList.appendChild(row);
     });
@@ -721,6 +892,7 @@
       },
       body: JSON.stringify({
         student_id: student.id,
+        start_date: startDateFor(student),
       }),
     });
     return response.json();
@@ -736,17 +908,21 @@
 
     let successCount = 0;
     let warningCount = 0;
+    const notes = [];
 
     for (const student of students) {
       try {
         const data = await addStudent(student);
         if (data.status === 'success') {
           successCount += 1;
+          if (data.info) notes.push(`${student.full_name}: ${data.info}`);
+          customDates.delete(selectedKey(student));
           selectedStudents.delete(selectedKey(student));
           const resultStudent = currentResults.find((item) => String(item.id) === String(student.id));
           if (resultStudent) resultStudent.is_in_current = true;
         } else if (data.status === 'warning') {
           warningCount += 1;
+          customDates.delete(selectedKey(student));
           selectedStudents.delete(selectedKey(student));
           const resultStudent = currentResults.find((item) => String(item.id) === String(student.id));
           if (resultStudent) resultStudent.is_in_current = true;
@@ -762,7 +938,12 @@
     renderSelected();
 
     if (successCount) {
-      showStatus(`${successCount} ta o'quvchi guruhga qo'shildi.${warningCount ? ` ${warningCount} tasi allaqachon mavjud edi.` : ''}`, 'success');
+      // Sana dars kuniga to'g'ri kelmasa server uni siljitadi va izoh qaytaradi.
+      const noteText = notes.length ? ` (${notes.join('; ')})` : '';
+      showStatus(
+        `${successCount} ta o'quvchi guruhga qo'shildi.${warningCount ? ` ${warningCount} tasi allaqachon mavjud edi.` : ''}${noteText}`,
+        'success'
+      );
     } else if (warningCount) {
       showStatus(`${warningCount} ta o'quvchi allaqachon guruhda mavjud.`, 'warning');
     }
@@ -777,6 +958,7 @@
   });
   submitButton.addEventListener('click', submitSelected);
 
+  syncDateChips();
   renderSelected();
   fetchStudents('');
 </script>
