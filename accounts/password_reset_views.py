@@ -209,6 +209,14 @@ def forgot_password_set(request):
         if password == confirm and _is_strong_password(password):
             user.set_password(password)
             user.save(update_fields=["password"])
+        try:
+            from accounts.login_throttle import unlock_login_identifier
+            unlock_login_identifier(user.email)
+            if getattr(user, "phone_number", None):
+                unlock_login_identifier(user.phone_number)
+        except Exception:
+            pass
+
             record_activity(user, "Password changed successfully", request=request)
             
             # Cleanup session

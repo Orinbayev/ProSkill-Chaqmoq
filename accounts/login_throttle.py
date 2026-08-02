@@ -66,9 +66,46 @@ def failed_attempt_count(key: str) -> int:
     return int(cache.get(key, 0) or 0)
 
 
+def unlock_key_for_identifier(identifier: str) -> str:
+    """
+    IP dan MUSTAQIL kalit — parol o'zgartirilganda qo'yiladi.
+
+    Throttle kaliti IP + identifikatordan tuziladi. Parolni esa boshqa
+    odam (direktor) va boshqa IP dan o'zgartiradi, shuning uchun aniq
+    throttle kalitini o'chirib bo'lmaydi. Buning o'rniga "bu login uchun
+    qulf bekor qilindi" belgisini qo'yamiz.
+    """
+    normalized = (identifier or "").strip().lower()
+    return f"login:throttle:unlock:{_hash_part(normalized)}"
+
+
+def unlock_login_identifier(identifier: str) -> None:
+    """
+    Parol o'zgartirilgandan keyin login qulfini bekor qiladi.
+
+    Muammo: foydalanuvchi eski parolni bir necha marta kiritib qulflanadi,
+    keyin admin parolni yangilaydi — lekin qulf 15 daqiqa turgani uchun
+    YANGI parol ham ishlamaydi. Foydalanuvchiga bu "parol o'zgarmadi"
+    bo'lib ko'rinadi.
+    """
+    normalized = (identifier or "").strip().lower()
+    if not normalized:
+        return
+    cache.set(unlock_key_for_identifier(normalized), 1, timeout=login_throttle_window_seconds())
+    logger.info("login_throttle unlocked after password change id=%s", _hash_part(normalized))
+
+
 def is_login_locked(request: HttpRequest, identifier: str) -> bool:
     id_key = throttle_key_for_identifier(request, identifier)
     ip_key = throttle_key_for_ip(request)
+
+    # Parol yangilangan bo'lsa — qulfni bir marta bekor qilamiz.
+    unlock_key = unlock_key_for_identifier(identifier)
+    if cache.get(unlock_key):
+        cache.delete(unlock_key)
+        cache.delete(id_key)
+        return False
+
     if failed_attempt_count(id_key) >= login_max_failed_attempts():
         return True
     if failed_attempt_count(ip_key) >= login_ip_max_attempts():

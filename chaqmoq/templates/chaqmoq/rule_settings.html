@@ -4,6 +4,56 @@
 
 {% block extra_css %}
 <style>
+    /* ═══════════ LIGHT MODE ═══════════ */
+    html[data-role-theme="light"] {
+        --bg-dark: #f6f7fb;
+        --bg-card: #ffffff;
+        --bg-hover: #f1f5f9;
+        --border: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-glow: #1d4ed8;
+        --green: #16a34a;
+        --red: #dc2626;
+        --amber: #d97706;
+    }
+
+    html[data-role-theme="light"] body.lightning-rules-page {
+        background: #f6f7fb;
+    }
+
+    /* Oq fonda oq matn qolmasin */
+    html[data-role-theme="light"] .header-box h2,
+    html[data-role-theme="light"] .field-input,
+    html[data-role-theme="light"] .penalty-name,
+    html[data-role-theme="light"] .modal-head h3,
+    html[data-role-theme="light"] .rule-details h3 {
+        color: var(--text-main);
+    }
+    html[data-role-theme="light"] .btn-ghost:hover,
+    html[data-role-theme="light"] .icon-btn:hover {
+        color: var(--text-main);
+        background: var(--bg-hover);
+    }
+    html[data-role-theme="light"] .field-input {
+        background: #ffffff;
+        border-color: var(--border);
+    }
+    html[data-role-theme="light"] .field-input::placeholder {
+        color: #94a3b8;
+    }
+    /* Dark uchun mo'ljallangan oq shaffof fonlar */
+    html[data-role-theme="light"] .sc,
+    html[data-role-theme="light"] .header-box,
+    html[data-role-theme="light"] .rule-card,
+    html[data-role-theme="light"] .modal-card {
+        background: #ffffff;
+        border-color: var(--border);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        backdrop-filter: none;
+    }
+
     :root {
         --bg-dark: #020617;
         --bg-card: rgba(15, 23, 42, 0.5);

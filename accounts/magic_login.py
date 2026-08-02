@@ -127,6 +127,14 @@ def magic_set_password(request):
         user = request.user
         user.set_password(password)
         user.save(update_fields=["password"])
+        try:
+            from accounts.login_throttle import unlock_login_identifier
+            unlock_login_identifier(user.email)
+            if getattr(user, "phone_number", None):
+                unlock_login_identifier(user.phone_number)
+        except Exception:
+            pass
+
         # Parol o'zgargach sessiya buzilmasligi uchun — foydalanuvchi tizimda qoladi.
         update_session_auth_hash(request, user)
         request.session.pop("magic_prompt_password", None)

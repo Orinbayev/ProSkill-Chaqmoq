@@ -1124,6 +1124,14 @@ def student_edit_ajax(request, pk):
         if form.is_valid():
             student.set_password(form.cleaned_data["new_password"])
             student.save()
+            try:
+                from accounts.login_throttle import unlock_login_identifier
+                unlock_login_identifier(student.email)
+                if getattr(student, "phone_number", None):
+                    unlock_login_identifier(student.phone_number)
+            except Exception:
+                pass
+
             return JsonResponse({"ok": True, "message": "Parol yangilandi 🔒"})
         return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 

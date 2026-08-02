@@ -10154,9 +10154,18 @@ def close_finance_month_view(request):
         messages.error(request, "Sizda bu bo'limga ruxsat yo'q.")
         return redirect('education:teacher_income_dashboard')
 
+    # GET so'rovda ham `year`/`month` aniqlangan bo'lishi shart — pastdagi
+    # redirect ularni har doim ishlatadi (aks holda UnboundLocalError → 500).
+    _today = timezone.localdate()
+    year, month = _today.year, _today.month
+
     if request.method == "POST":
-        year = int(request.POST.get('year'))
-        month = int(request.POST.get('month'))
+        try:
+            year = int(request.POST.get('year') or year)
+            month = int(request.POST.get('month') or month)
+        except (TypeError, ValueError):
+            messages.error(request, "Yil yoki oy noto'g'ri kiritilgan.")
+            return redirect(f"{reverse('education:teacher_salary_list')}?year={year}&month={month}")
         action = request.POST.get('action', 'lock')
         
         from core.tenant import get_request_center

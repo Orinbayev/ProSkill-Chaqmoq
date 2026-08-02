@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block body_class %}rule-form-page{% endblock %}
+
 {% block extra_css %}
 <style>
     :root {
@@ -13,6 +15,86 @@
         --primary: #3b82f6;
         --primary-glow: #38bdf8;
         --radius: 14px;
+        /* light rejimda qayta aniqlanadi */
+        --field-bg: rgba(0, 0, 0, 0.2);
+        --field-text: #fff;
+        --box-bg: rgba(0, 0, 0, 0.15);
+        --heading: #fff;
+        --check-bg: rgba(2, 6, 23, 0.5);
+        --check-border: rgba(255, 255, 255, 0.2);
+        --accent-soft-bg: rgba(59, 130, 246, 0.05);
+        --accent-soft-border: rgba(59, 130, 246, 0.15);
+        --card-shadow: none;
+    }
+
+    /* ═══════════ LIGHT MODE ═══════════ */
+    html[data-role-theme="light"] {
+        --bg-dark: #f6f7fb;
+        --bg-card: #ffffff;
+        --bg-hover: #f1f5f9;
+        --border: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-glow: #1d4ed8;
+        --field-bg: #ffffff;
+        --field-text: #0f172a;
+        --box-bg: #f8fafc;
+        --heading: #0f172a;
+        --check-bg: #ffffff;
+        --check-border: #cbd5e1;
+        --accent-soft-bg: #eff6ff;
+        --accent-soft-border: #bfdbfe;
+        --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+
+    html[data-role-theme="light"] body.rule-form-page {
+        background: #f6f7fb;
+    }
+
+    html[data-role-theme="light"] .form-container {
+        backdrop-filter: none;
+        box-shadow: var(--card-shadow);
+    }
+
+    html[data-role-theme="light"] .form-control::placeholder,
+    html[data-role-theme="light"] .form-select::placeholder {
+        color: #94a3b8;
+    }
+
+    html[data-role-theme="light"] .form-control:focus,
+    html[data-role-theme="light"] .form-select:focus {
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13) !important;
+    }
+
+    html[data-role-theme="light"] .back-link:hover {
+        color: var(--text-main);
+    }
+
+    /* Oq fonda och pastel ranglar o'qilmaydi — to'yingan variantga o'tamiz */
+    html[data-role-theme="light"] .section-penalty {
+        background: #fef2f2;
+        border-color: #fecaca;
+    }
+    html[data-role-theme="light"] .section-penalty h4,
+    html[data-role-theme="light"] .type-badge.penalty { color: #dc2626; }
+    html[data-role-theme="light"] .type-badge.penalty { background: #fef2f2; }
+
+    html[data-role-theme="light"] .section-bonus {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+    html[data-role-theme="light"] .section-bonus h4,
+    html[data-role-theme="light"] .type-badge.bonus { color: #16a34a; }
+    html[data-role-theme="light"] .type-badge.bonus { background: #f0fdf4; }
+
+    html[data-role-theme="light"] .section-regular {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+    html[data-role-theme="light"] .type-badge.regular {
+        background: #eef2ff;
+        color: #4f46e5;
     }
 
     body {
@@ -35,7 +117,7 @@
 
     h2 {
         font-weight: 800;
-        color: #fff;
+        color: var(--heading);
         margin-bottom: 24px;
         font-size: 20px;
         text-align: center;
@@ -57,9 +139,9 @@
 
     .form-control,
     .form-select {
-        background: rgba(0, 0, 0, 0.2) !important;
+        background: var(--field-bg) !important;
         border: 1px solid var(--border) !important;
-        color: #fff !important;
+        color: var(--field-text) !important;
         border-radius: 10px !important;
         padding: 0 12px !important;
         height: 40px !important;
@@ -79,7 +161,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        background: rgba(0, 0, 0, 0.15);
+        background: var(--box-bg);
         padding: 12px;
         border-radius: 12px;
         border: 1px solid var(--border);
@@ -96,8 +178,8 @@
         width: 1.2rem;
         height: 1.2rem;
         cursor: pointer;
-        background-color: rgba(2, 6, 23, 0.5);
-        border: 1px solid rgba(255,255,255,0.2);
+        background-color: var(--check-bg);
+        border: 1px solid var(--check-border);
     }
 
     .form-check-label {
@@ -114,8 +196,8 @@
 
     .dynamic-section {
         display: none;
-        background: rgba(59,130,246,0.05);
-        border: 1px solid rgba(59,130,246,0.15);
+        background: var(--accent-soft-bg);
+        border: 1px solid var(--accent-soft-border);
         border-radius: 12px;
         padding: 16px;
         margin-bottom: 14px;
