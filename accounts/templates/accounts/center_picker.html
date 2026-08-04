@@ -1254,6 +1254,33 @@
             </div>
           </div>
 
+          <!-- SECTION 2.5: DIREKTOR (login ma'lumotlari) -->
+          <div id="sec-director" class="mb-5 section-block">
+            <div class="section-title"><i class="bi bi-person-badge"></i> Direktor va kirish ma'lumotlari</div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Ismi</label>
+                <input type="text" name="director_ism" id="director_ism" class="form-control-dark">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Familyasi</label>
+                <input type="text" name="director_familya" id="director_familya" class="form-control-dark">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Login (email)</label>
+                <input type="text" name="director_email" id="director_email" class="form-control-dark"
+                       autocomplete="off" spellcheck="false">
+                <small class="text-muted mt-1 d-block">Shu email bilan tizimga kiradi</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Yangi parol</label>
+                <input type="text" name="director_password" id="director_password" class="form-control-dark"
+                       autocomplete="new-password" placeholder="O'zgartirmoqchi bo'lsangiz yozing">
+                <small class="text-muted mt-1 d-block">Bo'sh qoldirilsa — parol o'zgarmaydi</small>
+              </div>
+            </div>
+          </div>
+
           <!-- SECTION 3: FEATURES (MODULES) -->
           <div id="sec-features" class="mb-5 section-block">
             <div class="section-title"><i class="bi bi-grid-1x2"></i> Modullar va Ruxsatlar</div>
@@ -2054,6 +2081,16 @@
       document.getElementById('name').value = center.name;
       document.getElementById('address').value = center.address || '';
       document.getElementById('status').value = center.status || 'ACTIVE';
+
+      // Direktor login ma'lumotlari. Parol maydoni HAR DOIM bo'sh qoladi —
+      // bazada faqat hash saqlanadi, ko'rsatib bo'lmaydi. Bo'sh yuborilsa
+      // backend parolga tegmaydi.
+      const dir = center.director || {};
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+      setVal('director_ism', dir.ism);
+      setVal('director_familya', dir.familya);
+      setVal('director_email', dir.email);
+      setVal('director_password', '');
 
       if (center.expires_at) {
         document.getElementById('expires_at').value = center.expires_at.split('T')[0];

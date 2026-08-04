@@ -502,8 +502,14 @@ def center_update_api(request, center_id):
         # 2. Update Director
         director = User.objects.filter(center=center, role='director').first()
         if director:
-            director.ism = data.get('director_ism', director.ism)
-            director.familya = data.get('director_familya', director.familya)
+            # Bo'sh yuborilgan maydon mavjud qiymatni O'CHIRMASLIGI kerak
+            # (forma maydoni bo'sh qoldirilishi = "o'zgartirmaslik").
+            _ism = (data.get('director_ism') or '').strip()
+            _fam = (data.get('director_familya') or '').strip()
+            if _ism:
+                director.ism = _ism
+            if _fam:
+                director.familya = _fam
             
             # Email: login uchun ishlatiladi — bo'sh joy va katta harf login'ni
             # buzadi (backend email__iexact bilan qidiradi, ortiqcha probel mos
