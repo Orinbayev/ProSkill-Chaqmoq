@@ -7063,7 +7063,27 @@ def group_points(request, pk: int):
                 if cached:
                     return JsonResponse(cached)
 
-
+            # ✅ KUNLIK LIMIT — markaz sozlamasidagi chegara (0 = cheksiz).
+            # MUHIM: tekshiruv select_for_update() qulfi ICHIDA turadi, aks holda
+            # parallel so'rovlar bir vaqtda "joy bor" deb ko'rib limitdan oshirardi.
+            # chaqmoq:berish va mobil API allaqachon shu qoidani qo'llaydi —
+            # guruh sahifasidagi +/− tugmalari esa chetlab o'tardi.
+            _allowed, _remaining, _limit = Ledger.daily_limit_check(
+                student_user.id, g.center, amount, on_date=parsed_date
+            )
+            if not _allowed:
+                _act = "olishi" if amount > 0 else "yo'qotishi"
+                return JsonResponse({
+                    "status": "error",
+                    "ok": False,
+                    "code": "daily_limit",
+                    "message": (
+                        f"Kunlik limit: {student_user.ism} {parsed_date} kuni ko'pi bilan "
+                        f"{_limit} chaqmoq {_act} mumkin. Qolgan: {_remaining}."
+                    ),
+                    "limit": _limit,
+                    "remaining": _remaining,
+                }, status=200)
 
             # Yangi yozuv yaratish
             record = Ledger.objects.create(

@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.db.models import Sum, Count, Q, Avg
 from django.db import models
+from django.db.utils import IntegrityError
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -504,20 +505,51 @@ def center_update_api(request, center_id):
             director.ism = data.get('director_ism', director.ism)
             director.familya = data.get('director_familya', director.familya)
             
-            new_email = data.get('director_email')
-            if new_email and new_email != director.email:
-                if User.objects.filter(email=new_email).exists():
-                    return JsonResponse({"success": False, "error": f"Email {new_email} allaqachon mavjud!"}, status=400)
+            # Email: login uchun ishlatiladi — bo'sh joy va katta harf login'ni
+            # buzadi (backend email__iexact bilan qidiradi, ortiqcha probel mos
+            # kelmaydi). Shuning uchun har doim normallashtiramiz.
+            old_email = director.email
+            new_email = (data.get('director_email') or '').strip().lower()
+            if new_email and new_email != (old_email or '').strip().lower():
+                # Dublikat tekshiruvi: registrga BOG'LIQ EMAS + soft-delete
+                # qilinganlar ham hisobga olinadi (email global unique, aks holda
+                # saqlashda IntegrityError → 500 bo'lardi).
+                clash = User.all_objects.filter(email__iexact=new_email).exclude(pk=director.pk).exists()
+                if clash:
+                    return JsonResponse(
+                        {"success": False, "error": f"Email {new_email} allaqachon band!"},
+                        status=400,
+                    )
                 director.email = new_email
-            
+
             director.passport_id = data.get('director_passport', director.passport_id)
             director.jshr = data.get('director_jshr', director.jshr)
-            
-            new_pass = data.get('director_password')
+
+            new_pass = (data.get('director_password') or '').strip()
             if new_pass:
                 director.set_password(new_pass)
-                
-            director.save()
+
+            try:
+                director.save()
+            except IntegrityError:
+                return JsonResponse(
+                    {"success": False, "error": "Bu email boshqa foydalanuvchida band."},
+                    status=400,
+                )
+
+            # Login qulfini bekor qilamiz: direktor eski parolni bir necha marta
+            # kiritib qulflangan bo'lishi mumkin — u holda YANGI parol ham
+            # 15 daqiqa ishlamasdi va "parol o'zgarmadi" bo'lib ko'rinardi.
+            if new_pass or director.email != old_email:
+                try:
+                    from accounts.login_throttle import unlock_login_identifier
+                    unlock_login_identifier(director.email)
+                    if old_email:
+                        unlock_login_identifier(old_email)
+                    if getattr(director, "phone_number", None):
+                        unlock_login_identifier(director.phone_number)
+                except Exception:
+                    pass
         else:
             # Create if not exists
             dir_email = data.get('director_email', '').strip().lower()

@@ -2161,7 +2161,8 @@
           updateFlash(studentId, amount);
           showToast("Ball saqlandi", "success");
         } else {
-          showToast(data.error || "Xato", "error");
+          // Kunlik limit xabari `message` da keladi — uni ham ko'rsatamiz.
+          showToast(data.message || data.error || "Xato", "error");
         }
       } catch (err) {
         showToast("Server bilan aloqa yo'q", "error");
