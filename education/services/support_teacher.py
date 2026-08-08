@@ -273,11 +273,22 @@ def staff_queryset_for_support_dropdown(center):
     """Group form'da support sifatida tanlanishi mumkin bo'lgan xodimlar.
 
     Talabalar va ota-onalar ro'yxatga kirmaydi.
+
+    Markazning o'z xodimlaridan tashqari, shu filialda ishlashga ruxsat
+    olgan MEHMON o'qituvchilar ham kiradi (`TeacherCenterAccess`) — aks holda
+    ko'p filialli o'qituvchini support sifatida tanlab bo'lmasdi.
     """
     from django.contrib.auth import get_user_model
+    from django.db.models import Q
 
     User = get_user_model()
     qs = User.objects.exclude(role__in=["student", "parent"])
     if center:
-        qs = qs.filter(center=center)
+        qs = qs.filter(
+            Q(center=center)
+            | Q(
+                extra_center_access_teacher__center=center,
+                extra_center_access_teacher__is_active=True,
+            )
+        ).distinct()
     return qs.order_by("ism", "familya", "email")

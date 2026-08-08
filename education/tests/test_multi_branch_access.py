@@ -697,6 +697,199 @@ class RuxsatNPlusBirTest(TestCase):
         )
 
 
+# ═══════════════════════════════════════════════════════════════════════
+#  FILIALDA GURUH OCHISH: mehmon o'qituvchi formada ko'rinadimi?
+# ═══════════════════════════════════════════════════════════════════════
+
+class FilialdaGuruhOchishTest(TestCase):
+    """Asosiy markaz o'qituvchisini FILIAL guruhiga qo'yish.
+
+    Ilgari `GroupForm` o'qituvchilarni faqat `User.center == center` bo'yicha
+    filtrlardi — shuning uchun asosiy markaz o'qituvchisi filial formasida
+    umuman ko'rinmasdi va uni tanlab bo'lmasdi. `TeacherCenterAccess` bo'lsa
+    ham foyda yo'q edi: ruxsat bor, lekin dropdown bo'sh.
+    """
+
+    def setUp(self):
+        _keshlarni_tozala()
+
+        self.root = create_active_center(name="Bosh Markaz", slug="bosh-m")
+        self.filial = activate_center(
+            Center.objects.create(
+                name="Filial A", slug="filial-a", parent_center=self.root,
+            )
+        )
+        self.begona = create_active_center(name="Begona M", slug="begona-2")
+
+        self.ustoz = User.objects.create_user(
+            email="ustoz2@bosh.uz", password="parol12345",
+            role="teacher", center=self.root, ism="Ali", familya="Valiyev",
+        )
+        self.filial_ustoz = User.objects.create_user(
+            email="ustoz3@filial.uz", password="parol12345",
+            role="teacher", center=self.filial, ism="Vali", familya="Aliyev",
+        )
+        self.begona_ustoz = User.objects.create_user(
+            email="ustoz4@begona.uz", password="parol12345",
+            role="teacher", center=self.begona, ism="Begona", familya="Ustoz",
+        )
+
+    def _form_oqituvchilari(self, center):
+        from education.forms import GroupForm
+
+        form = GroupForm(center=center)
+        return set(form.fields["oqituvchi"].queryset.values_list("id", flat=True))
+
+    def test_ruxsatsiz_mehmon_formada_yoq(self):
+        """Ruxsat berilmagan bo'lsa — asosiy markaz o'qituvchisi ko'rinmaydi."""
+        idlar = self._form_oqituvchilari(self.filial)
+        self.assertEqual(idlar, {self.filial_ustoz.id})
+
+    def test_ruxsat_berilgach_mehmon_formada_paydo_boladi(self):
+        """✅ ASOSIY TALAB: ruxsatdan keyin filial formasida tanlash mumkin."""
+        grant_teacher_access(self.ustoz, self.filial)
+
+        idlar = self._form_oqituvchilari(self.filial)
+        self.assertIn(
+            self.ustoz.id, idlar,
+            "Mehmon o'qituvchi filial guruh formasida ko'rinmadi — "
+            "uni guruhga qo'yib bo'lmaydi",
+        )
+        self.assertEqual(idlar, {self.filial_ustoz.id, self.ustoz.id})
+
+    def test_begona_markaz_oqituvchisi_hech_qachon_yoq(self):
+        """⛔ Boshqa mijoz o'qituvchisi ro'yxatga tushmaydi."""
+        grant_teacher_access(self.ustoz, self.filial)
+        idlar = self._form_oqituvchilari(self.filial)
+        self.assertNotIn(self.begona_ustoz.id, idlar)
+
+    def test_mehmon_yorligida_uy_markazi_korsatiladi(self):
+        """Direktor kimni tanlayotganini bilishi kerak."""
+        from education.forms import GroupForm
+
+        grant_teacher_access(self.ustoz, self.filial)
+        form = GroupForm(center=self.filial)
+        yorliq = form.fields["oqituvchi"].label_from_instance(self.ustoz)
+
+        self.assertIn("mehmon", yorliq.lower())
+        self.assertIn("Bosh Markaz", yorliq)
+
+        # Filialning O'Z o'qituvchisi oddiy ko'rinadi
+        oddiy = form.fields["oqituvchi"].label_from_instance(self.filial_ustoz)
+        self.assertNotIn("mehmon", oddiy.lower())
+
+    def test_ruxsat_olingach_formadan_chiqadi(self):
+        grant_teacher_access(self.ustoz, self.filial)
+        revoke_teacher_access(self.ustoz, self.filial)
+
+        self.assertNotIn(self.ustoz.id, self._form_oqituvchilari(self.filial))
+
+    def test_guruh_filialda_yaratiladi(self):
+        """Uchdan-uchgacha: mehmon o'qituvchi bilan filialda guruh ochiladi."""
+        grant_teacher_access(self.ustoz, self.filial)
+
+        guruh = Group.objects.create(
+            nom="Filial guruh (mehmon ustoz)", center=self.filial,
+            oqituvchi=self.ustoz, kurs_narxi=500000, oqituvchi_foiz=40,
+        )
+
+        # O'qituvchi filialga o'tganda shu guruhni ko'radi
+        client = Client()
+        client.force_login(self.ustoz)
+        client.post(
+            reverse("accounts:teacher_switch_center"),
+            data=json.dumps({"center_id": self.filial.id}),
+            content_type="application/json",
+        )
+        javob = client.get(f"/{self.filial.slug}{reverse('education:my_groups')}")
+        self.assertEqual(javob.status_code, 200)
+        self.assertContains(javob, guruh.nom)
+
+    def test_support_royxatida_ham_mehmon_bor(self):
+        from education.services.support_teacher import staff_queryset_for_support_dropdown
+
+        grant_teacher_access(self.ustoz, self.filial)
+        idlar = set(
+            staff_queryset_for_support_dropdown(self.filial).values_list("id", flat=True)
+        )
+        self.assertIn(self.ustoz.id, idlar)
+        self.assertNotIn(self.begona_ustoz.id, idlar)
+
+
+class FiliallarBoylabBandlikTest(TestCase):
+    """O'qituvchi bir vaqtda ikki filialda dars bera olmaydi.
+
+    Bu ko'p filialli rejimning yangi xavfi: `teacher_is_available()` standart
+    holatda faqat BITTA markaz guruhlarini ko'radi, shuning uchun asosiy
+    markazda dushanba 10:00 da darsi bor o'qituvchini xuddi shu vaqtga
+    filialda ham qo'yib yuborish mumkin bo'lardi.
+    """
+
+    def setUp(self):
+        _keshlarni_tozala()
+
+        self.root = create_active_center(name="Band Root", slug="band-root")
+        self.filial = activate_center(
+            Center.objects.create(
+                name="Band Filial", slug="band-filial", parent_center=self.root,
+            )
+        )
+        self.ustoz = User.objects.create_user(
+            email="band@root.uz", password="parol12345",
+            role="teacher", center=self.root, ism="Band", familya="Ustoz",
+        )
+        grant_teacher_access(self.ustoz, self.filial)
+
+        # Asosiy markazda: dushanba (1) 10:00 da darsi bor
+        from education.models import GroupSchedule
+
+        self.mavjud = Group.objects.create(
+            nom="Root dushanba 10:00", center=self.root, oqituvchi=self.ustoz,
+            kurs_narxi=500000, oqituvchi_foiz=40,
+        )
+        GroupSchedule.objects.create(
+            center=self.root, group=self.mavjud,
+            weekday=1, start_time="10:00", end_time="11:30",
+        )
+
+    def _forma(self, *, kunlar: str, start="10:00", end="11:30"):
+        """`kunlar` — vergul bilan ajratilgan isoweekday (masalan "1,3,5")."""
+        from education.forms import GroupForm
+
+        return GroupForm(
+            data={
+                "nom": "Yangi filial guruhi",
+                "oqituvchi": self.ustoz.id,
+                "kurs_narxi": "500000",
+                "oqituvchi_foiz": "40",
+                "oy_dars_soni": "12",
+                "max_students": "15",
+                "schedule_mode": "custom",
+                "schedule_days": kunlar,        # ⬅ forma aynan shu nomni o'qiydi
+                "schedule_start_time": start,
+                "schedule_end_time": end,
+            },
+            center=self.filial,
+        )
+
+    def test_toqnashuv_aniqlanadi(self):
+        """⛔ Asosiy markazda band vaqtga filialda guruh ochilmaydi."""
+        form = self._forma(kunlar="1")
+
+        self.assertFalse(form.is_valid(), "To'qnashuv aniqlanmadi!")
+        xatolar = " ".join(form.errors.get("oqituvchi", []))
+        self.assertIn("band", xatolar.lower())
+        self.assertIn("boshqa filial", xatolar.lower())
+
+    def test_bosh_vaqtga_ruxsat(self):
+        """✅ Boshqa kunga (seshanba) guruh ochish mumkin."""
+        form = self._forma(kunlar="2")
+
+        if not form.is_valid():
+            # Bandlikdan boshqa sabab bo'lsa — test maqsadi buzilmasin
+            self.assertNotIn("oqituvchi", form.errors, form.errors.as_json())
+
+
 class _QuerySanoq:
     """`assertNumQueries` ning qiymat qaytaradigan varianti (taqqoslash uchun)."""
 

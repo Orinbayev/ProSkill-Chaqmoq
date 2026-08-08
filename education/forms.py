@@ -112,14 +112,45 @@ class GroupForm(forms.ModelForm):
                 categories_qs = categories_qs.none()
             self.fields["category_obj"].queryset = categories_qs
 
-        # Filter teachers by center
+        # ── O'qituvchilar ro'yxati (markaz + mehmon filiallar) ──────────
+        #
+        # Ilgari faqat `center=center` filtri bor edi. Natijada asosiy
+        # markazning o'qituvchisi FILIAL guruh formasida umuman ko'rinmasdi —
+        # ya'ni "o'qituvchini boshqa filialda guruhga qo'yish" imkonsiz edi.
+        #
+        # Endi ikkita manba birlashtiriladi:
+        #   1) `User.center == center`                      — markazning o'z o'qituvchisi
+        #   2) faol `TeacherCenterAccess(center=center)`    — mehmon o'qituvchi
+        #
+        # Mehmonlar yorliqda «(mehmon: <uy markazi>)» deb belgilanadi, shunda
+        # direktor kimni tanlayotganini adashtirmaydi.
         if "oqituvchi" in self.fields:
+            from django.db.models import Q as _Q
+
             teach_qs = User.objects.filter(role="teacher")
             if center:
-                teach_qs = teach_qs.filter(center=center)
-            self.fields["oqituvchi"].queryset = teach_qs.order_by("ism", "familya")
+                teach_qs = teach_qs.filter(
+                    _Q(center=center)
+                    | _Q(
+                        extra_center_access_teacher__center=center,
+                        extra_center_access_teacher__is_active=True,
+                    )
+                ).distinct()
+            teach_qs = teach_qs.select_related("center").order_by("ism", "familya")
+            self.fields["oqituvchi"].queryset = teach_qs
             self.fields["oqituvchi"].empty_label = "O'qituvchini tanlang"
-            self.fields["oqituvchi"].label_from_instance = lambda obj: f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
+
+            _center_id = getattr(center, "id", None)
+
+            def _teacher_label(obj):
+                ism = f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
+                # Uy markazi boshqa bo'lsa — mehmon o'qituvchi
+                if _center_id and obj.center_id and obj.center_id != _center_id:
+                    uy = getattr(obj.center, "name", "") or "boshqa filial"
+                    return f"{ism} (mehmon: {uy})"
+                return ism
+
+            self.fields["oqituvchi"].label_from_instance = _teacher_label
 
         # ── Support teacher field'larini sozlash ──
         # Faqat markazda feature yoqilgan bo'lsa ko'rinadi.
@@ -262,6 +293,46 @@ class GroupForm(forms.ModelForm):
             else:
                 weekdays = tuple(custom_days)
 
+            # ── Bandlik: BARCHA ruxsat berilgan filiallar bo'ylab ──────────
+            #
+            # `teacher_is_available()` standart holatda faqat bitta markaz
+            # guruhlarini ko'radi. Ko'p filialli o'qituvchi uchun bu yetarli
+            # emas: u dushanba 10:00 da asosiy markazda dars berayotgan bo'lsa,
+            # xuddi shu vaqtga filialda ham guruh ochib yuborish mumkin bo'lardi
+            # (odam bir vaqtda ikki joyda bo'la olmaydi).
+            #
+            # Servis imzosiga tegmaymiz — `groups`/`availability_slots`
+            # parametrlari allaqachon bor, shunchaki kengaytirilgan queryset
+            # uzatamiz. Bitta markazli o'qituvchi uchun natija o'zgarmaydi.
+            from django.db.models import Prefetch
+
+            from .models import GroupSchedule, TeacherAvailability
+
+            markaz_idlari = list(
+                teacher.accessible_centers().values_list("id", flat=True)
+            ) or [self.center.id]
+
+            guruhlar = (
+                Group.objects.filter(
+                    center_id__in=markaz_idlari,
+                    oqituvchi=teacher,
+                    is_archived=False,
+                    is_closed=False,
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "schedules",
+                        queryset=GroupSchedule.objects
+                        .filter(center_id__in=markaz_idlari)
+                        .order_by("weekday", "start_time"),
+                    )
+                )
+                .order_by("id")
+            )
+            bandlik = TeacherAvailability.objects.filter(
+                tenant_id__in=markaz_idlari, teacher=teacher,
+            ).order_by("weekday", "start_time", "id")
+
             if weekdays and not teacher_is_available(
                 teacher,
                 center=self.center,
@@ -269,8 +340,14 @@ class GroupForm(forms.ModelForm):
                 start_time=schedule_start_time,
                 end_time=schedule_end_time,
                 exclude_group_id=getattr(self.instance, "pk", None),
+                groups=guruhlar,
+                availability_slots=bandlik,
             ):
-                self.add_error("oqituvchi", "Tanlangan kun va vaqtda bu o'qituvchi band.")
+                self.add_error(
+                    "oqituvchi",
+                    "Tanlangan kun va vaqtda bu o'qituvchi band "
+                    "(boshqa filialdagi darsi ham hisobga olindi).",
+                )
 
         # ── Support teacher validatsiyasi ──
         if getattr(self, "support_enabled_for_center", False):
