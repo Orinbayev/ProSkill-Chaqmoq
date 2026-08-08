@@ -528,6 +528,44 @@ def director_branch_request(request):
     # Root (asosiy) markazni aniqlaymiz — limit tekshiruvi shu yerda
     root_center = current_center.get_root_center()
 
+    # ── Filialni BOSHQA direktorga biriktirish (ixtiyoriy) ───────────────
+    # Bo'sh bo'lsa — so'rovchining o'ziga (eski xatti-harakat).
+    #
+    # DIQQAT — TARTIB MUHIM: bu tekshiruv tarif limiti va pending limitidan
+    # OLDIN turadi. Sabab: bu XAVFSIZLIK tekshiruvi (cross-tenant), va
+    # xavfsizlik xatosi kvota xatosi bilan yashirinib qolmasligi kerak.
+    # Aks holda "limit tugadi" (400) javobi ostida noto'g'ri direktor ID
+    # e'tibordan chetda qolardi.
+    target_director = None
+    raw_target = data.get("target_director_id")
+    if raw_target not in (None, "", 0, "0"):
+        from accounts.services.center_access import center_tree_ids
+
+        try:
+            target_id = int(raw_target)
+        except (TypeError, ValueError):
+            return JsonResponse(
+                {"ok": False, "error": "target_director_id noto'g'ri"}, status=400
+            )
+
+        target_director = User.objects.filter(
+            pk=target_id, role="director", is_deleted=False
+        ).only("id", "center").first()
+        if target_director is None:
+            return JsonResponse(
+                {"ok": False, "error": "Direktor topilmadi"}, status=404
+            )
+        if target_director.center_id not in center_tree_ids(root_center):
+            logger.warning(
+                "director_branch_request: cross-tenant urinish — direktor #%s "
+                "begona direktor #%s ni biriktirmoqchi bo'ldi",
+                user.pk, target_id,
+            )
+            return JsonResponse({
+                "ok": False,
+                "error": "Bu direktor boshqa markazga tegishli — biriktirib bo'lmaydi",
+            }, status=403)
+
     # Tarif limiti tekshiruvi
     try:
         from billing.services import can_add_branch
@@ -550,6 +588,7 @@ def director_branch_request(request):
     branch_request = BranchRequest.objects.create(
         requester=user,
         parent_center=root_center,  # Har doim root center ga bog'laymiz
+        target_director=target_director,
         name=name,
         address=address,
         phone=phone,
@@ -659,6 +698,258 @@ def director_branch_deactivate(request, center_id: int):
 
     reload_needed = str(request.session.get("current_center_id")) == str(center_id)
     return JsonResponse({"ok": True, "message": f"'{center.name}' filiali bloklandi", "reload": reload_needed})
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  O'QITUVCHI — KO'P FILIALLI ISHLASH (multi-branch)
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Muammo: bitta o'qituvchi bir necha filialda dars beradi, lekin `email` va
+# `phone_number` unique bo'lgani uchun har filial uchun alohida login ochishga
+# majbur edi. Natijada davomat, daromad va reyting bir necha hisob orasida
+# bo'linib ketardi.
+#
+# Yechim: bitta hisob + `TeacherCenterAccess`. O'qituvchi xuddi direktor
+# (`director_switch_center`) va superadmin (`/platform/center-switch/`) kabi
+# `session['active_center_id']` orqali filiallar o'rtasida almashadi.
+# Ruxsatni `TenantMiddleware` HAR REQUESTDA qayta tekshiradi — sessiyaga
+# qo'lda yozilgan ID hech narsa bermaydi.
+
+
+def _teacher_only(request):
+    """Faqat o'qituvchi (yoki superadmin) uchun."""
+    user = request.user
+    return user.is_superuser or getattr(user, "role", None) == "teacher"
+
+
+@login_required
+@require_http_methods(["GET"])
+def teacher_my_centers(request):
+    """O'qituvchi ishlaydigan filiallar ro'yxati (JSON).
+
+    BITTA query: `User.accessible_centers()` rol bo'yicha Q birlashtiradi,
+    shuning uchun har filial uchun alohida so'rov ketmaydi (N+1 yo'q).
+    """
+    if not _teacher_only(request):
+        return JsonResponse({"ok": False, "error": "Faqat o'qituvchi"}, status=403)
+
+    user = request.user
+    joriy = getattr(request, "center", None) or getattr(user, "center", None)
+
+    markazlar = []
+    for center in user.accessible_centers().select_related("parent_center"):
+        markazlar.append({
+            "id": center.id,
+            "name": center.name,
+            "slug": center.slug,
+            "address": center.address or "",
+            "is_current": bool(joriy and joriy.id == center.id),
+            # `is_primary` — o'qituvchining "uy" markazi (`User.center`).
+            "is_primary": bool(user.center_id and user.center_id == center.id),
+            "is_branch": center.parent_center_id is not None,
+            "parent_center_name": (
+                center.parent_center.name if center.parent_center_id else None
+            ),
+            # Bloklangan filialga o'tish taqiqlanadi — UI'da kulrang ko'rsatiladi.
+            "is_switchable": center.status == Center.STATUS_ACTIVE,
+            "status": center.status,
+        })
+
+    markazlar.sort(key=lambda m: (not m["is_primary"], m["name"].lower()))
+
+    return JsonResponse({
+        "ok": True,
+        "centers": markazlar,
+        "current_id": joriy.id if joriy else None,
+        "can_switch": len(markazlar) > 1,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def teacher_switch_center(request):
+    """O'qituvchi o'ziga ruxsat berilgan filialga o'tadi.
+
+    XAVFSIZLIK: ruxsat `User.has_center_access()` orqali tekshiriladi — bu
+    `TeacherCenterAccess` jadvalining yagona o'quvchisi. Ruxsat bo'lmasa 403,
+    va sessiyaga hech narsa yozilmaydi.
+    """
+    if not _teacher_only(request):
+        return JsonResponse({"ok": False, "error": "Faqat o'qituvchi"}, status=403)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Yaroqsiz JSON"}, status=400)
+
+    center_id = data.get("center_id")
+    if not center_id:
+        return JsonResponse({"ok": False, "error": "center_id kiritilmagan"}, status=400)
+    try:
+        center_id = int(center_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "center_id noto'g'ri"}, status=400)
+
+    # ⛔ ASOSIY TO'SIQ — busiz IDOR bo'ladi.
+    if not request.user.has_center_access(center_id):
+        logger.warning(
+            "teacher_switch_center: RUXSAT YO'Q — o'qituvchi #%s markaz #%s ga urindi",
+            request.user.pk, center_id,
+        )
+        return JsonResponse({"ok": False, "error": "Bu filialga ruxsat yo'q"}, status=403)
+
+    center = Center.objects.filter(pk=center_id, is_deleted=False).first()
+    if center is None:
+        return JsonResponse({"ok": False, "error": "Filial topilmadi"}, status=404)
+    if center.status != Center.STATUS_ACTIVE:
+        return JsonResponse({
+            "ok": False,
+            "error": f"Bu filial faol emas (holat: {center.status})",
+        }, status=400)
+
+    request.session["active_center_id"] = center_id
+    request.session.modified = True
+
+    logger.info(
+        "teacher_switch_center: o'qituvchi #%s → markaz #%s (%s)",
+        request.user.pk, center.id, center.slug,
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "center_id": center.id,
+        "center_name": center.name,
+        "center_slug": center.slug,
+        "redirect_url": f"/{center.slug}{reverse('education:my_groups')}",
+    })
+
+
+@login_required
+@require_http_methods(["GET", "POST", "DELETE"])
+def teacher_center_access_manage(request):
+    """Direktor/manager o'qituvchini filialga biriktiradi yoki olib tashlaydi.
+
+    GET    — joriy markazdagi mehmon o'qituvchilar + biriktirish mumkin bo'lganlar
+    POST   — {teacher_id, center_id} → ruxsat beriladi
+    DELETE — {teacher_id, center_id} → ruxsat olib tashlanadi (soft)
+
+    XAVFSIZLIK: `center_id` va `teacher_id` ikkalasi ham SO'ROV YUBORUVCHINING
+    markaz daraxtida bo'lishi shart. Tekshiruv `same_tree_or_raise()` da.
+    """
+    from accounts.services.center_access import (
+        RuxsatXatosi,
+        center_tree_ids,
+        grant_teacher_access,
+        revoke_teacher_access,
+        teacher_access_rows,
+    )
+
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) in ("director", "manager")):
+        return JsonResponse(
+            {"ok": False, "error": "Faqat direktor yoki manager"}, status=403
+        )
+
+    joriy_markaz = getattr(request, "center", None) or getattr(user, "center", None)
+    if joriy_markaz is None:
+        return JsonResponse({"ok": False, "error": "Markaz aniqlanmadi"}, status=400)
+
+    daraxt = center_tree_ids(joriy_markaz)
+
+    if request.method == "GET":
+        mehmonlar = [
+            {
+                "teacher_id": r.teacher_id,
+                "name": r.teacher.get_full_name() or r.teacher.email,
+                "email": r.teacher.email,
+                "granted_by": (
+                    r.granted_by.get_full_name() or r.granted_by.email
+                ) if r.granted_by_id else "",
+                "note": r.note,
+            }
+            for r in teacher_access_rows(joriy_markaz)
+        ]
+        # Biriktirish mumkin: shu daraxtdagi, lekin joriy markaz "uyi" bo'lmagan
+        # o'qituvchilar. Bitta query.
+        nomzodlar = [
+            {
+                "teacher_id": t.id,
+                "name": t.get_full_name() or t.email,
+                "email": t.email,
+                "home_center": t.center.name if t.center_id else "",
+            }
+            for t in User.objects.filter(
+                role="teacher", center_id__in=daraxt, is_deleted=False,
+                is_archived=False,
+            ).exclude(center_id=joriy_markaz.id).select_related("center")
+        ]
+        return JsonResponse({
+            "ok": True,
+            "center": {"id": joriy_markaz.id, "name": joriy_markaz.name},
+            "guests": mehmonlar,
+            "candidates": nomzodlar,
+        })
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Yaroqsiz JSON"}, status=400)
+
+    try:
+        teacher_id = int(data.get("teacher_id"))
+        target_center_id = int(data.get("center_id") or joriy_markaz.id)
+    except (TypeError, ValueError):
+        return JsonResponse(
+            {"ok": False, "error": "teacher_id / center_id noto'g'ri"}, status=400
+        )
+
+    # ⛔ Ikki tomonlama daraxt tekshiruvi (cross-tenant himoyasi).
+    if target_center_id not in daraxt:
+        return JsonResponse(
+            {"ok": False, "error": "Bu filial sizning markazingizga tegishli emas"},
+            status=403,
+        )
+
+    teacher = User.objects.filter(
+        pk=teacher_id, role="teacher", is_deleted=False
+    ).select_related("center").first()
+    if teacher is None:
+        return JsonResponse({"ok": False, "error": "O'qituvchi topilmadi"}, status=404)
+    if teacher.center_id not in daraxt:
+        return JsonResponse(
+            {"ok": False, "error": "Bu o'qituvchi boshqa markazga tegishli"}, status=403
+        )
+
+    target_center = Center.objects.filter(pk=target_center_id, is_deleted=False).first()
+    if target_center is None:
+        return JsonResponse({"ok": False, "error": "Filial topilmadi"}, status=404)
+
+    if request.method == "DELETE":
+        olindi = revoke_teacher_access(teacher, target_center)
+        return JsonResponse({
+            "ok": True,
+            "revoked": olindi,
+            "message": (
+                f"{teacher.get_full_name()} → «{target_center.name}» ruxsati olindi"
+                if olindi else "Faol ruxsat topilmadi"
+            ),
+        })
+
+    try:
+        grant_teacher_access(
+            teacher, target_center,
+            granted_by=user, note=(data.get("note") or "").strip()[:255],
+        )
+    except RuxsatXatosi as xato:
+        return JsonResponse({"ok": False, "error": str(xato)}, status=400)
+
+    return JsonResponse({
+        "ok": True,
+        "message": (
+            f"{teacher.get_full_name() or teacher.email} endi "
+            f"«{target_center.name}» filialida ishlashi mumkin"
+        ),
+    })
 
 
 @login_required

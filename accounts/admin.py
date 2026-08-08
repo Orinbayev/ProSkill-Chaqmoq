@@ -1,6 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import Branch, BranchRequest, Center, DirectorCenterAccess, ParentTelegramLinkToken, User
+from .models import (
+    Branch,
+    BranchRequest,
+    Center,
+    DirectorCenterAccess,
+    ParentTelegramLinkToken,
+    TeacherCenterAccess,
+    User,
+)
 from .services import branch_requests as branch_service
 from django.contrib import admin, messages
 from django.utils import timezone
@@ -317,6 +325,25 @@ class DirectorCenterAccessAdmin(admin.ModelAdmin):
     search_fields = ("director__email", "director__ism", "director__familya", "center__name")
 
 
+@admin.register(TeacherCenterAccess)
+class TeacherCenterAccessAdmin(admin.ModelAdmin):
+    """O'qituvchining qo'shimcha filiallari (ko'p filialli ishlash).
+
+    Bu jadval — o'qituvchi uchun ruxsatning YAGONA manbasi: `TenantMiddleware`
+    va `teacher_switch_center` shu yerdan o'qiydi. Qatorni `is_active=False`
+    qilish o'qituvchini o'sha filialdan darhol uzadi (keyingi requestda
+    sessiya tozalanadi).
+    """
+
+    list_display = ("teacher", "center", "is_active", "granted_by", "granted_at")
+    list_filter = ("is_active", "center")
+    search_fields = (
+        "teacher__email", "teacher__ism", "teacher__familya", "center__name",
+    )
+    autocomplete_fields = ()
+    readonly_fields = ("granted_at",)
+
+
 @admin.register(BranchRequest)
 class BranchRequestAdmin(admin.ModelAdmin):
     """Filial so'rovlari.
@@ -328,7 +355,7 @@ class BranchRequestAdmin(admin.ModelAdmin):
     """
 
     list_display = (
-        "name", "requester", "parent_center", "status",
+        "name", "requester", "target_director", "parent_center", "status",
         "created_center", "created_at",
     )
     list_filter = ("status",)

@@ -328,9 +328,72 @@ class DirectorCenterAccess(models.Model):
         unique_together = [("director", "center")]
         verbose_name = "Direktor markaz ruxsati"
         verbose_name_plural = "Direktor markaz ruxsatlari"
+        indexes = [
+            models.Index(fields=["director", "is_active"], name="dca_dir_active_idx"),
+        ]
 
     def __str__(self):
         return f"{self.director} → {self.center.name}"
+
+
+class TeacherCenterAccess(models.Model):
+    """
+    Bitta o'qituvchi bir nechta filialda dars berishi uchun.
+
+    Nega alohida model kerak?
+      • `User.center` — bitta FK, o'zgarmaydi (asosiy/uy markaz).
+      • Ilgari o'qituvchi ikkinchi filialda ishlashi uchun ikkinchi
+        login/parol ochishga majbur edi — `email` va `phone_number` unique
+        bo'lgani uchun bu "teacher2@..." kabi sun'iy hisoblarni keltirardi:
+        davomat, daromad va reyting ikki hisob orasida bo'linib ketardi.
+      • Endi bitta hisob + shu jadval: o'qituvchi ruxsat berilgan filiallar
+        o'rtasida `session['active_center_id']` bilan almashadi.
+
+    XAVFSIZLIK: bu jadval — o'qituvchi uchun ruxsatning YAGONA manbasi.
+    `TenantMiddleware` va `teacher_switch_center` aynan shu yerdan o'qiydi;
+    sessiyaga qo'lda yozilgan `active_center_id` bu tekshiruvdan o'tmaydi.
+
+    DirectorCenterAccess bilan ataylab alohida: rollar semantikasi boshqa
+    (direktor markazni boshqaradi, o'qituvchi faqat o'z guruhlarini ko'radi),
+    shuning uchun bitta jadvalga qo'shib yuborish ruxsatlarni chalkashtiradi.
+    """
+
+    teacher = models.ForeignKey(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="extra_center_access_teacher",
+        limit_choices_to={"role": "teacher"},
+        verbose_name="O'qituvchi",
+    )
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="extra_teachers",
+        verbose_name="Markaz (filial)",
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    granted_by = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="granted_teacher_accesses",
+        verbose_name="Kim berdi",
+    )
+    is_active = models.BooleanField(default=True)
+    note = models.CharField(max_length=255, blank=True, default="", verbose_name="Izoh")
+
+    class Meta:
+        unique_together = [("teacher", "center")]
+        verbose_name = "O'qituvchi markaz ruxsati"
+        verbose_name_plural = "O'qituvchi markaz ruxsatlari"
+        indexes = [
+            models.Index(fields=["teacher", "is_active"], name="tca_teacher_active_idx"),
+            models.Index(fields=["center", "is_active"], name="tca_center_active_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher} → {self.center.name}"
 
 
 class BranchRequest(models.Model):
@@ -349,6 +412,23 @@ class BranchRequest(models.Model):
         on_delete=models.CASCADE,
         related_name="branch_requests",
         verbose_name="So'rov beruvchi",
+    )
+    # Filial KIMGA biriktiriladi. Bo'sh bo'lsa — so'rov beruvchining o'ziga
+    # (eski xatti-harakat, backward compatible).
+    #
+    # Bu maydon 1-muammoni hal qiladi: ilgari `tasdiqla()` faqat
+    # `requester` uchun DirectorCenterAccess yaratardi, shuning uchun bir
+    # direktor yaratgan filial ikkinchi direktorga KO'RINMASDI —
+    # markaz almashtirgich (`director_my_centers`) aynan shu jadvaldan o'qiydi.
+    target_director = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="targeted_branch_requests",
+        limit_choices_to={"role": "director"},
+        verbose_name="Biriktiriladigan direktor",
+        help_text="Bo'sh bo'lsa filial so'rov beruvchining o'ziga biriktiriladi.",
     )
     parent_center = models.ForeignKey(
         Center,
@@ -655,6 +735,68 @@ class User(SoftDeleteMixin, AbstractUser):
         if exclude_pk:
             qs = qs.exclude(pk=exclude_pk)
         return qs.exists()
+
+    # ── Ko'p markazli ruxsat (multi-branch) ─────────────────────────────
+    #
+    # Bu ikki metod — "foydalanuvchi qaysi markazlarni ko'rishi mumkin?"
+    # savolining YAGONA javobi. Middleware, view'lar va testlar shu yerdan
+    # o'qiydi, shuning uchun qoida bir joyda turadi (ikki xil joyda ikki xil
+    # tekshiruv = IDOR teshigi).
+
+    def accessible_centers(self):
+        """Foydalanuvchi kirishi mumkin bo'lgan markazlar (queryset).
+
+        BITTA query — hech qanday N+1 yo'q (rol bo'yicha Q birlashtiriladi).
+
+        • director → o'z markazi + faol `DirectorCenterAccess`
+        • teacher  → o'z markazi + faol `TeacherCenterAccess`
+        • boshqalar → faqat o'z markazi
+        • superuser → barcha markazlar
+        """
+        role = getattr(self, "role", None)
+
+        if self.is_superuser:
+            return Center.objects.filter(is_deleted=False)
+
+        shart = models.Q(pk__in=[])  # bo'sh, xavfsiz boshlang'ich
+        if self.center_id:
+            shart |= models.Q(pk=self.center_id)
+
+        if role == Roles.DIREKTOR:
+            shart |= models.Q(
+                extra_directors__director_id=self.pk,
+                extra_directors__is_active=True,
+            )
+        elif role == Roles.OQITUVCHI:
+            shart |= models.Q(
+                extra_teachers__teacher_id=self.pk,
+                extra_teachers__is_active=True,
+            )
+
+        return Center.objects.filter(shart, is_deleted=False).distinct()
+
+    def has_center_access(self, center_id) -> bool:
+        """Shu markazga kirish huquqi bormi? (sessiyani tekshirish uchun)"""
+        try:
+            center_id = int(center_id)
+        except (TypeError, ValueError):
+            return False
+
+        if self.is_superuser:
+            return True
+        if self.center_id and int(self.center_id) == center_id:
+            return True
+
+        role = getattr(self, "role", None)
+        if role == Roles.DIREKTOR:
+            return DirectorCenterAccess.objects.filter(
+                director_id=self.pk, center_id=center_id, is_active=True
+            ).exists()
+        if role == Roles.OQITUVCHI:
+            return TeacherCenterAccess.objects.filter(
+                teacher_id=self.pk, center_id=center_id, is_active=True
+            ).exists()
+        return False
 
     class Meta:
         verbose_name = "Foydalanuvchi"

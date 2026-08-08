@@ -235,7 +235,25 @@ def _bind_authenticated_center(request, center, path: str, *, clear_invalid_sess
     return None
 
 
-def _get_director_session_center(request):
+# Sessiya orqali markaz almashtirishi mumkin bo'lgan rollar.
+#   director → DirectorCenterAccess
+#   teacher  → TeacherCenterAccess  (ko'p filialli o'qituvchi)
+# Boshqa rollar (student/parent/manager) uchun `active_center_id` E'TIBORGA
+# OLINMAYDI — ular faqat `user.center` da ishlaydi.
+SWITCHABLE_ROLES = frozenset({'director', 'teacher'})
+
+
+def _get_session_center(request):
+    """`session['active_center_id']` ni ROL bo'yicha tekshirib qaytaradi.
+
+    XAVFSIZLIK: ruxsat manbasi — `User.has_center_access()`, ya'ni
+    `DirectorCenterAccess` / `TeacherCenterAccess` jadvallari. Sessiyaga
+    qo'lda yozilgan (yoki eski, ruxsati olib tashlangan) ID bu tekshiruvdan
+    o'tmaydi va DARHOL sessiyadan tozalanadi — shundan keyin foydalanuvchi
+    o'zining `user.center` iga qaytadi. Busiz cross-tenant IDOR bo'lardi.
+
+    Qaytaradi: `Center` yoki `None`.
+    """
     active_center_id = request.session.get('active_center_id')
     if not active_center_id:
         return None
@@ -246,16 +264,12 @@ def _get_director_session_center(request):
         request.session.pop('active_center_id', None)
         return None
 
-    from accounts.models import DirectorCenterAccess
-
-    user_center = getattr(request.user, 'center', None)
-    is_own = bool(user_center and user_center.id == center_id)
-    has_access = is_own or DirectorCenterAccess.objects.filter(
-        director=request.user,
-        center_id=center_id,
-        is_active=True,
-    ).exists()
-    if not has_access:
+    # ⛔ ASOSIY TO'SIQ — rol-aware ruxsat tekshiruvi (bitta EXISTS query).
+    if not request.user.has_center_access(center_id):
+        logger.info(
+            'TenantMiddleware: ruxsatsiz active_center_id=%s (user #%s, rol=%s) — tozalandi',
+            center_id, request.user.pk, getattr(request.user, 'role', None),
+        )
         request.session.pop('active_center_id', None)
         return None
 
@@ -265,6 +279,10 @@ def _get_director_session_center(request):
 
     request.session.pop('active_center_id', None)
     return None
+
+
+# Backward-compatible nom: eski kod/testlar shu nomni import qilishi mumkin.
+_get_director_session_center = _get_session_center
 
 # Paths that should NEVER be treated as center slugs
 EXCLUDED_PREFIXES = {
@@ -392,7 +410,11 @@ class TenantMiddleware:
                 _user_center = getattr(request.user, 'center', None)
                 if _user_center:
                     _redirect_slug = None
-                    if getattr(request.user, 'role', None) == 'director':
+                    # Almashtirish huquqi bor rollar (director + teacher) uchun
+                    # sessiyada tanlangan filialga yo'naltiramiz. Ruxsat bu yerda
+                    # emas, `_get_session_center()` da tekshiriladi — bu faqat
+                    # redirect slug'ini tanlaydi, ma'lumotga kirish bermaydi.
+                    if getattr(request.user, 'role', None) in SWITCHABLE_ROLES:
                         _switched_id = request.session.get('active_center_id')
                         if _switched_id:
                             try:
@@ -433,8 +455,10 @@ class TenantMiddleware:
                 role = getattr(request.user, 'role', None)
                 if _mw_debug:
                     _t_bind = time.perf_counter()
-                if role == 'director':
-                    switched_center = _get_director_session_center(request)
+                # Director VA teacher sessiya orqali filial almashtirishi mumkin.
+                # Ruxsat `_get_session_center()` ichida tekshiriladi.
+                if role in SWITCHABLE_ROLES:
+                    switched_center = _get_session_center(request)
                     if switched_center is not None:
                         response = _bind_authenticated_center(
                             request,

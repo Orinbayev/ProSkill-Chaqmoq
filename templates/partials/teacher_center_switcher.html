@@ -1,0 +1,158 @@
+{% comment %}
+O'qituvchi uchun filial almashtirgich.
+
+Faqat o'qituvchi rolida va bittadan ko'p filialga ruxsati bo'lsa ko'rinadi
+(ro'yxat bo'sh yoki bitta bo'lsa blok butunlay yashiriladi — sidebar
+o'zgarmaydi).
+
+Ma'lumot client-side yuklanadi (`accounts:teacher_my_centers`), shuning uchun
+bu partial sidebar render'iga hech qanday qo'shimcha DB query qo'shmaydi.
+{% endcomment %}
+
+{% if request.user.is_authenticated and request.user.role == 'teacher' %}
+<div id="tcSwitch" class="tc-switch" hidden>
+  <button type="button" class="tc-switch-btn" onclick="tcToggle()"
+          aria-haspopup="listbox" aria-expanded="false">
+    <i class="fa-solid fa-code-branch tc-ico"></i>
+    <span class="tc-current" id="tcCurrentName">—</span>
+    <i class="fa-solid fa-chevron-down tc-caret"></i>
+  </button>
+  <div class="tc-menu" id="tcMenu" role="listbox" hidden></div>
+</div>
+
+<style>
+  .tc-switch { position: relative; margin: 6px 10px 2px; }
+  .tc-switch-btn {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, rgba(56,189,248,.12), rgba(14,165,233,.06));
+    border: 1px solid rgba(56,189,248,.28);
+    color: #e0f2fe; font-size: .78rem; font-weight: 600; text-align: left;
+  }
+  .tc-switch-btn:hover { background: rgba(56,189,248,.2); }
+  .tc-ico { color: #38bdf8; flex: 0 0 auto; }
+  .tc-current { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tc-caret { font-size: .6rem; opacity: .7; flex: 0 0 auto; }
+  .tc-menu {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 1080;
+    background: #0f172a; border: 1px solid rgba(148,163,184,.28);
+    border-radius: 10px; padding: 4px; box-shadow: 0 12px 28px rgba(0,0,0,.45);
+    max-height: 280px; overflow-y: auto;
+  }
+  .tc-item {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 9px; border: 0; border-radius: 8px; cursor: pointer;
+    background: transparent; color: #cbd5e1; font-size: .76rem; text-align: left;
+  }
+  .tc-item:hover { background: rgba(56,189,248,.14); color: #e0f2fe; }
+  .tc-item[disabled] { opacity: .45; cursor: not-allowed; }
+  .tc-item.is-current { background: rgba(56,189,248,.18); color: #7dd3fc; font-weight: 700; }
+  .tc-badge {
+    margin-left: auto; font-size: .6rem; padding: 1px 6px; border-radius: 999px;
+    background: rgba(148,163,184,.2); color: #94a3b8; flex: 0 0 auto;
+  }
+  body.sidebar-collapsed .tc-current,
+  body.sidebar-collapsed .tc-caret { display: none; }
+
+  html[data-role-theme="light"] .tc-switch-btn {
+    background: linear-gradient(135deg, rgba(14,165,233,.1), rgba(2,132,199,.05));
+    border-color: rgba(2,132,199,.3); color: #0c4a6e;
+  }
+  html[data-role-theme="light"] .tc-menu { background: #fff; border-color: rgba(15,23,42,.12); }
+  html[data-role-theme="light"] .tc-item { color: #334155; }
+  html[data-role-theme="light"] .tc-item.is-current { color: #0369a1; }
+</style>
+
+<script>
+(function () {
+  const LIST_URL   = "{% url 'accounts:teacher_my_centers' %}";
+  const SWITCH_URL = "{% url 'accounts:teacher_switch_center' %}";
+
+  const root  = document.getElementById('tcSwitch');
+  const menu  = document.getElementById('tcMenu');
+  const label = document.getElementById('tcCurrentName');
+  if (!root) return;
+
+  function csrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  window.tcToggle = function () {
+    const btn = root.querySelector('.tc-switch-btn');
+    const ochiq = !menu.hidden;
+    menu.hidden = ochiq;
+    btn.setAttribute('aria-expanded', String(!ochiq));
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!root.contains(e.target)) menu.hidden = true;
+  });
+
+  async function almashtir(centerId) {
+    try {
+      const r = await fetch(SWITCH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ center_id: centerId }),
+      });
+      const d = await r.json();
+      if (d.ok && d.redirect_url) {
+        window.location.href = d.redirect_url;
+      } else {
+        alert(d.error || "Filialni almashtirib bo'lmadi");
+      }
+    } catch (err) {
+      alert('Tarmoq xatosi');
+    }
+  }
+
+  async function yukla() {
+    let d;
+    try {
+      const r = await fetch(LIST_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!r.ok) return;                 // 403 — rol mos emas, jim qolamiz
+      d = await r.json();
+    } catch (err) { return; }
+
+    // Bitta filial bo'lsa almashtirgich keraksiz — ko'rsatmaymiz.
+    if (!d.ok || !d.can_switch) return;
+
+    const joriy = d.centers.find((c) => c.is_current);
+    label.textContent = joriy ? joriy.name : '—';
+
+    menu.innerHTML = '';
+    d.centers.forEach((c) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tc-item' + (c.is_current ? ' is-current' : '');
+      if (!c.is_switchable) b.disabled = true;
+
+      const ico = document.createElement('i');
+      ico.className = c.is_primary ? 'fa-solid fa-house' : 'fa-solid fa-code-branch';
+      b.appendChild(ico);
+
+      const nom = document.createElement('span');
+      nom.textContent = c.name;
+      b.appendChild(nom);
+
+      if (c.is_primary || !c.is_switchable) {
+        const badge = document.createElement('span');
+        badge.className = 'tc-badge';
+        badge.textContent = c.is_switchable ? 'asosiy' : c.status;
+        b.appendChild(badge);
+      }
+
+      if (!c.is_current && c.is_switchable) {
+        b.addEventListener('click', () => almashtir(c.id));
+      }
+      menu.appendChild(b);
+    });
+
+    root.hidden = false;
+  }
+
+  yukla();
+})();
+</script>
+{% endif %}

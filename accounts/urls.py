@@ -100,6 +100,12 @@ tenant_patterns = [
     path("branch-request/", views.director_branch_request, name="branch_request"),
     path("branch/<int:center_id>/edit/", views.director_branch_edit, name="director_branch_edit"),
     path("branch/<int:center_id>/deactivate/", views.director_branch_deactivate, name="director_branch_deactivate"),
+
+    # ── O'qituvchi: ko'p filialli ishlash ────────────────────────────
+    # DIQQAT: `urls_tenant.py` bilan bir xil turishi kerak (tarixiy dublikat).
+    path("teacher/my-centers/", views.teacher_my_centers, name="teacher_my_centers"),
+    path("teacher/switch-center/", views.teacher_switch_center, name="teacher_switch_center"),
+    path("teacher/center-access/", views.teacher_center_access_manage, name="teacher_center_access"),
 ]
 
 test_urlpatterns = [

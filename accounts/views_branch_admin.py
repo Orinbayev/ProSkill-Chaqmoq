@@ -15,8 +15,9 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
-from accounts.models import BranchRequest
+from accounts.models import BranchRequest, User
 from accounts.services import branch_requests as branch_service
+from accounts.services.center_access import center_root_map, center_tree_ids
 
 superadmin_only = user_passes_test(lambda u: u.is_superuser)
 
@@ -41,6 +42,12 @@ def _so_rov_dict(so_rov: BranchRequest) -> dict:
         "asosiy_markaz": so_rov.parent_center.name if so_rov.parent_center else "—",
         "sorovchi": so_rov.requester.get_full_name() or so_rov.requester.email,
         "sorovchi_email": so_rov.requester.email,
+        # Filial qaysi direktorga biriktiriladi (bo'sh = so'rovchining o'ziga).
+        "biriktirilgan_id": so_rov.target_director_id,
+        "biriktirilgan": (
+            (so_rov.target_director.get_full_name() or so_rov.target_director.email)
+            if so_rov.target_director_id else ""
+        ),
         "sana": so_rov.created_at.strftime("%d.%m.%Y %H:%M"),
         "korilgan": so_rov.reviewed_at.strftime("%d.%m.%Y %H:%M") if so_rov.reviewed_at else "",
         "yaratilgan_markaz": markaz.name if markaz else "",
@@ -57,7 +64,9 @@ def superadmin_filiallar(request):
 
     so_rovlar = (
         BranchRequest.objects
-        .select_related("requester", "parent_center", "created_center")
+        .select_related(
+            "requester", "parent_center", "created_center", "target_director",
+        )
         .order_by("-created_at")
     )
     if qidiruv:
@@ -67,8 +76,32 @@ def superadmin_filiallar(request):
             | Q(requester__email__icontains=qidiruv)
         )
 
-    barchasi = [_so_rov_dict(s) for s in so_rovlar[:300]]
+    ro_yxat = list(so_rovlar[:300])
+    barchasi = [_so_rov_dict(s) for s in ro_yxat]
     kutilmoqda = [s for s in barchasi if s["holat"] == BranchRequest.Status.PENDING]
+
+    # ── Har so'rov uchun "biriktirish mumkin" direktorlar ────────────────
+    # Filial faqat O'Z markaz daraxtidagi direktorga biriktiriladi (cross-tenant
+    # ruxsat = IDOR). Xarita + bitta direktor so'rovi = N+1 yo'q.
+    root_xarita = center_root_map()
+    direktorlar = list(
+        User.objects.filter(role="director", center__isnull=False, is_deleted=False)
+        .only("id", "ism", "familya", "email", "center_id")
+    )
+    root_boyicha: dict[int, list[dict]] = {}
+    for d in direktorlar:
+        root_id = root_xarita.get(d.center_id)
+        if root_id is None:
+            continue
+        root_boyicha.setdefault(root_id, []).append({
+            "id": d.id,
+            "nom": d.get_full_name() or d.email,
+            "email": d.email,
+        })
+
+    for so_rov_obj, karta in zip(ro_yxat, barchasi):
+        root_id = root_xarita.get(so_rov_obj.parent_center_id)
+        karta["nomzod_direktorlar"] = root_boyicha.get(root_id, [])
 
     return render(request, "accounts/superadmin_filiallar.html", {
         # DIQQAT: bu yerga `json.dumps(...)` BERILMAYDI. `json_script` filtri
@@ -86,6 +119,42 @@ def superadmin_filiallar(request):
         ),
         "qidiruv": qidiruv,
     })
+
+
+def _biriktirilgan_direktorni_belgila(so_rov: BranchRequest, direktor_id) -> str | None:
+    """`target_director` ni tekshirib belgilaydi. Xato matnini qaytaradi (yoki None).
+
+    XAVFSIZLIK: direktor faqat so'rovning O'Z markaz daraxtidan bo'lishi shart.
+    Aks holda superadmin xato bosib, boshqa mijozning direktoriga begona
+    filialga ruxsat bergan bo'lib qolardi (cross-tenant IDOR).
+    """
+    if direktor_id in (None, "", 0, "0"):
+        return None
+
+    try:
+        direktor_id = int(direktor_id)
+    except (TypeError, ValueError):
+        return "direktor_id noto'g'ri."
+
+    direktor = User.objects.filter(
+        pk=direktor_id, role="director", is_deleted=False
+    ).select_related("center").first()
+    if direktor is None:
+        return "Direktor topilmadi."
+    if direktor.center_id is None:
+        return "Bu direktorga asosiy markaz belgilanmagan."
+
+    if so_rov.parent_center_id is None:
+        return "So'rovning asosiy markazi topilmadi."
+
+    ruxsat_etilgan = center_tree_ids(so_rov.parent_center)
+    if direktor.center_id not in ruxsat_etilgan:
+        return "Bu direktor boshqa markaz daraxtiga tegishli — biriktirib bo'lmaydi."
+
+    if so_rov.target_director_id != direktor_id:
+        so_rov.target_director_id = direktor_id
+        so_rov.save(update_fields=["target_director"])
+    return None
 
 
 @login_required
@@ -106,13 +175,20 @@ def branch_request_action(request, sorov_id: int):
 
     try:
         if amal == "tasdiqla":
+            # Ixtiyoriy: filialni BOSHQA direktorga biriktirish.
+            # Bo'sh bo'lsa — eski xatti-harakat (so'rovchining o'ziga).
+            xato = _biriktirilgan_direktorni_belgila(so_rov, data.get("direktor_id"))
+            if xato:
+                return JsonResponse({"ok": False, "error": xato}, status=400)
+
             markaz = branch_service.tasdiqla(so_rov, reviewer=request.user)
             return JsonResponse({
                 "ok": True,
                 "xabar": f"«{markaz.name}» filiali yaratildi.",
                 "sorov": _so_rov_dict(
                     BranchRequest.objects.select_related(
-                        "requester", "parent_center", "created_center"
+                        "requester", "parent_center", "created_center",
+                        "target_director",
                     ).get(pk=so_rov.pk)
                 ),
             })
@@ -126,7 +202,8 @@ def branch_request_action(request, sorov_id: int):
                 "xabar": "So'rov rad etildi.",
                 "sorov": _so_rov_dict(
                     BranchRequest.objects.select_related(
-                        "requester", "parent_center", "created_center"
+                        "requester", "parent_center", "created_center",
+                        "target_director",
                     ).get(pk=so_rov.pk)
                 ),
             })

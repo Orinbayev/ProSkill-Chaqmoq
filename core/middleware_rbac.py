@@ -189,6 +189,12 @@ class RoleBasedAccessMiddleware:
                 # Profil sahifasi (ism, familya, parol, avatar)
                 'accounts:profile',
                 'accounts:user_edit',
+                # Ko'p filialli o'qituvchi: markaz almashtirish.
+                # DIQQAT: `accounts` namespace o'qituvchiga TO'LIQ berilmaydi —
+                # faqat shu ikki nom. Aks holda o'qituvchi `add_user`,
+                # `my_centers` kabi direktor endpointlariga ham kirardi.
+                'accounts:teacher_my_centers',
+                'accounts:teacher_switch_center',
                 # Lesson preview (global + namespaced)
                 'api_calculate_lessons',
                 'education:calculate_lessons_api',

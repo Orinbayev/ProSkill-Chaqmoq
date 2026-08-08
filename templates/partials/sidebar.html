@@ -54,6 +54,9 @@
     <div class="sidebar-section-label sidebar-title center-name">{{ request.center.name|upper }}</div>
     {% endif %}
 
+    {# Ko'p filialli o'qituvchi uchun filial almashtirgich (bitta filialda yashirin) #}
+    {% include "partials/teacher_center_switcher.html" %}
+
     <button class="sb-toggle-btn" onclick="toggleSidebarDesktop()" aria-label="Toggle Sidebar">
       <i class="fa-solid fa-chevron-left"></i>
     </button>

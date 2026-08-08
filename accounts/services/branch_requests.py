@@ -20,7 +20,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from accounts.models import BranchRequest, Center, DirectorCenterAccess
+from accounts.models import BranchRequest, Center
+from accounts.services.center_access import grant_director_access
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,34 @@ def _bosh_slug(nom: str, req_id: int) -> str:
     return slug
 
 
+def _ruxsatlarni_kafolatla(so_rov: BranchRequest, markaz: Center, *, reviewer=None) -> None:
+    """Filial ko'rinishi uchun kerakli `DirectorCenterAccess` yozuvlarini yaratadi.
+
+    Markaz almashtirgich (`director_my_centers`) aynan `DirectorCenterAccess`
+    jadvalidan o'qiydi — busiz filial yaratilsa ham ro'yxatda KO'RINMAYDI.
+    Bu 1-muammoning aynan sababi edi.
+
+    Ikki direktorga ruxsat beriladi:
+      1) `requester`       — o'zi so'ragan filialni ko'rishi kerak;
+      2) `target_director` — filial boshqa direktorga biriktirilgan bo'lsa.
+
+    `check_tree=False`: yangi markaz allaqachon root ostida ochilgan, lekin
+    direktorning `user.center` i o'sha daraxtning boshqa filiali bo'lishi
+    mumkin (normal holat). Daraxt mosligi so'rov yaratilayotganda
+    (`director_branch_request` / superadmin paneli) tekshirilgan.
+
+    Idempotent: bir necha marta chaqirilsa ham dublikat yaratmaydi.
+    """
+    grant_director_access(
+        so_rov.requester, markaz, granted_by=reviewer, check_tree=False,
+    )
+
+    if so_rov.target_director_id and so_rov.target_director_id != so_rov.requester_id:
+        grant_director_access(
+            so_rov.target_director, markaz, granted_by=reviewer, check_tree=False,
+        )
+
+
 @transaction.atomic
 def tasdiqla(branch_request: BranchRequest, *, reviewer=None) -> Center:
     """So'rovni tasdiqlaydi va yangi filial-markazni yaratadi.
@@ -61,11 +90,16 @@ def tasdiqla(branch_request: BranchRequest, *, reviewer=None) -> Center:
     so_rov = (
         BranchRequest.objects
         .select_for_update()
-        .select_related("requester", "parent_center")
+        .select_related("requester", "parent_center", "target_director")
         .get(pk=branch_request.pk)
     )
 
     if so_rov.status == BranchRequest.Status.APPROVED and so_rov.created_center_id:
+        # Idempotent, LEKIN ruxsatlarni qayta kafolatlaymiz: so'rov
+        # tasdiqlangandan KEYIN `target_director` belgilangan bo'lishi mumkin
+        # (masalan superadmin panelda "boshqa direktorga biriktirish").
+        # Busiz filial yangi direktorga ko'rinmay qolardi.
+        _ruxsatlarni_kafolatla(so_rov, so_rov.created_center, reviewer=reviewer)
         return so_rov.created_center
 
     if so_rov.status == BranchRequest.Status.REJECTED:
@@ -93,18 +127,7 @@ def tasdiqla(branch_request: BranchRequest, *, reviewer=None) -> Center:
 
     CenterSubscription.objects.filter(center=yangi_markaz).delete()
 
-    # ASOSIY: direktor filialni ko'rishi uchun shu ruxsat kerak.
-    # Markaz almashtirgich (`director_centers`) aynan shu jadvaldan o'qiydi —
-    # busiz filial yaratilsa ham ro'yxatda ko'rinmaydi.
-    if getattr(so_rov.requester, "role", None) == "director":
-        ruxsat, yaratildi = DirectorCenterAccess.objects.get_or_create(
-            director=so_rov.requester,
-            center=yangi_markaz,
-            defaults={"is_active": True, "granted_by": reviewer},
-        )
-        if not yaratildi and not ruxsat.is_active:
-            ruxsat.is_active = True
-            ruxsat.save(update_fields=["is_active"])
+    _ruxsatlarni_kafolatla(so_rov, yangi_markaz, reviewer=reviewer)
 
     so_rov.status = BranchRequest.Status.APPROVED
     so_rov.reviewed_at = timezone.now()
@@ -115,8 +138,10 @@ def tasdiqla(branch_request: BranchRequest, *, reviewer=None) -> Center:
     )
 
     logger.info(
-        "Filial so'rovi #%s tasdiqlandi → markaz #%s (%s), direktor: %s",
-        so_rov.pk, yangi_markaz.pk, yangi_markaz.name, so_rov.requester_id,
+        "Filial so'rovi #%s tasdiqlandi → markaz #%s (%s), so'rovchi: %s, "
+        "biriktirilgan direktor: %s",
+        so_rov.pk, yangi_markaz.pk, yangi_markaz.name,
+        so_rov.requester_id, so_rov.target_director_id or so_rov.requester_id,
     )
     return yangi_markaz
 
