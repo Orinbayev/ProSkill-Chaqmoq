@@ -18,7 +18,13 @@ from django.utils.text import slugify
 
 from .duplicate_checks import serialize_student_duplicate_check
 from .forms import AddUserForm, TeacherForm, ProfileEditForm, PasswordUpdateForm
-from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
+from accounts.models import (
+    BranchRequest,
+    Center,
+    DirectorCenterAccess,
+    TeacherCenterAccess,
+    User,
+)
 from education.models import Group, Enrollment, Attendance
 from core.tenant import get_request_center
 from django.db.models import Q
@@ -870,7 +876,10 @@ def teacher_center_access_manage(request):
             for r in teacher_access_rows(joriy_markaz)
         ]
         # Biriktirish mumkin: shu daraxtdagi, lekin joriy markaz "uyi" bo'lmagan
-        # o'qituvchilar. Bitta query.
+        # VA hali ruxsati yo'q o'qituvchilar. Bitta query (subquery bilan).
+        allaqachon = TeacherCenterAccess.objects.filter(
+            center=joriy_markaz, is_active=True
+        ).values("teacher_id")
         nomzodlar = [
             {
                 "teacher_id": t.id,
@@ -881,7 +890,10 @@ def teacher_center_access_manage(request):
             for t in User.objects.filter(
                 role="teacher", center_id__in=daraxt, is_deleted=False,
                 is_archived=False,
-            ).exclude(center_id=joriy_markaz.id).select_related("center")
+            )
+            .exclude(center_id=joriy_markaz.id)
+            .exclude(pk__in=allaqachon)          # mehmonlar ro'yxatida turganlar
+            .select_related("center")
         ]
         return JsonResponse({
             "ok": True,
